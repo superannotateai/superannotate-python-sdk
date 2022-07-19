@@ -69,14 +69,23 @@ class GetItem(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: BaseReadOnlyRepository,
+        backend_client: SuperannotateServiceProvider,
         item_name: str,
+        include_custom_metadata: bool,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
-        self._items = items
+        self._backend_client = backend_client
         self._item_name = item_name
+        self._include_custom_metadata = include_custom_metadata
+
+    def validate_project_type(self):
+        if (
+            self._project.type == constants.ProjectType.PIXEL.value
+            and self._include_custom_metadata
+        ):
+            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
 
     @staticmethod
     def serialize_entity(entity: BaseItemEntity, project: ProjectEntity):
@@ -106,8 +115,13 @@ class GetItem(BaseReportableUseCase):
                 & Condition("team_id", self._project.team_id, EQ)
                 & Condition("project_id", self._project.id, EQ)
                 & Condition("folder_id", self._folder.uuid, EQ)
+                & Condition("includeCustomMetadata", self._include_custom_metadata, EQ)
             )
-            entity = self._items.get_one(condition)
+            response = self._backend_client.list_items(condition.build_query())
+            if not response.ok:
+                self._response.errors = response.error
+                return self._response
+            entity = next((i for i in response.data if i.name == self._item_name), None)
             if entity:
                 entity.add_path(self._project.name, self._folder.name)
                 self._response.data = self.serialize_entity(entity, self._project)
@@ -211,36 +225,53 @@ class ListItems(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: BaseReadOnlyRepository,
-        search_condition: Condition,
         folders: BaseReadOnlyRepository,
+        search_condition: Condition,
+        backend_client: SuperannotateServiceProvider,
         recursive: bool = False,
+        include_custom_metadata: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
-        self._folder = folder
-        self._items = items
         self._folders = folders
+        self._folder = folder
+        self._backend_client = backend_client
         self._search_condition = search_condition
         self._recursive = recursive
+        self._include_custom_metadata = include_custom_metadata
 
     def validate_recursive_case(self):
         if not self._folder.is_root and self._recursive:
             self._recursive = False
 
+    def validate_project_type(self):
+        if (
+            self._project.type == constants.ProjectType.PIXEL.value
+            and self._include_custom_metadata
+        ):
+            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
+
     def execute(self) -> Response:
         if self.is_valid():
             self._search_condition &= Condition("team_id", self._project.team_id, EQ)
             self._search_condition &= Condition("project_id", self._project.id, EQ)
+            self._search_condition &= Condition(
+                "includeCustomMetadata", self._include_custom_metadata, EQ
+            )
 
             if not self._recursive:
                 self._search_condition &= Condition("folder_id", self._folder.uuid, EQ)
+                items_response = self._backend_client.list_items(
+                    self._search_condition.build_query()
+                )
+                if not items_response.ok:
+                    raise AppException(items_response.error)
                 items = [
                     GetItem.serialize_entity(
                         item.add_path(self._project.name, self._folder.name),
                         self._project,
                     )
-                    for item in self._items.get_all(self._search_condition)
+                    for item in items_response.data
                 ]
             else:
                 items = []
@@ -250,17 +281,21 @@ class ListItems(BaseReportableUseCase):
                 )
                 folders.append(self._folder)
                 for folder in folders:
-                    tmp = self._items.get_all(
-                        copy.deepcopy(self._search_condition)
-                        & Condition("folder_id", folder.uuid, EQ)
+                    response = self._backend_client.list_items(
+                        (
+                            copy.deepcopy(self._search_condition)
+                            & Condition("folder_id", folder.uuid, EQ)
+                        ).build_query()
                     )
+                    if not response.ok:
+                        raise AppException(response.error)
                     items.extend(
                         [
                             GetItem.serialize_entity(
                                 item.add_path(self._project.name, folder.name),
                                 self._project,
                             )
-                            for item in tmp
+                            for item in response.data
                         ]
                     )
             self._response.data = items

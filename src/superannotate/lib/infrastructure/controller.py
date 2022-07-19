@@ -1482,7 +1482,13 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def get_item(self, project_name: str, folder_name: str, item_name: str):
+    def get_item(
+        self,
+        project_name: str,
+        folder_name: str,
+        item_name: str,
+        include_custom_metadata: bool,
+    ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         use_case = usecases.GetItem(
@@ -1490,7 +1496,8 @@ class Controller(BaseController):
             project=project,
             folder=folder,
             item_name=item_name,
-            items=self.items,
+            backend_client=self.backend_client,
+            include_custom_metadata=include_custom_metadata,
         )
         return use_case.execute()
 
@@ -1503,6 +1510,7 @@ class Controller(BaseController):
         annotator_email: str = None,
         qa_email: str = None,
         recursive: bool = False,
+        include_custom_metadata: bool = False,
         **kwargs,
     ):
         project = self._get_project(project_name)
@@ -1520,18 +1528,18 @@ class Controller(BaseController):
             search_condition &= Condition("qa_id", qa_email, EQ)
         if annotator_email:
             search_condition &= Condition("annotator_id", annotator_email, EQ)
-        search_condition &= build_condition(**kwargs)
 
+        search_condition &= build_condition(**kwargs)
         use_case = usecases.ListItems(
             reporter=self.get_default_reporter(),
             project=project,
             folder=folder,
-            recursive=recursive,
-            items=self.items,
             folders=self.folders,
+            recursive=recursive,
+            backend_client=self.backend_client,
             search_condition=search_condition,
+            include_custom_metadata=include_custom_metadata,
         )
-
         return use_case.execute()
 
     def attach_items(

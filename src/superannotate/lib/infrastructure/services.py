@@ -15,6 +15,7 @@ from urllib.parse import urljoin
 import lib.core as constance
 import requests.packages.urllib3
 from lib.core import entities
+from lib.core.entities import BaseItemEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
@@ -125,6 +126,7 @@ class BaseBackendService(SuperannotateServiceProvider):
         params=None,
         retried=0,
         content_type=None,
+        dispatcher: Callable = None,
     ) -> Union[requests.Response, ServiceResponse]:
         kwargs = {"data": json.dumps(data, cls=PydanticEncoder)} if data else {}
         session = self.get_session()
@@ -148,7 +150,7 @@ class BaseBackendService(SuperannotateServiceProvider):
                 f"Got {response.status_code} response from backend: {response.text}"
             )
         if content_type:
-            return ServiceResponse(response, content_type)
+            return ServiceResponse(response, content_type, dispatcher=dispatcher)
         return response
 
     def _get_page(self, url, offset, params=None, key_field: str = None):
@@ -540,11 +542,32 @@ class SuperannotateBackendService(BaseBackendService):
             url = f"{url}?{query_string}"
         return self._get_all_pages(url)
 
-    def list_items(self, query_string) -> List[dict]:
+    def list_items(self, query_string) -> ServiceResponse:
         url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
-        return self._get_all_pages(url)
+        offset = 0
+        total = []
+        while True:
+            splitter = "&" if "?" in url else "?"
+            url = f"{url}{splitter}offset={offset}"
+            _response = self._request(
+                url,
+                method="get",
+                content_type=List[BaseItemEntity],
+                dispatcher=lambda x: x.pop("data"),
+            )
+            if _response.ok:
+                total.extend(_response.data)
+            else:
+                return _response
+            data_len = len(_response.data)
+            if _response.count < self.LIMIT or _response.count - offset <= 0:
+                break
+            offset += data_len
+        response = ServiceResponse(_response)
+        response.data = total
+        return response
 
     def prepare_export(
         self,

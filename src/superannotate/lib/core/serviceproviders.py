@@ -95,6 +95,9 @@ class SuperannotateServiceProvider:
     def update_folder(self, project_id: int, team_id: int, folder_data: dict):
         raise NotImplementedError
 
+    def list_items(self, query_params: str) -> ServiceResponse:
+        raise NotImplementedError
+
     def get_download_token(
         self,
         project_id: int,
