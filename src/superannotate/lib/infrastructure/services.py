@@ -28,7 +28,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from requests.exceptions import HTTPError
-from superannotate.version import __version__
+from superannotate import __version__
 
 requests.packages.urllib3.disable_warnings()
 

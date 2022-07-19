@@ -16,7 +16,7 @@ from lib.core.exceptions import AppException
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from mixpanel import Mixpanel
-from version import __version__
+from superannotate import __version__
 
 
 class BaseInterfaceFacade:
