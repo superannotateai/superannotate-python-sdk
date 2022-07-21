@@ -562,9 +562,9 @@ class SuperannotateBackendService(BaseBackendService):
             else:
                 return _response
             data_len = len(_response.data)
+            offset += data_len
             if _response.count < self.LIMIT or _response.count - offset <= 0:
                 break
-            offset += data_len
         response = ServiceResponse(_response)
         response.data = total
         return response
