@@ -79,6 +79,17 @@ ______
 
 ----------
 
+Custom Metadata
+______
+
+.. automethod:: superannotate.SAClient.create_custom_fields
+.. automethod:: superannotate.SAClient.get_custom_fields
+.. automethod:: superannotate.SAClient.delete_custom_fields
+.. automethod:: superannotate.SAClient.upload_custom_values
+.. automethod:: superannotate.SAClient.delete_custom_values
+
+----------
+
 Subsets
 ______
 
@@ -96,8 +107,6 @@ ______
 .. automethod:: superannotate.SAClient.upload_image_annotations
 .. automethod:: superannotate.SAClient.copy_image
 .. automethod:: superannotate.SAClient.pin_image
-.. automethod:: superannotate.SAClient.assign_images
-.. automethod:: superannotate.SAClient.delete_images
 .. automethod:: superannotate.SAClient.add_annotation_bbox_to_image
 .. automethod:: superannotate.SAClient.add_annotation_point_to_image
 .. automethod:: superannotate.SAClient.add_annotation_comment_to_image

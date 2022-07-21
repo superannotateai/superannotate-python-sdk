@@ -78,43 +78,6 @@ class TestUploadVideoAnnotation(BaseTestCase):
         self.assertEqual(len(missing_annotations), 0)
         self.assertIn("Couldn't validate ", self._caplog.text)
 
-    def test_video_annotation_upload(self):
-        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
-
-        _, _, _ = sa.attach_items(
-            self.PROJECT_NAME,
-            self.csv_path,
-        )
-        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_path)
-        export = sa.prepare_export(self.PROJECT_NAME)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            output_path = temp_dir
-            sa.download_export(self.PROJECT_NAME, export, output_path, True)
-            classes = sa.search_annotation_classes(self.PROJECT_NAME)
-            ids_to_replace = [sa.get_project_metadata(self.PROJECT_NAME)['id']]
-            for class_ in classes:
-                for attribute_group in class_['attribute_groups']:
-                    for attribute in attribute_group['attributes']:
-                        ids_to_replace.append(attribute['id'])
-                    ids_to_replace.append(attribute_group['id'])
-                ids_to_replace.append(class_['id'])
-            downloaded_annotation = open(f"{output_path}/video.mp4.json").read()
-            for id_ in ids_to_replace:
-                downloaded_annotation = downloaded_annotation.replace(str(id_), "0")
-            downloaded_annotation = json.loads(downloaded_annotation)
-            class_ids = ["152038", "859496", "338357", "1175876"]
-            annotation = open(f"{self.annotations_path}/video.mp4.json").read()
-            for class_id in class_ids:
-                annotation = annotation.replace(class_id, "0")
-            uploaded_annotation = json.loads(annotation)
-
-            del downloaded_annotation["metadata"]["lastAction"]
-            # status deleted because it changed by export
-            del downloaded_annotation["metadata"]["status"]
-            del uploaded_annotation["metadata"]["status"]
-            self.assertEqual(downloaded_annotation, uploaded_annotation)
-
     def test_upload_annotations_without_class_name(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
@@ -148,19 +111,27 @@ class TestUploadVideoAnnotation(BaseTestCase):
         data = {'instances': [
             {
                 'attributes': [], 'timeline': {
-                '0': {'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}},
-                17.271058: {'points': {'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}},
-                30.526667: {'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}},
-                'type': 'bbox', 'locked': False, 'classId': -1, 'pointLabels': {'3': 'point label bro'}
+                '0': {
+                    'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}},
+                17.271058: {
+                    'points': {
+                        'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}
+                },
+                30.526667: {
+                    'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}},
+                'type': 'bbox', 'locked': False, 'classId': -1,
+                "pointLabels": {
+                    "3": "point label bro"
+                },
             },
             {
                 'attributes': [],
                 'timeline': {29.713736: {'active': True, 'x': 1, 'y': 2}, 30.526667: {'active': False, 'x': 2, 'y': 3}},
-                'type': 'point', 'locked': False, 'classId': -1
+                'type': 'point', 'locked': False, 'classId': -1,
             },
             {
                 'attributes': [], 'timeline': {5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}},
-                'type': 'event', 'locked': False, 'classId': -1
+                'type': 'event', 'locked': False, 'classId': -1,
             }
         ],
             'tags': ['some tag'], 'name': 'video.mp4',

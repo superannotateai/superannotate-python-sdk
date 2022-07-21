@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
 
-from src.superannotate import SAClient
-sa = SAClient()
 import src.superannotate.lib.core as constances
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 from tests.integration.items import IMAGE_EXPECTED_KEYS
+
+sa = SAClient()
 
 
 class TestSearchItems(BaseTestCase):
@@ -57,7 +58,7 @@ class TestSearchItems(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        sa.assign_images(self.PROJECT_NAME, [self.IMAGE1_NAME, self.IMAGE2_NAME], test_email)
+        sa.assign_items(self.PROJECT_NAME, [self.IMAGE1_NAME, self.IMAGE2_NAME], test_email)
 
         items = sa.search_items(self.PROJECT_NAME, annotator_email=test_email, recursive=True)
         assert len(items) == 2

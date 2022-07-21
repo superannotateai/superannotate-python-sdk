@@ -16,7 +16,7 @@ from lib.core.exceptions import AppException
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from mixpanel import Mixpanel
-from version import __version__
+from superannotate import __version__
 
 
 class BaseInterfaceFacade:
@@ -26,7 +26,11 @@ class BaseInterfaceFacade:
         version = os.environ.get("SA_VERSION", "v1")
         _token, _config_path = None, None
         _host = os.environ.get("SA_URL", constants.BACKEND_URL)
-        _ssl_verify = bool(os.environ.get("SA_SSL", True))
+        _ssl_verify = not os.environ.get("SA_SSL", "True").lower() in (
+            "false",
+            "f",
+            "0",
+        )
         if token:
             _token = Controller.validate_token(token=token)
         elif config_path:
@@ -37,6 +41,9 @@ class BaseInterfaceFacade:
                 _token, _host, _ssl_verify = self._retrieve_configs(
                     constants.CONFIG_PATH
                 )
+        _host = _host if _host else constants.BACKEND_URL
+        _ssl_verify = True if _ssl_verify is None else _ssl_verify
+
         self._token, self._host = _token, _host
         self.controller = Controller(_token, _host, _ssl_verify, version)
         BaseInterfaceFacade.REGISTRY.append(self)
