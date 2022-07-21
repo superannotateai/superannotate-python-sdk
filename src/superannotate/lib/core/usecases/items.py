@@ -89,6 +89,7 @@ class GetItem(BaseReportableUseCase):
 
     @staticmethod
     def serialize_entity(entity: BaseItemEntity, project: ProjectEntity):
+        entity = BaseItemEntity(**BaseItemEntity.map_fields(entity.dict()))
         if project.upload_state != constants.UploadState.EXTERNAL.value:
             entity.url = None
         if project.type in (
@@ -123,8 +124,9 @@ class GetItem(BaseReportableUseCase):
                 return self._response
             entity = next((i for i in response.data if i.name == self._item_name), None)
             if entity:
+                entity = self.serialize_entity(entity, self._project)
                 entity.add_path(self._project.name, self._folder.name)
-                self._response.data = self.serialize_entity(entity, self._project)
+                self._response.data = entity
             else:
                 self._response.errors = AppException("Item not found.")
         return self._response
@@ -208,7 +210,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
                 data = []
                 for i, item in enumerate(service_response.data):
                     tmp_item = GetItem.serialize_entity(
-                        BaseItemEntity(**BaseItemEntity.map_fields(item)), self._project
+                        item, self._project
                     )
                     folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
                     tmp_item.path = f"{self._project.name}" + folder_path
@@ -266,13 +268,11 @@ class ListItems(BaseReportableUseCase):
                 )
                 if not items_response.ok:
                     raise AppException(items_response.error)
-                items = [
-                    GetItem.serialize_entity(
-                        item.add_path(self._project.name, self._folder.name),
-                        self._project,
-                    )
-                    for item in items_response.data
-                ]
+                items = []
+                for item in items_response.data:
+                    item = GetItem.serialize_entity(item, self._project)
+                    item.add_path(self._project.name, self._folder.name)
+                    items.append(item)
             else:
                 items = []
                 folders = self._folders.get_all(
@@ -289,15 +289,10 @@ class ListItems(BaseReportableUseCase):
                     )
                     if not response.ok:
                         raise AppException(response.error)
-                    items.extend(
-                        [
-                            GetItem.serialize_entity(
-                                item.add_path(self._project.name, folder.name),
-                                self._project,
-                            )
-                            for item in response.data
-                        ]
-                    )
+                    for item in response.data:
+                        item = GetItem.serialize_entity(item, self._project)
+                        item.add_path(self._project.name, folder.name)
+                        items.append(item)
             self._response.data = items
         return self._response
 
