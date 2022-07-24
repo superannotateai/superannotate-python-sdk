@@ -173,7 +173,7 @@ class CLITest(TestCase):
     def test_upload_videos(self):
         self._create_project()
         self.safe_run(self._cli.upload_videos, self.PROJECT_NAME, str(self.video_folder_path))
-        self.assertEqual(242, len(sa.search_items(self.PROJECT_NAME)))
+        self.assertEqual(121, len(sa.search_items(self.PROJECT_NAME)))
 
     def test_attach_document_urls(self):
         self._create_project("Document")

@@ -543,16 +543,17 @@ class SuperannotateBackendService(BaseBackendService):
         return self._get_all_pages(url)
 
     def list_items(self, query_string) -> ServiceResponse:
+        chunk_size = 2000
         url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
         offset = 0
         total = []
+        splitter = "&" if "?" in url else "?"
         while True:
-            splitter = "&" if "?" in url else "?"
-            url = f"{url}{splitter}offset={offset}"
+            _url = f"{url}{splitter}offset={offset}"
             _response = self._request(
-                url,
+                _url,
                 method="get",
                 content_type=List[BaseItemEntity],
                 dispatcher=lambda x: x.pop("data"),
@@ -563,7 +564,7 @@ class SuperannotateBackendService(BaseBackendService):
                 return _response
             data_len = len(_response.data)
             offset += data_len
-            if _response.count < self.LIMIT or _response.count - offset <= 0:
+            if _response.count < chunk_size or _response.count - offset <= 0:
                 break
         response = ServiceResponse(_response)
         response.data = total

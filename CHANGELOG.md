@@ -1,5 +1,27 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
+## 4.4.1 - July 24, 2022
+### Added
+- `SAClient.create_custom_fields()` _method_ to create/add new custom fields to a project’s custom field schema.
+- `SAClient.get_custom_fields()` _method_ to get a project’s custom field schema.
+- `SAClient.delete_custom_fields()` _method_ to remove existing custom fields from a project’s custom field schema.
+- `SAClient.upload_custom_values()` _method_ to attach custom field-value pairs to items.
+- `SAClient.delete_custom_values()` _method_ to remove custom field-value pairs from items.
+### Updated
+- the **schema** of `classes JSON` to support the new `"default_value"` key to set a default attribute(s) for a given attribute group.
+- `SAClient.get_item_metadata()` _method_ to add a new input argument `include_custom_metadata` to return custom metadata in the result items.
+- `SAClient.search_items()` _method_ to add a new input argument `include_custom_metadata` to return custom metadata in the result items.
+- `SAClient.query()` _method_ to return custom metadata in the result items.
+### Fixed
+- `SAClient` _class_ to address the system crash that occurs on instantiation via `config.json` file.
+- `SAClient.query()` _method_ to address the issue of not returning more than 50 items.
+- `SAClient.upload_annotations_from_folder_to_project()` to address the issue of some fields not being auto populated after the upload is finished.
+- `SAClient.get_folder_metadata()`, `SAClient.search_folders()` to address the issue of transforming the ‘+’ sign in a folder to a whitespace.
+### Removed
+- `superannotate.assign_images()` _function_. Please use the `SAClient.assign_items()` _method_ instead.
+- `superannotate.unassign_images()` _function_. Please use the `SAClient.unassign_items()` _method_ instead.
+- `superannotate.delete_images()` _function_. Please use the `SAClient.delete_items()` _method_ instead.
+###
 ## 4.4.0 - July 03, 2022
 ### Added
 - `superannotate.SAClient()` _class_ to instantiate team-level authentication and inheriting methods to access the back-end.
