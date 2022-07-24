@@ -1,32 +1,13 @@
 from typing import Optional
 
-from lib.core.entities.base import BaseEntity
+from lib.core.entities.base import BaseItemEntity
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import SegmentationStatus
 from pydantic import Extra
 from pydantic import Field
 
 
-class Entity(BaseEntity):
-    class Config:
-        extra = Extra.allow
-
-    def add_path(self, project_name: str, folder_name: str):
-        self.path = (
-            f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}"
-        )
-        return self
-
-    @staticmethod
-    def map_fields(entity: dict) -> dict:
-        entity["url"] = entity.get("path")
-        entity["path"] = None
-        entity["annotator_email"] = entity.get("annotator_id")
-        entity["qa_email"] = entity.get("qa_id")
-        return entity
-
-
-class TmpImageEntity(Entity):
+class TmpImageEntity(BaseItemEntity):
     prediction_status: Optional[SegmentationStatus] = Field(
         SegmentationStatus.NOT_STARTED
     )
@@ -40,13 +21,13 @@ class TmpImageEntity(Entity):
         extra = Extra.ignore
 
 
-class VideoEntity(Entity):
+class VideoEntity(BaseItemEntity):
     approval_status: Optional[ApprovalStatus] = Field(None)
 
     class Config:
         extra = Extra.ignore
 
 
-class DocumentEntity(Entity):
+class DocumentEntity(BaseItemEntity):
     class Config:
         extra = Extra.ignore

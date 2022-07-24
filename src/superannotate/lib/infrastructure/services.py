@@ -15,18 +15,20 @@ from urllib.parse import urljoin
 import lib.core as constance
 import requests.packages.urllib3
 from lib.core import entities
+from lib.core.entities import BaseItemEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
+from lib.core.service_types import UploadCustomFieldValues
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from requests.exceptions import HTTPError
-from superannotate.version import __version__
+from superannotate import __version__
 
 requests.packages.urllib3.disable_warnings()
 
@@ -56,7 +58,7 @@ class BaseBackendService(SuperannotateServiceProvider):
         auth_token: str,
         logger,
         paginate_by=None,
-        verify_ssl=False,
+        verify_ssl: bool = False,
         testing: bool = False,
     ):
         self.api_url = api_url
@@ -124,6 +126,7 @@ class BaseBackendService(SuperannotateServiceProvider):
         params=None,
         retried=0,
         content_type=None,
+        dispatcher: Callable = None,
     ) -> Union[requests.Response, ServiceResponse]:
         kwargs = {"data": json.dumps(data, cls=PydanticEncoder)} if data else {}
         session = self.get_session()
@@ -147,7 +150,7 @@ class BaseBackendService(SuperannotateServiceProvider):
                 f"Got {response.status_code} response from backend: {response.text}"
             )
         if content_type:
-            return ServiceResponse(response, content_type)
+            return ServiceResponse(response, content_type, dispatcher=dispatcher)
         return response
 
     def _get_page(self, url, offset, params=None, key_field: str = None):
@@ -218,7 +221,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
-    URL_ASSIGN_IMAGES = "images/editAssignment/"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
     URL_GET_EXPORTS = "exports"
@@ -245,6 +247,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SAQUL_QUERY = "/images/search/advanced"
     URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
     URL_LIST_SUBSETS = "/project/{project_id}/subset"
+    URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
+    URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
+    URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -379,15 +384,26 @@ class SuperannotateBackendService(BaseBackendService):
     def get_folder(self, query_string: str):
         get_folder_url = urljoin(self.api_url, self.URL_GET_FOLDER_BY_NAME)
         if query_string:
-            get_folder_url = f"{get_folder_url}?{query_string}"
-        response = self._request(get_folder_url, "get")
+            query_items = query_string.split("&")
+            params = {}
+            for item in query_items:
+                tmp = item.split("=")
+                params[tmp[0]] = tmp[1]
+
+        response = self._request(get_folder_url, "get", params=params)
         if response.ok:
             return response.json()
 
     def get_folders(self, query_string: str = None, params: dict = None):
         get_folder_url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
         if query_string:
-            get_folder_url = f"{get_folder_url}?{query_string}"
+            query_items = query_string.split("&")
+            if not params:
+                params = {}
+            for item in query_items:
+                tmp = item.split("=")
+                params[tmp[0]] = tmp[1]
+
         return self._get_all_pages(get_folder_url, params=params, key_field="folders")
 
     def delete_folders(self, project_id: int, team_id: int, folder_ids: List[int]):
@@ -526,11 +542,32 @@ class SuperannotateBackendService(BaseBackendService):
             url = f"{url}?{query_string}"
         return self._get_all_pages(url)
 
-    def list_items(self, query_string) -> List[dict]:
+    def list_items(self, query_string) -> ServiceResponse:
         url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
-        return self._get_all_pages(url)
+        offset = 0
+        total = []
+        while True:
+            splitter = "&" if "?" in url else "?"
+            url = f"{url}{splitter}offset={offset}"
+            _response = self._request(
+                url,
+                method="get",
+                content_type=List[BaseItemEntity],
+                dispatcher=lambda x: x.pop("data"),
+            )
+            if _response.ok:
+                total.extend(_response.data)
+            else:
+                return _response
+            data_len = len(_response.data)
+            offset += data_len
+            if _response.count < self.LIMIT or _response.count - offset <= 0:
+                break
+        response = ServiceResponse(_response)
+        response.data = total
+        return response
 
     def prepare_export(
         self,
@@ -729,16 +766,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return ServiceResponse(res, ServiceResponse)
 
-    def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
-        delete_images_url = urljoin(self.api_url, self.URL_DELETE_FOLDERS)
-        res = self._request(
-            delete_images_url,
-            "put",
-            params={"team_id": team_id, "project_id": project_id},
-            data={"image_ids": image_ids},
-        )
-        return res.json()
-
     def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
         delete_items_url = urljoin(self.api_url, self.URL_DELETE_ITEMS)
 
@@ -750,47 +777,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
         return ServiceResponse(res, ServiceResponse)
-
-    def assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        user: str,
-        image_names: list,
-    ):
-        assign_images_url = urljoin(self.api_url, self.URL_ASSIGN_IMAGES)
-        res = self._request(
-            assign_images_url,
-            "put",
-            params={"team_id": team_id, "project_id": project_id},
-            data={
-                "image_names": image_names,
-                "assign_user_id": user,
-                "folder_name": folder_name,
-            },
-        )
-        return res.ok
-
-    def un_assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        image_names: List[str],
-    ):
-        un_assign_images_url = urljoin(self.api_url, self.URL_ASSIGN_IMAGES)
-        res = self._request(
-            un_assign_images_url,
-            "put",
-            params={"team_id": team_id, "project_id": project_id},
-            data={
-                "image_names": image_names,
-                "remove_user_ids": ["all"],
-                "folder_name": folder_name,
-            },
-        )
-        return res.ok
 
     def assign_items(
         self,
@@ -1209,17 +1195,19 @@ class SuperannotateBackendService(BaseBackendService):
         if query:
             data["query"] = query
         items = []
-        for _ in range(self.MAX_ITEMS_COUNT):
+        response = requests.Response()
+        for _ in range(0, self.MAX_ITEMS_COUNT, self.SAQUL_CHUNK_SIZE):
             response = self._request(query_url, "post", params=params, data=data)
-            if response.ok:
-                response_items = response.json()
-                items.extend(response_items)
-                if len(response_items) < self.SAQUL_CHUNK_SIZE:
-                    service_response = ServiceResponse(response)
-                    service_response.data = items
-                    return service_response
-                data["image_index"] += self.SAQUL_CHUNK_SIZE
-            return ServiceResponse(response)
+            if not response.ok:
+                break
+            response_items = response.json()
+            items.extend(response_items)
+            if len(response_items) < self.SAQUL_CHUNK_SIZE:
+                service_response = ServiceResponse(response)
+                service_response.data = items
+                return service_response
+            data["image_index"] += self.SAQUL_CHUNK_SIZE
+        return ServiceResponse(response)
 
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
         validate_query_url = urljoin(self.api_url, self.URL_VALIDATE_SAQUL_QUERY)
@@ -1240,4 +1228,77 @@ class SuperannotateBackendService(BaseBackendService):
             "get",
             params=dict(team_id=team_id),
             content_type=List[entities.SubSetEntity],
+        )
+
+    def create_custom_schema(
+        self, team_id: int, project_id: int, schema: dict
+    ) -> ServiceResponse:
+        return self._request(
+            urljoin(
+                self.api_url,
+                self.URL_CREATE_CUSTOM_SCHEMA.format(project_id=project_id),
+            ),
+            "post",
+            params=dict(team_id=team_id),
+            data=dict(data=schema),
+            content_type=ServiceResponse,
+        )
+
+    def get_custom_schema(self, team_id: int, project_id: int) -> ServiceResponse:
+        return self._request(
+            urljoin(
+                self.api_url,
+                self.URL_CREATE_CUSTOM_SCHEMA.format(project_id=project_id),
+            ),
+            "get",
+            params=dict(team_id=team_id),
+            content_type=ServiceResponse,
+        )
+
+    def delete_custom_schema(
+        self, team_id: int, project_id: int, fields: List[str]
+    ) -> ServiceResponse:
+        return self._request(
+            urljoin(
+                self.api_url,
+                self.URL_CREATE_CUSTOM_SCHEMA.format(project_id=project_id),
+            ),
+            "delete",
+            params=dict(team_id=team_id),
+            data=dict(custom_fields=fields),
+            content_type=ServiceResponse,
+        )
+
+    def upload_custom_fields(
+        self, team_id: int, project_id: int, folder_id: int, items: List[dict]
+    ):
+        from collections import ChainMap
+
+        return self._request(
+            urljoin(
+                self.api_url, self.URL_UPLOAD_CUSTOM_VALUE.format(project_id=project_id)
+            ),
+            "post",
+            params=dict(team_id=team_id, folder_id=folder_id),
+            data=dict(data=dict(ChainMap(*items))),
+            content_type=UploadCustomFieldValues,
+        )
+
+    def delete_custom_fields(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items: List[Dict[str, List[str]]],
+    ):
+        from collections import ChainMap
+
+        return self._request(
+            urljoin(
+                self.api_url, self.URL_UPLOAD_CUSTOM_VALUE.format(project_id=project_id)
+            ),
+            "delete",
+            params=dict(team_id=team_id, folder_id=folder_id),
+            data=dict(data=dict(ChainMap(*items))),
+            content_type=ServiceResponse,
         )

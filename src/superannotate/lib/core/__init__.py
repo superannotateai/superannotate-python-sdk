@@ -12,9 +12,7 @@ from superannotate.lib.core.enums import TrainingTask
 from superannotate.lib.core.enums import UploadState
 from superannotate.lib.core.enums import UserRole
 
-
 CONFIG = Config()
-
 
 CONFIG_PATH = "~/.superannotate/config.json"
 CONFIG_FILE_LOCATION = expanduser(CONFIG_PATH)
@@ -48,7 +46,6 @@ MODEL_TRAINING_TASKS = {
 }
 
 AVAILABLE_SEGMENTATION_MODELS = ["autonomous", "generic"]
-
 
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
 PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
@@ -86,6 +83,9 @@ LIMITED_FUNCTIONS = {
     ProjectType.DOCUMENT.value: DEPRECATED_DOCUMENT_PROJECTS_MESSAGE,
 }
 
+METADATA_DEPRICATED_FOR_PIXEL = (
+    "custom_metadata field is not supported for project type Pixel."
+)
 DEPRICATED_DOCUMENT_VIDEO_MESSAGE = "The function does not support projects containing videos / documents attached with URLs"
 
 UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to upload exceeds the limit of 50 000 items per folder."
@@ -96,7 +96,6 @@ ATTACH_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exce
 ATTACH_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exceeds the limit of 500 000 items per project."
 ATTACH_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach  exceeds the limit of your subscription plan."
 
-
 COPY_FOLDER_LIMIT_ERROR_MESSAGE = (
     "The number of items you want to copy exceeds the limit of 50 000 items per folder."
 )
@@ -104,7 +103,6 @@ COPY_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds
 COPY_SUPER_LIMIT_ERROR_MESSAGE = (
     "The number of items you want to copy exceeds the limit of your subscription plan."
 )
-
 
 MOVE_FOLDER_LIMIT_ERROR_MESSAGE = (
     "The number of items you want to move exceeds the limit of 50 000 items per folder."

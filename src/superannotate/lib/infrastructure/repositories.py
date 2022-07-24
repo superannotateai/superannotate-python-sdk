@@ -9,8 +9,8 @@ import lib.core as constance
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
+from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
-from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import IntegrationEntity
@@ -343,9 +343,7 @@ class ImageRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def delete(self, uuid: int, team_id: int, project_id: int):
-        self._service.delete_images(
-            image_ids=[uuid], team_id=team_id, project_id=project_id
-        )
+        pass
 
     def update(self, entity: ImageEntity):
         self._service.update_image(
@@ -474,11 +472,11 @@ class ItemRepository(BaseReadOnlyRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
-    def get_one(self, uuid: Condition) -> Entity:
-        items = self._service.list_items(uuid.build_query())
-        if len(items) >= 1:
-            return Entity(**Entity.map_fields(items[0]))
+    def get_one(self, uuid: Condition) -> BaseItemEntity:
+        response = self._service.list_items(uuid.build_query())
+        if len(response.data) >= 1:
+            return response.data[0]
 
-    def get_all(self, condition: Optional[Condition] = None) -> List[Entity]:
+    def get_all(self, condition: Optional[Condition] = None) -> List[BaseItemEntity]:
         items = self._service.list_items(condition.build_query())
-        return [Entity(**Entity.map_fields(item)) for item in items]
+        return items.data

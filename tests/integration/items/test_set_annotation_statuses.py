@@ -79,4 +79,5 @@ class TestSetAnnotationStatuses(BaseTestCase):
         data = sa.set_annotation_statuses(
             self.PROJECT_NAME, annotation_status="Completed", items=[self.ATTACHMENT_LIST[0]["name"]]
         )
+        data = sa.search_items(self.PROJECT_NAME)[0]
         assert data["annotation_status"] == "Completed"

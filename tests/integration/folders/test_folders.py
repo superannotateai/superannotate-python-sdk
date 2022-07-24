@@ -194,7 +194,7 @@ class TestFolders(BaseTestCase):
         )
         self.assertEqual(num_images, 8)
 
-    def test_delete_images(self):
+    def test_delete_items(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
 
         sa.upload_images_from_folder_to_project(
@@ -207,7 +207,7 @@ class TestFolders(BaseTestCase):
         )
         self.assertEqual(num_images, 4)
 
-        sa.delete_images(
+        sa.delete_items(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
         )
@@ -216,7 +216,7 @@ class TestFolders(BaseTestCase):
         )
         self.assertEqual(num_images, 2)
 
-        sa.delete_images(self.PROJECT_NAME, None)
+        sa.delete_items(self.PROJECT_NAME, None)
         time.sleep(2)
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=False

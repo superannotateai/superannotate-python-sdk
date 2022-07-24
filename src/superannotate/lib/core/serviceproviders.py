@@ -95,6 +95,9 @@ class SuperannotateServiceProvider:
     def update_folder(self, project_id: int, team_id: int, folder_data: dict):
         raise NotImplementedError
 
+    def list_items(self, query_params: str) -> ServiceResponse:
+        raise NotImplementedError
+
     def get_download_token(
         self,
         project_id: int,
@@ -162,20 +165,7 @@ class SuperannotateServiceProvider:
     ):
         raise NotImplementedError
 
-    def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
-        raise NotImplementedError
-
     def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
-        raise NotImplementedError
-
-    def assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        user: str,
-        image_names: list,
-    ):
         raise NotImplementedError
 
     def assign_items(
@@ -203,15 +193,6 @@ class SuperannotateServiceProvider:
 
     def assign_folder(
         self, team_id: int, project_id: int, folder_name: str, users: list
-    ):
-        raise NotImplementedError
-
-    def un_assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        image_names: list,
     ):
         raise NotImplementedError
 
@@ -378,4 +359,31 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:
+        raise NotImplementedError
+
+    def create_custom_schema(
+        self, team_id: int, project_id: int, schema: dict
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    def get_custom_schema(self, team_id: int, project_id: int) -> ServiceResponse:
+        raise NotImplementedError
+
+    def delete_custom_schema(
+        self, team_id: int, project_id: int, fields: List[str]
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    def upload_custom_fields(
+        self, team_id: int, project_id: int, folder_id: int, items: List[dict]
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    def delete_custom_fields(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items: List[Dict[str, List[str]]],
+    ) -> ServiceResponse:
         raise NotImplementedError

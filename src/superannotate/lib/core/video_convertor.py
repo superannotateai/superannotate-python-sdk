@@ -2,12 +2,10 @@ import itertools
 import math
 from collections import defaultdict
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
 
 from lib.core.enums import AnnotationTypes
-from lib.core.exceptions import AppException
 from pydantic import BaseModel
 
 
