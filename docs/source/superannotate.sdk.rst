@@ -8,13 +8,11 @@ API Reference
 Remote functions
 ----------------
 
-Initialization and authentication
+Instantiation and authentication
 _________________________________
 
-.. automethod:: superannotate.SAClient.__init__
+.. autoclass:: superannotate.SAClient
 
-
-.. _ref_projects:
 
 Projects
 ________
@@ -73,8 +71,29 @@ ______
 .. automethod:: superannotate.SAClient.attach_items
 .. automethod:: superannotate.SAClient.copy_items
 .. automethod:: superannotate.SAClient.move_items
+.. automethod:: superannotate.SAClient.delete_items
+.. automethod:: superannotate.SAClient.assign_items
+.. automethod:: superannotate.SAClient.unassign_items
 .. automethod:: superannotate.SAClient.get_item_metadata
 .. automethod:: superannotate.SAClient.set_annotation_statuses
+
+----------
+
+Custom Metadata
+______
+
+.. automethod:: superannotate.SAClient.create_custom_fields
+.. automethod:: superannotate.SAClient.get_custom_fields
+.. automethod:: superannotate.SAClient.delete_custom_fields
+.. automethod:: superannotate.SAClient.upload_custom_values
+.. automethod:: superannotate.SAClient.delete_custom_values
+
+----------
+
+Subsets
+______
+
+.. automethod:: superannotate.SAClient.get_subsets
 
 ----------
 
@@ -84,14 +103,10 @@ ______
 
 .. _ref_search_images:
 .. automethod:: superannotate.SAClient.download_image
-.. automethod:: superannotate.SAClient.set_image_annotation_status
-.. automethod:: superannotate.SAClient.set_images_annotation_statuses
 .. automethod:: superannotate.SAClient.download_image_annotations
 .. automethod:: superannotate.SAClient.upload_image_annotations
 .. automethod:: superannotate.SAClient.copy_image
 .. automethod:: superannotate.SAClient.pin_image
-.. automethod:: superannotate.SAClient.assign_images
-.. automethod:: superannotate.SAClient.delete_images
 .. automethod:: superannotate.SAClient.add_annotation_bbox_to_image
 .. automethod:: superannotate.SAClient.add_annotation_point_to_image
 .. automethod:: superannotate.SAClient.add_annotation_comment_to_image

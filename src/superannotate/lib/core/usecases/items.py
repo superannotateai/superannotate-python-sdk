@@ -1,14 +1,17 @@
 import copy
 from typing import List
+from typing import Optional
 
-import superannotate.lib.core as constances
+import superannotate.lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
+from lib.core.entities import BaseItemEntity
 from lib.core.entities import DocumentEntity
-from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
+from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import SubSetEntity
 from lib.core.entities import TmpImageEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
@@ -22,8 +25,42 @@ from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
 
-
 logger = get_default_logger()
+
+
+class GetBulkItems(BaseUseCase):
+    def __init__(
+        self,
+        service: SuperannotateServiceProvider,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        items: List[str],
+    ):
+        super().__init__()
+        self._service = service
+        self._project_id = project_id
+        self._team_id = team_id
+        self._folder_id = folder_id
+        self._items = items
+        self._chunk_size = 500
+
+    def execute(self):
+        res = []
+        for i in range(0, len(self._items), self._chunk_size):
+            response = self._service.get_bulk_items(
+                project_id=self._project_id,
+                team_id=self._team_id,
+                folder_id=self._folder_id,
+                items=self._items[i : i + self._chunk_size],  # noqa: E203
+            )
+
+            if not response.ok:
+                raise AppException(response.error)
+            # TODO stop using Image Entity when it gets deprecated and from_dict gets implemented for items
+            res += [ImageEntity.from_dict(**item) for item in response.data]
+        self._response.data = res
+        return self._response
 
 
 class GetItem(BaseReportableUseCase):
@@ -32,33 +69,43 @@ class GetItem(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: BaseReadOnlyRepository,
+        backend_client: SuperannotateServiceProvider,
         item_name: str,
+        include_custom_metadata: bool,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
-        self._items = items
+        self._backend_client = backend_client
         self._item_name = item_name
+        self._include_custom_metadata = include_custom_metadata
+
+    def validate_project_type(self):
+        if (
+            self._project.type == constants.ProjectType.PIXEL.value
+            and self._include_custom_metadata
+        ):
+            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
 
     @staticmethod
-    def serialize_entity(entity: Entity, project: ProjectEntity):
-        if project.upload_state != constances.UploadState.EXTERNAL.value:
+    def serialize_entity(entity: BaseItemEntity, project: ProjectEntity):
+        entity = BaseItemEntity(**BaseItemEntity.map_fields(entity.dict()))
+        if project.upload_state != constants.UploadState.EXTERNAL.value:
             entity.url = None
         if project.type in (
-            constances.ProjectType.VECTOR.value,
-            constances.ProjectType.PIXEL.value,
+            constants.ProjectType.VECTOR.value,
+            constants.ProjectType.PIXEL.value,
         ):
             tmp_entity = entity
-            if project.type == constances.ProjectType.VECTOR.value:
+            if project.type == constants.ProjectType.VECTOR.value:
                 entity.segmentation_status = None
-            if project.upload_state == constances.UploadState.EXTERNAL.value:
+            if project.upload_state == constants.UploadState.EXTERNAL.value:
                 tmp_entity.prediction_status = None
                 tmp_entity.segmentation_status = None
             return TmpImageEntity(**tmp_entity.dict(by_alias=True))
-        elif project.type == constances.ProjectType.VIDEO.value:
+        elif project.type == constants.ProjectType.VIDEO.value:
             return VideoEntity(**entity.dict(by_alias=True))
-        elif project.type == constances.ProjectType.DOCUMENT.value:
+        elif project.type == constants.ProjectType.DOCUMENT.value:
             return DocumentEntity(**entity.dict(by_alias=True))
         return entity
 
@@ -69,17 +116,23 @@ class GetItem(BaseReportableUseCase):
                 & Condition("team_id", self._project.team_id, EQ)
                 & Condition("project_id", self._project.id, EQ)
                 & Condition("folder_id", self._folder.uuid, EQ)
+                & Condition("includeCustomMetadata", self._include_custom_metadata, EQ)
             )
-            entity = self._items.get_one(condition)
+            response = self._backend_client.list_items(condition.build_query())
+            if not response.ok:
+                self._response.errors = response.error
+                return self._response
+            entity = next((i for i in response.data if i.name == self._item_name), None)
             if entity:
+                entity = self.serialize_entity(entity, self._project)
                 entity.add_path(self._project.name, self._folder.name)
-                self._response.data = self.serialize_entity(entity, self._project)
+                self._response.data = entity
             else:
                 self._response.errors = AppException("Item not found.")
         return self._response
 
 
-class QueryEntities(BaseReportableUseCase):
+class QueryEntitiesUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -87,40 +140,76 @@ class QueryEntities(BaseReportableUseCase):
         folder: FolderEntity,
         backend_service_provider: SuperannotateServiceProvider,
         query: str,
+        subset: str,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._backend_client = backend_service_provider
         self._query = query
+        self._subset = subset
 
-    def validate_query(self):
-        response = self._backend_client.validate_saqul_query(
-            self._project.team_id, self._project.id, self._query
-        )
-        if response.get("error"):
-            raise AppException(response["error"])
-        if response["isValidQuery"]:
-            self._query = response["parsedQuery"]
+    def validate_arguments(self):
+        if self._query:
+            response = self._backend_client.validate_saqul_query(
+                self._project.team_id, self._project.id, self._query
+            )
+            if response.get("error"):
+                raise AppException(response["error"])
+            if response["isValidQuery"]:
+                self._query = response["parsedQuery"]
+            else:
+                raise AppException("Incorrect query.")
         else:
-            raise AppException("Incorrect query.")
-        if self._project.sync_status != constances.ProjectState.SYNCED.value:
-            raise AppException("Data is not synced.")
+            response = self._backend_client.validate_saqul_query(
+                self._project.team_id, self._project.id, "-"
+            )
+            if response.get("error"):
+                raise AppException(response["error"])
+
+        if not any([self._query, self._subset]):
+            raise AppException(
+                "The query and subset params cannot have the value None at the same time."
+            )
+        if self._subset and not self._folder.is_root:
+            raise AppException(
+                "The folder name should be specified in the query string."
+            )
 
     def execute(self) -> Response:
         if self.is_valid():
+            query_kwargs = {}
+            if self._subset:
+                subset: Optional[SubSetEntity] = None
+                response = self._backend_client.list_sub_sets(
+                    team_id=self._project.team_id, project_id=self._project.id
+                )
+                if response.ok:
+                    subset = next(
+                        (_sub for _sub in response.data if _sub.name == self._subset),
+                        None,
+                    )
+                if not subset:
+                    self._response.errors = AppException(
+                        "Subset not found. Use the superannotate."
+                        "get_subsets() function to get a list of the available subsets."
+                    )
+                    return self._response
+                query_kwargs["subset_id"] = subset.id
+            if self._query:
+                query_kwargs["query"] = self._query
+            query_kwargs["folder_id"] = (
+                None if self._folder.name == "root" else self._folder.uuid
+            )
             service_response = self._backend_client.saqul_query(
                 self._project.team_id,
                 self._project.id,
-                self._query,
-                folder_id=None if self._folder.name == "root" else self._folder.uuid,
+                **query_kwargs,
             )
             if service_response.ok:
                 data = []
                 for i, item in enumerate(service_response.data):
-                    tmp_item = GetItem.serialize_entity(
-                        Entity(**Entity.map_fields(item)), self._project
-                    )
+                    tmp_item = GetItem.serialize_entity(BaseItemEntity(**item), self._project)
                     folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
                     tmp_item.path = f"{self._project.name}" + folder_path
                     data.append(tmp_item)
@@ -136,37 +225,52 @@ class ListItems(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: BaseReadOnlyRepository,
-        search_condition: Condition,
         folders: BaseReadOnlyRepository,
+        search_condition: Condition,
+        backend_client: SuperannotateServiceProvider,
         recursive: bool = False,
+        include_custom_metadata: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
-        self._folder = folder
-        self._items = items
         self._folders = folders
+        self._folder = folder
+        self._backend_client = backend_client
         self._search_condition = search_condition
         self._recursive = recursive
+        self._include_custom_metadata = include_custom_metadata
 
     def validate_recursive_case(self):
         if not self._folder.is_root and self._recursive:
             self._recursive = False
 
+    def validate_project_type(self):
+        if (
+            self._project.type == constants.ProjectType.PIXEL.value
+            and self._include_custom_metadata
+        ):
+            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
+
     def execute(self) -> Response:
         if self.is_valid():
             self._search_condition &= Condition("team_id", self._project.team_id, EQ)
             self._search_condition &= Condition("project_id", self._project.id, EQ)
+            self._search_condition &= Condition(
+                "includeCustomMetadata", self._include_custom_metadata, EQ
+            )
 
             if not self._recursive:
                 self._search_condition &= Condition("folder_id", self._folder.uuid, EQ)
-                items = [
-                    GetItem.serialize_entity(
-                        item.add_path(self._project.name, self._folder.name),
-                        self._project,
-                    )
-                    for item in self._items.get_all(self._search_condition)
-                ]
+                items_response = self._backend_client.list_items(
+                    self._search_condition.build_query()
+                )
+                if not items_response.ok:
+                    raise AppException(items_response.error)
+                items = []
+                for item in items_response.data:
+                    item = GetItem.serialize_entity(item, self._project)
+                    item.add_path(self._project.name, self._folder.name)
+                    items.append(item)
             else:
                 items = []
                 folders = self._folders.get_all(
@@ -175,19 +279,18 @@ class ListItems(BaseReportableUseCase):
                 )
                 folders.append(self._folder)
                 for folder in folders:
-                    tmp = self._items.get_all(
-                        copy.deepcopy(self._search_condition)
-                        & Condition("folder_id", folder.uuid, EQ)
+                    response = self._backend_client.list_items(
+                        (
+                            copy.deepcopy(self._search_condition)
+                            & Condition("folder_id", folder.uuid, EQ)
+                        ).build_query()
                     )
-                    items.extend(
-                        [
-                            GetItem.serialize_entity(
-                                item.add_path(self._project.name, folder.name),
-                                self._project,
-                            )
-                            for item in tmp
-                        ]
-                    )
+                    if not response.ok:
+                        raise AppException(response.error)
+                    for item in response.data:
+                        item = GetItem.serialize_entity(item, self._project)
+                        item.add_path(self._project.name, folder.name)
+                        items.append(item)
             self._response.data = items
         return self._response
 
@@ -210,33 +313,31 @@ class AssignItemsUseCase(BaseUseCase):
         self._user = user
         self._service = service
 
-    def validate_user(
+    def validate_item_names(
         self,
     ):
-
-        for c in self._project.users:
-            if c["user_id"] == self._user:
-                return True
-
-        raise AppValidationException(
-            f"{self._user} is not a verified contributor for the {self._project.name}"
-        )
+        self._item_names = list(set(self._item_names))
 
     def execute(self):
+        cnt_assigned = 0
+        total_count = len(self._item_names)
         if self.is_valid():
             for i in range(0, len(self._item_names), self.CHUNK_SIZE):
-                is_assigned = self._service.assign_items(
+                response = self._service.assign_items(
                     team_id=self._project.team_id,
                     project_id=self._project.id,
                     folder_name=self._folder.name,
                     user=self._user,
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
-                if not is_assigned:
-                    self._response.errors = AppException(
-                        f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
-                    )
-                    continue
+                if not response.ok and response.error:  # User not found
+                    self._response.errors += response.error
+                    return self._response
+
+                cnt_assigned += response.data["successCount"]
+            logger.info(
+                f"Assigned {cnt_assigned}/{total_count} items to user {self._user}"
+            )
         return self._response
 
 
@@ -284,13 +385,13 @@ class AttachItems(BaseReportableUseCase):
         attachments: List[AttachmentEntity],
         annotation_status: str,
         backend_service_provider: SuperannotateServiceProvider,
-        upload_state_code: int = constances.UploadState.EXTERNAL.value,
+        upload_state_code: int = constants.UploadState.EXTERNAL.value,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._attachments = attachments
-        self._annotation_status_code = constances.AnnotationStatus.get_value(
+        self._annotation_status_code = constants.AnnotationStatus.get_value(
             annotation_status
         )
         self._upload_state_code = upload_state_code
@@ -313,18 +414,18 @@ class AttachItems(BaseReportableUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if attachments_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
         elif attachments_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
             response.data.user_limit
             and attachments_count > response.data.user_limit.remaining_image_count
         ):
-            raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
     def validate_upload_state(self):
-        if self._project.upload_state == constances.UploadState.BASIC.value:
-            raise AppValidationException(constances.ATTACHING_UPLOAD_STATE_ERROR)
+        if self._project.upload_state == constants.UploadState.BASIC.value:
+            raise AppValidationException(constants.ATTACHING_UPLOAD_STATE_ERROR)
 
     @staticmethod
     def generate_meta():
@@ -411,9 +512,9 @@ class CopyItems(BaseReportableUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if items_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
         if items_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def validate_item_names(self):
         if self._item_names:
@@ -539,9 +640,9 @@ class MoveItems(BaseReportableUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if items_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.MOVE_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.MOVE_FOLDER_LIMIT_ERROR_MESSAGE)
         if items_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constances.MOVE_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.MOVE_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -599,7 +700,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
         self._folder = folder
         self._item_names = item_names
         self._items = items
-        self._annotation_status_code = constances.AnnotationStatus.get_value(
+        self._annotation_status_code = constants.AnnotationStatus.get_value(
             annotation_status
         )
         self._backend_service = backend_service_provider
@@ -650,4 +751,59 @@ class SetAnnotationStatues(BaseReportableUseCase):
                 if not status_changed:
                     self._response.errors = AppException(self.ERROR_MESSAGE)
                     break
+        return self._response
+
+
+class DeleteItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 1000
+
+    def __init__(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service_provider: SuperannotateServiceProvider,
+        items: BaseReadOnlyRepository,
+        item_names: List[str] = None,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._items = items
+        self._backend_service = backend_service_provider
+        self._item_names = item_names
+
+    def execute(self):
+        if self.is_valid():
+            if self._item_names:
+                item_ids = [
+                    item.uuid
+                    for item in GetBulkItems(
+                        service=self._backend_service,
+                        project_id=self._project.id,
+                        team_id=self._project.team_id,
+                        folder_id=self._folder.uuid,
+                        items=self._item_names,
+                    )
+                    .execute()
+                    .data
+                ]
+            else:
+                condition = (
+                    Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.id, EQ)
+                    & Condition("folder_id", self._folder.uuid, EQ)
+                )
+                item_ids = [item.id for item in self._items.get_all(condition)]
+
+            for i in range(0, len(item_ids), self.CHUNK_SIZE):
+                response = self._backend_service.delete_items(
+                    project_id=self._project.id,
+                    team_id=self._project.team_id,
+                    item_ids=item_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
+                )
+
+            logger.info(
+                f"Items deleted in project {self._project.name}{'/' + self._folder.name if not self._folder.is_root else ''}"
+            )
+
         return self._response

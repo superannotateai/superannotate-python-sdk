@@ -2,12 +2,10 @@ import itertools
 import math
 from collections import defaultdict
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
 
 from lib.core.enums import AnnotationTypes
-from lib.core.exceptions import AppException
 from pydantic import BaseModel
 
 
@@ -15,9 +13,10 @@ class Annotation(BaseModel):
     instanceId: int
     type: str
     className: Optional[str]
+    classId: Optional[int]
     x: Optional[Any]
     y: Optional[Any]
-    points: Optional[Dict]
+    points: Any
     attributes: Optional[List[Any]] = []
     keyframe: bool = False
 
@@ -29,10 +28,11 @@ class FrameAnnotation(BaseModel):
 
 class VideoFrameGenerator:
     def __init__(self, annotation_data: dict, fps: int):
-        self.validate_annotations(annotation_data)
         self.id_generator = iter(itertools.count(0))
         self._annotation_data = annotation_data
-        self.duration = annotation_data["metadata"]["duration"] / (1000 * 1000)
+        duration = annotation_data["metadata"]["duration"]
+        duration = 0 if not duration else duration
+        self.duration = duration / (1000 * 1000)
         self.fps = fps
         self.ratio = 1000 * 1000 / fps
         self._frame_id = 1
@@ -40,12 +40,6 @@ class VideoFrameGenerator:
         self.annotations: dict = {}
         self._mapping = {}
         self._process()
-
-    @staticmethod
-    def validate_annotations(annotation_data: dict):
-        duration = annotation_data["metadata"].get("duration")
-        if duration is None:
-            raise AppException("Video not annotated yet")
 
     def get_frame(self, frame_no: int):
         try:
@@ -57,6 +51,7 @@ class VideoFrameGenerator:
     def _interpolate(
         self,
         class_name: str,
+        class_id: int,
         from_frame: int,
         to_frame: int,
         data: dict,
@@ -79,14 +74,14 @@ class VideoFrameGenerator:
                     "x": round(data["x"] + steps["x"] * idx, 2),
                     "y": round(data["y"] + steps["y"] * idx, 2),
                 }
-            elif annotation_type in (AnnotationTypes.POLYGON, AnnotationTypes.POLYLINE):
-                tmp_data["points"] = [
-                    point + steps[idx] * 2 for idx, point in enumerate(data["points"])
-                ]
+            elif annotation_type != AnnotationTypes.EVENT:
+                tmp_data["points"] = data["points"]
+
             annotations[frame_idx] = Annotation(
                 instanceId=instance_id,
                 type=annotation_type,
                 className=class_name,
+                classId=class_id,
                 attributes=data["attributes"],
                 keyframe=False,
                 **tmp_data
@@ -105,23 +100,21 @@ class VideoFrameGenerator:
         return zip(a, b)
 
     def get_median(self, annotations: List[dict]) -> dict:
-        if len(annotations) == 1:
+        if len(annotations) >= 1:
             return annotations[0]
-        first_annotations = annotations[:1][0]
-        median = (
-            first_annotations["timestamp"] // self.ratio
-        ) * self.ratio + self.ratio / 2
-        median_annotation = first_annotations
-        distance = abs(median - first_annotations["timestamp"])
-        for annotation in annotations[1:]:
-            annotation_distance = abs(median - annotation["timestamp"])
-            if annotation_distance < distance:
-                distance = annotation_distance
-                median_annotation = annotation
-        return median_annotation
-
-    def calculate_sped(self, from_frame, to_frame):
-        pass
+        # Let's just leave the code for reference.
+        # first_annotations = annotations[:1][0]
+        # median = (
+        #     first_annotations["timestamp"] // self.ratio
+        # ) * self.ratio + self.ratio / 2
+        # median_annotation = first_annotations
+        # distance = abs(median - first_annotations["timestamp"])
+        # for annotation in annotations[1:]:
+        #     annotation_distance = abs(median - annotation["timestamp"])
+        #     if annotation_distance < distance:
+        #         distance = annotation_distance
+        #         median_annotation = annotation
+        # return median_annotation
 
     @staticmethod
     def merge_first_frame(frames_mapping):
@@ -141,6 +134,7 @@ class VideoFrameGenerator:
         to_frame_no,
         annotation_type,
         class_name,
+        class_id,
         instance_id,
     ):
         steps = None
@@ -171,6 +165,7 @@ class VideoFrameGenerator:
             ]
         return self._interpolate(
             class_name=class_name,
+            class_id=class_id,
             from_frame=from_frame_no,
             to_frame=to_frame_no,
             data=from_frame,
@@ -184,6 +179,7 @@ class VideoFrameGenerator:
             instance_id = next(self.id_generator)
             annotation_type = instance["meta"]["type"]
             class_name = instance["meta"].get("className")
+            class_id = instance["meta"].get("classId", -1)
             for parameter in instance["parameters"]:
                 frames_mapping = defaultdict(list)
                 interpolated_frames = {}
@@ -207,6 +203,7 @@ class VideoFrameGenerator:
                                 to_frame=to_frame,
                                 to_frame_no=to_frame_no,
                                 class_name=class_name,
+                                class_id=class_id,
                                 annotation_type=annotation_type,
                                 instance_id=instance_id,
                             )
@@ -222,6 +219,7 @@ class VideoFrameGenerator:
                             instanceId=instance_id,
                             type=annotation_type,
                             className=class_name,
+                            classId=class_id,
                             x=frame.get("x"),
                             y=frame.get("y"),
                             points=frame.get("points"),
@@ -234,6 +232,7 @@ class VideoFrameGenerator:
                         instanceId=instance_id,
                         type=annotation_type,
                         className=class_name,
+                        classId=class_id,
                         x=median.get("x"),
                         y=median.get("y"),
                         points=median.get("points"),

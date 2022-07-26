@@ -237,6 +237,14 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
 
 
 class VideoFormatHandler(BaseAnnotationDateHandler):
+    INSTANCE_FIELDS = {
+        "pointLabels",
+        "createdBy",
+        "createdAt",
+        "updatedBy",
+        "updatedAt",
+    }
+
     @staticmethod
     def _point_handler(time_stamp):
         pass
@@ -300,8 +308,9 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
             else:
                 editor_instance["classId"] = id_generator.send("unknown_class")
 
-            if meta.get("pointLabels", None):
-                editor_instance["pointLabels"] = meta["pointLabels"]
+            matched_fields = self.INSTANCE_FIELDS & meta.keys()
+            for matched_field in matched_fields:
+                editor_instance[matched_field] = meta[matched_field]
             active_attributes = set()
             for parameter in instance["parameters"]:
                 start_time = safe_time(convert_timestamp(parameter["start"]))

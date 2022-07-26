@@ -3,9 +3,9 @@ import io
 import json
 import os
 import tempfile
-import warnings
 from pathlib import Path
 from typing import Callable
+from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -51,6 +51,7 @@ from lib.core.types import AttributeGroup
 from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
+from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
@@ -62,6 +63,18 @@ logger = get_default_logger()
 
 
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
+    """Create SAClient instance to authorize SDK in a team scope.
+    In case of no argument has been provided, SA_TOKEN environmental variable
+    will be checked or $HOME/.superannotate/config.json will be used.
+
+    :param token: team token
+    :type token: str
+
+    :param config_path: path to config file
+    :type config_path: path-like (str or Path)
+
+    """
+
     def __init__(
         self,
         token: str = None,
@@ -560,7 +573,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type project: str
         :param name_contains:  search string. Returns those classes,
          where the given string is found anywhere within its name. If None, all annotation classes will be returned.
-        :type name_prefix: str
+        :type name_contains: str
 
         :return: annotation classes of the project
         :rtype: list of dicts
@@ -618,61 +631,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             is_pinned=int(pin),
         )
 
-    def set_images_annotation_statuses(
-        self,
-        project: Union[NotEmptyStr, dict],
-        annotation_status: NotEmptyStr,
-        image_names: Optional[List[NotEmptyStr]] = None,
-    ):
-        """Sets annotation statuses of images
+    def delete_items(self, project: str, items: Optional[List[str]] = None):
+        """Delete items in a given project.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param image_names: image names. If None, all the images in the project will be used
-        :type image_names: list of str
-        :param annotation_status: annotation status to set,
-               should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
-        :type annotation_status: str
-        """
-        warning_msg = (
-            "We're deprecating the set_images_annotation_statuses function. Please use set_annotation_statuses instead. "
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-        response = self.controller.set_images_annotation_statuses(
-            project_name, folder_name, image_names, annotation_status
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        logger.info("Annotations status of images changed")
-
-    def delete_images(
-        self, project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
-    ):
-        """Delete images in project.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_names: to be deleted images' names. If None, all the images will be deleted
-        :type image_names: list of strs
+        :param items: to be deleted items' names. If None, all the items will be deleted
+        :type items: list of str
         """
         project_name, folder_name = extract_project_folder(project)
 
-        if not isinstance(image_names, list) and image_names is not None:
-            raise AppException("Image_names should be a list of str or None.")
-
-        response = self.controller.delete_images(
-            project_name=project_name, folder_name=folder_name, image_names=image_names
+        response = self.controller.delete_items(
+            project_name=project_name, folder_name=folder_name, items=items
         )
         if response.errors:
             raise AppException(response.errors)
-
-        logger.info(
-            f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
-        )
 
     def assign_items(
         self, project: Union[NotEmptyStr, dict], items: List[str], user: str
@@ -684,8 +657,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param items: list of items to assign
-        :type item_names: list of str
+        :type items: list of str
+
         :param user: user email
         :type user: str
         """
@@ -694,9 +669,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         response = self.controller.assign_items(project_name, folder_name, items, user)
 
-        if not response.errors:
-            logger.info(f"Assign items to user {user}")
-        else:
+        if response.errors:
             raise AppException(response.errors)
 
     def unassign_items(
@@ -709,97 +682,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
         :param items: list of items to unassign
-        :type item_names: list of str
+        :type items: list of str
         """
         project_name, folder_name = extract_project_folder(project)
 
         response = self.controller.un_assign_items(
             project_name=project_name, folder_name=folder_name, item_names=items
-        )
-        if response.errors:
-            raise AppException(response.errors)
-
-    def assign_images(
-        self, project: Union[NotEmptyStr, dict], image_names: List[str], user: str
-    ):
-        """Assigns images to a user. The assignment role, QA or Annotator, will
-        be deduced from the user's role in the project. With SDK, the user can be
-        assigned to a role in the project with the share_project function.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_names: list of image names to assign
-        :type image_names: list of str
-        :param user: user email
-        :type user: str
-        """
-
-        warning_msg = (
-            "We're deprecating the assign_images function. Please use assign_items instead."
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project_metadata(project_name).data
-
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
-
-        contributors = (
-            self.controller.get_project_metadata(
-                project_name=project_name, include_contributors=True
-            )
-            .data["project"]
-            .users
-        )
-        contributor = None
-        for c in contributors:
-            if c["user_id"] == user:
-                contributor = user
-
-        if not contributor:
-            logger.warning(
-                f"Skipping {user}. {user} is not a verified contributor for the {project_name}"
-            )
-            return
-
-        response = self.controller.assign_images(
-            project_name, folder_name, image_names, user
-        )
-        if not response.errors:
-            logger.info(f"Assign images to user {user}")
-        else:
-            raise AppException(response.errors)
-
-    def unassign_images(
-        self, project: Union[NotEmptyStr, dict], image_names: List[NotEmptyStr]
-    ):
-        """Removes assignment of given images for all assignees. With SDK,
-        the user can be assigned to a role in the project with the share_project
-        function.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_names: list of images to unassign
-        :type image_names: list of str
-        """
-
-        warning_msg = (
-            "We're deprecating the unassign_images function. Please use unassign_items instead."
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.unassign_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-
-        response = self.controller.un_assign_images(
-            project_name=project_name, folder_name=folder_name, image_names=image_names
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1400,41 +1288,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         logger.info(response.data)
 
-    def set_image_annotation_status(
-        self,
-        project: Union[NotEmptyStr, dict],
-        image_name: NotEmptyStr,
-        annotation_status: NotEmptyStr,
-    ):
-        """Sets the image annotation status
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_name: image name
-        :type image_name: str
-        :param annotation_status: annotation status to set,
-               should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
-        :type annotation_status: str
-
-        :return: metadata of the updated image
-        :rtype: dict
-        """
-        warning_msg = (
-            "We're deprecating the set_image_annotation_status function. Please use set_annotation_statuses instead. "
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-        response = self.controller.set_images_annotation_statuses(
-            project_name, folder_name, [image_name], annotation_status
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        image = self.controller.get_item(project_name, folder_name, image_name).data
-        return BaseSerializer(image).serialize()
-
     def set_project_workflow(
         self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]
     ):
@@ -1559,7 +1412,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name=project_name,
             folder_name=folder_name,
             annotation_paths=annotation_paths,  # noqa: E203
-            root_annotation_paths=folder_path,  # noqa: E203
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
         )
@@ -1624,7 +1476,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name=project_name,
             folder_name=folder_name,
             annotation_paths=annotation_paths,  # noqa: E203
-            root_annotation_paths=folder_path,  # noqa: E203
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
             is_pre_annotations=True,
@@ -1646,12 +1497,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param image_name: image name
         :type image_name: str
+
         :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
         :type annotation_json: dict or Path-like (str or Path)
+
         :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
         :type mask: BytesIO or Path-like (str or Path)
+
+        :param verbose: Turns on verbose output logging during the proces.
+        :type verbose: bool
+
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -1695,7 +1553,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param model: the model that needs to be downloaded
         :type  model: dict
-        :param output_dir: the directiory in which the files will be saved
+        :param output_dir: the directory in which the files will be saved
         :type output_dir: str
         :return: the metadata of the model
         :rtype: dict
@@ -2083,26 +1941,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def search_models(
         self,
         name: Optional[NotEmptyStr] = None,
-        type_: Optional[NotEmptyStr] = None,
+        type_: Optional[NotEmptyStr] = None,  # noqa
         project_id: Optional[int] = None,
         task: Optional[NotEmptyStr] = None,
         include_global: Optional[StrictBool] = True,
     ):
-        """Search for ML models.
+        r"""Search for ML models.
 
         :param name: search string
         :type name: str
-        :param type_: ml model type string
-        :type type_: str
+
+        :param type\_: ml model type string
+        :type type\_: str
+
         :param project_id: project id
         :type project_id: int
+
         :param task: training task
         :type task: str
+
         :param include_global: include global ml models
         :type include_global: bool
 
-            :return: ml model metadata
-            :rtype: list of dicts
+        :return: ml model metadata
+        :rtype: list of dicts
         """
         res = self.controller.search_models(
             name=name,
@@ -2176,8 +2038,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return uploaded, failed_images, duplications
         raise AppException(use_case.response.errors)
 
+    @staticmethod
     def aggregate_annotations_as_df(
-        self,
         project_root: Union[NotEmptyStr, Path],
         project_type: ProjectTypes,
         folder_names: Optional[List[Union[Path, NotEmptyStr]]] = None,
@@ -2260,6 +2122,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         with open(annotations_json) as file:
             annotation_data = json.loads(file.read())
+            response = Controller.validate_annotations(project_type, annotation_data)
             response = self.controller.validate_annotations(
                 project_type, annotation_data
             )
@@ -2427,7 +2290,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-    def query(self, project: NotEmptyStr, query: Optional[NotEmptyStr]):
+    def query(
+        self,
+        project: NotEmptyStr,
+        query: Optional[NotEmptyStr] = None,
+        subset: Optional[NotEmptyStr] = None,
+    ):
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/query-search-1).
 
@@ -2437,11 +2305,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param query: SAQuL query string.
         :type query: str
 
+        :param subset:  subset name. Allows you to query items in a specific subset.
+            To return all the items in the specified subset, set the value of query param to None.
+        :type subset: str
+
         :return: queried items’ metadata list
         :rtype: list of dicts
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.query_entities(project_name, folder_name, query)
+        response = self.controller.query_entities(
+            project_name, folder_name, query, subset
+        )
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data)
@@ -2450,23 +2324,59 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         item_name: NotEmptyStr,
+        include_custom_metadata: bool = False,
     ):
         """Returns item metadata
 
         :param project: project name or folder path (e.g., “project1/folder1”)
         :type project: str
 
-        :param item_name: item name
+        :param item_name: item name.
         :type item_name: str
+
+        :param include_custom_metadata: include custom metadata that has been attached to an asset.
+        :type include_custom_metadata: bool
 
         :return: metadata of item
         :rtype: dict
+
+        Request Example:
+        ::
+            client.get_item_metadata(
+               project="Medical Annotations",
+               item_name = "image_1.png",
+               include_custom_metadata=True
+            )
+
+
+        Response Example:
+        ::
+            {
+               "name": "image_1.jpeg",
+               "path": "Medical Annotations/Study",
+               "url": "https://sa-public-files.s3.../image_1.png",
+               "annotation_status": "NotStarted",
+               "annotator_email": None,
+               "qa_email": None,
+               "entropy_value": None,
+               "createdAt": "2022-02-15T20:46:44.000Z",
+               "updatedAt": "2022-02-15T20:46:44.000Z",
+               "custom_metadata": {
+                   "study_date": "2021-12-31",
+                   "patient_id": "62078f8a756ddb2ca9fc9660",
+                   "patient_sex": "female",
+                   "medical_specialist": "robertboxer@ms.com",
+               }
+            }
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.get_item(project_name, folder_name, item_name)
+        response = self.controller.get_item(
+            project_name, folder_name, item_name, include_custom_metadata
+        )
+        exclude = {"custom_metadata"} if not include_custom_metadata else {}
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize()
+        return BaseSerializer(response.data).serialize(exclude=exclude)
 
     def search_items(
         self,
@@ -2476,6 +2386,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotator_email: Optional[NotEmptyStr] = None,
         qa_email: Optional[NotEmptyStr] = None,
         recursive: bool = False,
+        include_custom_metadata: bool = False,
     ):
         """Search items by filtering criteria.
 
@@ -2497,8 +2408,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                 ♦ “Completed” \n
                                 ♦ “Skippe
         :type annotation_status: str
-        :type annotation_status: str
-
 
         :param annotator_email: returns those items’ names that are assigned to the specified annotator.
          If None, all items are returned. Strict equal.
@@ -2512,8 +2421,41 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
          If False search only in the project’s root or given directory.
         :type recursive: bool
 
-        :return: items' metadata
+        :param include_custom_metadata: include custom metadata that has been attached to an asset.
+        :type include_custom_metadata: bool
+
+        :return: metadata of item
         :rtype: list of dicts
+
+        Request Example:
+        ::
+            client.search_items(
+               project="Medical Annotations",
+               name_contains="image_1",
+               include_custom_metadata=True
+            )
+
+        Response Example:
+        ::
+            [
+               {
+                   "name": "image_1.jpeg",
+                   "path": "Medical Annotations/Study",
+                   "url": "https://sa-public-files.s3.../image_1.png",
+                   "annotation_status": "NotStarted",
+                   "annotator_email": None,
+                   "qa_email": None,
+                   "entropy_value": None,
+                   "createdAt": "2022-02-15T20:46:44.000Z",
+                   "updatedAt": "2022-02-15T20:46:44.000Z",
+                   "custom_metadata": {
+                       "study_date": "2021-12-31",
+                       "patient_id": "62078f8a756ddb2ca9fc9660",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer@ms.com",
+                   }
+               }
+            ]
         """
         project_name, folder_name = extract_project_folder(project)
         response = self.controller.list_items(
@@ -2524,10 +2466,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotator_email=annotator_email,
             qa_email=qa_email,
             recursive=recursive,
+            include_custom_metadata=include_custom_metadata,
         )
+        exclude = {"custom_metadata"} if not include_custom_metadata else {}
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data)
+        return BaseSerializer.serialize_iterable(response.data, exclude=exclude)
 
     def attach_items(
         self,
@@ -2704,7 +2648,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         else:
             logger.info("Annotation statuses of items changed")
-        return response.data
 
     def download_annotations(
         self,
@@ -2722,7 +2665,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param path:  local directory path where the annotations will be downloaded. If none, the current directory is used.
         :type path: Path-like (str or Path)
 
-        :param items: project name (root) or folder path to move items to.
+        :param items: list of item names whose annotations will be downloaded
+            (e.g., ["Image_1.jpeg", "Image_2.jpeg"]). If the value is None, then all the annotations of the given directory will be downloaded.
+
         :type items: list of str
 
         :param recursive: download annotations from the project’s root and all of its folders with the preserved structure.
@@ -2748,3 +2693,300 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         return response.data
+
+    def get_subsets(self, project: Union[NotEmptyStr, dict]):
+        """Get Subsets
+
+        :param project: project name (e.g., “project1”)
+        :type project: str
+
+        :return: subsets’ metadata
+        :rtype: list of dicts
+        """
+        project_name, _ = extract_project_folder(project)
+
+        response = self.controller.list_subsets(project_name)
+        if response.errors:
+            raise AppException(response.errors)
+        return BaseSerializer.serialize_iterable(response.data, ["name"])
+
+    def create_custom_fields(self, project: NotEmptyStr, fields: dict):
+        """Create custom fields for items in a project in addition to built-in metadata.
+        Using this function again with a different schema won't override the existing fields, but add new ones.
+        Use the upload_custom_values() function to fill them with values for each item.
+
+        :param project: project name  (e.g., “project1”)
+        :type project: str
+
+        :param fields:  dictionary describing the fields and their specifications added to the project.
+         You can see the schema structure <here>.
+        :type fields: dict
+
+        :return: custom fields actual schema of the project
+        :rtype: dict
+
+        Supported Types:
+
+        ==============  ======================
+                    number
+        --------------------------------------
+         field spec           spec value
+        ==============  ======================
+        minimum         any number (int or float)
+        maximum         any number (int or float)
+        enum            list of numbers (int or float)
+        ==============  ======================
+
+        ==============  ======================
+                    string
+        --------------------------------------
+         field spec           spec value
+        ==============  ======================
+        format          “email” (user@example.com) or “date” (YYYY-MM-DD)
+
+        enum            list of strings
+        ==============  ======================
+        ::
+
+            custom_fields = {
+               "study_date": {
+                   "type": "string",
+                   "format": "date"
+               },
+               "patient_id": {
+                   "type": "string"
+               },
+               "patient_sex": {
+                   "type": "string",
+                   "enum": [
+                       "male", "female"
+                   ]
+               },
+               "patient_age": {
+                   "type": "number"
+               },
+               "medical_specialist": {
+                   "type": "string",
+                   "format": "email"
+               },
+               "duration": {
+                   "type": "number",
+                   "minimum": 10
+               }
+            }
+
+            client = SAClient()
+            client.create_custom_fields(
+               project="Medical Annotations",
+               fields=custom_fields
+            )
+
+        """
+        project_name, _ = extract_project_folder(project)
+        response = self.controller.create_custom_schema(
+            project_name=project_name, schema=fields
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def get_custom_fields(self, project: NotEmptyStr):
+        """Get the schema of the custom fields defined for the project
+
+        :param project: project name  (e.g., “project1”)
+        :type project: str
+
+        :return: custom fields actual schema of the project
+        :rtype: dict
+
+        Response Example:
+        ::
+            {
+               "study_date": {
+                   "type": "string",
+                   "format": "date"
+               },
+               "patient_id": {
+                   "type": "string"
+               },
+               "patient_sex": {
+                   "type": "string",
+                   "enum": [
+                       "male", "female"
+                   ]
+               },
+               "patient_age": {
+                   "type": "number"
+               },
+               "medical_specialist": {
+                   "type": "string",
+                   "format": "email"
+               },
+               "duration": {
+                   "type": "number",
+                   "minimum": 10
+               }
+            }
+        """
+        project_name, _ = extract_project_folder(project)
+        response = self.controller.get_custom_schema(project_name=project_name)
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def delete_custom_fields(
+        self, project: NotEmptyStr, fields: conlist(NotEmptyStr, min_items=1)
+    ):
+        """Remove custom fields from a project’s custom metadata schema.
+
+        :param project: project name  (e.g., “project1”)
+        :type project: str
+
+        :param fields: list of field names to remove
+        :type fields: list of strs
+
+        :return: custom fields actual schema of the project
+        :rtype: dict
+
+        Request Example:
+        ::
+            client = SAClient()
+            client.delete_custom_fields(
+               project = "Medical Annotations",
+               fields = ["duration", patient_age]
+            )
+
+        Response Example:
+        ::
+            {
+                "study_date": {
+                   "type": "string",
+                   "format": "date"
+                },
+                "patient_id": {
+                   "type": "string"
+                },
+                "patient_sex": {
+                   "type": "string",
+                   "enum": [
+                       "male", "female"
+                   ]
+                },
+                "medical_specialist": {
+                   "type": "string",
+                   "format": "email"
+                }
+            }
+
+        """
+        project_name, _ = extract_project_folder(project)
+        response = self.controller.delete_custom_schema(
+            project_name=project_name, fields=fields
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def upload_custom_values(
+        self, project: NotEmptyStr, items: conlist(Dict[str, dict], min_items=1)
+    ):
+        """
+        Attach custom metadata to items.
+        SAClient.get_item_metadata(), SAClient.search_items(), SAClient.query() methods
+        will return the item metadata and custom metadata.
+
+        :param project: project name or folder path (e.g., “project1/folder1”)
+        :type project: str
+
+        :param items:  list of name-data pairs.
+            The key of each dict indicates an existing item name and the value represents the custom metadata dict.
+             The values for the corresponding keys will be added to an item or will be overridden.
+        :type items: list of dicts
+
+        :return: dictionary with succeeded and failed item names.
+        :rtype: dict
+
+        Request Example:
+        ::
+            client = SAClient()
+
+            items_values = [
+               {
+                   "image_1.png": {
+                       "study_date": "2021-12-31",
+                       "patient_id": "62078f8a756ddb2ca9fc9660",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer@ms.com"
+                   }
+               },
+               {
+                   "image_2.png": {
+                       "study_date": "2021-12-31",
+                       "patient_id": "62078f8a756ddb2ca9fc9661",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer@ms.com"
+                   }
+               },
+               {
+                   "image_3.png": {
+                       "study_date": "2011-10-05T14:48:00.000Z",
+                       "patient_": "62078f8a756ddb2ca9fc9660",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer"
+                   }
+               }
+            ]
+
+            client.upload_custom_values(
+               project = "Medical Annotations",
+               items = items_values
+            )
+        Response Example:
+        ::
+            {
+               "successful_items_count": 2,
+               "failed_items_names": ["image_3.png"]
+            }
+        """
+
+        project_name, folder_name = extract_project_folder(project)
+        response = self.controller.upload_custom_values(
+            project_name=project_name, folder_name=folder_name, items=items
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def delete_custom_values(
+        self, project: NotEmptyStr, items: conlist(Dict[str, List[str]], min_items=1)
+    ):
+        """
+        Remove custom data from items
+
+        :param project: project name or folder path (e.g., “project1/folder1”)
+        :type project: str
+
+        :param items:   list of name-custom data dicts.
+         The key of each dict element indicates an existing item in the project root or folder.
+          The value should be the list of fields to be removed from the given item.
+          Please note, that the function removes pointed metadata from a given item.
+          To delete metadata for all items you should delete it from the custom metadata schema.
+          To override values for existing fields, use SAClient.upload_custom_values()
+        :type items: list of dicts
+
+        Request Example:
+        ::
+            client.delete_custom_values(
+                project = "Medical Annotations",
+                items = [
+                   {"image_1.png": ["study_date", "patient_sex"]},
+                   {"image_2.png": ["study_date", "patient_sex"]}
+                ]
+            )
+        """
+        project_name, folder_name = extract_project_folder(project)
+        response = self.controller.delete_custom_values(
+            project_name=project_name, folder_name=folder_name, items=items
+        )
+        if response.errors:
+            raise AppException(response.errors)

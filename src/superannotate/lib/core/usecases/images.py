@@ -1664,62 +1664,6 @@ class DeleteAnnotations(BaseUseCase):
         return self._response
 
 
-class DeleteImagesUseCase(BaseUseCase):
-    CHUNK_SIZE = 1000
-
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        backend_service_provider: SuperannotateServiceProvider,
-        images: BaseReadOnlyRepository,
-        image_names: List[str] = None,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._images = images
-        self._backend_service = backend_service_provider
-        self._image_names = image_names
-
-    def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
-            )
-
-    def execute(self):
-        if self.is_valid():
-            if self._image_names:
-                image_ids = [
-                    image.uuid
-                    for image in GetBulkImages(
-                        service=self._backend_service,
-                        project_id=self._project.id,
-                        team_id=self._project.team_id,
-                        folder_id=self._folder.uuid,
-                        images=self._image_names,
-                    )
-                    .execute()
-                    .data
-                ]
-            else:
-                condition = (
-                    Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.id, EQ)
-                    & Condition("folder_id", self._folder.uuid, EQ)
-                )
-                image_ids = [image.uuid for image in self._images.get_all(condition)]
-
-            for i in range(0, len(image_ids), self.CHUNK_SIZE):
-                self._backend_service.delete_images(
-                    project_id=self._project.id,
-                    team_id=self._project.team_id,
-                    image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
-                )
-        return self._response
-
-
 class DownloadImageAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
@@ -1962,83 +1906,6 @@ class GetImageAnnotationsUseCase(BaseReportableUseCase):
         return self._response
 
 
-class AssignImagesUseCase(BaseUseCase):
-    CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        image_names: list,
-        user: str,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._image_names = image_names
-        self._user = user
-        self._service = service
-
-    def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
-            )
-
-    def execute(self):
-        if self.is_valid():
-            for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-                is_assigned = self._service.assign_images(
-                    team_id=self._project.team_id,
-                    project_id=self._project.id,
-                    folder_name=self._folder.name,
-                    user=self._user,
-                    image_names=self._image_names[
-                        i : i + self.CHUNK_SIZE  # noqa: E203
-                    ],
-                )
-                if not is_assigned:
-                    self._response.errors = AppException(
-                        f"Cant assign {', '.join(self._image_names[i: i + self.CHUNK_SIZE])}"
-                    )
-                    continue
-        return self._response
-
-
-class UnAssignImagesUseCase(BaseUseCase):
-    CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        project_entity: ProjectEntity,
-        folder: FolderEntity,
-        image_names: list,
-    ):
-        super().__init__()
-        self._project_entity = project_entity
-        self._folder = folder
-        self._image_names = image_names
-        self._service = service
-
-    def execute(self):
-        # todo handling to backend side
-        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            is_un_assigned = self._service.un_assign_images(
-                team_id=self._project_entity.team_id,
-                project_id=self._project_entity.id,
-                folder_name=self._folder.name,
-                image_names=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
-            )
-            if not is_un_assigned:
-                self._response.errors = AppException(
-                    f"Cant un assign {', '.join(self._image_names[i: i + self.CHUNK_SIZE])}"
-                )
-
-        return self._response
-
-
 class UnAssignFolderUseCase(BaseUseCase):
     def __init__(
         self,
@@ -2059,61 +1926,6 @@ class UnAssignFolderUseCase(BaseUseCase):
         )
         if not is_un_assigned:
             self._response.errors = AppException(f"Cant un assign {self._folder.name}")
-        return self._response
-
-
-class SetImageAnnotationStatuses(BaseUseCase):
-    CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        projects: BaseReadOnlyRepository,
-        image_names: list,
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        images_repo: BaseManageableRepository,
-        annotation_status: int,
-    ):
-        super().__init__()
-        self._service = service
-        self._projects = projects
-        self._image_names = image_names
-        self._team_id = team_id
-        self._project_id = project_id
-        self._folder_id = folder_id
-        self._annotation_status = annotation_status
-        self._images_repo = images_repo
-
-    def validate_project_type(self):
-        project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
-        if project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(constances.LIMITED_FUNCTIONS[project.type])
-
-    def execute(self):
-        if self.is_valid():
-            if self._image_names is None:
-                condition = (
-                    Condition("team_id", self._team_id, EQ)
-                    & Condition("project_id", self._project_id, EQ)
-                    & Condition("folder_id", self._folder_id, EQ)
-                )
-                self._image_names = [
-                    image.name for image in self._images_repo.get_all(condition)
-                ]
-            for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-                status_changed = self._service.set_images_statuses_bulk(
-                    image_names=self._image_names[
-                        i : i + self.CHUNK_SIZE  # noqa: E203
-                    ],
-                    team_id=self._team_id,
-                    project_id=self._project_id,
-                    folder_id=self._folder_id,
-                    annotation_status=self._annotation_status,
-                )
-                if not status_changed:
-                    self._response.errors = AppException("Failed to change status.")
         return self._response
 
 
@@ -2140,7 +1952,7 @@ class CreateAnnotationClassUseCase(BaseUseCase):
                 if annotation_class.name == self._annotation_class.name
             ]
         ):
-            raise AppValidationException("Annotation class already exits.")
+            raise AppValidationException("Annotation class already exists.")
 
     def validate_project_type(self):
         if (
@@ -2149,6 +1961,15 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         ):
             raise AppException(
                 f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.type)}."
+            )
+
+    def validate_default_value(self):
+        if self._project.type == ProjectType.PIXEL.value and any(
+            getattr(attr_group, "default_value", None)
+            for attr_group in getattr(self._annotation_class, "attribute_groups", [])
+        ):
+            raise AppException(
+                'The "default_value" key is not supported for project type Pixel.'
             )
 
     def execute(self):
@@ -2265,6 +2086,17 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
             raise AppException(
                 f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.type)}."
             )
+
+    def validate_default_value(self):
+        if self._project.type == ProjectType.PIXEL.value:
+            for annotation_class in self._annotation_classes:
+                if any(
+                    getattr(attr_group, "default_value", None)
+                    for attr_group in getattr(annotation_class, "attribute_groups", [])
+                ):
+                    raise AppException(
+                        'The "default_value" key is not supported for project type Pixel.'
+                    )
 
     def execute(self):
         if self.is_valid():

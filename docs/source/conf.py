@@ -12,8 +12,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../src'))
 
+sys.path.insert(0, os.path.abspath('../../src'))
 
 # -- Project information -----------------------------------------------------
 
@@ -22,7 +22,8 @@ copyright = '2021, SuperAnnotate AI'
 author = 'SuperAnnotate AI'
 
 # The full version, including alpha/beta/rc tags
-from superannotate.version import __version__
+from superannotate import __version__
+
 release = __version__
 
 # -- General configuration ---------------------------------------------------
@@ -54,3 +55,10 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = []
 
 autodoc_typehints = "description"
+html_show_sourcelink = False
+
+html_context = {
+    "display_github": False,  # Add 'Edit on Github' link instead of 'View page source'
+    "last_updated": True,
+    "commit": False,
+}

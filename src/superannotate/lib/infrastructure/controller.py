@@ -75,8 +75,8 @@ class BaseController(metaclass=ABCMeta):
         self._integrations = None
         self._ml_models = None
         self._user_id = None
-        self._team_name = None
         self._reporter = None
+        self._team = self._get_team()
 
     @staticmethod
     def validate_token(token: str):
@@ -97,12 +97,6 @@ class BaseController(metaclass=ABCMeta):
         return self._user_id
 
     @property
-    def team_name(self):
-        if not self._team_name:
-            _, self._team_name = self.get_team()
-        return self._team_name
-
-    @property
     def projects(self):
         if not self._projects:
             self._projects = ProjectRepository(self._backend_client)
@@ -113,6 +107,18 @@ class BaseController(metaclass=ABCMeta):
         if not self._folders:
             self._folders = FolderRepository(self._backend_client)
         return self._folders
+
+    @property
+    def team(self):
+        return self._team
+
+    def _get_team(self):
+        response = usecases.GetTeamUseCase(
+            teams=self.teams, team_id=self.team_id
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
 
     def get_team(self):
         return usecases.GetTeamUseCase(teams=self.teams, team_id=self.team_id).execute()
@@ -130,7 +136,7 @@ class BaseController(metaclass=ABCMeta):
     @property
     def team_data(self):
         if not self._team_data:
-            self._team_data = self.get_team().data
+            self._team_data = self.team
         return self._team_data
 
     @property
@@ -795,42 +801,20 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def set_images_annotation_statuses(
+    def delete_items(
         self,
         project_name: str,
         folder_name: str,
-        image_names: list,
-        annotation_status: str,
-    ):
-        project_entity = self._get_project(project_name)
-        folder_entity = self._get_folder(project_entity, folder_name)
-        images_repo = ImageRepository(service=self._backend_client)
-        use_case = usecases.SetImageAnnotationStatuses(
-            service=self._backend_client,
-            projects=self.projects,
-            image_names=image_names,
-            team_id=project_entity.team_id,
-            project_id=project_entity.id,
-            folder_id=folder_entity.uuid,
-            images_repo=images_repo,
-            annotation_status=constances.AnnotationStatus.get_value(annotation_status),
-        )
-        return use_case.execute()
-
-    def delete_images(
-        self,
-        project_name: str,
-        folder_name: str,
-        image_names: List[str] = None,
+        items: List[str] = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
 
-        use_case = usecases.DeleteImagesUseCase(
+        use_case = usecases.DeleteItemsUseCase(
             project=project,
             folder=folder,
-            images=self.images,
-            image_names=image_names,
+            items=self.items,
+            item_names=items,
             backend_service_provider=self._backend_client,
         )
         return use_case.execute()
@@ -859,31 +843,6 @@ class Controller(BaseController):
             service=self._backend_client,
             folder=folder,
             item_names=item_names,
-        )
-        return use_case.execute()
-
-    def assign_images(
-        self, project_name: str, folder_name: str, image_names: list, user: str
-    ):
-        project_entity = self._get_project(project_name)
-        folder = self._get_folder(project_entity, folder_name)
-        use_case = usecases.AssignImagesUseCase(
-            project=project_entity,
-            service=self._backend_client,
-            folder=folder,
-            image_names=image_names,
-            user=user,
-        )
-        return use_case.execute()
-
-    def un_assign_images(self, project_name, folder_name, image_names):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        use_case = usecases.UnAssignImagesUseCase(
-            project_entity=project,
-            service=self._backend_client,
-            folder=folder,
-            image_names=image_names,
         )
         return use_case.execute()
 
@@ -1085,7 +1044,6 @@ class Controller(BaseController):
         project_name: str,
         folder_name: str,
         annotation_paths: List[str],
-        root_annotation_paths: str,
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
         folder_path: str = None,
@@ -1096,10 +1054,8 @@ class Controller(BaseController):
             project=project,
             folder=folder,
             images=self.images,
-            folders=self.folders,
             team=self.team_data,
             annotation_paths=annotation_paths,
-            root_annotation_paths=root_annotation_paths,
             backend_service_provider=self._backend_client,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
@@ -1109,6 +1065,7 @@ class Controller(BaseController):
             templates=self._backend_client.get_templates(team_id=self.team_id).get(
                 "data", []
             ),
+            validators=self.annotation_validators,
             reporter=self.get_default_reporter(log_info=False, log_warning=False),
             folder_path=folder_path,
         )
@@ -1146,6 +1103,7 @@ class Controller(BaseController):
             mask=mask,
             verbose=verbose,
             reporter=self.get_default_reporter(),
+            validators=self.annotation_validators,
         )
         return use_case.execute()
 
@@ -1358,6 +1316,10 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
+    @staticmethod
+    def validate_annotations(
+        project_type: str, annotation: dict, allow_extra: bool = True
+    ):
     def validate_annotations(self, project_type: str, annotation: dict):
         use_case = usecases.ValidateAnnotationUseCase(
             reporter=self.get_default_reporter(),
@@ -1369,13 +1331,12 @@ class Controller(BaseController):
         return use_case.execute()
 
     def add_contributors_to_project(self, project_name: str, emails: list, role: str):
-        team = self.get_team()
         project = self.get_project_metadata(
             project_name=project_name, include_contributors=True
         )
         use_case = usecases.AddContributorsToProject(
             reporter=self.get_default_reporter(),
-            team=team.data,
+            team=self.team,
             project=project.data["project"],
             emails=emails,
             role=role,
@@ -1384,10 +1345,9 @@ class Controller(BaseController):
         return use_case.execute()
 
     def invite_contributors_to_team(self, emails: list, set_admin: bool):
-        team = self.get_team()
         use_case = usecases.InviteContributorsToTeam(
             reporter=self.get_default_reporter(),
-            team=team.data,
+            team=self.team,
             emails=emails,
             set_admin=set_admin,
             service=self.backend_client,
@@ -1508,20 +1468,29 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def query_entities(self, project_name: str, folder_name: str, query: str = None):
+    def query_entities(
+        self, project_name: str, folder_name: str, query: str = None, subset: str = None
+    ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
 
-        use_case = usecases.QueryEntities(
+        use_case = usecases.QueryEntitiesUseCase(
             reporter=self.get_default_reporter(),
             project=project,
             folder=folder,
             query=query,
+            subset=subset,
             backend_service_provider=self.backend_client,
         )
         return use_case.execute()
 
-    def get_item(self, project_name: str, folder_name: str, item_name: str):
+    def get_item(
+        self,
+        project_name: str,
+        folder_name: str,
+        item_name: str,
+        include_custom_metadata: bool,
+    ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         use_case = usecases.GetItem(
@@ -1529,7 +1498,8 @@ class Controller(BaseController):
             project=project,
             folder=folder,
             item_name=item_name,
-            items=self.items,
+            backend_client=self.backend_client,
+            include_custom_metadata=include_custom_metadata,
         )
         return use_case.execute()
 
@@ -1542,6 +1512,7 @@ class Controller(BaseController):
         annotator_email: str = None,
         qa_email: str = None,
         recursive: bool = False,
+        include_custom_metadata: bool = False,
         **kwargs,
     ):
         project = self._get_project(project_name)
@@ -1559,18 +1530,18 @@ class Controller(BaseController):
             search_condition &= Condition("qa_id", qa_email, EQ)
         if annotator_email:
             search_condition &= Condition("annotator_id", annotator_email, EQ)
-        search_condition &= build_condition(**kwargs)
 
+        search_condition &= build_condition(**kwargs)
         use_case = usecases.ListItems(
             reporter=self.get_default_reporter(),
             project=project,
             folder=folder,
-            recursive=recursive,
-            items=self.items,
             folders=self.folders,
+            recursive=recursive,
+            backend_client=self.backend_client,
             search_condition=search_condition,
+            include_custom_metadata=include_custom_metadata,
         )
-
         return use_case.execute()
 
     def attach_items(
@@ -1686,5 +1657,74 @@ class Controller(BaseController):
             ),
             backend_service_provider=self.backend_client,
             callback=callback,
+        )
+        return use_case.execute()
+
+    def list_subsets(self, project_name: str):
+        project = self._get_project(project_name)
+        use_case = usecases.ListSubsetsUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def create_custom_schema(self, project_name: str, schema: dict):
+        project = self._get_project(project_name)
+
+        use_case = usecases.CreateCustomSchemaUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            schema=schema,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def get_custom_schema(self, project_name: str):
+        project = self._get_project(project_name)
+        use_case = usecases.GetCustomSchemaUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def delete_custom_schema(self, project_name: str, fields: List[str]):
+        project = self._get_project(project_name)
+        use_case = usecases.DeleteCustomSchemaUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            fields=fields,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def upload_custom_values(
+        self, project_name: str, folder_name: str, items: List[dict]
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.UploadCustomValuesUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            folder=folder,
+            items=items,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def delete_custom_values(
+        self, project_name: str, folder_name: str, items: List[dict]
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.DeleteCustomValuesUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            folder=folder,
+            items=items,
+            backend_client=self.backend_client,
         )
         return use_case.execute()

@@ -84,10 +84,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.set_image_annotation_status(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "Completed")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -97,10 +93,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.upload_video_to_project(self.PROJECT_NAME, "some path")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.delete_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -133,10 +125,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.upload_videos_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.assign_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], "some user")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:

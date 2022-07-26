@@ -73,11 +73,14 @@ class BaseSerializer(ABC):
         fields: Union[List[str], Set[str]] = None,
         by_alias: bool = False,
         flat: bool = False,
+        exclude: Set = None,
     ) -> List[Any]:
         serialized_data = []
         for i in data:
             serialized_data.append(
-                cls._fill_enum_values(cls._serialize(i, fields, by_alias, flat))
+                cls._fill_enum_values(
+                    cls._serialize(i, fields, by_alias, flat, exclude=exclude)
+                )
             )
         return serialized_data
 

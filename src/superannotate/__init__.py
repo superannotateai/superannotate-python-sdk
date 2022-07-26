@@ -1,6 +1,8 @@
 import os
 import sys
 
+__version__ = "4.4.1"
+
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
 import logging.config  # noqa
@@ -19,7 +21,6 @@ from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
 from superannotate.logger import get_default_logger  # noqa
-from superannotate.version import __version__  # noqa
 import superannotate.lib.core.enums as enums  # noqa
 
 SESSIONS = {}
