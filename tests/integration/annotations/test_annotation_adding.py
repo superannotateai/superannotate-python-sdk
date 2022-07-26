@@ -129,7 +129,7 @@ class TestAnnotationAdding(BaseTestCase):
                           'correspondence': [{'text': 'some comment', 'email': 'abc@abc.com'}]
                           })
 
-    def test_add_bbox(self):
+    def test_adding(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )

@@ -62,7 +62,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         folders: BaseManageableRepository,
         annotation_classes: List[AnnotationClassEntity],
         annotation_paths: List[str],
-        root_annotation_paths: str,
         backend_service_provider: SuperannotateServiceProvider,
         templates: List[dict],
         pre_annotation: bool = False,
@@ -78,7 +77,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._backend_service = backend_service_provider
         self._annotation_classes = annotation_classes
         self._annotation_paths = annotation_paths
-        self._root_annotation_paths = root_annotation_paths
         self._client_s3_bucket = client_s3_bucket
         self._pre_annotation = pre_annotation
         self._templates = templates
@@ -203,7 +201,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             ).execute()
             if not response.errors:
                 existing_items.update({item.name for item in response.data})
-        return existing_items
+        return existing_items  # noqa
 
     def execute(self):
         uploaded_annotations = []
@@ -226,7 +224,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             max_workers=self.MAX_WORKERS
         ) as executor:
             results = {}
-
             for name_path_mapping in self.chunks(
                 name_path_mappings_to_upload, self.CHUNK_SIZE
             ):
@@ -855,13 +852,14 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     def oneOf(validator, oneOf, instance, schema):  # noqa
         sub_schemas = enumerate(oneOf)
         const_found = False
-
+        const_key = None
         for index, sub_schema in sub_schemas:
 
             key, _type = ValidateAnnotationUseCase._get_const(sub_schema)
             if key:
                 instance_type = ValidateAnnotationUseCase._get_by_path(key, instance)
                 const_found = True
+                const_key = key
                 if not instance_type:
                     yield ValidationError("type required")
                     raise StopIteration
@@ -878,7 +876,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                     validator, oneOf, instance, schema
                 )
         if const_found:
-            yield ValidationError("invalid instance")
+            yield ValidationError(f"invalid {'.'.join(const_key)}")
 
     @staticmethod
     def iter_errors(self, instance, _schema=None):
@@ -995,9 +993,10 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                     errors_report.append(("".join(real_path), error.message))
                 for sub_error in sorted(error.context, key=lambda e: e.schema_path):
                     tmp_path = sub_error.path  # if sub_error.path else real_path
+                    msg = f"{''.join(real_path)}" + ("." if tmp_path else "") + "".join(extract_path(tmp_path))
                     errors_report.append(
                         (
-                            f"{''.join(real_path)}." + "".join(extract_path(tmp_path)),
+                            msg,
                             sub_error.message,
                         )
                     )

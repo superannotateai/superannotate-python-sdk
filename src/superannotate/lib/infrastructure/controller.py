@@ -1065,9 +1065,9 @@ class Controller(BaseController):
             templates=self._backend_client.get_templates(team_id=self.team_id).get(
                 "data", []
             ),
-            validators=self.annotation_validators,
             reporter=self.get_default_reporter(log_info=False, log_warning=False),
             folder_path=folder_path,
+            folders=self.folders
         )
         return use_case.execute()
 
@@ -1103,7 +1103,6 @@ class Controller(BaseController):
             mask=mask,
             verbose=verbose,
             reporter=self.get_default_reporter(),
-            validators=self.annotation_validators,
         )
         return use_case.execute()
 
@@ -1316,10 +1315,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    @staticmethod
-    def validate_annotations(
-        project_type: str, annotation: dict, allow_extra: bool = True
-    ):
     def validate_annotations(self, project_type: str, annotation: dict):
         use_case = usecases.ValidateAnnotationUseCase(
             reporter=self.get_default_reporter(),

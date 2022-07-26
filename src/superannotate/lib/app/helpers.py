@@ -142,5 +142,8 @@ def wrap_error(errors_list: List[Tuple[str, str]]) -> str:
     tabulation = get_tabulation()
     msgs = []
     for key, value in errors_list:
-        msgs.append("{}{}{}".format(key, " " * (tabulation - len(key)), value))
+        _tabulation = tabulation - len(key)
+        if not key:
+            key, value, _tabulation = value, "", 0
+        msgs.append("{}{}{}".format(key, " " * _tabulation, value))
     return "\n".join(msgs)
