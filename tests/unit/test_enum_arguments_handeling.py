@@ -1,6 +1,3 @@
-# from typing import Literal
-from pydantic.typing import Literal
-
 from superannotate import enums
 from superannotate import SAClient
 from superannotate.lib.app.interface.types import validate_arguments

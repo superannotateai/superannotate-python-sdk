@@ -4,6 +4,7 @@ import json
 import platform
 import time
 from contextlib import contextmanager
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -16,6 +17,7 @@ import lib.core as constance
 import requests.packages.urllib3
 from lib.core import entities
 from lib.core.entities import BaseItemEntity
+from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
@@ -27,6 +29,7 @@ from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
+from pydantic import BaseModel
 from requests.exceptions import HTTPError
 from superannotate import __version__
 
@@ -35,8 +38,8 @@ requests.packages.urllib3.disable_warnings()
 
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
-        if hasattr(obj, "deserialize"):
-            return obj.deserialize()
+        if isinstance(obj, BaseModel):
+            return obj.dict(exclude_none=getattr(obj.Config, "exclude_none", False))
         if isinstance(obj, (datetime.date, datetime.datetime)):
             return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
@@ -184,6 +187,39 @@ class BaseBackendService(SuperannotateServiceProvider):
                 break
             offset += len(resources["data"])
         return total
+
+    def _paginate(
+        self,
+        url: str,
+        chunk_size: int = 2000,
+        content_type: Any = BaseItemEntity,
+        query_params: Dict[str, Any] = None,
+        dispatcher: Callable = None,
+    ) -> ServiceResponse:
+        offset = 0
+        total = []
+        splitter = "&" if "?" in url else "?"
+
+        while True:
+            _url = f"{url}{splitter}offset={offset}"
+            _response = self._request(
+                _url,
+                method="get",
+                content_type=List[content_type],
+                dispatcher=dispatcher,
+                params=query_params,
+            )
+            if _response.ok:
+                total.extend(_response.data)
+            else:
+                return _response
+            data_len = len(_response.data)
+            offset += data_len
+            if _response.count < chunk_size or _response.count - offset <= 0:
+                break
+        response = ServiceResponse(_response)
+        response.data = total
+        return response
 
 
 class SuperannotateBackendService(BaseBackendService):
@@ -458,6 +494,20 @@ class SuperannotateBackendService(BaseBackendService):
         params = {"project_id": project_id, "team_id": team_id}
         return self._get_all_pages(get_annotation_classes_url, params=params)
 
+    def list_annotation_classes(
+        self, project_id: int, team_id: int, query_string: str = None
+    ):
+        annotation_classes_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        if query_string:
+            annotation_classes_url = f"{annotation_classes_url}?{query_string}"
+        params = {"project_id": project_id, "team_id": team_id}
+        return self._paginate(
+            url=annotation_classes_url,
+            query_params=params,
+            content_type=AnnotationClassEntity,
+            dispatcher=lambda x: x.pop("data"),
+        )
+
     def set_annotation_classes(self, project_id: int, team_id: int, data: List):
         set_annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
         params = {
@@ -468,6 +518,23 @@ class SuperannotateBackendService(BaseBackendService):
             set_annotation_class_url, "post", params=params, data={"classes": data}
         )
         return res.json()
+
+    def create_annotation_classes(
+        self, project_id: int, team_id: int, data: List[AnnotationClassEntity]
+    ):
+        annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        return self._request(
+            annotation_class_url,
+            "post",
+            params=params,
+            data={"classes": data},
+            content_type=List[AnnotationClassEntity],
+            # dispatcher=lambda x: x.pop("data")
+        )
 
     def get_project_workflows(self, project_id: int, team_id: int):
         get_project_workflow_url = urljoin(
@@ -543,32 +610,15 @@ class SuperannotateBackendService(BaseBackendService):
         return self._get_all_pages(url)
 
     def list_items(self, query_string) -> ServiceResponse:
-        chunk_size = 2000
         url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
-        offset = 0
-        total = []
-        splitter = "&" if "?" in url else "?"
-        while True:
-            _url = f"{url}{splitter}offset={offset}"
-            _response = self._request(
-                _url,
-                method="get",
-                content_type=List[BaseItemEntity],
-                dispatcher=lambda x: x.pop("data"),
-            )
-            if _response.ok:
-                total.extend(_response.data)
-            else:
-                return _response
-            data_len = len(_response.data)
-            offset += data_len
-            if _response.count < chunk_size or _response.count - offset <= 0:
-                break
-        response = ServiceResponse(_response)
-        response.data = total
-        return response
+        return self._paginate(
+            url=url,
+            chunk_size=2000,
+            content_type=BaseItemEntity,
+            dispatcher=lambda x: x.pop("data"),
+        )
 
     def prepare_export(
         self,

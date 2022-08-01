@@ -311,6 +311,10 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
+    def create_annotation_classes(self, project_id: int, team_id: int, data: List):
+        raise NotImplementedError
+
+    @abstractmethod
     async def download_annotations(
         self,
         project_id: int,
@@ -386,4 +390,10 @@ class SuperannotateServiceProvider:
         folder_id: int,
         items: List[Dict[str, List[str]]],
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_annotation_classes(
+        self, project_id: int, team_id: int, query_string: str = None
+    ):
         raise NotImplementedError
