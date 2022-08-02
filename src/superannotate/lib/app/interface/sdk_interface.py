@@ -43,8 +43,8 @@ from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import SettingEntity
+from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.integrations import IntegrationEntity
-from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
@@ -52,6 +52,7 @@ from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
+from lib.infrastructure.validators import wrap_error
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
@@ -580,8 +581,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         classes = self.controller.search_annotation_classes(project_name, name_contains)
-        classes = [BaseSerializer(attribute).serialize() for attribute in classes.data]
-        return classes
+        return BaseSerializer.serialize_iterable(classes.data)
 
     def set_project_default_image_quality_in_editor(
         self,
@@ -1160,12 +1160,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         attribute_groups = (
             list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
         )
+        try:
+            annotation_class = AnnotationClassEntity(
+                name=name,
+                color=color,  # noqa
+                attribute_groups=attribute_groups,
+                type=class_type,  # noqa
+            )
+        except ValidationError as e:
+            raise AppException(wrap_error(e))
+
         response = self.controller.create_annotation_class(
-            project_name=project,
-            name=name,
-            color=color,
-            attribute_groups=attribute_groups,
-            class_type=class_type,
+            project_name=project, annotation_class=annotation_class
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1238,9 +1244,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             classes_json = json.load(data)
         try:
             annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
-        except ValidationError:
+        except ValidationError as _:
             raise AppException("Couldn't validate annotation classes.")
-        logger.info(f"Creating annotation classes in project {project}.")
         response = self.controller.create_annotation_classes(
             project_name=project,
             annotation_classes=annotation_classes,

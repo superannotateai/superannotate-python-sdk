@@ -14,13 +14,13 @@ import lib.core as constances
 from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
-from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
+from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
@@ -921,23 +921,25 @@ class Controller(BaseController):
         return use_case.execute()
 
     def create_annotation_class(
-        self,
-        project_name: str,
-        name: str,
-        color: str,
-        attribute_groups: List[dict],
-        class_type: str,
+        self, project_name: str, annotation_class: AnnotationClassEntity
     ):
         project = self._get_project(project_name)
-        annotation_classes = AnnotationClassRepository(
-            project=project, service=self._backend_client
-        )
-        annotation_class = AnnotationClassEntity(
-            name=name, color=color, attribute_groups=attribute_groups, type=class_type
-        )
         use_case = usecases.CreateAnnotationClassUseCase(
-            annotation_classes=annotation_classes,
+            reporter=self.get_default_reporter(),
             annotation_class=annotation_class,
+            project=project,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def create_annotation_classes(
+        self, project_name: str, annotation_classes: List[AnnotationClassEntity]
+    ):
+        project = self._get_project(project_name)
+        use_case = usecases.CreateAnnotationClassesUseCase(
+            reporter=self.get_default_reporter(),
+            backend_client=self._backend_client,
+            annotation_classes=annotation_classes,
             project=project,
         )
         return use_case.execute()
@@ -968,26 +970,10 @@ class Controller(BaseController):
     def download_annotation_classes(self, project_name: str, download_path: str):
         project = self._get_project(project_name)
         use_case = usecases.DownloadAnnotationClassesUseCase(
-            annotation_classes_repo=AnnotationClassRepository(
-                service=self._backend_client,
-                project=project,
-            ),
-            download_path=download_path,
-            project_name=project_name,
-        )
-        return use_case.execute()
-
-    def create_annotation_classes(self, project_name: str, annotation_classes: list):
-        project = self._get_project(project_name)
-
-        use_case = usecases.CreateAnnotationClassesUseCase(
-            service=self._backend_client,
-            annotation_classes_repo=AnnotationClassRepository(
-                service=self._backend_client,
-                project=project,
-            ),
-            annotation_classes=annotation_classes,
             project=project,
+            reporter=self.get_default_reporter(),
+            download_path=download_path,
+            backend_client=self.backend_client,
         )
         return use_case.execute()
 

@@ -49,6 +49,8 @@ class BaseSerializer(ABC):
         flat: bool = False,
         exclude: Set[str] = None,
     ):
+        if not entity:
+            return None
         if isinstance(entity, dict):
             return entity
         if isinstance(entity, BaseModel):

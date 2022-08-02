@@ -93,7 +93,7 @@ class ServiceResponse(BaseModel):
     content: Union[bytes, str]
     data: Any
     count: Optional[int] = 0
-    _error: str
+    _error: str = None
 
     class Config:
         extra = Extra.allow
