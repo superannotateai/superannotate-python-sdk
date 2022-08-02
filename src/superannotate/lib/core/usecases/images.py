@@ -46,7 +46,6 @@ from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
 from superannotate.logger import get_default_logger
-from superannotate_schemas.validators import AnnotationValidators
 
 logger = get_default_logger()
 
@@ -1749,7 +1748,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             annotation["className"] = annotation_class["name"]
             for attribute in [
                 i
-                for i in annotation["attributes"]
+                for i in annotation.get("attributes", [])
                 if "groupId" in i
                 and i["groupId"] in annotation_class["attribute_groups"].keys()
             ]:
@@ -2092,37 +2091,6 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
                 target_fps=self._target_fps,
             )
             yield from frames_generator
-
-
-class ValidateAnnotationUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project_type: str,
-        annotation: dict,
-        validators: AnnotationValidators,
-        allow_extra: bool = True,
-    ):
-        super().__init__()
-        self._project_type = project_type
-        self._annotation = annotation
-        self._validators = validators
-        self._allow_extra = allow_extra
-
-    def execute(self) -> Response:
-        try:
-            validator = self._validators.get_validator(self._project_type)
-
-            validator = validator(self._annotation, allow_extra=self._allow_extra)
-            if validator.is_valid():
-                self._response.data = True, validator.data
-            else:
-                self._response.report = validator.generate_report()
-                self._response.data = False, validator.data
-        except KeyError:
-            self._response.errors = AppException(
-                f"There is not validator for type {self._project_type}."
-            )
-        return self._response
 
 
 class UploadVideosAsImages(BaseReportableUseCase):

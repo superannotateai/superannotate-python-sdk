@@ -7,6 +7,7 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import Extra
+from pydantic import Field
 from pydantic import parse_obj_as
 
 
@@ -67,6 +68,17 @@ class DownloadMLModelAuthData(BaseModel):
         data.update(credentials)
         del data["tokens"]
         super().__init__(**data)
+
+
+class UploadAnnotationsResponse(BaseModel):
+    class Resource(BaseModel):
+        classes: List[str] = Field([], alias="class")
+        templates: List[str] = Field([], alias="template")
+        attributes: List[str] = Field([], alias="attribute")
+        attribute_groups: Optional[List[str]] = Field([], alias="attributeGroup")
+
+    failed_items: List[str] = Field([], alias="failedItems")
+    missing_resources: Resource = Field({}, alias="missingResources")
 
 
 class UploadCustomFieldValues(BaseModel):

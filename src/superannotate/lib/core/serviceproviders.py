@@ -1,3 +1,4 @@
+import io
 from abc import abstractmethod
 from typing import Any
 from typing import Callable
@@ -360,6 +361,18 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
+        raise NotImplementedError
+
+    def upload_annotations(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items_name_file_map: Dict[str, io.StringIO],
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    def get_schema(self, team_id: int, project_type: int, version: str) -> dict:
         raise NotImplementedError
 
     def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:

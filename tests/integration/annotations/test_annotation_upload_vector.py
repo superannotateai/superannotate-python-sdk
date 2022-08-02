@@ -8,8 +8,10 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+
+sa = SAClient()
 
 
 class TestAnnotationUploadVector(BaseTestCase):
@@ -24,7 +26,7 @@ class TestAnnotationUploadVector(BaseTestCase):
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
-    @pytest.mark.flaky(reruns=3)
+    # @pytest.mark.flaky(reruns=3)
     @patch("lib.infrastructure.controller.Reporter")
     def test_annotation_upload(self, reporter):
         reporter_mock = MagicMock()

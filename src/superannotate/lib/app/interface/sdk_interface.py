@@ -20,6 +20,7 @@ from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
+from lib.app.helpers import wrap_error as wrap_validation_errors
 from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
 from lib.app.interface.types import AnnotationStatuses
@@ -1840,9 +1841,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotation_class_attributes,
             error,
         )
-        self.controller.upload_image_annotations(
+        response = self.controller.upload_image_annotations(
             project_name, folder_name, image_name, annotations
         )
+        if response.errors:
+            raise AppException(response.errors)
 
     def add_annotation_comment_to_image(
         self,
@@ -2109,7 +2112,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def validate_annotations(
-        self, project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
+        self, project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path, dict]
     ):
         """Validates given annotation JSON.
 
@@ -2122,16 +2125,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: The success of the validation
         :rtype: bool
         """
-        with open(annotations_json) as file:
-            annotation_data = json.loads(file.read())
-            response = Controller.validate_annotations(project_type, annotation_data)
-            if response.errors:
-                raise AppException(response.errors)
-            is_valid, _ = response.data
-            if is_valid:
-                return True
-            print(response.report)
-            return False
+        if isinstance(annotations_json, dict):
+            annotation_data = annotations_json
+        else:
+            annotation_data = json.load(open(annotations_json))
+        response = self.controller.validate_annotations(
+            project_type, annotation_data
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        report = response.data
+        if not report:
+            return True
+        print(wrap_validation_errors(report))
+        return False
 
     def add_contributors_to_project(
         self,

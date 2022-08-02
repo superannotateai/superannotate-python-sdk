@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import io
 import json
 import platform
 import time
@@ -24,6 +25,7 @@ from lib.core.reporter import Reporter
 from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
+from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UploadCustomFieldValues
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
@@ -129,15 +131,22 @@ class BaseBackendService(SuperannotateServiceProvider):
         params=None,
         retried=0,
         content_type=None,
+            files=None,
         dispatcher: Callable = None,
     ) -> Union[requests.Response, ServiceResponse]:
         kwargs = {"data": json.dumps(data, cls=PydanticEncoder)} if data else {}
         session = self.get_session()
+        if files and session.headers.get("Content-Type"):
+            del session.headers["Content-Type"]
         session.headers.update(headers if headers else {})
         with self.safe_api():
-            req = requests.Request(method=method, url=url, **kwargs, params=params)
+            req = requests.Request(
+                method=method, url=url, **kwargs, params=params, files=files
+            )
             prepared = session.prepare_request(req)
             response = session.send(request=prepared, verify=self._verify_ssl)
+        if files:
+            session.headers.update(self.default_headers)
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
@@ -286,6 +295,11 @@ class SuperannotateBackendService(BaseBackendService):
     URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
+    URL_UPLOAD_ANNOTATIONS = (
+        "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/"
+        "v1.01/items/annotations/upload"
+    )
+    URL_ANNOTATION_SCHEMAS = "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/items/annotations/schema"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -1353,3 +1367,40 @@ class SuperannotateBackendService(BaseBackendService):
             data=dict(data=dict(ChainMap(*items))),
             content_type=ServiceResponse,
         )
+
+    def upload_annotations(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items_name_file_map: Dict[str, io.StringIO],
+    ) -> UploadAnnotationsResponse:
+        url = f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}"
+        return self._request(
+            url,
+            "post",
+            params={
+                "team_id": team_id,
+                "project_id": project_id,
+                "folder_id": folder_id,
+                "image_names": list(items_name_file_map.keys()),
+            },
+            files=[
+                (i[0], (*i, "application/json")) for i in items_name_file_map.items()
+            ],
+            content_type=UploadAnnotationsResponse,
+        )
+
+    def get_schema(self, team_id: int, project_type: int, version: str) -> str:
+        url = self.URL_ANNOTATION_SCHEMAS
+        response = self._request(
+            url,
+            "get",
+            params={
+                "team_id": team_id,
+                "project_type": project_type,
+                "version": version,
+            },
+        )
+        if response.ok:
+            return response.json()

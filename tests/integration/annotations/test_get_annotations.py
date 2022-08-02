@@ -6,11 +6,11 @@ from typing import List
 
 import pytest
 from pydantic import parse_obj_as
-from superannotate_schemas.schemas.internal import VectorAnnotation
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestGetAnnotations(BaseTestCase):
@@ -36,13 +36,11 @@ class TestGetAnnotations(BaseTestCase):
         _, _, _ = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-
         annotations = sa.get_annotations(f"{self.PROJECT_NAME}", [self.IMAGE_NAME])
         self.assertEqual(len(annotations), 1)
         with open(f"{self.folder_path}/{self.IMAGE_NAME}___objects.json", "r") as annotation_file:
             annotation_data = json.load(annotation_file)
             self.assertEqual(len(annotation_data["instances"]), len(annotations[0]["instances"]))
-        parse_obj_as(List[VectorAnnotation], annotations)
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_order(self):
@@ -81,7 +79,6 @@ class TestGetAnnotations(BaseTestCase):
         with open(f"{self.folder_path}/{self.IMAGE_NAME}___objects.json", "r") as annotation_file:
             annotation_data = json.load(annotation_file)
             self.assertEqual(len(annotation_data["instances"]), len(annotations[0]["instances"]))
-        parse_obj_as(List[VectorAnnotation], annotations)
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_all(self):
