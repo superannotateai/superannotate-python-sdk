@@ -1285,7 +1285,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        logger.info(response.data)
 
     def set_project_workflow(
         self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]
