@@ -372,6 +372,17 @@ class SuperannotateServiceProvider:
     ) -> ServiceResponse:
         raise NotImplementedError
 
+    def upload_big_annotation(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        item_id: int,
+        data: io.StringIO,
+        chunk_size: int,
+    ) -> bool:
+        raise NotImplementedError
+
     def get_schema(
         self, team_id: int, project_type: int, version: str
     ) -> ServiceResponse:

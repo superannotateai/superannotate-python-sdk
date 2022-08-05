@@ -78,8 +78,8 @@ class BaseBackendService(SuperannotateServiceProvider):
     @property
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
-            return "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1/"
-            # return "https://assets-provider.devsuperannotate.com/api/v1/"
+            # return "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/"
+            return "https://assets-provider.devsuperannotate.com/api/v1.01/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
     @timed_lru_cache(seconds=360)
@@ -159,6 +159,7 @@ class BaseBackendService(SuperannotateServiceProvider):
                 content_type=content_type,
             )
         if response.status_code > 299:
+            print(url)
             self.logger.error(
                 f"Got {response.status_code} response from backend: {response.text}"
             )
@@ -286,7 +287,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
-    URL_GET_ANNOTATIONS = "annotations/stream"
+    URL_GET_ANNOTATIONS = (
+        "https://assets-provider.devsuperannotate.com/api/v1/annotations/stream"
+    )
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
@@ -296,11 +299,13 @@ class SuperannotateBackendService(BaseBackendService):
     URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
-    URL_UPLOAD_ANNOTATIONS = (
-        "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/"
-        "v1.01/items/annotations/upload"
-    )
-    URL_ANNOTATION_SCHEMAS = "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/items/annotations/schema"
+    URL_UPLOAD_ANNOTATIONS = "items/annotations/upload"
+    URL_ANNOTATION_SCHEMAS = "items/annotations/schema"
+    URL_START_FILE_UPLOAD_PROCESS = "items/{item_id}/annotations/upload/multipart/start"
+    URL_START_FILE_SEND_PART = "items/{item_id}/annotations/upload/multipart/part"
+    URL_START_FILE_SEND_FINISH = "items/{item_id}/annotations/upload/multipart/finish"
+    URL_START_FILE_SYNC = "items/{item_id}/annotations/sync"
+    URL_START_FILE_SYNC_STATUS = "items/{item_id}/annotations/sync/status"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -308,6 +313,7 @@ class SuperannotateBackendService(BaseBackendService):
         upload_priority_score_url = urljoin(
             self.api_url, self.URL_UPLOAD_PRIORITY_SCORES
         )
+
         res = self._request(
             upload_priority_score_url,
             "post",
@@ -1156,7 +1162,7 @@ class SuperannotateBackendService(BaseBackendService):
 
         return loop.run_until_complete(
             handler.get_data(
-                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+                url=self.URL_GET_ANNOTATIONS,
                 data=items,
                 params=query_params,
                 chunk_size=self.DEFAULT_CHUNK_SIZE,
@@ -1195,7 +1201,7 @@ class SuperannotateBackendService(BaseBackendService):
             )
 
             return await handler.download_data(
-                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+                url=self.URL_GET_ANNOTATIONS,
                 data=items,
                 params=query_params,
                 chunk_size=self.DEFAULT_CHUNK_SIZE,
@@ -1376,9 +1382,12 @@ class SuperannotateBackendService(BaseBackendService):
         folder_id: int,
         items_name_file_map: Dict[str, io.StringIO],
     ) -> UploadAnnotationsResponse:
-        url = f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}"
+
         return self._request(
-            url,
+            urljoin(
+                self.assets_provider_url,
+                f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}",
+            ),
             "post",
             params={
                 "team_id": team_id,
@@ -1392,12 +1401,111 @@ class SuperannotateBackendService(BaseBackendService):
             content_type=UploadAnnotationsResponse,
         )
 
+    def upload_big_annotation(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        item_id: int,
+        data: io.StringIO,
+        chunk_size: int,
+    ) -> bool:
+
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "folder_id": folder_id,
+        }
+        start_response = self._request(
+            urljoin(
+                self.assets_provider_url,
+                self.URL_START_FILE_UPLOAD_PROCESS.format(item_id=item_id),
+            ),
+            "post",
+            params={
+                "team_id": team_id,
+                "project_id": project_id,
+                "folder_id": folder_id,
+            },
+        )
+        if not start_response.ok:
+            raise AppException("Can't start process.")
+        process_info = start_response.json()
+        params["path"] = process_info["path"]
+        headers = {"upload_id": process_info["upload_id"]}
+        chunk_id = 1
+        data_sent = False
+        while True:
+            chunk = data.read(chunk_size)
+            params["chunk_id"] = chunk_id
+            if chunk:
+                print("chunk len:", len(chunk))
+                data_sent = True
+                response = self._request(
+                    urljoin(
+                        self.assets_provider_url,
+                        self.URL_START_FILE_SEND_PART.format(item_id=item_id),
+                    ),
+                    "post",
+                    params=params,
+                    headers=headers,
+                    data={"data_chunk": chunk},
+                )
+                if not response.ok:
+                    raise AppException("Upload failed.")
+                chunk_id += 1
+            if not chunk and not data_sent:
+                return False
+            if len(chunk) < chunk_size:
+                break
+        del params["chunk_id"]
+        response = self._request(
+            urljoin(
+                self.assets_provider_url,
+                self.URL_START_FILE_SEND_FINISH.format(item_id=item_id),
+            ),
+            "post",
+            headers=headers,
+            params=params,
+        )
+        if not response.ok:
+            raise AppException("Failed to finish upload.")
+        del params["path"]
+        response = self._request(
+            urljoin(
+                self.assets_provider_url,
+                self.URL_START_FILE_SYNC.format(item_id=item_id),
+            ),
+            "post",
+            params=params,
+        )
+        if not response.ok:
+            raise AppException("Sync failed.")
+        while True:
+            response = self._request(
+                urljoin(
+                    self.assets_provider_url,
+                    self.URL_START_FILE_SYNC_STATUS.format(item_id=item_id),
+                ),
+                "get",
+                params=params,
+            )
+            if response.ok:
+                data = response.json()
+                status = data.get("status")
+                print(status)
+                if status == "SUCCESS":
+                    return True
+                elif status.startswith("FAILED"):
+                    return False
+            else:
+                return False
+
     def get_schema(
         self, team_id: int, project_type: int, version: str
     ) -> ServiceResponse:
-        url = self.URL_ANNOTATION_SCHEMAS
         return self._request(
-            url,
+            urljoin(self.assets_provider_url, self.URL_ANNOTATION_SCHEMAS),
             "get",
             params={
                 "team_id": team_id,

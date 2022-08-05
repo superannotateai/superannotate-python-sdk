@@ -26,12 +26,16 @@ class TestAnnotationUploadVector(BaseTestCase):
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
+    def test_annotation_upload_big_file(self):
+        annotation_path = join(self.folder_path, f"{self.IMAGE_NAME}___objects.json")
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.IMAGE_NAME, "url": self.IMAGE_NAME}])  # noqa
+        sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
+
     # @pytest.mark.flaky(reruns=3)
     @patch("lib.infrastructure.controller.Reporter")
     def test_annotation_upload(self, reporter):
         reporter_mock = MagicMock()
         reporter.return_value = reporter_mock
-
         annotation_path = join(self.folder_path, f"{self.IMAGE_NAME}___objects.json")
         sa.upload_image_to_project(self.PROJECT_NAME, join(self.folder_path, self.IMAGE_NAME))
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
