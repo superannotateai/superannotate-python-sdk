@@ -580,7 +580,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         classes = self.controller.search_annotation_classes(project_name, name_contains)
-        return BaseSerializer.serialize_iterable(classes.data)
+        return [i.dict(fill_enum_values=True) for i in classes.data]
 
     def set_project_default_image_quality_in_editor(
         self,

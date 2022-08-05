@@ -75,6 +75,9 @@ class AttributeGroup(BaseModel):
     is_multiselect: Optional[bool]
     attributes: Optional[List[Attribute]]
 
+    class Config:
+        use_enum_values = True
+
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
 
@@ -93,3 +96,4 @@ class AnnotationClassEntity(BaseModel):
     class Config:
         validate_assignment = True
         exclude_none = True
+        fill_enum_values = True

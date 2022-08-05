@@ -1,6 +1,7 @@
 import json
 from typing import List
 
+from lib.core.conditions import Condition
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ProjectType
@@ -8,6 +9,28 @@ from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
+
+
+class GetAnnotationClassesUseCase(BaseReportableUseCase):
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        backend_client: SuperannotateServiceProvider,
+        condition: Condition = None,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._backend_client = backend_client
+        self._condition = condition
+
+    def execute(self):
+        self._response.data = self._backend_client.list_annotation_classes(
+            project_id=self._project.id,
+            team_id=self._project.team_id,
+            query_string=self._condition.build_query() if self._condition else None,
+        ).data
+        return self._response
 
 
 class CreateAnnotationClassUseCase(BaseReportableUseCase):

@@ -24,6 +24,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
+from lib.core.usecases.classes import GetAnnotationClassesUseCase
 from requests.exceptions import RequestException
 from superannotate.logger import get_default_logger
 
@@ -80,9 +81,10 @@ class GetProjectByNameUseCase(BaseUseCase):
         return self._response
 
 
-class GetProjectMetaDataUseCase(BaseUseCase):
+class GetProjectMetaDataUseCase(BaseReportableUseCase):
     def __init__(
         self,
+        reporter: Reporter,
         project: ProjectEntity,
         service: SuperannotateServiceProvider,
         annotation_classes: BaseManageableRepository,
@@ -95,7 +97,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         include_contributors: bool,
         include_complete_image_count: bool,
     ):
-        super().__init__()
+        super().__init__(reporter)
         self._project = project
         self._service = service
 
@@ -112,7 +114,9 @@ class GetProjectMetaDataUseCase(BaseUseCase):
 
     @property
     def annotation_classes_use_case(self):
-        return GetAnnotationClassesUseCase(classes=self._annotation_classes)
+        return GetAnnotationClassesUseCase(
+            reporter=self.reporter, project=self._project, backend_client=self._service
+        )
 
     @property
     def settings_use_case(self):
@@ -703,21 +707,6 @@ class GetWorkflowsUseCase(BaseUseCase):
                             break
                 data.append(workflow_data)
             self._response.data = data
-        return self._response
-
-
-class GetAnnotationClassesUseCase(BaseUseCase):
-    def __init__(
-        self,
-        classes: BaseManageableRepository,
-        condition: Condition = None,
-    ):
-        super().__init__()
-        self._classes = classes
-        self._condition = condition
-
-    def execute(self):
-        self._response.data = self._classes.get_all(condition=self._condition)
         return self._response
 
 

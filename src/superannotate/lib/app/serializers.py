@@ -48,6 +48,7 @@ class BaseSerializer(ABC):
         by_alias: bool = False,
         flat: bool = False,
         exclude: Set[str] = None,
+        **kwargs
     ):
         if not entity:
             return None
@@ -59,13 +60,15 @@ class BaseSerializer(ABC):
                 if len(fields) == 1:
                     if flat:
                         return entity.dict(
-                            include=fields, by_alias=by_alias, exclude=exclude
+                            include=fields, by_alias=by_alias, exclude=exclude, **kwargs
                         )[next(iter(fields))]
                     return entity.dict(
-                        include=fields, by_alias=by_alias, exclude=exclude
+                        include=fields, by_alias=by_alias, exclude=exclude, **kwargs
                     )
-                return entity.dict(include=fields, by_alias=by_alias, exclude=exclude)
-            return entity.dict(by_alias=by_alias, exclude=exclude)
+                return entity.dict(
+                    include=fields, by_alias=by_alias, exclude=exclude, **kwargs
+                )
+            return entity.dict(by_alias=by_alias, exclude=exclude, **kwargs)
         return entity.to_dict()
 
     @classmethod
@@ -76,12 +79,13 @@ class BaseSerializer(ABC):
         by_alias: bool = False,
         flat: bool = False,
         exclude: Set = None,
+        **kwargs
     ) -> List[Any]:
         serialized_data = []
         for i in data:
             serialized_data.append(
                 cls._fill_enum_values(
-                    cls._serialize(i, fields, by_alias, flat, exclude=exclude)
+                    cls._serialize(i, fields, by_alias, flat, exclude=exclude, **kwargs)
                 )
             )
         return serialized_data
@@ -152,3 +156,19 @@ class SettingsSerializer(BaseSerializer):
         if data["attribute"] == "ImageQuality":
             data["value"] = constance.ImageQuality.get_name(data["value"])
         return data
+
+
+class EntitySerializer:
+    @classmethod
+    def serialize(
+        cls, data: Union[BaseModel, List[BaseModel]], **kwargs
+    ) -> Union[List[dict], dict]:
+        if isinstance(data, (list, set)):
+            for idx, item in enumerate(data):
+                data[idx] = cls.serialize(item, **kwargs)
+        for key, nested_model in data:
+            if isinstance(nested_model, BaseModel) and getattr(
+                nested_model, "fill_enum_values", False
+            ):
+                setattr(data, key, cls.serialize(nested_model, **kwargs))
+        return data.dict(**kwargs)

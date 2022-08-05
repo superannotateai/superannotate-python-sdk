@@ -43,7 +43,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.usecases.projects import GetAnnotationClassesUseCase
+from lib.core.usecases.classes import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
 from superannotate.logger import get_default_logger
 
