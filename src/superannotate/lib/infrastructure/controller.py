@@ -732,6 +732,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
 
         use_case = usecases.GetProjectMetaDataUseCase(
+            reporter=self.get_default_reporter(),
             project=project,
             service=self._backend_client,
             annotation_classes=AnnotationClassRepository(
@@ -773,16 +774,16 @@ class Controller(BaseController):
         return use_case.execute()
 
     def search_annotation_classes(self, project_name: str, name_contains: str = None):
-        project_entity = self._get_project(project_name)
+        project = self._get_project(project_name)
         condition = None
         if name_contains:
             condition = Condition("name", name_contains, EQ) & Condition(
                 "pattern", True, EQ
             )
         use_case = usecases.GetAnnotationClassesUseCase(
-            classes=AnnotationClassRepository(
-                service=self._backend_client, project=project_entity
-            ),
+            reporter=self.get_default_reporter(),
+            project=project,
+            backend_client=self.backend_client,
             condition=condition,
         )
         return use_case.execute()
@@ -993,11 +994,11 @@ class Controller(BaseController):
         image = self._get_image(project, image_name, folder)
 
         use_case = usecases.DownloadImageUseCase(
+            reporter=self.get_default_reporter(),
             project=project,
             folder=folder,
             image=image,
             images=self.images,
-            classes=AnnotationClassRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             download_path=download_path,
             image_variant=image_variant,

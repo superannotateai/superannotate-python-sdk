@@ -43,7 +43,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.usecases.projects import GetAnnotationClassesUseCase
+from lib.core.usecases.classes import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
 from superannotate.logger import get_default_logger
 
@@ -738,14 +738,14 @@ class GetS3ImageUseCase(BaseUseCase):
         return self._response
 
 
-class DownloadImageUseCase(BaseUseCase):
+class DownloadImageUseCase(BaseReportableUseCase):
     def __init__(
         self,
+        reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
         images: BaseManageableRepository,
-        classes: BaseManageableRepository,
         backend_service_provider: SuperannotateServiceProvider,
         annotation_classes: BaseReadOnlyRepository,
         download_path: str,
@@ -754,7 +754,7 @@ class DownloadImageUseCase(BaseUseCase):
         include_fuse: bool = False,
         include_overlay: bool = False,
     ):
-        super().__init__()
+        super().__init__(reporter)
         self._project = project
         self._image = image
         self._download_path = download_path
@@ -777,7 +777,9 @@ class DownloadImageUseCase(BaseUseCase):
             annotation_classes=annotation_classes,
         )
         self.get_annotation_classes_ues_case = GetAnnotationClassesUseCase(
-            classes=classes,
+            reporter=self.reporter,
+            project=self._project,
+            backend_client=backend_service_provider
         )
 
     def validate_project_type(self):

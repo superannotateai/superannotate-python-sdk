@@ -81,12 +81,16 @@ class TestCreateAnnotationClass(BaseTestCase):
         response = sa.controller.create_annotation_class(
             self.PROJECT_NAME, AnnotationClassEntity(
                 name="t", color="blue",
-                attribute_groups=[{"name": "t"}, {"name": "t"}]
+                attribute_groups=[
+                    {"name": "t"}, {"name": "t"},
+                    {"name": "t", "group_type": "radio", "default_value": [], "attributes": []}
+                ]
             )
         )
 
         assert response.errors == '"classes[0].attribute_groups[0].attributes" is required.\n' \
-                                  '"classes[0].attribute_groups[1].attributes" is required'
+                                  '"classes[0].attribute_groups[1].attributes" is required.\n' \
+                                  '"classes[0].attribute_groups[2].default_value" must be a string'
 
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
