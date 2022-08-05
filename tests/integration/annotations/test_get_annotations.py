@@ -2,10 +2,8 @@ import json
 import os
 from os.path import dirname
 from pathlib import Path
-from typing import List
 
 import pytest
-from pydantic import parse_obj_as
 
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase

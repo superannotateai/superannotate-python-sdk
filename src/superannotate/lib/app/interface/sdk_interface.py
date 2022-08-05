@@ -44,14 +44,13 @@ from lib.core import LIMITED_FUNCTIONS
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.classes import AttributeGroup
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
-from lib.core.types import AttributeGroup
 from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
-from lib.infrastructure.controller import Controller
 from lib.infrastructure.validators import wrap_error
 from pydantic import conlist
 from pydantic import parse_obj_as
@@ -1141,19 +1140,76 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param name: name for the class
         :type name: str
-        :param color: RGB hex color value, e.g., "#FFFFAA"
+
+        :param color: RGB hex color value, e.g., "#F9E0FA"
         :type color: str
-        :param attribute_groups: example:
-         [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
-         { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
+
+        :param attribute_groups:  list of attribute group dicts.
+                                  The values for the "group_type" key are  "radio"|"checklist"|"text"|"numeric".
+                                  Mandatory keys for each attribute group are
+                                      -  "name"
         :type attribute_groups: list of dicts
-        :param class_type: class type
+
+        :param class_type: class type. Should be either "object" or "tag"
         :type class_type: str
 
         :return: new class metadata
         :rtype: dict
+
+        Request Example:
+        ::
+            attributes_list = [
+               {
+                   "group_type": "radio",
+                   "name": "Vehicle",
+                   "attributes": [
+                       {
+                           "name": "Car"
+                       },
+                       {
+                           "name": "Track"
+                       },
+                       {
+                           "name": "Bus"
+                       }
+                   ],
+                   "default_value": "Car"
+               },
+               {
+                   "group_type": "checklist",
+                   "name": "Color",
+                   "attributes": [
+                       {
+                           "name": "Yellow"
+                       },
+                       {
+                           "name": "Black"
+                       },
+                       {
+                           "name": "White"
+                       }
+                   ],
+                   "default_value": ["Yellow", "White"]
+               },
+               {
+                   "group_type": "text",
+                   "name": "Timestamp"
+               },
+               {
+                   "group_type": "numeric",
+                   "name": "Description"
+               }
+            ]
+            client.create_annotation_class(
+               project="Image Project",
+               name="Example Class",
+               color="#F9E0FA",
+               attribute_groups=attributes_list
+            )
+
         """
         if isinstance(project, Project):
             project = project.dict()
@@ -1837,7 +1893,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotations,
             point,
             annotation_class_name,
-            image_name,
             annotation_class_attributes,
             error,
         )
@@ -2112,7 +2167,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def validate_annotations(
-        self, project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path, dict]
+        self,
+        project_type: ProjectTypes,
+        annotations_json: Union[NotEmptyStr, Path, dict],
     ):
         """Validates given annotation JSON.
 
@@ -2129,9 +2186,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotation_data = annotations_json
         else:
             annotation_data = json.load(open(annotations_json))
-        response = self.controller.validate_annotations(
-            project_type, annotation_data
-        )
+        response = self.controller.validate_annotations(project_type, annotation_data)
         if response.errors:
             raise AppException(response.errors)
         report = response.data

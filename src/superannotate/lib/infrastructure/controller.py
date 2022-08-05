@@ -1053,7 +1053,7 @@ class Controller(BaseController):
             ),
             reporter=self.get_default_reporter(log_info=False, log_warning=False),
             folder_path=folder_path,
-            folders=self.folders
+            folders=self.folders,
         )
         return use_case.execute()
 

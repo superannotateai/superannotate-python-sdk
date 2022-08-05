@@ -57,7 +57,7 @@ class StreamedAnnotations:
         data: list,
         method: str = "post",
         params=None,
-        chunk_size: int = 100,
+        chunk_size: int = 1000,
         verify_ssl: bool = False,
     ):
         async with aiohttp.ClientSession(

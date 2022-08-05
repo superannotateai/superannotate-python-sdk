@@ -17,7 +17,7 @@ from typing import Tuple
 
 import boto3
 import jsonschema.validators
-import lib.core as constances
+import lib.core as constants
 from jsonschema import Draft7Validator
 from jsonschema import ValidationError
 from lib.core.conditions import Condition
@@ -50,6 +50,7 @@ if platform.system().lower() == "windows":
 class UploadAnnotationsUseCase(BaseReportableUseCase):
     MAX_WORKERS = 10
     CHUNK_SIZE = 100
+    STATUS_CHANGE_CHUNK_SIZE = 100
     AUTH_DATA_CHUNK_SIZE = 500
 
     def __init__(
@@ -122,7 +123,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             logger.warning(
                 f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/"
                 f"{len(self._annotation_paths)} annotations from {self._folder_path}. "
-                f"{constances.USE_VALIDATE_MESSAGE}"
+                f"{constants.USE_VALIDATE_MESSAGE}"
             )
 
     @staticmethod
@@ -144,6 +145,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         )
         errors = use_case.execute().data
         if not errors:
+            annotation = UploadAnnotationUseCase.set_defaults(
+                annotation, self._project.type
+            )
             annotation_file = io.StringIO()
             json.dump(annotation, annotation_file)
             annotation_file.seek(0)
@@ -159,11 +163,11 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             )
         else:
             annotation = json.load(open(path))
-            if self._project.type == constances.ProjectType.PIXEL.value:
+            if self._project.type == constants.ProjectType.PIXEL.value:
                 mask = open(
                     path.replace(
-                        constances.PIXEL_ANNOTATION_POSTFIX,
-                        constances.ANNOTATION_MASK_POSTFIX,
+                        constants.PIXEL_ANNOTATION_POSTFIX,
+                        constants.ANNOTATION_MASK_POSTFIX,
                     ),
                     "rb",
                 )
@@ -182,9 +186,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
     @staticmethod
     def extract_name(value: str):
         return os.path.basename(
-            value.replace(constances.PIXEL_ANNOTATION_POSTFIX, "")
-            .replace(constances.VECTOR_ANNOTATION_POSTFIX, "")
-            .replace(constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
+            value.replace(constants.PIXEL_ANNOTATION_POSTFIX, "")
+            .replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
+            .replace(constants.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
         )
 
     def get_existing_item_names(self, name_path_mappings: Dict[str, str]) -> Set[str]:
@@ -202,6 +206,20 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             if not response.errors:
                 existing_items.update({item.name for item in response.data})
         return existing_items  # noqa
+
+    def _set_annotation_statuses_in_progress(self, item_names: List[str]) -> bool:
+        failed_on_chunk = False
+        for i in range(0, len(item_names), self.STATUS_CHANGE_CHUNK_SIZE):
+            status_changed = self._backend_service.set_images_statuses_bulk(
+                image_names=item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+                team_id=self._project.team_id,
+                project_id=self._project.id,
+                folder_id=self._folder.uuid,
+                annotation_status=constants.AnnotationStatus.IN_PROGRESS.value,
+            )
+            if not status_changed:
+                failed_on_chunk = True
+        return not failed_on_chunk
 
     def execute(self):
         uploaded_annotations = []
@@ -246,6 +264,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                         )
                     ] = (len(items_name_file_map), name_path_mapping)
             missing_classes, missing_attr_groups, missing_attrs = [], [], []
+            uploaded_annotations_names = []
             for future in concurrent.futures.as_completed(results.keys()):
                 response: ServiceResponse = future.result()
                 items_count, name_path_map = results[future]
@@ -263,10 +282,17 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                     )
                     missing_attrs.extend(response.data.missing_resources.attributes)
                     uploaded_annotations.extend(name_path_map.values())
+                    uploaded_annotations_names.extend(name_path_map.keys())
                 self.reporter.update_progress(results[future][0])
             self.reporter.finish_progress()
 
             self._log_report(missing_classes, missing_attr_groups, missing_attrs)
+        if uploaded_annotations_names:
+            statuses_changed = self._set_annotation_statuses_in_progress(
+                uploaded_annotations_names
+            )
+            if not statuses_changed:
+                self._response.errors = AppException("Failed to change status.")
         self._response.data = (
             uploaded_annotations,
             failed_annotations,
@@ -362,21 +388,21 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                 annotation_json = json.load(
                     self.get_s3_file(self.from_s3, self._annotation_path)
                 )
-                if self._project.type == constances.ProjectType.PIXEL.value:
+                if self._project.type == constants.ProjectType.PIXEL.value:
                     self._mask = self.get_s3_file(
                         self.from_s3,
                         self._annotation_path.replace(
-                            constances.PIXEL_ANNOTATION_POSTFIX,
-                            constances.ANNOTATION_MASK_POSTFIX,
+                            constants.PIXEL_ANNOTATION_POSTFIX,
+                            constants.ANNOTATION_MASK_POSTFIX,
                         ),
                     )
             else:
                 annotation_json = json.load(open(self._annotation_path))
-                if self._project.type == constances.ProjectType.PIXEL.value:
+                if self._project.type == constants.ProjectType.PIXEL.value:
                     mask = open(
                         self._annotation_path.replace(
-                            constances.PIXEL_ANNOTATION_POSTFIX,
-                            constances.ANNOTATION_MASK_POSTFIX,
+                            constants.PIXEL_ANNOTATION_POSTFIX,
+                            constants.ANNOTATION_MASK_POSTFIX,
                         ),
                         "rb",
                     )
@@ -394,10 +420,34 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         )
         return use_case.execute().data
 
+    @staticmethod
+    def set_defaults(annotation_data: dict, project_type: int):
+        default_data = {}
+        instances = annotation_data.get("instances", [])
+        if project_type in constants.ProjectType.images:
+            default_data["probability"] = 100
+
+        if project_type == constants.ProjectType.VIDEO.value:
+            for instance in instances:
+                instance["meta"] = {
+                    **default_data,
+                    **instance["meta"],
+                    "creationType": "Preannotation",
+                }  # noqa
+        else:
+            for idx, instance in enumerate(instances):
+                instances[idx] = {
+                    **default_data,
+                    **instance,
+                    "creationType": "Preannotation",
+                }  # noqa
+        return annotation_data
+
     def execute(self):
         if self.is_valid():
             annotation_json, mask = self._get_annotation_json()
             errors = self._validate_json(annotation_json)
+            annotation_json = self.set_defaults(annotation_json, self._project.type)
             if not errors:
                 annotation_file = io.StringIO()
                 json.dump(annotation_json, annotation_file)
@@ -408,7 +458,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                     folder_id=self._folder.uuid,
                     items_name_file_map={self._image.name: annotation_file},
                 )
-                if self._project.type == constances.ProjectType.PIXEL.value and mask:
+                if self._project.type == constants.ProjectType.PIXEL.value and mask:
                     self.s3_bucket.put_object(
                         Key=self.annotation_upload_data.images[self._image.uuid][
                             "annotation_bluemap_path"
@@ -416,7 +466,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                         Body=mask,
                     )
                 self._image.annotation_status_code = (
-                    constances.AnnotationStatus.IN_PROGRESS.value
+                    constants.AnnotationStatus.IN_PROGRESS.value
                 )
                 self._images.update(self._image)
                 if self._verbose:
@@ -424,10 +474,10 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                         f"Uploading annotations for image {str(self._image.name)} in project {self._project.name}."
                     )
             else:
-                self._response.errors = constances.INVALID_JSON_MESSAGE
+                self._response.errors = constants.INVALID_JSON_MESSAGE
                 self.reporter.store_message("invalid_jsons", self._annotation_path)
                 self.reporter.log_warning(
-                    f"Couldn't validate annotations. {constances.USE_VALIDATE_MESSAGE}"
+                    f"Couldn't validate annotations. {constants.USE_VALIDATE_MESSAGE}"
                 )
         return self._response
 
@@ -453,7 +503,7 @@ class GetAnnotations(BaseReportableUseCase):
         self._item_names_provided = True
 
     def validate_project_type(self):
-        if self._project.type == constances.ProjectType.PIXEL.value:
+        if self._project.type == constants.ProjectType.PIXEL.value:
             raise AppException("The function is not supported for Pixel projects.")
 
     def validate_item_names(self):
@@ -536,10 +586,10 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
         self._client = backend_service_provider
 
     def validate_project_type(self):
-        if self._project.type != constances.ProjectType.VIDEO.value:
+        if self._project.type != constants.ProjectType.VIDEO.value:
             raise AppException(
                 "The function is not supported for"
-                f" {constances.ProjectType.get_name(self._project.type)} projects."
+                f" {constants.ProjectType.get_name(self._project.type)} projects."
             )
 
     def execute(self):
@@ -717,9 +767,9 @@ class DownloadAnnotations(BaseReportableUseCase):
         return Path(self._destination if self._destination else "")
 
     def get_postfix(self):
-        if self._project.type == constances.ProjectType.VECTOR:
+        if self._project.type == constants.ProjectType.VECTOR:
             return "___objects.json"
-        elif self._project.type == constances.ProjectType.PIXEL.value:
+        elif self._project.type == constants.ProjectType.PIXEL.value:
             return "___pixel.json"
         return ".json"
 
@@ -939,35 +989,18 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                     real_path.extend([".", item])
                 else:
                     real_path.append(item)
-            # if isinstance(real_path, str):
-            #     if real_path:
-            #         real_path.append(".")
-            #     real_path.append(item)
-            # elif isinstance(item, int):
-            #     real_path.append(f"[{item}]")
         return real_path
 
-    # @staticmethod
-    # def extract_path(path):
-    #     real_path = []
-    #     for item in path:
-    #         if isinstance(item, str):
-    #             if real_path:
-    #                 real_path.append(".")
-    #             real_path.append(item)
-    #         elif isinstance(item, int):
-    #             real_path.append(f"[{item}]")
-    #     return real_path
     def _get_validator(self, version: str) -> Draft7Validator:
         key = f"{self._project_type}__{version}"
         validator = ValidateAnnotationUseCase.SCHEMAS.get(key)
         if not validator:
-            schema = self._backend_client.get_schema(
+            schema_response = self._backend_client.get_schema(
                 self._team_id, self._project_type, version
             )
-            if not schema:
+            if not schema_response.ok:
                 raise AppException(f"Schema {version} does not exist.")
-            validator = jsonschema.Draft7Validator(schema)
+            validator = jsonschema.Draft7Validator(schema_response.data)
             from functools import partial
 
             iter_errors = partial(self.iter_errors, validator)
@@ -980,7 +1013,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         try:
             version = self._annotation.get("version", self.DEFAULT_VERSION)
         except Exception as e:
-            print()
+            pass
 
         extract_path = ValidateAnnotationUseCase.extract_path
         validator = self._get_validator(version)
@@ -993,7 +1026,11 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                     errors_report.append(("".join(real_path), error.message))
                 for sub_error in sorted(error.context, key=lambda e: e.schema_path):
                     tmp_path = sub_error.path  # if sub_error.path else real_path
-                    msg = f"{''.join(real_path)}" + ("." if tmp_path else "") + "".join(extract_path(tmp_path))
+                    msg = (
+                        f"{''.join(real_path)}"
+                        + ("." if tmp_path else "")
+                        + "".join(extract_path(tmp_path))
+                    )
                     errors_report.append(
                         (
                             msg,

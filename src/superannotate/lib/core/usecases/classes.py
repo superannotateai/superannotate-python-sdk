@@ -57,9 +57,6 @@ class CreateAnnotationClassUseCase(BaseReportableUseCase):
     def execute(self):
         if self.is_valid():
             if self._is_unique():
-                self.reporter.log_info(
-                    f"Creating annotation class in project {self._project.name} with name {self._annotation_class.name}"
-                )
                 response = self._backend_client.create_annotation_classes(
                     project_id=self._project.id,
                     team_id=self._project.team_id,
@@ -68,12 +65,11 @@ class CreateAnnotationClassUseCase(BaseReportableUseCase):
                 if response.ok:
                     self._response.data = response.data[0]
                 else:
-                    self._response.errors = response.error
+                    self._response.errors = AppException(
+                        response.error.replace(". ", ".\n")
+                    )
             else:
-                self.reporter.log_error(
-                    "The annotation class is already in project. Skipping."
-                )
-                self._response.data = None
+                self.reporter.log_error("This class name already exists. Skipping.")
         return self._response
 
 
@@ -115,41 +111,43 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            self.reporter.log_info(
-                f"Creating annotation classes in project {self._project.name}."
-            )
             existing_annotation_classes = self._backend_client.list_annotation_classes(
                 project_id=self._project.id, team_id=self._project.team_id
             ).data
             existing_classes_name = [i.name for i in existing_annotation_classes]
             unique_annotation_classes = []
             for annotation_class in self._annotation_classes:
-                if annotation_class.name in existing_classes_name:
-                    self.reporter.log_error(
-                        f"Annotation class {annotation_class.name} already in project. Skipping."
-                    )
-                    continue
-                else:
+                if annotation_class.name not in existing_classes_name:
                     unique_annotation_classes.append(annotation_class)
-            created = []
-            # this is in reverse order because of the front-end
-            for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
-                response = self._backend_client.create_annotation_classes(
-                    project_id=self._project.id,
-                    team_id=self._project.team_id,
-                    data=unique_annotation_classes[i - self.CHUNK_SIZE : i],  # noqa
+            not_unique_classes_count = len(self._annotation_classes) - len(
+                unique_annotation_classes
+            )
+            if not_unique_classes_count:
+                self.reporter.log_warning(
+                    f"{not_unique_classes_count} annotation classes already exist.Skipping."
                 )
-                if response.ok:
-                    created.extend(response.data)
-                else:
-                    if created:
-                        self.reporter.log_info(
-                            f"{len(created)} annotation classes were successfully created in {self._project.name}."
-                        )
-                    self._response.errors = AppException(
-                        "Couldn't validate annotation classes."
+            created = []
+            chunk_failed = False
+            with self.reporter.spinner:
+                # this is in reverse order because of the front-end
+                for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
+                    response = self._backend_client.create_annotation_classes(
+                        project_id=self._project.id,
+                        team_id=self._project.team_id,
+                        data=unique_annotation_classes[i - self.CHUNK_SIZE : i],  # noqa
                     )
-                    break
+                    if response.ok:
+                        created.extend(response.data)
+                    else:
+                        chunk_failed = True
+            if created:
+                self.reporter.log_info(
+                    f"{len(created)} annotation classes were successfully created in {self._project.name}."
+                )
+            if chunk_failed:
+                self._response.errors = AppException(
+                    "The classes couldn't be validated."
+                )
             self._response.data = created
         return self._response
 

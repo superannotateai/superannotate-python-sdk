@@ -86,6 +86,7 @@ def add_annotation_comment_to_json(
         "y": comment_coords[1],
         "correspondence": [{"text": comment_text, "email": comment_author}],
         "resolved": resolved,
+        "creationType": "Preannotation",  # noqa
         "createdBy": user_action,
         "updatedBy": user_action,
     }
@@ -132,7 +133,6 @@ def add_annotation_bbox_to_json(
         "type": "bbox",
         "points": {"x1": bbox[0], "y1": bbox[1], "x2": bbox[2], "y2": bbox[3]},
         "className": annotation_class_name,
-        "error": error,
         "groupId": 0,
         "pointLabels": {},
         "locked": False,
@@ -141,7 +141,8 @@ def add_annotation_bbox_to_json(
         if annotation_class_attributes is None
         else annotation_class_attributes,
     }
-
+    if error is not None:
+        annotation["error"] = error
     annotation = _add_created_updated(annotation)
     annotation_json["instances"].append(annotation)
 
@@ -175,13 +176,11 @@ def add_annotation_point_to_json(
         raise AppException("Point should be 2 element float list.")
 
     annotation_json, path = _preprocess_annotation_json(annotation_json, image_name)
-
     annotation = {
         "type": "point",
         "x": point[0],
         "y": point[1],
         "className": annotation_class_name,
-        "error": error,
         "groupId": 0,
         "pointLabels": {},
         "locked": False,
@@ -190,6 +189,8 @@ def add_annotation_point_to_json(
         if annotation_class_attributes is None
         else annotation_class_attributes,
     }
+    if error is not None:
+        annotation["error"] = error
 
     annotation = _add_created_updated(annotation)
     annotation_json["instances"].append(annotation)

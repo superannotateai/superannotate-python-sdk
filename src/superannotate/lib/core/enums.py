@@ -2,6 +2,14 @@ from enum import Enum
 from types import DynamicClassAttribute
 
 
+class classproperty:
+    def __init__(self, getter):
+        self.getter = getter
+
+    def __get__(self, instance, owner):
+        return self.getter(owner)
+
+
 class BaseTitledEnum(int, Enum):
     def __new__(cls, title, value):
         obj = int.__new__(cls, value)
@@ -63,6 +71,10 @@ class ProjectType(BaseTitledEnum):
     PIXEL = "Pixel", 2
     VIDEO = "Video", 3
     DOCUMENT = "Document", 4
+
+    @classproperty
+    def images(self):
+        return self.VECTOR.value, self.PIXEL.value
 
 
 class UserRole(BaseTitledEnum):

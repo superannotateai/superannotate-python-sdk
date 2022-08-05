@@ -372,7 +372,9 @@ class SuperannotateServiceProvider:
     ) -> ServiceResponse:
         raise NotImplementedError
 
-    def get_schema(self, team_id: int, project_type: int, version: str) -> dict:
+    def get_schema(
+        self, team_id: int, project_type: int, version: str
+    ) -> ServiceResponse:
         raise NotImplementedError
 
     def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:

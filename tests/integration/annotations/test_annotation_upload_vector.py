@@ -42,9 +42,23 @@ class TestAnnotationUploadVector(BaseTestCase):
         for call in reporter_calls:
             call_groups[call[0]].append(call[1])
         self.assertEqual(len(call_groups["log_warning"]), len(call_groups["store_message"]))
+
+        def replace_item(obj, key, replace_value):
+            if isinstance(obj, list):
+                for i in obj:
+                    replace_item(i, key, replace_value)
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if k == key:
+                        obj[k] = replace_value
+                    else:
+                        replace_item(v, key,  replace_value)
+            return obj
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, tmp_dir)
-            origin_annotation = json.load(open(annotation_path))
+            origin_annotation = replace_item(json.load(open(annotation_path)), "id", -1)
+            origin_annotation = replace_item(origin_annotation, 'groupId', -1)
             annotation = json.load(open(join(tmp_dir, f"{self.IMAGE_NAME}___objects.json")))
             self.assertEqual(
                 [i["attributes"]for i in annotation["instances"]],
