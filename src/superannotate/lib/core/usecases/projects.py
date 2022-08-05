@@ -491,6 +491,8 @@ class CloneProjectUseCase(BaseReportableUseCase):
     def _copy_settings(self, to_project: ProjectEntity):
         new_settings = self._settings_repo(self._backend_service, to_project)
         for setting in self.settings.get_all():
+            if setting.attribute == "WorkflowType" and not self._include_workflow:
+                continue
             for new_setting in new_settings.get_all():
                 if new_setting.attribute == setting.attribute:
                     setting_copy = copy.copy(setting)
@@ -558,7 +560,9 @@ class CloneProjectUseCase(BaseReportableUseCase):
                 self._project_to_create.upload_state = (
                     constances.UploadState.INITIAL.value
                 )
+
             self._project_to_create.status = constances.ProjectStatus.NotStarted.value
+
             project = self._projects.insert(self._project_to_create)
             self.reporter.log_info(
                 f"Created project {self._project_to_create.name} with type"
@@ -580,6 +584,7 @@ class CloneProjectUseCase(BaseReportableUseCase):
                         f"Failed to clone annotation classes from {self._project.name} to {self._project_to_create.name}."
                     )
                     self.reporter.log_debug(str(e), exc_info=True)
+
 
             if self._include_settings:
                 self.reporter.log_info(
@@ -628,6 +633,7 @@ class CloneProjectUseCase(BaseReportableUseCase):
                         f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
                     )
                     self.reporter.log_debug(str(e), exc_info=True)
+
             self._response.data = self._projects.get_one(
                 uuid=project.id, team_id=project.team_id
             )
