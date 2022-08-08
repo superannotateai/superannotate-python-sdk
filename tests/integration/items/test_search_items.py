@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+import pytest
+
 import src.superannotate.lib.core as constances
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase

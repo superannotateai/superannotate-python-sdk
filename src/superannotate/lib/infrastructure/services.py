@@ -1,9 +1,11 @@
 import asyncio
 import datetime
+import io
 import json
 import platform
 import time
 from contextlib import contextmanager
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -16,17 +18,20 @@ import lib.core as constance
 import requests.packages.urllib3
 from lib.core import entities
 from lib.core.entities import BaseItemEntity
+from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
+from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UploadCustomFieldValues
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
+from pydantic import BaseModel
 from requests.exceptions import HTTPError
 from superannotate import __version__
 
@@ -35,8 +40,8 @@ requests.packages.urllib3.disable_warnings()
 
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
-        if hasattr(obj, "deserialize"):
-            return obj.deserialize()
+        if isinstance(obj, BaseModel):
+            return obj.dict(exclude_none=getattr(obj.Config, "exclude_none", False))
         if isinstance(obj, (datetime.date, datetime.datetime)):
             return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
@@ -73,7 +78,8 @@ class BaseBackendService(SuperannotateServiceProvider):
     @property
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
-            return "https://assets-provider.devsuperannotate.com/api/v1/"
+            return "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1/"
+            # return "https://assets-provider.devsuperannotate.com/api/v1/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
     @timed_lru_cache(seconds=360)
@@ -126,15 +132,22 @@ class BaseBackendService(SuperannotateServiceProvider):
         params=None,
         retried=0,
         content_type=None,
+        files=None,
         dispatcher: Callable = None,
     ) -> Union[requests.Response, ServiceResponse]:
         kwargs = {"data": json.dumps(data, cls=PydanticEncoder)} if data else {}
         session = self.get_session()
+        if files and session.headers.get("Content-Type"):
+            del session.headers["Content-Type"]
         session.headers.update(headers if headers else {})
         with self.safe_api():
-            req = requests.Request(method=method, url=url, **kwargs, params=params)
+            req = requests.Request(
+                method=method, url=url, **kwargs, params=params, files=files
+            )
             prepared = session.prepare_request(req)
             response = session.send(request=prepared, verify=self._verify_ssl)
+        if files:
+            session.headers.update(self.default_headers)
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
@@ -184,6 +197,39 @@ class BaseBackendService(SuperannotateServiceProvider):
                 break
             offset += len(resources["data"])
         return total
+
+    def _paginate(
+        self,
+        url: str,
+        chunk_size: int = 2000,
+        content_type: Any = BaseItemEntity,
+        query_params: Dict[str, Any] = None,
+        dispatcher: Callable = None,
+    ) -> ServiceResponse:
+        offset = 0
+        total = []
+        splitter = "&" if "?" in url else "?"
+
+        while True:
+            _url = f"{url}{splitter}offset={offset}"
+            _response = self._request(
+                _url,
+                method="get",
+                content_type=List[content_type],
+                dispatcher=dispatcher,
+                params=query_params,
+            )
+            if _response.ok:
+                total.extend(_response.data)
+            else:
+                return _response
+            data_len = len(_response.data)
+            offset += data_len
+            if _response.count < chunk_size or _response.count - offset <= 0:
+                break
+        response = ServiceResponse(_response)
+        response.data = total
+        return response
 
 
 class SuperannotateBackendService(BaseBackendService):
@@ -240,7 +286,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
-    URL_GET_ANNOTATIONS = "images/annotations/stream"
+    URL_GET_ANNOTATIONS = "annotations/stream"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
@@ -250,6 +296,11 @@ class SuperannotateBackendService(BaseBackendService):
     URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
+    URL_UPLOAD_ANNOTATIONS = (
+        "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/"
+        "v1.01/items/annotations/upload"
+    )
+    URL_ANNOTATION_SCHEMAS = "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/items/annotations/schema"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -458,6 +509,20 @@ class SuperannotateBackendService(BaseBackendService):
         params = {"project_id": project_id, "team_id": team_id}
         return self._get_all_pages(get_annotation_classes_url, params=params)
 
+    def list_annotation_classes(
+        self, project_id: int, team_id: int, query_string: str = None
+    ):
+        annotation_classes_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        if query_string:
+            annotation_classes_url = f"{annotation_classes_url}?{query_string}"
+        params = {"project_id": project_id, "team_id": team_id}
+        return self._paginate(
+            url=annotation_classes_url,
+            query_params=params,
+            content_type=AnnotationClassEntity,
+            dispatcher=lambda x: x.pop("data"),
+        )
+
     def set_annotation_classes(self, project_id: int, team_id: int, data: List):
         set_annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
         params = {
@@ -468,6 +533,23 @@ class SuperannotateBackendService(BaseBackendService):
             set_annotation_class_url, "post", params=params, data={"classes": data}
         )
         return res.json()
+
+    def create_annotation_classes(
+        self, project_id: int, team_id: int, data: List[AnnotationClassEntity]
+    ):
+        annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        return self._request(
+            annotation_class_url,
+            "post",
+            params=params,
+            data={"classes": data},
+            content_type=List[AnnotationClassEntity],
+            # dispatcher=lambda x: x.pop("data")
+        )
 
     def get_project_workflows(self, project_id: int, team_id: int):
         get_project_workflow_url = urljoin(
@@ -543,32 +625,15 @@ class SuperannotateBackendService(BaseBackendService):
         return self._get_all_pages(url)
 
     def list_items(self, query_string) -> ServiceResponse:
-        chunk_size = 2000
         url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
-        offset = 0
-        total = []
-        splitter = "&" if "?" in url else "?"
-        while True:
-            _url = f"{url}{splitter}offset={offset}"
-            _response = self._request(
-                _url,
-                method="get",
-                content_type=List[BaseItemEntity],
-                dispatcher=lambda x: x.pop("data"),
-            )
-            if _response.ok:
-                total.extend(_response.data)
-            else:
-                return _response
-            data_len = len(_response.data)
-            offset += data_len
-            if _response.count < chunk_size or _response.count - offset <= 0:
-                break
-        response = ServiceResponse(_response)
-        response.data = total
-        return response
+        return self._paginate(
+            url=url,
+            chunk_size=2000,
+            content_type=BaseItemEntity,
+            dispatcher=lambda x: x.pop("data"),
+        )
 
     def prepare_export(
         self,
@@ -1301,5 +1366,43 @@ class SuperannotateBackendService(BaseBackendService):
             "delete",
             params=dict(team_id=team_id, folder_id=folder_id),
             data=dict(data=dict(ChainMap(*items))),
+            content_type=ServiceResponse,
+        )
+
+    def upload_annotations(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items_name_file_map: Dict[str, io.StringIO],
+    ) -> UploadAnnotationsResponse:
+        url = f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}"
+        return self._request(
+            url,
+            "post",
+            params={
+                "team_id": team_id,
+                "project_id": project_id,
+                "folder_id": folder_id,
+                "image_names": list(items_name_file_map.keys()),
+            },
+            files=[
+                (i[0], (*i, "application/json")) for i in items_name_file_map.items()
+            ],
+            content_type=UploadAnnotationsResponse,
+        )
+
+    def get_schema(
+        self, team_id: int, project_type: int, version: str
+    ) -> ServiceResponse:
+        url = self.URL_ANNOTATION_SCHEMAS
+        return self._request(
+            url,
+            "get",
+            params={
+                "team_id": team_id,
+                "project_type": project_type,
+                "version": version,
+            },
             content_type=ServiceResponse,
         )

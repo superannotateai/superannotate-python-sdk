@@ -209,7 +209,9 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             if service_response.ok:
                 data = []
                 for i, item in enumerate(service_response.data):
-                    tmp_item = GetItem.serialize_entity(BaseItemEntity(**item), self._project)
+                    tmp_item = GetItem.serialize_entity(
+                        BaseItemEntity(**item), self._project
+                    )
                     folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
                     tmp_item.path = f"{self._project.name}" + folder_path
                     data.append(tmp_item)

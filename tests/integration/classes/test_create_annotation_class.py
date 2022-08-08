@@ -1,6 +1,8 @@
 import os
 import tempfile
 
+import pytest
+
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
@@ -74,12 +76,29 @@ class TestCreateAnnotationClass(BaseTestCase):
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         assert classes[0]['attribute_groups'][0]["default_value"] == "Bus"
 
+    def test_create_annotation_class_backend_errors(self):
+        from lib.core.entities.classes import AnnotationClassEntity
+        response = sa.controller.create_annotation_class(
+            self.PROJECT_NAME, AnnotationClassEntity(
+                name="t", color="blue",
+                attribute_groups=[
+                    {"name": "t"}, {"name": "t"},
+                    {"name": "t", "group_type": "radio", "default_value": [], "attributes": []}
+                ]
+            )
+        )
+
+        assert response.errors == '"classes[0].attribute_groups[0].attributes" is required.\n' \
+                                  '"classes[0].attribute_groups[1].attributes" is required.\n' \
+                                  '"classes[0].attribute_groups[2].default_value" must be a string'
+
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
     PROJECT_NAME = "TestCreateAnnotationClassNonVectorWithError"
     PROJECT_TYPE = "Video"
     PROJECT_DESCRIPTION = "Example Project test pixel basic images"
 
+    @pytest.mark.skip(reason="Need to adjust")
     def test_create_annotation_class(self):
         msg = ""
         try:
@@ -88,12 +107,45 @@ class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
             msg = str(e)
         self.assertEqual(msg, "Predefined tagging functionality is not supported for projects of type Video.")
 
+    def test_create_supported_annotation_class(self):
+        msg = ""
+        try:
+            sa.create_annotation_class(
+                self.PROJECT_NAME, "test_add", "#FF0000",
+                attribute_groups=[
+                    {
+                        "group_type": "text",
+                        "name": "name",
+                    }
+                ]
+            )
+        except Exception as e:
+            msg = str(e)
+        self.assertEqual(msg, "This project type doesn't support the attribute group types 'text' and 'numeric'.")
+
+    def test_create_radio_annotation_class_attr_required(self):
+        msg = ""
+        try:
+            sa.create_annotation_class(
+                self.PROJECT_NAME, "test_add", "#FF0000",
+                attribute_groups=[
+                    {
+                        "group_type": "radio",
+                        "name": "name",
+                    }
+                ]
+            )
+        except Exception as e:
+            msg = str(e)
+        self.assertEqual(msg, '"classes[0].attribute_groups[0].attributes" is required')
+
 
 class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
     PROJECT_NAME = "TestCreateAnnotationClassesNonVectorWithError"
     PROJECT_TYPE = "Video"
     PROJECT_DESCRIPTION = "Example Project test pixel basic images"
 
+    @pytest.mark.skip(reason="Need to adjust")
     def test_create_annotation_class(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"

@@ -54,7 +54,6 @@ class TestRecursiveFolder(BaseTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             sa.download_export(self.PROJECT_NAME, export["name"], tmp_dirname)
-
             non_empty_annotations = 0
             json_files = Path(tmp_dirname).glob("*.json")
             for json_file in json_files:
@@ -198,7 +197,7 @@ class TestRecursiveFolder(BaseTestCase):
         uploaded = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, '8sep',
                                                                 from_s3_bucket="superannotate-python-sdk-test",
                                                                 recursive_subfolders=False)
-        self.assertEqual(len(uploaded[0]), 9)
+        self.assertEqual(len(uploaded[0]), 10)
 
     def test_images_non_recursive(self):
         sa.upload_images_from_folder_to_project(

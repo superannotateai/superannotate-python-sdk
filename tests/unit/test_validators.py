@@ -5,59 +5,31 @@ from os.path import dirname
 from unittest import TestCase
 from unittest.mock import patch
 
-from superannotate_schemas.validators import AnnotationValidators
-
 from src.superannotate import SAClient
 
 sa = SAClient()
-VECTOR_ANNOTATION_JSON_WITH_BBOX = """
-{
-  "metadata": {
-    "name": "example_image_1.jpg",
-    "width": 1024,
-    "height": 683,
-    "status": "Completed",
-    "pinned": false,
-    "isPredicted": null,
-    "projectId": null,
-    "annotatorEmail": null,
-    "qaEmail": null
-  },
-  "instances": [
-    {
-      "type": "bbox",
-      "classId": 72274,
-      "probability": 100,
-      "points": {
-        
-        "x2": 465.23,
-        "y1": 341.5,
-        "y2": 357.09
-      },
-      "groupId": 0,
-      "pointLabels": {},
-      "locked": false,
-      "visible": false,
-      "attributes": [
+
+VECTOR_ANNOTATION_JSON_WITH_BBOX = {
+    'metadata': {
+        'name': 'example_image_1.jpg', 'width': 1024, 'height': 683, 'status': 'Completed', 'pinned': False,
+        'isPredicted': None, 'projectId': None, 'annotatorEmail': None, 'qaEmail': None
+    }, 'instances': [
         {
-          "id": 117845,
-          "groupId": 28230,
-          "name": "2",
-          "groupName": "Num doors"
+            'type': 'bbox', 'classId': 72274, 'probability': 100, 'points': {
+            'x2': 465.23, 'y1': 341.5, 'y2': 357.09
+        },
+            'groupId': 0, 'pointLabels': {}, 'locked': False, 'visible': False,
+            'attributes': [
+                {
+                    'id': 117845, 'groupId': 28230, 'name': '2', 'groupName': 'Num doors'
+                }
+            ],
+            'trackingId': 'aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b',
+            # 'createdBy': None, 'creationType': None, 'updatedAt': None, 'updatedBy': None, 'error': None, 'createdAt': None,
+            'className': 'Personal vehicle'
         }
-      ],
-      "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-      "error": null,
-      "createdAt": null,
-      "createdBy": null,
-      "creationType": null,
-      "updatedAt": null,
-      "updatedBy": null,
-      "className": "Personal vehicle"
-    }
-  ]
+    ]
 }
-"""
 
 
 class TestValidators(TestCase):
@@ -69,26 +41,17 @@ class TestValidators(TestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_VECTOR_FOLDER_PATH)
 
     def test_validate_annotations_should_note_raise_errors(self):
-        sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, self.VECTOR_JSON))
+        with open(os.path.join(self.vector_folder_path, self.VECTOR_JSON), "r") as f:
+            report = sa.controller.validate_annotations("vector", json.load(f)).data
+        assert not report
 
-    @patch('builtins.print')
-    def test_validate_annotation_with_wrong_bbox(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
-                vector_json.write(VECTOR_ANNOTATION_JSON_WITH_BBOX)
+    def test_validate_annotation_with_wrong_bbox(self):
+        report = sa.controller.validate_annotations("vector", VECTOR_ANNOTATION_JSON_WITH_BBOX).data
+        assert ("instances[0].points", "'x1' is a required property") == report[0]
 
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-            mock_print.assert_any_call("instances[0].points.x1                           field required")
-
-    @patch('builtins.print')
-    def test_validate_annotation_without_metadata(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
-                vector_json.write(
-                    json.dumps({"instances": []})
-                )
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-            mock_print.assert_any_call("metadata                                         field required")
+    def test_validate_annotation_without_metadata(self):
+        report = sa.controller.validate_annotations("vector", {"instances": []}).data
+        assert ("", "'metadata' is a required property") == report[0]
 
 
 class TestTypeHandling(TestCase):
@@ -111,7 +74,7 @@ class TestTypeHandling(TestCase):
           "classId": 72274,
           "probability": 100,
           "points": {
-            
+
             "x2": 465.23,
             "y1": 341.5,
             "y2": 357.09
@@ -199,11 +162,8 @@ class TestTypeHandling(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
                 vector_json.write(self.ANNOTATION)
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-            mock_print.assert_any_call(
-                "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
-            )
+            sa.validate_annotations("vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
+            mock_print.assert_any_call('instances[0]                                    invalid instance')
 
     def test_validate_document_annotation(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -323,30 +283,18 @@ class TestTypeHandling(TestCase):
             self.assertTrue(sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
                                                                            f"{tmpdir_name}/vector_empty.json")))
 
-    @patch('builtins.print')
-    def test_validate_error_message_format(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_error_message_format.json",
-                      "w") as test_validate_error_message_format:
-                test_validate_error_message_format.write(
-                    '''
-                    {
-                        "metadata": {}
-                    }
-                    '''
-                )
+    def test_validate_error_message_format(self):
+        data = '''
+            {
+                "metadata": {}
+            }
+            '''
 
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
-                                                           f"{tmpdir_name}/test_validate_error_message_format.json"))
-            mock_print.assert_any_call("metadata.name                                    field required")
+        report = sa.controller.validate_annotations("vector", json.loads(data)).data
+        assert ('metadata', '\'name\' is a required property') in report
 
-    @patch('builtins.print')
-    def test_validate_document_annotation_wrong_class_id(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json",
-                      "w") as test_validate_document_annotation_wrong_class_id:
-                test_validate_document_annotation_wrong_class_id.write(
-                    '''
+    def test_validate_document_annotation_wrong_class_id(self):
+        data = '''
                     {
                         "metadata": {
                             "name": "text_file_example_1",
@@ -383,11 +331,8 @@ class TestTypeHandling(TestCase):
                         "freeText": ""
                     }
                     '''
-                )
-
-            sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
-                                                             f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
-            mock_print.assert_any_call("instances[0].classId                             integer type expected")
+        report = sa.controller.validate_annotations("document", json.loads(data)).data
+        assert ('instances[0].classId', '\'string\' is not of type \'integer\'') in report
 
     def test_validate_document_annotation_with_null_created_at(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -435,68 +380,61 @@ class TestTypeHandling(TestCase):
             self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
                                                                              f"{tmpdir_name}/test_validate_document_annotation_with_null_created_at.json")))
 
-    @patch('builtins.print')
-    def test_validate_vector_instance_type_and_attr_annotation(self, mock_print):
-        json_name = "test.json"
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/{json_name}", "w") as json_file:
-                json_file.write(
-                    '''
-                    {
-                    "metadata": {
-                        "lastAction": {
-                            "email": "some.email@gmail.com",
-                            "timestamp": 1636958573242
-                        },
-                        "width": 1234,
-                        "height": 1540,
-                        "name": "t.png",
-                        "projectId": 164988,
-                        "isPredicted": false,
-                        "status": "Completed",
-                        "pinned": false,
-                        "annotatorEmail": null,
-                        "qaEmail": null
+    def test_validate_vector_instance_type_and_attr_annotation(self):
+        data = '''
+                {
+                "metadata": {
+                    "lastAction": {
+                        "email": "some.email@gmail.com",
+                        "timestamp": 1636958573242
                     },
-                    "comments": [],
-                    "tags": [],
-                    "instances": [
-                        {
-                            "classId": 880080,
-                            "probability": 100,
-                            "points": {
-                                "x1": 148.99,
-                                "x2": 1005.27,
-                                "y1": 301.96,
-                                "y2": 1132.36
-                            },
-                            "groupId": 0,
-                            "pointLabels": {},
-                            "locked": false,
-                            "visible": true,
-                            "attributes": [],
-                            "trackingId": null,
-                            "error": null,
-                            "createdAt": "2021-11-15T06:43:09.812Z",
-                            "createdBy": {
-                                "email": "shab.prog@gmail.com",
-                                "role": "Admin"
-                            },
-                            "creationType": "Manual",
-                            "updatedAt": "2021-11-15T06:43:13.831Z",
-                            "updatedBy": {
-                                "email": "shab.prog@gmail.com",
-                                "role": "Admin"
-                            },
-                            "className": "kj"
-                        }
-                    ]
-                }
-                '''
-                )
-
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/{json_name}"))
-            mock_print.assert_any_call("instances[0].type                                field required")
+                    "width": 1234,
+                    "height": 1540,
+                    "name": "t.png",
+                    "projectId": 164988,
+                    "isPredicted": false,
+                    "status": "Completed",
+                    "pinned": false,
+                    "annotatorEmail": null,
+                    "qaEmail": null
+                },
+                "comments": [],
+                "tags": [],
+                "instances": [
+                    {
+                        "classId": 880080,
+                        "probability": 100,
+                        "points": {
+                            "x1": 148.99,
+                            "x2": 1005.27,
+                            "y1": 301.96,
+                            "y2": 1132.36
+                        },
+                        "groupId": 0,
+                        "pointLabels": {},
+                        "locked": false,
+                        "visible": true,
+                        "attributes": [],
+                        "trackingId": null,
+                        "error": null,
+                        "createdAt": "2021-11-15T06:43:09.812Z",
+                        "createdBy": {
+                            "email": "shab.prog@gmail.com",
+                            "role": "Admin"
+                        },
+                        "creationType": "Manual",
+                        "updatedAt": "2021-11-15T06:43:13.831Z",
+                        "updatedBy": {
+                            "email": "shab.prog@gmail.com",
+                            "role": "Admin"
+                        },
+                        "className": "kj"
+                    }
+                ]
+            }
+            '''
+        report = sa.controller.validate_annotations("vector", json.loads(data)).data
+        assert ('instances[0]', 'type required') in report
 
     @patch('builtins.print')
     def test_validate_vector_invalid_instance_type_and_attr_annotation(self, mock_print):
@@ -564,18 +502,10 @@ class TestTypeHandling(TestCase):
                 os.path.join(self.vector_folder_path,
                              f"{tmpdir_name}/test_validate_vector_invalid_instace_type_and_attr_annotation.json")
             )
-            mock_print.assert_any_call(
-                "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
-            )
+            mock_print.assert_any_call('instances[0]                                    invalid instance')
 
-    @patch('builtins.print')
-    def test_validate_video_invalid_instance_type_and_attr_annotation(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_video_invalid_instace_type_and_attr_annotation.json",
-                      "w") as test_validate_video_invalid_instace_type_and_attr_annotation:
-                test_validate_video_invalid_instace_type_and_attr_annotation.write(
-                    '''
+    def test_validate_video_invalid_instance_type_and_attr_annotation(self):
+        data = '''
                     {
                     "metadata": {
                         "name": "video.mp4",
@@ -876,21 +806,12 @@ class TestTypeHandling(TestCase):
                     ]
                 }
                 '''
-                )
 
-            sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                          f"{tmpdir_name}/test_validate_video_invalid_instace_type_and_attr_annotation.json"))
-            mock_print.assert_any_call(
-                "instances[2].meta.type                           invalid type, valid types are bbox, event"
-            )
+        report = sa.controller.validate_annotations("video", json.loads(data)).data
+        assert ('instances[2]', 'invalid instance') in report
 
-    @patch('builtins.print')
-    def test_validate_video_invalid_instance_without_type_and_attr_annotation(self, mock_print):
-        json_name = "test.json"
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/{json_name}", "w") as json_file:
-                json_file.write(
-                    '''
+    def test_validate_video_invalid_instance_without_type_and_attr_annotation(self):
+        data = '''
                     {
                     "metadata": {
                         "name": "video.mp4",
@@ -1190,19 +1111,11 @@ class TestTypeHandling(TestCase):
                     ]
                 }
                 '''
-                )
-            sa.validate_annotations("Video", os.path.join(self.vector_folder_path, f"{tmpdir_name}/{json_name}"))
-            mock_print.assert_any_call(
-                "instances[2].meta.type                           field required"
-            )
+        report = sa.controller.validate_annotations("video", json.loads(data)).data
+        assert ('instances[2]', 'type required') in report
 
-    @patch('builtins.print')
-    def test_validate_vector_template_polygon_polyline_min_annotation(self, mock_print):
-        json_name = "test.json"
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/{json_name}", "w") as json_file:
-                json_file.write(
-                    '''
+    def test_validate_vector_template_polygon_polyline_min_annotation(self):
+        data = '''
                     {
                             "metadata": {
                                 "lastAction": {
@@ -1344,22 +1257,18 @@ class TestTypeHandling(TestCase):
                             ]
                         }
                 '''
-                )
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
-                                                           f"{tmpdir_name}/{json_name}"))
-            mock_print.assert_any_call(
-                "metadata.width                                   integer type expected\n"
-                "instances[0].points                              ensure this value has at least 1 items\n"
-                "instances[1].points                              ensure this value has at least 3 items"
-            )
 
-    @patch('builtins.print')
-    def test_validate_video_point_labels(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_video_point_labels.json",
-                      "w") as test_validate_video_point_labels:
-                test_validate_video_point_labels.write(
-                    '''
+        report = sa.controller.validate_annotations("vector", json.loads(data)).data
+        assert [
+                   ('instances[0].points', '[] is too short'),
+                   ('instances[1].points', '[233.69] is too short'),
+                   ('instances[2].', "'x' is a required property"),
+                   ('instances[2].', "'y' is a required property"),
+                   ('metadata.width', "'1234' is not of type 'integer'")
+               ] == report
+
+    def test_validate_video_point_labels(self):
+        data = '''
                     {
                     "metadata": {
                         "name": "video.mp4",
@@ -1658,13 +1567,9 @@ class TestTypeHandling(TestCase):
                     ]
                 }
                 '''
-                )
 
-            sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                          f"{tmpdir_name}/test_validate_video_point_labels.json"))
-            mock_print.assert_any_call(
-                "instances[0].meta.pointLabels                    value is not a valid dict",
-            )
+        report = sa.controller.validate_annotations("video", json.loads(data)).data
+        assert ('instances[0].meta.pointLabels', "'bad_point_label' is not of type 'object'") in report
 
     def test_validate_video_point_labels_bad_keys(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:

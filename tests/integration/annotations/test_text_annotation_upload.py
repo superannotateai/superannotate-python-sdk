@@ -88,7 +88,6 @@ class TestUploadTextAnnotation(BaseTestCase):
         )
         sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_path_without_class_data)
         export = sa.prepare_export(self.PROJECT_NAME)
-
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = temp_dir
             sa.download_export(self.PROJECT_NAME, export, output_path, True)

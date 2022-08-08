@@ -4,4 +4,4 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def tests_setup():
-    os.environ.update({"SA_TESTING": "True"})
+    os.environ.update({"SA_TESTING": "True", "SA_VERSION_CHECK": "False"})

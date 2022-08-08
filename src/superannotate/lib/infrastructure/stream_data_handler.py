@@ -57,29 +57,22 @@ class StreamedAnnotations:
         data: list,
         method: str = "post",
         params=None,
-        chunk_size: int = 100,
+        chunk_size: int = 5000,
         verify_ssl: bool = False,
     ):
         async with aiohttp.ClientSession(
             headers=self._headers,
             connector=aiohttp.TCPConnector(ssl=verify_ssl),
         ) as session:
-            if chunk_size:
-                for i in range(0, len(data), chunk_size):
-                    data_to_process = data[i : i + chunk_size]
-                    async for annotation in self.fetch(
-                        method,
-                        session,
-                        url,
-                        self._process_data(data_to_process),
-                        params=params,
-                    ):
-                        self._annotations.append(
-                            self._callback(annotation) if self._callback else annotation
-                        )
-            else:
+            for i in range(0, len(data), chunk_size):
+                data_to_process = data[i : i + chunk_size]  # noqa
+                params["limit"] = len(data_to_process)
                 async for annotation in self.fetch(
-                    method, session, url, self._process_data(data), params=params
+                    method,
+                    session,
+                    url,
+                    self._process_data(data_to_process),
+                    params=params,
                 ):
                     self._annotations.append(
                         self._callback(annotation) if self._callback else annotation
@@ -115,7 +108,8 @@ class StreamedAnnotations:
         items_downloaded: int = 0
         if chunk_size and data:
             for i in range(0, len(data), chunk_size):
-                data_to_process = data[i : i + chunk_size]
+                data_to_process = data[i : i + chunk_size]  # noqa
+                params["limit"] = len(data_to_process)
                 async for annotation in self.fetch(
                     method,
                     session,
