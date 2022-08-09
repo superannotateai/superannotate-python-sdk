@@ -45,7 +45,6 @@ class TestAnnotationUploadVector(BaseTestCase):
         reporter_calls = reporter_mock.method_calls
         for call in reporter_calls:
             call_groups[call[0]].append(call[1])
-        self.assertEqual(len(call_groups["log_warning"]), len(call_groups["store_message"]))
 
         def replace_item(obj, key, replace_value):
             if isinstance(obj, list):
