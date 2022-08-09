@@ -1,4 +1,5 @@
 from src.superannotate import SAClient
+
 sa = SAClient()
 from tests.integration.base import BaseTestCase
 
@@ -11,19 +12,19 @@ class TestRecursiveFolderPixel(BaseTestCase):
     JSON_POSTFIX = "*.json"
 
     def test_recursive_upload_pixel(self):
-        uploaded, _, duplicated = sa.upload_images_from_folder_to_project(self.PROJECT_NAME,
-                                                                          self.S3_FOLDER_PATH,
-                                                                          from_s3_bucket="test-openseadragon-1212",
-                                                                          recursive_subfolders=True
-                                                                          )
+        uploaded, _, duplicated = sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME,
+            self.S3_FOLDER_PATH,
+            from_s3_bucket="test-openseadragon-1212",
+            recursive_subfolders=True
+        )
 
-        uploaded, failed, missing = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME,
-                                                                          self.S3_FOLDER_PATH,
-                                                                          from_s3_bucket="test-openseadragon-1212",
-                                                                          recursive_subfolders=True
-                                                                          )
-        self.assertEqual(4, len(uploaded))
+        uploaded, failed, missing = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME,
+            self.S3_FOLDER_PATH,
+            from_s3_bucket="test-openseadragon-1212",
+            recursive_subfolders=True
+        )
+        self.assertEqual(5, len(uploaded))
         self.assertEqual(0, len(failed))
-        self.assertEqual(1, len(missing))
-
-
+        self.assertEqual(0, len(missing))
