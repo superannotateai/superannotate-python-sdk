@@ -1452,6 +1452,7 @@ class SuperannotateBackendService(BaseBackendService):
                     data={"data_chunk": chunk},
                 )
                 if not response.ok:
+                    print(chunk)
                     raise AppException("Upload failed.")
                 chunk_id += 1
             if not chunk and not data_sent:
@@ -1498,6 +1499,7 @@ class SuperannotateBackendService(BaseBackendService):
                     return True
                 elif status.startswith("FAILED"):
                     return False
+                time.sleep(1)
             else:
                 return False
 
