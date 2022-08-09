@@ -6,15 +6,15 @@ import json
 import os
 import platform
 import queue
-import time
+import sys
 import threading
 from datetime import datetime
 from itertools import islice
 from pathlib import Path
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import Any
 from typing import Optional
 from typing import Tuple
 
@@ -117,7 +117,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._s3_bucket = None
         self._big_files_queue = queue.Queue()
         self._small_files_queue = queue.Queue()
-        self.await = threading.Condition()
+        self._report = Report([], [], [], [])
 
     @staticmethod
     def get_name_path_mappings(annotation_paths):
@@ -130,22 +130,22 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         return name_path_mappings
 
     def _log_report(
-            self, missing_classes: list, missing_attr_groups: list, missing_attrs: list
+            self,
     ):
-        if missing_classes:
+        if self._report.missing_classes:
             logger.warning(
                 "Could not find annotation classes matching existing classes on the platform: "
-                f"[{', '.join(missing_classes)}]"
+                f"[{', '.join(self._report.missing_classes)}]"
             )
-        if missing_attr_groups:
+        if self._report.missing_attr_groups:
             logger.warning(
                 "Could not find attribute groups matching existing attribute groups on the platform: "
-                f"[{', '.join(missing_attr_groups)}]"
+                f"[{', '.join(self._report.missing_attr_groups)}]"
             )
-        if missing_attrs:
+        if self._report.missing_attrs:
             logger.warning(
                 "Could not find attributes matching existing attributes on the platform: "
-                f"[{', '.join(missing_attrs)}]"
+                f"[{', '.join(self._report.missing_attrs)}]"
             )
 
         if self.reporter.custom_messages.get("invalid_jsons"):
@@ -164,23 +164,22 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         file.seek(0)
         return file
 
-    def prepare_annotation(self, annotation: dict):
-        use_case = ValidateAnnotationUseCase(
-            reporter=self.reporter,
-            team_id=self._project.team_id,
-            project_type=self._project.type,
-            annotation=annotation,
-            backend_service_provider=self._backend_service,
-        )
-        errors = use_case.execute().data
+    def prepare_annotation(self, annotation: dict) -> dict:
+        errors = None
+        if sys.getsizeof(annotation) < BIG_FILE_THRESHOLD:
+            use_case = ValidateAnnotationUseCase(
+                reporter=self.reporter,
+                team_id=self._project.team_id,
+                project_type=self._project.type,
+                annotation=annotation,
+                backend_service_provider=self._backend_service,
+            )
+            errors = use_case.execute().data
         if not errors:
             annotation = UploadAnnotationUseCase.set_defaults(
                 annotation, self._project.type
             )
-            annotation_file = io.StringIO()
-            json.dump(annotation, annotation_file)
-            annotation_file.seek(0)
-            return annotation_file
+            return annotation
 
     def get_annotation(
             self, path: str
@@ -286,7 +285,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             Body=item.mask,
         )
 
-    def upload_small_annotations(self, chunk) -> Report:
+    def _upload_small_annotations(self, chunk) -> Report:
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = [], [], [], []
         response = self._backend_service.upload_annotations(
             team_id=self._project.team_id,
@@ -311,11 +310,31 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             failed_annotations, missing_classes, missing_attr_groups, missing_attrs
         )
 
-    def upload_big_annotation(
-            self, item, queue
-    ) -> Tuple[str, bool]:
+    def upload_small_annotations(self):
+        chunk = []
+        while True:
+            item = self._small_files_queue.get()
+            if not item:
+                self._small_files_queue.put(None)
+                break
+            chunk.append(item)
+            if len(chunk) >= self.CHUNK_SIZE:
+                report = self._upload_small_annotations(chunk)
+                self._report.failed_annotations.extend(report.failed_annotations)
+                self._report.missing_classes.extend(report.missing_classes)
+                self._report.missing_attr_groups.extend(report.missing_attr_groups)
+                self._report.missing_attrs.extend(report.missing_attrs)
+
+            chunk = []
+        if chunk:
+            report = self._upload_small_annotations(chunk)
+            self._report.failed_annotations.extend(report.failed_annotations)
+            self._report.missing_classes.extend(report.missing_classes)
+            self._report.missing_attr_groups.extend(report.missing_attr_groups)
+            self._report.missing_attrs.extend(report.missing_attrs)
+
+    def _upload_big_annotation(self, item) -> Tuple[str, bool]:
         try:
-            queue.get_nowait()
             is_uploaded = self._backend_service.upload_big_annotation(
                 team_id=self._project.team_id,
                 project_id=self._project.id,
@@ -324,40 +343,51 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 data=item.data,
                 chunk_size=5 * 1024 * 1024,
             )
+            self.reporter.update_progress()
             if is_uploaded and (
                     self._project.type == constants.ProjectType.PIXEL.value
                     and item.mask
             ):
                 self._upload_mask(item.mask)
             return item.name, is_uploaded
-        finally:
-            return item.name, False
+        except AppException as e:
+            self.reporter.log_error(str(e))
+            self._report.failed_annotations.append(item.name)
 
-    def qsize(self, n):
-        if self._big_files_queue.qsize() != n:
-            return False
-        else:
-            return True
-    def _put_to_queue(self):
-
-    def get_annotation(self, items_to_upload: list):
-        data: List[Any, bool] = [(i, False) for i in items_to_upload]
-        unprocessed = False
+    def upload_big_annotations(self):
         while True:
-            for ixd, (item, processed) in enumerate(data):
+            item = self._big_files_queue.get()
+            if not item:
+                self._big_files_queue.put(None)
+                break
+            self._upload_big_annotation(item)
+
+    def distribute_queues(self, items_to_upload: list):
+        data: List[List[Any, bool]] = [[i, False] for i in items_to_upload]
+        processed_count = 0
+        while processed_count < len(data):
+            for idx, (item, processed) in enumerate(data):
                 if processed:
                     continue
-                data, mask = self.get_annotation(item.path)
-                size = item.data.seek(0, os.SEEK_END)
-                item.data.seek(0)
+                annotation, mask = self.get_annotation(item.path)
+                t_item = copy.copy(item)
+                size = sys.getsizeof(annotation)
+                annotation_file = io.StringIO()
+                json.dump(annotation, annotation_file)
+                annotation_file.seek(0)
+                t_item.data = annotation_file
+                t_item.mask = mask
                 if size > BIG_FILE_THRESHOLD:
                     if self._big_files_queue.qsize() > 4:
                         continue
                     else:
-                        self._big_files_queue.put(item)
+                        self._big_files_queue.put(t_item)
                 else:
-                    self._small_files_queue.put(item)
-
+                    self._small_files_queue.put(t_item)
+                data[idx][1] = True
+                processed_count += 1
+        self._big_files_queue.put(None)
+        self._small_files_queue.put(None)
 
     def execute(self):
         failed_annotations = []
@@ -378,53 +408,28 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 self._item_ids.append(item.uuid)
                 items_to_upload.append(self.AnnotationToUpload(item.uuid, name, path))
             except KeyError:
-                missing_annotations.append(path)
-    
-        with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.MAX_WORKERS
-        ) as executor:
-            small_futures = []
-            big_futures = []
-            big_files_queue = queue.Queue()
-            for item in items_to_upload:
-                item.data, item.mask = self.get_annotation(item.path)
-                size = item.data.seek(0, os.SEEK_END)
-                item.data.seek(0)
-                small_chunk = []
-                self.reporter.update_progress()
-                if size > BIG_FILE_THRESHOLD:
-                    if big_files_queue.qsize() > 4:
-                        time.sleep(2)
-                    big_files_queue.put(1)
-                    big_futures.append(executor.submit(self.upload_big_annotation, item, big_files_queue))
-                else:
-                    if len(small_chunk) >= self.CHUNK_SIZE:
-                        small_futures.append(executor.submit(self.upload_small_annotations, small_chunk))
-                        small_chunk = []
-                if small_chunk:
-                    small_futures.append(executor.submit(self.upload_small_annotations, small_chunk))
-
-            missing_classes, missing_attr_groups, missing_attrs = [], [], []
-            uploaded_annotations_names = []
-            for future in concurrent.futures.as_completed(small_futures):
-                report: Report = future.result()  # noqa
-                failed_annotations.extend(report.failed_annotations)
-                missing_classes.extend(report.missing_classes)
-                missing_attr_groups.extend(report.missing_attr_groups)
-                missing_attrs.extend(report.missing_attrs)
-            for future in concurrent.futures.as_completed(big_futures):
-                item_name, uploaded = future.result()
-                if not uploaded:
-                    failed_annotations.extend(item_name)
-            self.reporter.finish_progress()
-            self._log_report(missing_classes, missing_attr_groups, missing_attrs)
+                missing_annotations.append(name)
+        threads = []
+        for _ in range(self.THREADS_COUNT):
+            t_s = threading.Thread(target=self.upload_small_annotations)
+            t_b = threading.Thread(target=self.upload_big_annotations)
+            t_s.start()
+            t_b.start()
+            threads.append(t_s)
+            threads.append(t_b)
+        queue_distributor = threading.Thread(target=self.distribute_queues, args=(items_to_upload,))
+        queue_distributor.start()
+        for i in threads:
+            i.join()
+        queue_distributor.join()
+        self._log_report()
         uploaded_annotations = list(
             name_path_mappings.keys()
-            - set(failed_annotations).union(set(missing_annotations))
+            - set(self._report.failed_annotations).union(set(missing_annotations))
         )
         if uploaded_annotations:
             statuses_changed = self._set_annotation_statuses_in_progress(
-                uploaded_annotations_names
+                uploaded_annotations
             )
             if not statuses_changed:
                 self._response.errors = AppException("Failed to change status.")
