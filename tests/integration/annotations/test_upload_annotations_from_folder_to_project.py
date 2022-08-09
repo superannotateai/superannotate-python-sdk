@@ -22,7 +22,7 @@ class TestAnnotationUploadVector(BaseTestCase):
     @property
     def big_annotations_folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_BIG_FOLDER_PATH)
-
+    
     def test_annotation_folder_upload_download(self):
         self._attach_items()
         sa.create_annotation_classes_from_classes_json(

@@ -994,11 +994,11 @@ class Controller(BaseController):
         image = self._get_image(project, image_name, folder)
 
         use_case = usecases.DownloadImageUseCase(
+            reporter=self.get_default_reporter(),
             project=project,
             folder=folder,
             image=image,
             images=self.images,
-            classes=AnnotationClassRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             download_path=download_path,
             image_variant=image_variant,
