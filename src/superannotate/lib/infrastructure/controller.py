@@ -1052,7 +1052,7 @@ class Controller(BaseController):
             templates=self._backend_client.get_templates(team_id=self.team_id).get(
                 "data", []
             ),
-            reporter=self.get_default_reporter(log_info=False, log_warning=False),
+            reporter=self.get_default_reporter(),
             folder_path=folder_path,
             folders=self.folders,
         )

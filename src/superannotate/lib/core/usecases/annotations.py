@@ -5,9 +5,7 @@ import io
 import json
 import os
 import platform
-import queue
 import sys
-import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -68,6 +66,7 @@ class Report:
 class UploadAnnotationsUseCase(BaseReportableUseCase):
     MAX_WORKERS = 16
     CHUNK_SIZE = 100
+    CHUNK_SIZE_MB = 10 * 1024 * 1024
     STATUS_CHANGE_CHUNK_SIZE = 100
     AUTH_DATA_CHUNK_SIZE = 500
     THREADS_COUNT = 4
@@ -325,7 +324,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 self._small_files_queue.put_nowait(None)
                 break
             chunk.append(item)
-            if len(chunk) >= self.CHUNK_SIZE:
+            if sys.getsizeof(chunk) >= self.CHUNK_SIZE_MB:
                 report = await self._upload_small_annotations(chunk)
                 self._report.failed_annotations.extend(report.failed_annotations)
                 self._report.missing_classes.extend(report.missing_classes)
@@ -1159,6 +1158,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 try:
                     for error in errors:
                         # set details if not already set by the called fn
+                        if isinstance(error, StopIteration):
+                            return
                         error._set(
                             validator=k,
                             validator_value=v,
@@ -1168,7 +1169,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                         if k != "$ref":
                             error.schema_path.appendleft(k)
                         yield error
-                except StopIteration:
+                except RuntimeError:
                     pass
         finally:
             if scope:
@@ -1219,6 +1220,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         errors_report: List[Tuple[str, str]] = []
         if errors:
             for error in errors:
+                if not error:
+                    continue
                 real_path = extract_path(error.path)
                 if not error.context:
                     errors_report.append(("".join(real_path), error.message))

@@ -1,4 +1,3 @@
-import json
 import os
 import tempfile
 from pathlib import Path
@@ -6,11 +5,10 @@ from pathlib import Path
 import pytest
 
 from src.superannotate import SAClient
-from src.superannotate.lib.core.reporter import Reporter
+from tests.integration.base import BaseTestCase
+
 
 sa = SAClient()
-
-from tests.integration.base import BaseTestCase
 
 
 class TestUploadVideoAnnotation(BaseTestCase):

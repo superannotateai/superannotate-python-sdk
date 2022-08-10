@@ -99,7 +99,7 @@ class ServiceResponse(BaseModel):
         extra = Extra.allow
 
     def __init__(self, response=None, content_type=None, dispatcher: Callable = None):
-        if not response:
+        if response is None:
             super().__init__()
             return
         data = {
