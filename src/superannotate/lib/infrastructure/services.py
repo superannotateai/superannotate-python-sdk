@@ -289,9 +289,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
-    URL_GET_ANNOTATIONS = (
-        "https://assets-provider.devsuperannotate.com/api/v1/annotations/stream"
-    )
+    URL_GET_ANNOTATIONS = "items/annotations/download"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
@@ -556,7 +554,6 @@ class SuperannotateBackendService(BaseBackendService):
             params=params,
             data={"classes": data},
             content_type=List[AnnotationClassEntity],
-            # dispatcher=lambda x: x.pop("data")
         )
 
     def get_project_workflows(self, project_id: int, team_id: int):
@@ -1156,7 +1153,7 @@ class SuperannotateBackendService(BaseBackendService):
 
         return loop.run_until_complete(
             handler.get_data(
-                url=self.URL_GET_ANNOTATIONS,
+                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
                 data=items,
                 params=query_params,
                 chunk_size=self.DEFAULT_CHUNK_SIZE,
@@ -1194,7 +1191,7 @@ class SuperannotateBackendService(BaseBackendService):
             )
 
             return await handler.download_data(
-                url=self.URL_GET_ANNOTATIONS,
+                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
                 data=items,
                 params=query_params,
                 chunk_size=self.DEFAULT_CHUNK_SIZE,

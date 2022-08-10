@@ -5,9 +5,7 @@ import io
 import json
 import os
 import platform
-import queue
 import sys
-import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -1159,6 +1157,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 try:
                     for error in errors:
                         # set details if not already set by the called fn
+                        if isinstance(error, StopIteration):
+                            return
                         error._set(
                             validator=k,
                             validator_value=v,
@@ -1168,7 +1168,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                         if k != "$ref":
                             error.schema_path.appendleft(k)
                         yield error
-                except StopIteration:
+                except RuntimeError:
                     pass
         finally:
             if scope:
@@ -1219,6 +1219,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         errors_report: List[Tuple[str, str]] = []
         if errors:
             for error in errors:
+                if not error:
+                    continue
                 real_path = extract_path(error.path)
                 if not error.context:
                     errors_report.append(("".join(real_path), error.message))
