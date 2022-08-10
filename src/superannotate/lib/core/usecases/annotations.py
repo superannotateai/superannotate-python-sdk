@@ -579,9 +579,12 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         )
         return use_case.execute().data
 
-    @staticmethod
-    def set_defaults(annotation_data: dict, project_type: int):
+    def set_defaults(self, annotation_data: dict, project_type: int):
         default_data = {}
+        annotation_data["metadata"]["lastAction"] = {
+            "email": self._team.creator_id,
+            "timestamp": int(time.time())
+        }
         instances = annotation_data.get("instances", [])
         if project_type in constants.ProjectType.images:
             default_data["probability"] = 100
