@@ -183,7 +183,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             raise AppException(errors)
 
         annotation = UploadAnnotationUseCase.set_defaults(
-            annotation, self._project.type
+            self._team.creator_id, annotation, self._project.type
         )
         return annotation
 
@@ -580,8 +580,12 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         return use_case.execute().data
 
     @staticmethod
-    def set_defaults(annotation_data: dict, project_type: int):
+    def set_defaults(team_id, annotation_data: dict, project_type: int):
         default_data = {}
+        annotation_data["metadata"]["lastAction"] = {
+            "email": team_id,
+            "timestamp": int(time.time())
+        }
         instances = annotation_data.get("instances", [])
         if project_type in constants.ProjectType.images:
             default_data["probability"] = 100
@@ -606,7 +610,9 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         if self.is_valid():
             annotation_json, mask = self._get_annotation_json()
             errors = self._validate_json(annotation_json)
-            annotation_json = self.set_defaults(annotation_json, self._project.type)
+            annotation_json = UploadAnnotationUseCase.set_defaults(
+                self._team.creator_id, annotation_json, self._project.type
+            )
             if not errors:
                 annotation_file = io.StringIO()
                 json.dump(annotation_json, annotation_file)
