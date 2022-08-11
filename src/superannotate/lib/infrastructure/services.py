@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import datetime
 import io
 import json
@@ -1373,52 +1374,39 @@ class SuperannotateBackendService(BaseBackendService):
             items_name_file_map: Dict[str, io.StringIO],
     ) -> UploadAnnotationsResponse:
         url = urljoin(
-                self.assets_provider_url,
-                f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}",
-            )
-        return self._request(
-            url,
-            "post",
-            params={
-                "team_id": team_id,
-                "project_id": project_id,
-                "folder_id": folder_id,
-                "image_names": list(items_name_file_map.keys()),
-            },
-            files=[
-                (i[0], (*i, "application/json")) for i in items_name_file_map.items()
-            ],
-            content_type=UploadAnnotationsResponse,
+            "self.assets_provider_url",
+            f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}",
         )
-        # async with aiohttp.ClientSession(
-        #         headers=self.default_headers,
-        #         connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
-        # ) as session:
-        #     data = aiohttp.FormData()
-        #
-        #     for key, file in items_name_file_map.items():
-        #         file.seek(0)
-        #         data.add_field(key, bytes(file.read(), "ascii"), filename=key, content_type="application/json")
-        #         # data.add_field(key, io.BytesIO(bytes("{}", "utf-8")), filename=key, content_type="application/json")
-        #
-        #     _response = await session.post(
-        #         # url,
-        #         params={
-        #             "team_id": team_id,
-        #             "project_id": project_id,
-        #             "folder_id": folder_id,
-        #             "image_names": list(items_name_file_map.keys()),
-        #         },
-        #         data=data
-        #     )
-        # from pydantic import parse_obj_as
-        # d = await _response.text()
-        # data_json = await _response.json()
-        # response = ServiceResponse()
-        # response.status = _response.status
-        # response._content = await _response.text()
-        # response.data = parse_obj_as(UploadAnnotationsResponse, data_json)
-        # return response
+
+        headers = copy.copy(self.default_headers)
+        del headers["Content-Type"]
+        async with aiohttp.ClientSession(
+                headers=headers,
+                connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
+        ) as session:
+            data = aiohttp.FormData()
+
+            for key, file in items_name_file_map.items():
+                file.seek(0)
+                data.add_field(key, bytes(file.read(), "ascii"), filename=key, content_type="application/json")
+
+            _response = await session.post(
+                url,
+                params={
+                    "team_id": team_id,
+                    "project_id": project_id,
+                    "folder_id": folder_id,
+                    "image_names": list(items_name_file_map.keys()),
+                },
+                data=data
+            )
+        from pydantic import parse_obj_as
+        data_json = await _response.json()
+        response = ServiceResponse()
+        response.status = _response.status
+        response._content = await _response.text()
+        response.data = parse_obj_as(UploadAnnotationsResponse, data_json)
+        return response
 
     async def upload_big_annotation(
             self,
@@ -1515,7 +1503,7 @@ class SuperannotateBackendService(BaseBackendService):
                         return True
                     elif status.startswith("FAILED"):
                         return False
-                    time.sleep(1)
+                    await asyncio.sleep(15)
                 else:
                     return False
 
