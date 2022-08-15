@@ -88,17 +88,20 @@ class UploadCustomFieldValues(BaseModel):
 
 
 class ServiceResponse(BaseModel):
-    status: int
-    reason: str
-    content: Union[bytes, str]
-    data: Any
+    status: Optional[int]
+    reason: Optional[str]
+    content: Optional[Union[bytes, str]]
+    data: Optional[Any]
     count: Optional[int] = 0
-    _error: str = None
+    _error: Optional[str] = None
 
     class Config:
         extra = Extra.allow
 
-    def __init__(self, response, content_type=None, dispatcher: Callable = None):
+    def __init__(self, response=None, content_type=None, dispatcher: Callable = None):
+        if response is None:
+            super().__init__()
+            return
         data = {
             "status": response.status_code,
             "reason": response.reason,
@@ -133,7 +136,9 @@ class ServiceResponse(BaseModel):
 
     @property
     def ok(self):
-        return 199 < self.status < 300
+        if self.status:
+            return 199 < self.status < 300
+        return False
 
     @property
     def error(self):

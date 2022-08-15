@@ -1,14 +1,16 @@
-from pathlib import Path
 import os
 from os.path import join
-import pytest
-from unittest.mock import patch
+from pathlib import Path
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from src.superannotate import SAClient
-sa = SAClient()
+import pytest
+
 import src.superannotate.lib.core as constances
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationUploadStatusChangeVector(BaseTestCase):

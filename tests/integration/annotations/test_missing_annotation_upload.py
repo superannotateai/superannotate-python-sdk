@@ -39,39 +39,9 @@ class TestAnnotationUpload(BaseTestCase):
             any(
                 [
                     True
-                    for path in uploaded
-                    if "sample_project_vector_for_checks/example_image_1.jpg___objects.json"
-                    in path
-                ]
-            )
-        )
-        self.assertTrue(
-            any(
-                [
-                    True
-                    for path in uploaded
-                    if "sample_project_vector_for_checks/example_image_2.jpg___objects.json"
-                    in path
-                ]
-            )
-        )
-        self.assertTrue(
-            any(
-                [
-                    True
-                    for path in uploaded
-                    if "sample_project_vector_for_checks/example_image_4.jpg___objects.json"
-                    in path
-                ]
-            )
-        )
-        self.assertTrue(
-            any(
-                [
-                    True
-                    for path in missing_images
-                    if "sample_project_vector_for_checks/example_image_5.jpg___objects.json"
-                    in path
+                    for part in missing_images
+                    if part in "sample_project_vector_for_checks/example_image_5.jpg___objects.json"
+
                 ]
             )
         )
@@ -95,43 +65,3 @@ class TestAnnotationUpload(BaseTestCase):
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(missing_images), 1)
 
-        self.assertTrue(
-            any(
-                [
-                    True
-                    for path in uploaded
-                    if "sample_project_vector_for_checks/example_image_1.jpg___objects.json"
-                    in path
-                ]
-            )
-        )
-        self.assertTrue(
-            any(
-                [
-                    True
-                    for path in uploaded
-                    if "sample_project_vector_for_checks/example_image_2.jpg___objects.json"
-                    in path
-                ]
-            )
-        )
-        self.assertTrue(
-            any(
-                [
-                    True
-                    for path in uploaded
-                    if "sample_project_vector_for_checks/example_image_4.jpg___objects.json"
-                    in path
-                ]
-            )
-        )
-        self.assertTrue(
-            any(
-                [
-                    True
-                    for path in missing_images
-                    if "sample_project_vector_for_checks/example_image_5.jpg___objects.json"
-                    in path
-                ]
-            )
-        )

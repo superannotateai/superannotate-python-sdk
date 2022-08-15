@@ -363,13 +363,24 @@ class SuperannotateServiceProvider:
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
         raise NotImplementedError
 
-    def upload_annotations(
+    async def upload_annotations(
         self,
         team_id: int,
         project_id: int,
         folder_id: int,
         items_name_file_map: Dict[str, io.StringIO],
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    async def upload_big_annotation(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        item_id: int,
+        data: io.StringIO,
+        chunk_size: int,
+    ) -> bool:
         raise NotImplementedError
 
     def get_schema(

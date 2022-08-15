@@ -41,16 +41,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
             from_s3_bucket="superannotate-python-sdk-test",
             recursive_subfolders=False
         )
-        self.assertEqual(len(uploaded_annotations), 2)
-        self.assertEqual(len(s3_bucket.method_calls), 2)
-
-        uploaded_annotations, _, _ = sa.upload_preannotations_from_folder_to_project(
-            destination,
-            self.S3_FOLDER_PATH,
-            from_s3_bucket="superannotate-python-sdk-test",
-            recursive_subfolders=False
-        )
-        self.assertEqual(len(s3_bucket.method_calls), 8)
+        self.assertEqual(len(uploaded_annotations), 3)
 
     def test_hex_color_adding(self):
         sa.create_annotation_class(self.PROJECT_NAME, "test_add", color="#0000FF")
