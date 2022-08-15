@@ -82,8 +82,9 @@ class BaseBackendService(SuperannotateServiceProvider):
     @property
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
-            # return "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/"
-            return "https://assets-provider.devsuperannotate.com/api/v1.01/"
+            # return "http://ec2-18-237-224-179.us-west-2.compute.amazonaws.com:3009/api/v1.01/"
+            return "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/"
+            # return "https://assets-provider.devsuperannotate.com/api/v1.01/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
     @timed_lru_cache(seconds=360)
@@ -1398,7 +1399,6 @@ class SuperannotateBackendService(BaseBackendService):
                     "team_id": team_id,
                     "project_id": project_id,
                     "folder_id": folder_id,
-                    "image_names": list(items_name_file_map.keys()),
                 },
                 data=data
             )
