@@ -99,6 +99,7 @@ class DataAggregator:
             ry=annotation["ry"],
             angle=annotation["angle"],
         ),
+        "tag": lambda annotation: None
     }
 
     def __init__(
