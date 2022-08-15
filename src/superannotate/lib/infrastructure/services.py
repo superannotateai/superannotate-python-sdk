@@ -18,6 +18,7 @@ from urllib.parse import urljoin
 import aiohttp
 import requests.packages.urllib3
 from pydantic import BaseModel
+from pydantic import parse_obj_as
 from requests.exceptions import HTTPError
 
 import lib.core as constance
@@ -1374,15 +1375,16 @@ class SuperannotateBackendService(BaseBackendService):
             items_name_file_map: Dict[str, io.StringIO],
     ) -> UploadAnnotationsResponse:
         url = urljoin(
-            "self.assets_provider_url",
-            f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}",
+            self.assets_provider_url,
+            # "https://0ef1-178-160-196-42.ngrok.io/api/v1.01/",
+            (f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}"),
         )
 
         headers = copy.copy(self.default_headers)
         del headers["Content-Type"]
         async with aiohttp.ClientSession(
                 headers=headers,
-                connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
+                connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
         ) as session:
             data = aiohttp.FormData()
 
@@ -1400,13 +1402,12 @@ class SuperannotateBackendService(BaseBackendService):
                 },
                 data=data
             )
-        from pydantic import parse_obj_as
-        data_json = await _response.json()
-        response = ServiceResponse()
-        response.status = _response.status
-        response._content = await _response.text()
-        response.data = parse_obj_as(UploadAnnotationsResponse, data_json)
-        return response
+            data_json = await _response.json()
+            response = ServiceResponse()
+            response.status = _response.status
+            response._content = await _response.text()
+            response.data = parse_obj_as(UploadAnnotationsResponse, data_json)
+            return response
 
     async def upload_big_annotation(
             self,

@@ -18,22 +18,19 @@ class TestVectorAnnotationImage(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     def test_pre_annotation_folder_upload_download(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
+        self._attach_items()
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
-        _, _, _ = sa.upload_annotations_from_folder_to_project(
+        uploaded, _, _ = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
+        assert len(uploaded) == 4
         count_in = len(list(Path(self.folder_path).glob("*.json")))
         images = sa.search_items(self.PROJECT_NAME)
         with tempfile.TemporaryDirectory() as tmp_dir:
             for image in images:
                 image_name = image["name"]
                 sa.download_image_annotations(self.PROJECT_NAME, image_name, tmp_dir)
-
             count_out = len(list(Path(tmp_dir).glob("*.json")))
-
             self.assertEqual(count_in, count_out)

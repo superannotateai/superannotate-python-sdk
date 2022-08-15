@@ -70,6 +70,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
     STATUS_CHANGE_CHUNK_SIZE = 100
     AUTH_DATA_CHUNK_SIZE = 500
     THREADS_COUNT = 4
+    URI_THRESHOLD = 4 * 1024 - 120
 
     @dataclass
     class AnnotationToUpload:
@@ -317,6 +318,19 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     async def upload_small_annotations(self):
         chunk = []
+
+        async def upload(_chunk):
+            try:
+                report = await self._upload_small_annotations(chunk)
+                self._report.failed_annotations.extend(report.failed_annotations)
+                self._report.missing_classes.extend(report.missing_classes)
+                self._report.missing_attr_groups.extend(report.missing_attr_groups)
+                self._report.missing_attrs.extend(report.missing_attrs)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                self._report.failed_annotations.extend([i.name for i in chunk])
+
         while True:
             item = await self._small_files_queue.get()
             self._small_files_queue.task_done()
@@ -324,19 +338,15 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 self._small_files_queue.put_nowait(None)
                 break
             chunk.append(item)
-            if sys.getsizeof(chunk) >= self.CHUNK_SIZE_MB:
-                report = await self._upload_small_annotations(chunk)
-                self._report.failed_annotations.extend(report.failed_annotations)
-                self._report.missing_classes.extend(report.missing_classes)
-                self._report.missing_attr_groups.extend(report.missing_attr_groups)
-                self._report.missing_attrs.extend(report.missing_attrs)
+            if (
+                    sys.getsizeof(chunk) >= self.CHUNK_SIZE_MB or
+                    sum([len(i.name) for i in chunk]) >= self.URI_THRESHOLD - len(chunk) * 14
+            ):
+                await upload(chunk)
                 chunk = []
+
         if chunk:
-            report = await self._upload_small_annotations(chunk)
-            self._report.failed_annotations.extend(report.failed_annotations)
-            self._report.missing_classes.extend(report.missing_classes)
-            self._report.missing_attr_groups.extend(report.missing_attr_groups)
-            self._report.missing_attrs.extend(report.missing_attrs)
+            await upload(chunk)
 
     async def _upload_big_annotation(self, item) -> Tuple[str, bool]:
         try:
@@ -583,7 +593,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         default_data = {}
         annotation_data["metadata"]["lastAction"] = {
             "email": team_id,
-            "timestamp": int(time.time())
+            "timestamp": int(round(time.time() * 1000))
         }
         instances = annotation_data.get("instances", [])
         if project_type in constants.ProjectType.images:
@@ -594,14 +604,14 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                 instance["meta"] = {
                     **default_data,
                     **instance["meta"],
-                    "creationType": "Preannotation",
-                }  # noqa
+                    "creationType": "Preannotation",  # noqa
+                }
         else:
             for idx, instance in enumerate(instances):
                 instances[idx] = {
                     **default_data,
                     **instance,
-                    "creationType": "Preannotation",
+                    "creationType": "Preannotation",  # noqa
                 }
         return annotation_data
 

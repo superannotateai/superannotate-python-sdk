@@ -574,6 +574,30 @@ class CloneProjectUseCase(BaseReportableUseCase):
             )
             annotation_classes_entity_mapping = defaultdict(AnnotationClassEntity)
             annotation_classes_created = False
+            if self._include_settings:
+                self.reporter.log_info(
+                    f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
+                )
+                try:
+                    self._copy_settings(project)
+                except (AppException, RequestException) as e:
+                    self.reporter.log_warning(
+                        f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
+                    )
+                    self.reporter.log_debug(str(e), exc_info=True)
+
+            if self._include_contributors:
+                self.reporter.log_info(
+                    f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
+                )
+                try:
+                    self._copy_include_contributors(project)
+                except (AppException, RequestException) as e:
+                    self.reporter.log_warning(
+                        f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
+                    )
+                    self.reporter.log_debug(str(e), exc_info=True)
+
             if self._include_annotation_classes:
                 self.reporter.log_info(
                     f"Cloning annotation classes from {self._project.name} to {self._project_to_create.name}."
@@ -586,19 +610,6 @@ class CloneProjectUseCase(BaseReportableUseCase):
                 except (AppException, RequestException) as e:
                     self.reporter.log_warning(
                         f"Failed to clone annotation classes from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    self.reporter.log_debug(str(e), exc_info=True)
-
-
-            if self._include_settings:
-                self.reporter.log_info(
-                    f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
-                )
-                try:
-                    self._copy_settings(project)
-                except (AppException, RequestException) as e:
-                    self.reporter.log_warning(
-                        f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
                     )
                     self.reporter.log_debug(str(e), exc_info=True)
 
@@ -626,17 +637,6 @@ class CloneProjectUseCase(BaseReportableUseCase):
                             f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
                         )
                         self.reporter.log_debug(str(e), exc_info=True)
-            if self._include_contributors:
-                self.reporter.log_info(
-                    f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
-                )
-                try:
-                    self._copy_include_contributors(project)
-                except (AppException, RequestException) as e:
-                    self.reporter.log_warning(
-                        f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    self.reporter.log_debug(str(e), exc_info=True)
 
             self._response.data = self._projects.get_one(
                 uuid=project.id, team_id=project.team_id
