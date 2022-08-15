@@ -77,6 +77,8 @@ class AttributeGroup(BaseModel):
 
     class Config:
         use_enum_values = True
+        exclude_unset = True
+        exclude_none = True
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")

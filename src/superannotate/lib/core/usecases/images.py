@@ -1795,6 +1795,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 headers=annotation_json_creds["headers"],
             )
             if not response.ok:
+                # TODO remove
                 logger.warning("Couldn't load annotations.")
                 self._response.data = (None, None)
                 return self._response

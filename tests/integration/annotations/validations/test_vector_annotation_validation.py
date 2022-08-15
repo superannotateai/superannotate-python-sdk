@@ -35,3 +35,24 @@ class TestVectorValidators(TestCase):
             "instances[0]                                    invalid type\n"
             "instances[1]                                    'points' is a required property"
         )
+
+    @patch('builtins.print')
+    def test_validate_create_dby(self, mock_print):
+        is_valid = sa.validate_annotations(
+            "vector",
+            {
+                "metadata": {"name": "12"},
+                "instances": [
+                    {
+                        "type": "bbox",
+                        "created_by": {}
+                     },
+                    {"type": "bbox"}
+                ]
+            }
+        )
+        assert not is_valid
+        mock_print.assert_any_call(
+            "instances[0]                                    invalid type\n"
+            "instances[1]                                    'points' is a required property"
+        )
