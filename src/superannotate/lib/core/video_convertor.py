@@ -99,6 +99,7 @@ class VideoFrameGenerator:
         next(b, None)
         return zip(a, b)
 
+
     def get_median(self, annotations: List[dict]) -> dict:
         if len(annotations) >= 1:
             return annotations[0]
@@ -184,7 +185,6 @@ class VideoFrameGenerator:
                 frames_mapping = defaultdict(list)
                 interpolated_frames = {}
                 for timestamp in parameter["timestamps"]:
-                    print(int(math.ceil(timestamp["timestamp"] / self.ratio)))
                     frames_mapping[
                         int(math.ceil(timestamp["timestamp"] / self.ratio))
                     ].append(timestamp)
