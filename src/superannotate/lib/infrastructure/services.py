@@ -1376,7 +1376,6 @@ class SuperannotateBackendService(BaseBackendService):
     ) -> UploadAnnotationsResponse:
         url = urljoin(
             self.assets_provider_url,
-            # "https://0ef1-178-160-196-42.ngrok.io/api/v1.01/",
             (
                 f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}"
             ),
@@ -1387,8 +1386,7 @@ class SuperannotateBackendService(BaseBackendService):
         async with aiohttp.ClientSession(
             headers=headers, connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
         ) as session:
-            data = aiohttp.FormData()
-
+            data = aiohttp.FormData(quote_fields=False)
             for key, file in items_name_file_map.items():
                 file.seek(0)
                 data.add_field(
@@ -1397,7 +1395,6 @@ class SuperannotateBackendService(BaseBackendService):
                     filename=key,
                     content_type="application/json",
                 )
-
             _response = await session.post(
                 url,
                 params={
