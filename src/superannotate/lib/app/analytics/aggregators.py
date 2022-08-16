@@ -1,5 +1,6 @@
 import copy
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -7,7 +8,6 @@ from typing import Union
 
 import lib.core as constances
 import pandas as pd
-from dataclasses import dataclass
 from lib.app.exceptions import AppException
 from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from lib.core import PIXEL_ANNOTATION_POSTFIX
@@ -99,7 +99,7 @@ class DataAggregator:
             ry=annotation["ry"],
             angle=annotation["angle"],
         ),
-        "tag": lambda annotation: None
+        "tag": lambda annotation: None,
     }
 
     def __init__(

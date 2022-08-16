@@ -45,14 +45,18 @@ class TestVectorValidators(TestCase):
                 "instances": [
                     {
                         "type": "bbox",
-                        "created_by": {}
-                     },
+                        "createdBy": {'email': 'arturn@superannotate.com', 'role': 'dmin'},
+                        "x": 1,
+                        "y": 2
+
+                    },
                     {"type": "bbox"}
                 ]
             }
         )
         assert not is_valid
-        mock_print.assert_any_call(
-            "instances[0]                                    invalid type\n"
-            "instances[1]                                    'points' is a required property"
+        assert mock_print.call_args_list[0].args[0] == (
+            """instances[0]                                    'points' is a required property
+instances[0].createdBy.role                     'dmin' is not one of ['Customer', 'Admin', 'Annotator', 'QA']
+instances[1]                                    'points' is a required property"""
         )

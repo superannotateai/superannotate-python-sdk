@@ -27,9 +27,17 @@ class BaseSerializer(ABC):
         by_alias: bool = True,
         flat: bool = False,
         exclude: Set[str] = None,
+        exclude_unset=False,
     ):
         return self._fill_enum_values(
-            self._serialize(self._entity, fields, by_alias, flat, exclude=exclude)
+            self._serialize(
+                self._entity,
+                fields,
+                by_alias,
+                flat,
+                exclude=exclude,
+                exclude_unset=exclude_unset,
+            )
         )
 
     def serialize_item(

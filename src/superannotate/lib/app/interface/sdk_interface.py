@@ -579,8 +579,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of dicts
         """
         project_name, folder_name = extract_project_folder(project)
-        classes = self.controller.search_annotation_classes(project_name, name_contains)
-        return [i.dict(fill_enum_values=True) for i in classes.data]
+        response = self.controller.search_annotation_classes(
+            project_name, name_contains
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return [BaseSerializer(i).serialize(exclude_unset=True) for i in response.data]
 
     def set_project_default_image_quality_in_editor(
         self,
@@ -1231,7 +1235,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize()
+        return BaseSerializer(response.data).serialize(exclude_unset=True)
 
     def delete_annotation_class(
         self, project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]
@@ -1308,7 +1312,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return [BaseSerializer(i).serialize() for i in response.data]
+        return [BaseSerializer(i).serialize(exclude_unset=True) for i in response.data]
 
     def download_export(
         self,
