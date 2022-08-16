@@ -175,12 +175,13 @@ class VideoFrameGenerator:
         )
 
     def _process(self):
+        tag_instances = []
         for instance in self._annotation_data["instances"]:
             instance_id = next(self.id_generator)
             annotation_type = instance["meta"]["type"]
             class_name = instance["meta"].get("className")
             class_id = instance["meta"].get("classId", -1)
-            for parameter in instance["parameters"]:
+            for parameter in instance.get("parameters", []):
                 frames_mapping = defaultdict(list)
                 interpolated_frames = {}
                 for timestamp in parameter["timestamps"]:
@@ -227,6 +228,8 @@ class VideoFrameGenerator:
                             keyframe=True,
                         )
                 if frames_mapping and not interpolated_frames:
+                    print(frames_mapping)
+
                     median = self.get_median(frames_mapping[1])
                     interpolated_frames[1] = Annotation(
                         instanceId=instance_id,
