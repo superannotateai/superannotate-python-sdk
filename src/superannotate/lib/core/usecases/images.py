@@ -779,7 +779,7 @@ class DownloadImageUseCase(BaseReportableUseCase):
         self.get_annotation_classes_ues_case = GetAnnotationClassesUseCase(
             reporter=self.reporter,
             project=self._project,
-            backend_client=backend_service_provider
+            backend_client=backend_service_provider,
         )
 
     def validate_project_type(self):

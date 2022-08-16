@@ -27,6 +27,20 @@ class TestCreateAnnotationClass(BaseTestCase):
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(classes[0]["type"], "tag")
 
+    def test_create_annotation_class_with_attr(self):
+        _class = sa.create_annotation_class(
+            self.PROJECT_NAME, "test_add", "#FF0000",
+            attribute_groups=[
+                {
+                    "name": "test",
+                    "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                }
+            ]
+        )
+        assert "is_multiselect" not in _class["attribute_groups"][0]
+        classes = sa.search_annotation_classes(self.PROJECT_NAME)
+        assert "is_multiselect" not in classes[0]["attribute_groups"][0]
+
     def test_create_annotations_classes_from_class_json(self):
         classes = sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.large_json_path)
         self.assertEqual(len(classes), 1500)

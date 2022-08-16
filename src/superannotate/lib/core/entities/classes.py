@@ -98,4 +98,5 @@ class AnnotationClassEntity(BaseModel):
     class Config:
         validate_assignment = True
         exclude_none = True
+        exclude_unset = True
         fill_enum_values = True
