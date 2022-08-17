@@ -120,8 +120,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._annotation_upload_data = None
         self._item_ids = []
         self._s3_bucket = None
-        self._big_files_queue = asyncio.Queue()
-        self._small_files_queue = asyncio.Queue()
+        self._big_files_queue = None
+        self._small_files_queue = None
         self._report = Report([], [], [], [])
 
     @staticmethod
@@ -334,7 +334,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 self._report.missing_attrs.extend(report.missing_attrs)
             except Exception:
                 import traceback
-
                 traceback.print_exc()
                 self._report.failed_annotations.extend([i.name for i in chunk])
 
@@ -408,6 +407,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                         else:
                             self._small_files_queue.put_nowait(t_item)
                     except (ValidationError, AppException):
+                        data[idx][1] = True
+                        self.reporter.update_progress()
                         self._report.failed_annotations.append(item.name)
                     finally:
                         data[idx][1] = True
@@ -417,6 +418,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     async def run_workers(self, items_to_upload):
         try:
+            self._big_files_queue = asyncio.Queue()
+            self._small_files_queue = asyncio.Queue()
             await asyncio.gather(
                 self.distribute_queues(items_to_upload),
                 self.upload_small_annotations(),
