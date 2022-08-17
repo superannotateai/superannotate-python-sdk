@@ -241,7 +241,6 @@ class DataAggregator:
                 instance_raw.pointLabels = instance["meta"].get("pointLabels")
                 parameters = instance.get("parameters", [])
                 if instance_raw.type == 'tag':
-                    print(instance["meta"]["attributes"])
                     attributes = instance["meta"].get("attributes",[])
                     raws = self.__add_attributes_to_raws(raws, attributes, instance_raw)
                 for parameter_id, parameter in enumerate(parameters):
