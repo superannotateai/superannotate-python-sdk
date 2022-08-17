@@ -4,8 +4,10 @@ import datetime
 import io
 import json
 import platform
+import threading
 import time
 from contextlib import contextmanager
+from functools import lru_cache
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -31,7 +33,6 @@ from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UploadCustomFieldValues
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from pydantic import BaseModel
 from pydantic import parse_obj_as
@@ -82,15 +83,24 @@ class BaseBackendService(SuperannotateServiceProvider):
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
             # return "http://ec2-18-237-224-179.us-west-2.compute.amazonaws.com:3009/api/v1.01/"
-            # return "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/"
-            return "https://assets-provider.devsuperannotate.com/api/v1.01/"
+            return (
+                "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1.01/"
+            )
+            # return "https://assets-provider.devsuperannotate.com/api/v1.01/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
-    @timed_lru_cache(seconds=360)
-    def get_session(self):
+    @lru_cache(maxsize=32)
+    def _get_session(self, thread_id, ttl=None):  # noqa
+        del ttl
+        del thread_id
         session = requests.Session()
         session.headers.update(self.default_headers)
         return session
+
+    def get_session(self):
+        return self._get_session(
+            thread_id=threading.get_ident(), ttl=round(time.time() / 360)
+        )
 
     @property
     def default_headers(self):
@@ -98,7 +108,7 @@ class BaseBackendService(SuperannotateServiceProvider):
             "Authorization": self._auth_token,
             "authtype": self.AUTH_TYPE,
             "Content-Type": "application/json",
-            "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()}; "
+            "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()};"
             f"OS: {platform.system()}; Team: {self.team_id}",
         }
 
@@ -442,13 +452,12 @@ class SuperannotateBackendService(BaseBackendService):
 
     def get_folder(self, query_string: str):
         get_folder_url = urljoin(self.api_url, self.URL_GET_FOLDER_BY_NAME)
+        params = {}
         if query_string:
             query_items = query_string.split("&")
-            params = {}
             for item in query_items:
                 tmp = item.split("=")
                 params[tmp[0]] = tmp[1]
-
         response = self._request(get_folder_url, "get", params=params)
         if response.ok:
             return response.json()
@@ -1141,9 +1150,8 @@ class SuperannotateBackendService(BaseBackendService):
         query_params = {
             "team_id": team_id,
             "project_id": project_id,
+            "folder_id": folder_id,
         }
-        if folder_id:
-            query_params["folder_id"] = folder_id
 
         handler = StreamedAnnotations(
             self.default_headers,
@@ -1182,9 +1190,8 @@ class SuperannotateBackendService(BaseBackendService):
             query_params = {
                 "team_id": team_id,
                 "project_id": project_id,
+                "folder_id": folder_id,
             }
-            if folder_id:
-                query_params["folder_id"] = folder_id
             handler = StreamedAnnotations(
                 self.default_headers,
                 reporter,
@@ -1404,6 +1411,8 @@ class SuperannotateBackendService(BaseBackendService):
                 },
                 data=data,
             )
+            if not _response.ok:
+                raise AppException(_response.json())
             data_json = await _response.json()
             response = ServiceResponse()
             response.status = _response.status

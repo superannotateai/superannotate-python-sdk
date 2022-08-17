@@ -5,6 +5,7 @@ import io
 import json
 import os
 import platform
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -292,7 +293,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         )
 
     async def _upload_small_annotations(self, chunk) -> Report:
-        self.reporter.update_progress(len(chunk))
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
             [],
             [],
@@ -305,6 +305,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             folder_id=self._folder.id,
             items_name_file_map={i.name: i.data for i in chunk},
         )
+        self.reporter.update_progress(len(chunk))
         if response.ok:
             if response.data.failed_items:  # noqa
                 failed_annotations = response.data.failed_items
@@ -357,7 +358,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     async def _upload_big_annotation(self, item) -> Tuple[str, bool]:
         try:
-            self.reporter.update_progress()
             is_uploaded = await self._backend_service.upload_big_annotation(
                 team_id=self._project.team_id,
                 project_id=self._project.id,
@@ -366,6 +366,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 data=item.data,
                 chunk_size=5 * 1024 * 1024,
             )
+            self.reporter.update_progress()
             if is_uploaded and (
                 self._project.type == constants.ProjectType.PIXEL.value and item.mask
             ):
@@ -994,11 +995,18 @@ class DownloadAnnotations(BaseReportableUseCase):
         return ".json"
 
     def download_annotation_classes(self, path: str):
-        classes = self._classes.get_all()
-        classes_path = Path(path) / "classes"
-        classes_path.mkdir(parents=True, exist_ok=True)
-        with open(classes_path / "classes.json", "w+") as file:
-            json.dump([i.dict() for i in classes], file, indent=4)
+        response = self._backend_client.list_annotation_classes(
+            team_id=self._project.team_id, project_id=self._project.id
+        )
+        if response.ok:
+            classes_path = Path(path) / "classes"
+            classes_path.mkdir(parents=True, exist_ok=True)
+            with open(classes_path / "classes.json", "w+") as file:
+                json.dump(
+                    [i.dict(exclude_unset=True) for i in response.data], file, indent=4
+                )
+        else:
+            self._response.errors = AppException("Cant download classes.")
 
     @staticmethod
     def get_items_count(path: str):
@@ -1084,6 +1092,9 @@ class DownloadAnnotations(BaseReportableUseCase):
 class ValidateAnnotationUseCase(BaseReportableUseCase):
     DEFAULT_VERSION = "V1.00"
     SCHEMAS: Dict[str, Draft7Validator] = {}
+    PATTERN_MAP = {
+        "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "YYYY-MM-DDTHH:MM:SS.fffZ"
+    }
 
     def __init__(
         self,
@@ -1160,6 +1171,13 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 # )
         if const_key:
             yield ValidationError(f"invalid {'.'.join(const_key)}")
+
+    @staticmethod
+    def _pattern(validator, patrn, instance, schema):
+        if validator.is_type(instance, "string") and not re.search(patrn, instance):
+            yield ValidationError(
+                f"{instance} does not match {ValidateAnnotationUseCase.PATTERN_MAP.get(patrn, patrn)}"
+            )
 
     @staticmethod
     def iter_errors(self, instance, _schema=None):
@@ -1241,6 +1259,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             iter_errors = partial(self.iter_errors, validator)
             validator.iter_errors = iter_errors
             validator.VALIDATORS["oneOf"] = self.oneOf
+            validator.VALIDATORS["pattern"] = self._pattern
             ValidateAnnotationUseCase.SCHEMAS[key] = validator
         return validator
 
