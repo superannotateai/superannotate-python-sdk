@@ -172,6 +172,20 @@ class DataAggregator:
         elif self.project_type == constances.ProjectType.DOCUMENT.name:
             return self.aggregate_document_annotations_as_df(annotation_paths)
 
+    def __add_attributes_to_raws(self, raws, attributes, element_raw):
+        for attribute_id, attribute in enumerate(attributes):
+            attribute_raw = copy.copy(element_raw)
+            attribute_raw.attributeId = attribute_id
+            attribute_raw.attributeGroupName = attribute.get(
+                "groupName"
+            )
+            attribute_raw.attributeName = attribute.get("name")
+            raws.append(attribute_raw)
+        if not attributes:
+            raws.append(element_raw)
+
+        return raws
+
     def aggregate_video_annotations_as_df(self, annotation_paths: List[str]):
         raws = []
         for annotation_path in annotation_paths:
@@ -226,6 +240,9 @@ class DataAggregator:
                 )
                 instance_raw.pointLabels = instance["meta"].get("pointLabels")
                 parameters = instance.get("parameters", [])
+                if instance_raw.type == 'tag':
+                    attributes = instance["meta"].get("attributes",[])
+                    raws = self.__add_attributes_to_raws(raws, attributes, instance_raw)
                 for parameter_id, parameter in enumerate(parameters):
                     parameter_raw = copy.copy(instance_raw)
                     parameter_raw.parameterId = parameter_id
@@ -237,16 +254,7 @@ class DataAggregator:
                         timestamp_raw.timestampId = timestamp_id
                         timestamp_raw.meta = self.MAPPERS[instance_type](timestamp)
                         attributes = timestamp.get("attributes", [])
-                        for attribute_id, attribute in enumerate(attributes):
-                            attribute_raw = copy.copy(timestamp_raw)
-                            attribute_raw.attributeId = attribute_id
-                            attribute_raw.attributeGroupName = attribute.get(
-                                "groupName"
-                            )
-                            attribute_raw.attributeName = attribute.get("name")
-                            raws.append(attribute_raw)
-                        if not attributes:
-                            raws.append(timestamp_raw)
+                        raws = self.__add_attributes_to_raws(raws, attributes, timestamp_raw)
                     if not timestamps:
                         raws.append(parameter_raw)
                 if not parameters:

@@ -99,6 +99,7 @@ class VideoFrameGenerator:
         next(b, None)
         return zip(a, b)
 
+
     def get_median(self, annotations: List[dict]) -> dict:
         if len(annotations) >= 1:
             return annotations[0]
@@ -180,7 +181,7 @@ class VideoFrameGenerator:
             annotation_type = instance["meta"]["type"]
             class_name = instance["meta"].get("className")
             class_id = instance["meta"].get("classId", -1)
-            for parameter in instance["parameters"]:
+            for parameter in instance.get("parameters", []):
                 frames_mapping = defaultdict(list)
                 interpolated_frames = {}
                 for timestamp in parameter["timestamps"]:
@@ -188,6 +189,7 @@ class VideoFrameGenerator:
                         int(math.ceil(timestamp["timestamp"] / self.ratio))
                     ].append(timestamp)
                 frames_mapping = self.merge_first_frame(frames_mapping)
+
                 for from_frame_no, to_frame_no in self.pairwise(sorted(frames_mapping)):
                     last_frame_no = to_frame_no
                     from_frame, to_frame = (
@@ -227,7 +229,9 @@ class VideoFrameGenerator:
                             keyframe=True,
                         )
                 if frames_mapping and not interpolated_frames:
-                    median = self.get_median(frames_mapping[1])
+                    key = set(frames_mapping.keys()).pop()
+                    median = self.get_median(frames_mapping[key])
+
                     interpolated_frames[1] = Annotation(
                         instanceId=instance_id,
                         type=annotation_type,
