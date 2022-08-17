@@ -1402,7 +1402,8 @@ class SuperannotateBackendService(BaseBackendService):
                 data=data,
             )
             if not _response.ok:
-                raise AppException(_response.json())
+                self.logger.debug(str(await _response.text()))
+                raise AppException("Can't upload annotations.")
             data_json = await _response.json()
             response = ServiceResponse()
             response.status = _response.status

@@ -120,8 +120,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._annotation_upload_data = None
         self._item_ids = []
         self._s3_bucket = None
-        self._big_files_queue = asyncio.Queue()
-        self._small_files_queue = asyncio.Queue()
+        self._big_files_queue = None
+        self._small_files_queue = None
         self._report = Report([], [], [], [])
 
     @staticmethod
@@ -327,16 +327,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
         async def upload(_chunk):
             try:
-                report = await self._upload_small_annotations(chunk)
+                report = await self._upload_small_annotations(_chunk)
                 self._report.failed_annotations.extend(report.failed_annotations)
                 self._report.missing_classes.extend(report.missing_classes)
                 self._report.missing_attr_groups.extend(report.missing_attr_groups)
                 self._report.missing_attrs.extend(report.missing_attrs)
-            except Exception:
-                import traceback
-
-                traceback.print_exc()
-                self._report.failed_annotations.extend([i.name for i in chunk])
+            except Exception as e:
+                self.reporter.log_debug(str(e))
+                self._report.failed_annotations.extend([i.name for i in _chunk])
 
         while True:
             item = await self._small_files_queue.get()
@@ -407,7 +405,10 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                                 self._big_files_queue.put_nowait(t_item)
                         else:
                             self._small_files_queue.put_nowait(t_item)
-                    except (ValidationError, AppException):
+                    except Exception as e:
+                        self.reporter.log_debug(str(e))
+                        data[idx][1] = True
+                        self.reporter.update_progress()
                         self._report.failed_annotations.append(item.name)
                     finally:
                         data[idx][1] = True
@@ -417,6 +418,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     async def run_workers(self, items_to_upload):
         try:
+            self._big_files_queue = asyncio.Queue()
+            self._small_files_queue = asyncio.Queue()
             await asyncio.gather(
                 self.distribute_queues(items_to_upload),
                 self.upload_small_annotations(),
@@ -449,7 +452,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 items_to_upload.append(self.AnnotationToUpload(item.uuid, name, path))
             except KeyError:
                 missing_annotations.append(name)
-
         asyncio.run(self.run_workers(items_to_upload))
         self.reporter.finish_progress()
         self._log_report()
@@ -1228,8 +1230,6 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             validators.extend(jsonschema.validators.iteritems(_schema))
 
             for k, v in validators:
-                if k == "createdBy":
-                    print()
                 validator = self.VALIDATORS.get(k)
                 if validator is None:
                     continue
