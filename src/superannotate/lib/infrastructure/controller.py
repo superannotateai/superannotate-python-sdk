@@ -1633,6 +1633,7 @@ class Controller(BaseController):
             recursive=recursive,
             item_names=item_names,
             items=self.items,
+            images=self.images,
             folders=self.folders,
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project

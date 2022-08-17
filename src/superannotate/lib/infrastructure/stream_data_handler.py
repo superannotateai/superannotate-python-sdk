@@ -8,6 +8,9 @@ import aiohttp
 
 from lib.core.reporter import Reporter
 
+_seconds = 2 ** 10
+TIMEOUT = aiohttp.ClientTimeout(total=_seconds, sock_connect=_seconds, sock_read=_seconds)
+
 
 class StreamedAnnotations:
     DELIMITER = b"\\n;)\\n"
@@ -34,15 +37,12 @@ class StreamedAnnotations:
             data: dict = None,
             params: dict = None,
     ):
-        kwargs = {
-            "params": params,
-            "json": {
-                "folder_id": params.pop("folder_id")
-            }
-        }
+        kwargs = {"params": params, "json": {"folder_id": params.pop("folder_id")}}
         if data:
             kwargs["json"].update(data)
-        response = await session._request(method, url, **kwargs, raise_for_status=True)
+        response = await session._request(
+            method, url, **kwargs, raise_for_status=True, timeout=TIMEOUT
+        )
         buffer = b""
         async for line in response.content.iter_any():
             slices = line.split(self.DELIMITER)
@@ -63,49 +63,59 @@ class StreamedAnnotations:
     async def process_chunk(
             self,
             method: str,
-            session: aiohttp.ClientSession,
             url: str,
             data: dict = None,
             params: dict = None,
+            verify_ssl=False,
     ):
-        async for annotation in self.fetch(
-                method,
-                session,
-                url,
-                self._process_data(data),
-                params=params,
-        ):
-            self._annotations.append(
-                self._callback(annotation) if self._callback else annotation
-            )
+        async with aiohttp.ClientSession(
+                headers=self._headers,
+                timeout=TIMEOUT,
+                connector=aiohttp.TCPConnector(ssl=verify_ssl, keepalive_timeout=2 ** 32),
+        ) as session:
+            async for annotation in self.fetch(
+                    method,
+                    session,
+                    url,
+                    self._process_data(data),
+                    params=params,
+            ):
+                self._annotations.append(
+                    self._callback(annotation) if self._callback else annotation
+                )
 
     async def store_chunk(
             self,
             method: str,
-            session: aiohttp.ClientSession,
             url: str,
             download_path,
             postfix,
             data: dict = None,
             params: dict = None,
     ):
-        async for annotation in self.fetch(
-                method,
-                session,
-                url,
-                self._process_data(data),
-                params=params,
-        ):
-            self._annotations.append(
-                self._callback(annotation) if self._callback else annotation
-            )
-            self._store_annotation(
-                download_path,
-                postfix,
-                annotation,
-                self._callback,
-            )
-            self._items_downloaded += 1
+        async with aiohttp.ClientSession(
+                raise_for_status=True,
+                headers=self._headers,
+                timeout=TIMEOUT,
+                connector=aiohttp.TCPConnector(ssl=False, keepalive_timeout=2 ** 32),
+        ) as session:
+            async for annotation in self.fetch(
+                    method,
+                    session,
+                    url,
+                    self._process_data(data),
+                    params=params,
+            ):
+                self._annotations.append(
+                    self._callback(annotation) if self._callback else annotation
+                )
+                self._store_annotation(
+                    download_path,
+                    postfix,
+                    annotation,
+                    self._callback,
+                )
+                self._items_downloaded += 1
 
     async def get_data(
             self,
@@ -116,19 +126,19 @@ class StreamedAnnotations:
             chunk_size: int = 5000,
             verify_ssl: bool = False,
     ):
-        async with aiohttp.ClientSession(
-                headers=self._headers,
-                connector=aiohttp.TCPConnector(ssl=verify_ssl),
-        ) as session:
-            params["limit"] = chunk_size
-            await asyncio.gather(
-                *[
-                    self.process_chunk(
-                        method=method, session=session, url=url, data=data[i: i + chunk_size],
-                        params=copy.copy(params)
-                    ) for i in
-                    range(0, len(data), chunk_size)]
-            )
+        params["limit"] = chunk_size
+        await asyncio.gather(
+            *[
+                self.process_chunk(
+                    method=method,
+                    url=url,
+                    data=data[i: i + chunk_size],
+                    params=copy.copy(params),
+                    verify_ssl=verify_ssl,
+                )
+                for i in range(0, len(data), chunk_size)
+            ]
+        )
 
         return self._annotations
 
@@ -150,7 +160,6 @@ class StreamedAnnotations:
             data: list,
             download_path: str,
             postfix: str,
-            session,
             method: str = "post",
             params=None,
             chunk_size: int = 5000,
@@ -162,9 +171,14 @@ class StreamedAnnotations:
         await asyncio.gather(
             *[
                 self.store_chunk(
-                    method=method, session=session, url=url, data=data[i: i + chunk_size], params=copy.copy(params),
-                    download_path=download_path, postfix=postfix
-                ) for i in
-                range(0, len(data), chunk_size)]
+                    method=method,
+                    url=url,
+                    data=data[i: i + chunk_size],  # noqa
+                    params=copy.copy(params),
+                    download_path=download_path,
+                    postfix=postfix,
+                )
+                for i in range(0, len(data), chunk_size)
+            ]
         )
         return self._items_downloaded

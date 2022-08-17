@@ -1182,32 +1182,26 @@ class SuperannotateBackendService(BaseBackendService):
         callback: Callable = None,
     ) -> int:
 
-        async with aiohttp.ClientSession(
-            raise_for_status=True,
+        query_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "folder_id": folder_id,
+        }
+        handler = StreamedAnnotations(
             headers=self.default_headers,
-            connector=aiohttp.TCPConnector(ssl=False),
-        ) as session:
-            query_params = {
-                "team_id": team_id,
-                "project_id": project_id,
-                "folder_id": folder_id,
-            }
-            handler = StreamedAnnotations(
-                self.default_headers,
-                reporter,
-                map_function=lambda x: {"image_names": x},
-                callback=callback,
-            )
+            reporter=reporter,
+            map_function=lambda x: {"image_names": x},
+            callback=callback,
+        )
 
-            return await handler.download_data(
-                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
-                data=items,
-                params=query_params,
-                chunk_size=self.DEFAULT_CHUNK_SIZE,
-                download_path=download_path,
-                postfix=postfix,
-                session=session,
-            )
+        return await handler.download_data(
+            url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+            data=items,
+            params=query_params,
+            chunk_size=self.DEFAULT_CHUNK_SIZE,
+            download_path=download_path,
+            postfix=postfix,
+        )
 
     def get_integrations(self, team_id: int) -> List[dict]:
         get_integrations_url = urljoin(

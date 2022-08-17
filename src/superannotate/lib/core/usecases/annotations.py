@@ -949,6 +949,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         items: BaseReadOnlyRepository,
         folders: BaseReadOnlyRepository,
         classes: BaseReadOnlyRepository,
+        images: BaseManageableRepository,
         callback: Callable = None,
     ):
         super().__init__(reporter)
@@ -962,6 +963,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._folders = folders
         self._classes = classes
         self._callback = callback
+        self._images = images
 
     def validate_item_names(self):
         if self._item_names:
@@ -1050,12 +1052,21 @@ class DownloadAnnotations(BaseReportableUseCase):
 
             if not folders:
                 loop = asyncio.new_event_loop()
+                if not self._item_names:
+                    condition = (
+                            Condition("team_id", self._project.team_id, EQ)
+                            & Condition("project_id", self._project.id, EQ)
+                            & Condition("folder_id", self._folder.uuid, EQ)
+                    )
+                    item_names = [item.name for item in self._images.get_all(condition)]
+                else:
+                    item_names = self._item_names
                 count = loop.run_until_complete(
                     self._backend_client.download_annotations(
                         team_id=self._project.team_id,
                         project_id=self._project.id,
                         folder_id=self._folder.uuid,
-                        items=self._item_names,
+                        items=item_names,
                         reporter=self.reporter,
                         download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
                         postfix=postfix,
@@ -1066,12 +1077,21 @@ class DownloadAnnotations(BaseReportableUseCase):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                     coroutines = []
                     for folder in folders:
+                        if not self._item_names:
+                            condition = (
+                                    Condition("team_id", self._project.team_id, EQ)
+                                    & Condition("project_id", self._project.id, EQ)
+                                    & Condition("folder_id", folder.uuid, EQ)
+                            )
+                            item_names = [item.name for item in self._images.get_all(condition)]
+                        else:
+                            item_names = self._item_names
                         coroutines.append(
                             self._backend_client.download_annotations(
                                 team_id=self._project.team_id,
                                 project_id=self._project.id,
                                 folder_id=folder.uuid,
-                                items=self._item_names,
+                                items=item_names,
                                 reporter=self.reporter,
                                 download_path=f"{export_path}{'/' + folder.name if not folder.is_root else ''}",  # noqa
                                 postfix=postfix,

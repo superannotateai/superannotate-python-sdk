@@ -176,9 +176,7 @@ class DataAggregator:
         for attribute_id, attribute in enumerate(attributes):
             attribute_raw = copy.copy(element_raw)
             attribute_raw.attributeId = attribute_id
-            attribute_raw.attributeGroupName = attribute.get(
-                "groupName"
-            )
+            attribute_raw.attributeGroupName = attribute.get("groupName")
             attribute_raw.attributeName = attribute.get("name")
             raws.append(attribute_raw)
         if not attributes:
@@ -240,8 +238,8 @@ class DataAggregator:
                 )
                 instance_raw.pointLabels = instance["meta"].get("pointLabels")
                 parameters = instance.get("parameters", [])
-                if instance_raw.type == 'tag':
-                    attributes = instance["meta"].get("attributes",[])
+                if instance_raw.type == "tag":
+                    attributes = instance["meta"].get("attributes", [])
                     raws = self.__add_attributes_to_raws(raws, attributes, instance_raw)
                 for parameter_id, parameter in enumerate(parameters):
                     parameter_raw = copy.copy(instance_raw)
@@ -254,7 +252,9 @@ class DataAggregator:
                         timestamp_raw.timestampId = timestamp_id
                         timestamp_raw.meta = self.MAPPERS[instance_type](timestamp)
                         attributes = timestamp.get("attributes", [])
-                        raws = self.__add_attributes_to_raws(raws, attributes, timestamp_raw)
+                        raws = self.__add_attributes_to_raws(
+                            raws, attributes, timestamp_raw
+                        )
                     if not timestamps:
                         raws.append(parameter_raw)
                 if not parameters:
