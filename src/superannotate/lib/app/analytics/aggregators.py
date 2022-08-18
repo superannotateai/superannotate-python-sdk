@@ -173,6 +173,8 @@ class DataAggregator:
             return self.aggregate_document_annotations_as_df(annotation_paths)
 
     def __add_attributes_to_raws(self, raws, attributes, element_raw):
+        if element_raw.type == 'tag':
+            print(attributes)
         for attribute_id, attribute in enumerate(attributes):
             attribute_raw = copy.copy(element_raw)
             attribute_raw.attributeId = attribute_id
@@ -180,6 +182,8 @@ class DataAggregator:
             attribute_raw.attributeName = attribute.get("name")
             raws.append(attribute_raw)
         if not attributes:
+            if element_raw.type == 'tag':
+                print(element_raw)
             raws.append(element_raw)
 
         return raws
@@ -257,7 +261,7 @@ class DataAggregator:
                         )
                     if not timestamps:
                         raws.append(parameter_raw)
-                if not parameters:
+                if not parameters and instance_type != 'tag':
                     raws.append(instance_raw)
             if not instances:
                 raws.append(raw_data)
