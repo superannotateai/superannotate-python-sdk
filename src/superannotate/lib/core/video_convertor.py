@@ -99,7 +99,6 @@ class VideoFrameGenerator:
         next(b, None)
         return zip(a, b)
 
-
     def get_median(self, annotations: List[dict]) -> dict:
         if len(annotations) >= 1:
             return annotations[0]

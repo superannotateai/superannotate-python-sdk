@@ -44,6 +44,7 @@ class TestCreateAnnotationClass(BaseTestCase):
     def test_create_annotations_classes_from_class_json(self):
         classes = sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.large_json_path)
         self.assertEqual(len(classes), 1500)
+        assert "is_multiselect" not in str(classes)
 
     def test_hex_color_adding(self):
         sa.create_annotation_class(self.PROJECT_NAME, "test_add", color="#0000FF")

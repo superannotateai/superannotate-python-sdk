@@ -167,7 +167,7 @@ class BaseController(metaclass=ABCMeta):
         log_info: bool = True,
         log_warning: bool = True,
         disable_progress_bar: bool = False,
-        log_debug: bool = True,
+        log_debug: bool = False,
     ) -> Reporter:
         return Reporter(log_info, log_warning, disable_progress_bar, log_debug)
 
@@ -1633,6 +1633,7 @@ class Controller(BaseController):
             recursive=recursive,
             item_names=item_names,
             items=self.items,
+            images=self.images,
             folders=self.folders,
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project

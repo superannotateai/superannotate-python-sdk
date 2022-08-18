@@ -5,6 +5,7 @@ import io
 import json
 import os
 import platform
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -119,8 +120,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._annotation_upload_data = None
         self._item_ids = []
         self._s3_bucket = None
-        self._big_files_queue = asyncio.Queue()
-        self._small_files_queue = asyncio.Queue()
+        self._big_files_queue = None
+        self._small_files_queue = None
         self._report = Report([], [], [], [])
 
     @staticmethod
@@ -292,7 +293,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         )
 
     async def _upload_small_annotations(self, chunk) -> Report:
-        self.reporter.update_progress(len(chunk))
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
             [],
             [],
@@ -305,6 +305,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             folder_id=self._folder.id,
             items_name_file_map={i.name: i.data for i in chunk},
         )
+        self.reporter.update_progress(len(chunk))
         if response.ok:
             if response.data.failed_items:  # noqa
                 failed_annotations = response.data.failed_items
@@ -326,16 +327,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
         async def upload(_chunk):
             try:
-                report = await self._upload_small_annotations(chunk)
+                report = await self._upload_small_annotations(_chunk)
                 self._report.failed_annotations.extend(report.failed_annotations)
                 self._report.missing_classes.extend(report.missing_classes)
                 self._report.missing_attr_groups.extend(report.missing_attr_groups)
                 self._report.missing_attrs.extend(report.missing_attrs)
-            except Exception:
-                import traceback
-
-                traceback.print_exc()
-                self._report.failed_annotations.extend([i.name for i in chunk])
+            except Exception as e:
+                self.reporter.log_debug(str(e))
+                self._report.failed_annotations.extend([i.name for i in _chunk])
 
         while True:
             item = await self._small_files_queue.get()
@@ -357,7 +356,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     async def _upload_big_annotation(self, item) -> Tuple[str, bool]:
         try:
-            self.reporter.update_progress()
             is_uploaded = await self._backend_service.upload_big_annotation(
                 team_id=self._project.team_id,
                 project_id=self._project.id,
@@ -366,6 +364,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 data=item.data,
                 chunk_size=5 * 1024 * 1024,
             )
+            self.reporter.update_progress()
             if is_uploaded and (
                 self._project.type == constants.ProjectType.PIXEL.value and item.mask
             ):
@@ -406,7 +405,10 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                                 self._big_files_queue.put_nowait(t_item)
                         else:
                             self._small_files_queue.put_nowait(t_item)
-                    except (ValidationError, AppException):
+                    except Exception as e:
+                        self.reporter.log_debug(str(e))
+                        data[idx][1] = True
+                        self.reporter.update_progress()
                         self._report.failed_annotations.append(item.name)
                     finally:
                         data[idx][1] = True
@@ -416,6 +418,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     async def run_workers(self, items_to_upload):
         try:
+            self._big_files_queue = asyncio.Queue()
+            self._small_files_queue = asyncio.Queue()
             await asyncio.gather(
                 self.distribute_queues(items_to_upload),
                 self.upload_small_annotations(),
@@ -448,7 +452,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 items_to_upload.append(self.AnnotationToUpload(item.uuid, name, path))
             except KeyError:
                 missing_annotations.append(name)
-
         asyncio.run(self.run_workers(items_to_upload))
         self.reporter.finish_progress()
         self._log_report()
@@ -948,6 +951,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         items: BaseReadOnlyRepository,
         folders: BaseReadOnlyRepository,
         classes: BaseReadOnlyRepository,
+        images: BaseManageableRepository,
         callback: Callable = None,
     ):
         super().__init__(reporter)
@@ -961,6 +965,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._folders = folders
         self._classes = classes
         self._callback = callback
+        self._images = images
 
     def validate_item_names(self):
         if self._item_names:
@@ -994,11 +999,18 @@ class DownloadAnnotations(BaseReportableUseCase):
         return ".json"
 
     def download_annotation_classes(self, path: str):
-        classes = self._classes.get_all()
-        classes_path = Path(path) / "classes"
-        classes_path.mkdir(parents=True, exist_ok=True)
-        with open(classes_path / "classes.json", "w+") as file:
-            json.dump([i.dict() for i in classes], file, indent=4)
+        response = self._backend_client.list_annotation_classes(
+            team_id=self._project.team_id, project_id=self._project.id
+        )
+        if response.ok:
+            classes_path = Path(path) / "classes"
+            classes_path.mkdir(parents=True, exist_ok=True)
+            with open(classes_path / "classes.json", "w+") as file:
+                json.dump(
+                    [i.dict(exclude_unset=True) for i in response.data], file, indent=4
+                )
+        else:
+            self._response.errors = AppException("Cant download classes.")
 
     @staticmethod
     def get_items_count(path: str):
@@ -1042,12 +1054,21 @@ class DownloadAnnotations(BaseReportableUseCase):
 
             if not folders:
                 loop = asyncio.new_event_loop()
+                if not self._item_names:
+                    condition = (
+                            Condition("team_id", self._project.team_id, EQ)
+                            & Condition("project_id", self._project.id, EQ)
+                            & Condition("folder_id", self._folder.uuid, EQ)
+                    )
+                    item_names = [item.name for item in self._images.get_all(condition)]
+                else:
+                    item_names = self._item_names
                 count = loop.run_until_complete(
                     self._backend_client.download_annotations(
                         team_id=self._project.team_id,
                         project_id=self._project.id,
                         folder_id=self._folder.uuid,
-                        items=self._item_names,
+                        items=item_names,
                         reporter=self.reporter,
                         download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
                         postfix=postfix,
@@ -1058,12 +1079,21 @@ class DownloadAnnotations(BaseReportableUseCase):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                     coroutines = []
                     for folder in folders:
+                        if not self._item_names:
+                            condition = (
+                                    Condition("team_id", self._project.team_id, EQ)
+                                    & Condition("project_id", self._project.id, EQ)
+                                    & Condition("folder_id", folder.uuid, EQ)
+                            )
+                            item_names = [item.name for item in self._images.get_all(condition)]
+                        else:
+                            item_names = self._item_names
                         coroutines.append(
                             self._backend_client.download_annotations(
                                 team_id=self._project.team_id,
                                 project_id=self._project.id,
                                 folder_id=folder.uuid,
-                                items=self._item_names,
+                                items=item_names,
                                 reporter=self.reporter,
                                 download_path=f"{export_path}{'/' + folder.name if not folder.is_root else ''}",  # noqa
                                 postfix=postfix,
@@ -1084,6 +1114,9 @@ class DownloadAnnotations(BaseReportableUseCase):
 class ValidateAnnotationUseCase(BaseReportableUseCase):
     DEFAULT_VERSION = "V1.00"
     SCHEMAS: Dict[str, Draft7Validator] = {}
+    PATTERN_MAP = {
+        "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "YYYY-MM-DDTHH:MM:SS.fffZ"
+    }
 
     def __init__(
         self,
@@ -1162,6 +1195,13 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             yield ValidationError(f"invalid {'.'.join(const_key)}")
 
     @staticmethod
+    def _pattern(validator, patrn, instance, schema):
+        if validator.is_type(instance, "string") and not re.search(patrn, instance):
+            yield ValidationError(
+                f"{instance} does not match {ValidateAnnotationUseCase.PATTERN_MAP.get(patrn, patrn)}"
+            )
+
+    @staticmethod
     def iter_errors(self, instance, _schema=None):
         if _schema is None:
             _schema = self.schema
@@ -1190,8 +1230,6 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             validators.extend(jsonschema.validators.iteritems(_schema))
 
             for k, v in validators:
-                if k == "createdBy":
-                    print()
                 validator = self.VALIDATORS.get(k)
                 if validator is None:
                     continue
@@ -1241,6 +1279,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             iter_errors = partial(self.iter_errors, validator)
             validator.iter_errors = iter_errors
             validator.VALIDATORS["oneOf"] = self.oneOf
+            validator.VALIDATORS["pattern"] = self._pattern
             ValidateAnnotationUseCase.SCHEMAS[key] = validator
         return validator
 
