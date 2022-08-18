@@ -197,7 +197,7 @@ class DownloadAnnotationClassesUseCase(BaseReportableUseCase):
         )
         if response.ok:
             classes = [
-                entity.dict(by_alias=True, fill_enum_values=True)
+                entity.dict(by_alias=True, fill_enum_values=True, exclude_unset=True)
                 for entity in response.data
             ]
             json_path = f"{self._download_path}/classes.json"

@@ -169,9 +169,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         file.seek(0)
         return file
 
-    def prepare_annotation(self, annotation: dict) -> dict:
+    def prepare_annotation(self, annotation: dict, size) -> dict:
         errors = None
-        if sys.getsizeof(annotation) < BIG_FILE_THRESHOLD:
+        if size < BIG_FILE_THRESHOLD:
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
                 team_id=self._project.team_id,
@@ -192,12 +192,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self, path: str
     ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
         mask = None
+
         if self._client_s3_bucket:
-            annotation = json.load(
-                self.get_annotation_from_s3(self._client_s3_bucket, path)
-            )
+            file = self.get_annotation_from_s3(self._client_s3_bucket, path)
+
         else:
-            annotation = json.load(open(path))
+            file = open(path)
             if self._project.type == constants.ProjectType.PIXEL.value:
                 mask = open(
                     path.replace(
@@ -206,11 +206,18 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                     ),
                     "rb",
                 )
-        annotation = self.prepare_annotation(annotation)
+        _tmp = file.read()
+        if not isinstance(_tmp, bytes):
+            _tmp = _tmp.encode("utf8")
+        file = io.BytesIO(_tmp)
+        file.seek(0)
+        size = file.getbuffer().nbytes
+        annotation = json.load(file)
+        annotation = self.prepare_annotation(annotation, size)
         if not annotation:
             self.reporter.store_message("invalid_jsons", path)
-            return None, None
-        return annotation, mask
+            raise AppException("Invalid json")
+        return annotation, mask, size
 
     @staticmethod
     def chunks(data, size: int = 10000):
@@ -299,25 +306,29 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             [],
             [],
         )
-        response = await self._backend_service.upload_annotations(
-            team_id=self._project.team_id,
-            project_id=self._project.id,
-            folder_id=self._folder.id,
-            items_name_file_map={i.name: i.data for i in chunk},
-        )
-        self.reporter.update_progress(len(chunk))
-        if response.ok:
-            if response.data.failed_items:  # noqa
-                failed_annotations = response.data.failed_items
-            missing_classes = response.data.missing_resources.classes
-            missing_attr_groups = response.data.missing_resources.attribute_groups
-            missing_attrs = response.data.missing_resources.attributes
-            if self._project.type == constants.ProjectType.PIXEL.value:
-                for i in chunk:
-                    if i.mask:
-                        self._upload_mask(i)
-        else:
+        try:
+            response = await self._backend_service.upload_annotations(
+                team_id=self._project.team_id,
+                project_id=self._project.id,
+                folder_id=self._folder.id,
+                items_name_file_map={i.name: i.data for i in chunk},
+            )
+            if response.ok:
+                if response.data.failed_items:  # noqa
+                    failed_annotations = response.data.failed_items
+                missing_classes = response.data.missing_resources.classes
+                missing_attr_groups = response.data.missing_resources.attribute_groups
+                missing_attrs = response.data.missing_resources.attributes
+                if self._project.type == constants.ProjectType.PIXEL.value:
+                    for i in chunk:
+                        if i.mask:
+                            self._upload_mask(i)
+            else:
+                failed_annotations.extend([i.name for i in chunk])
+        except Exception:  # noqa
             failed_annotations.extend([i.name for i in chunk])
+        finally:
+            self.reporter.update_progress(len(chunk))
         return Report(
             failed_annotations, missing_classes, missing_attr_groups, missing_attrs
         )
@@ -350,7 +361,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             ):
                 await upload(chunk)
                 chunk = []
-
         if chunk:
             await upload(chunk)
 
@@ -364,24 +374,27 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 data=item.data,
                 chunk_size=5 * 1024 * 1024,
             )
-            self.reporter.update_progress()
             if is_uploaded and (
                 self._project.type == constants.ProjectType.PIXEL.value and item.mask
             ):
                 self._upload_mask(item.mask)
             return item.name, is_uploaded
-        except AppException as e:
-            self.reporter.log_error(str(e))
+        except Exception as e:
+            self.reporter.log_debug(str(e))
             self._report.failed_annotations.append(item.name)
+            raise
+        finally:
+            self.reporter.update_progress()
 
     async def upload_big_annotations(self):
         while True:
             item = await self._big_files_queue.get()
             self._big_files_queue.task_done()
-            if not item:
-                self._big_files_queue.put_nowait(None)
-                return
-            await self._upload_big_annotation(item)
+            if item:
+                await self._upload_big_annotation(item)
+            else:
+                await self._big_files_queue.put(None)
+                break
 
     async def distribute_queues(self, items_to_upload: list):
         data: List[List[Any, bool]] = [[i, False] for i in items_to_upload]
@@ -390,12 +403,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             for idx, (item, processed) in enumerate(data):
                 if not processed:
                     try:
-                        annotation, mask = self.get_annotation(item.path)
+                        annotation, mask, size = self.get_annotation(item.path)
                         t_item = copy.copy(item)
-                        size = sys.getsizeof(annotation)
                         annotation_file = io.StringIO()
                         json.dump(annotation, annotation_file)
                         annotation_file.seek(0)
+                        del annotation
                         t_item.data = annotation_file
                         t_item.mask = mask
                         if size > BIG_FILE_THRESHOLD:
@@ -407,10 +420,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                             self._small_files_queue.put_nowait(t_item)
                     except Exception as e:
                         self.reporter.log_debug(str(e))
-                        data[idx][1] = True
-                        self.reporter.update_progress()
                         self._report.failed_annotations.append(item.name)
                     finally:
+                        self.reporter.update_progress()
                         data[idx][1] = True
                         processed_count += 1
         self._big_files_queue.put_nowait(None)
@@ -423,7 +435,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             await asyncio.gather(
                 self.distribute_queues(items_to_upload),
                 self.upload_small_annotations(),
-                self.upload_big_annotations(),
                 self.upload_big_annotations(),
                 self.upload_big_annotations(),
                 self.upload_big_annotations(),
@@ -466,10 +477,16 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             if not statuses_changed:
                 self._response.errors = AppException("Failed to change status.")
 
+        if missing_annotations:
+            logger.warning(
+                f"Couldn't find {len(missing_annotations)}/{len(name_path_mappings.keys())} "
+                "items on the platform that match the annotations you want to upload."
+            )
         if self._report.failed_annotations:
             self.reporter.log_warning(
                 f"Couldn't validate annotations. {constants.USE_VALIDATE_MESSAGE}"
             )
+
         self._response.data = (
             uploaded_annotations,
             self._report.failed_annotations,
@@ -1007,7 +1024,12 @@ class DownloadAnnotations(BaseReportableUseCase):
             classes_path.mkdir(parents=True, exist_ok=True)
             with open(classes_path / "classes.json", "w+") as file:
                 json.dump(
-                    [i.dict(exclude_unset=True) for i in response.data], file, indent=4
+                    [
+                        i.dict(exclude_unset=True, by_alias=True, fill_enum_values=True)
+                        for i in response.data
+                    ],
+                    file,
+                    indent=4,
                 )
         else:
             self._response.errors = AppException("Cant download classes.")
@@ -1056,9 +1078,9 @@ class DownloadAnnotations(BaseReportableUseCase):
                 loop = asyncio.new_event_loop()
                 if not self._item_names:
                     condition = (
-                            Condition("team_id", self._project.team_id, EQ)
-                            & Condition("project_id", self._project.id, EQ)
-                            & Condition("folder_id", self._folder.uuid, EQ)
+                        Condition("team_id", self._project.team_id, EQ)
+                        & Condition("project_id", self._project.id, EQ)
+                        & Condition("folder_id", self._folder.uuid, EQ)
                     )
                     item_names = [item.name for item in self._images.get_all(condition)]
                 else:
@@ -1081,11 +1103,13 @@ class DownloadAnnotations(BaseReportableUseCase):
                     for folder in folders:
                         if not self._item_names:
                             condition = (
-                                    Condition("team_id", self._project.team_id, EQ)
-                                    & Condition("project_id", self._project.id, EQ)
-                                    & Condition("folder_id", folder.uuid, EQ)
+                                Condition("team_id", self._project.team_id, EQ)
+                                & Condition("project_id", self._project.id, EQ)
+                                & Condition("folder_id", folder.uuid, EQ)
                             )
-                            item_names = [item.name for item in self._images.get_all(condition)]
+                            item_names = [
+                                item.name for item in self._images.get_all(condition)
+                            ]
                         else:
                             item_names = self._item_names
                         coroutines.append(

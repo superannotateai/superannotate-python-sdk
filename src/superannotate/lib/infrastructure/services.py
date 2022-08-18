@@ -169,7 +169,6 @@ class BaseBackendService(SuperannotateServiceProvider):
                 content_type=content_type,
             )
         if response.status_code > 299:
-            print(url)
             self.logger.error(
                 f"Got {response.status_code} response from backend: {response.text}"
             )
@@ -184,7 +183,6 @@ class BaseBackendService(SuperannotateServiceProvider):
         response = self._request(url, params=params)
         if response.status_code != 200:
             return {"data": []}, 0
-            # raise AppException(f"Got invalid response for url {url}: {response.text}.")
         data = response.json()
         if data:
             if isinstance(data, dict):
@@ -1402,7 +1400,7 @@ class SuperannotateBackendService(BaseBackendService):
                 data=data,
             )
             if not _response.ok:
-                self.logger.debug(str(await _response.text()))
+                self.logger.debug(await _response.text())
                 raise AppException("Can't upload annotations.")
             data_json = await _response.json()
             response = ServiceResponse()
@@ -1420,9 +1418,9 @@ class SuperannotateBackendService(BaseBackendService):
         data: io.StringIO,
         chunk_size: int,
     ) -> bool:
+        headers = self.default_headers
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
         async with aiohttp.ClientSession(
-            raise_for_status=True,
-            headers=self.default_headers,
             connector=aiohttp.TCPConnector(ssl=False),
         ) as session:
             params = {
@@ -1440,12 +1438,13 @@ class SuperannotateBackendService(BaseBackendService):
                     "project_id": project_id,
                     "folder_id": folder_id,
                 },
+                headers=headers,
             )
             if not start_response.ok:
-                raise AppException("Can't start process.")
+                raise AppException(str(await start_response.text()))
             process_info = await start_response.json()
             params["path"] = process_info["path"]
-            headers = {"upload_id": process_info["upload_id"]}
+            headers["upload_id"] = process_info["upload_id"]
             chunk_id = 1
             data_sent = False
             while True:
@@ -1463,7 +1462,7 @@ class SuperannotateBackendService(BaseBackendService):
                         data={"data_chunk": chunk},
                     )
                     if not response.ok:
-                        raise AppException("Upload failed.")
+                        raise AppException(str(await response.text()))
                     chunk_id += 1
                 if not chunk and not data_sent:
                     return False
@@ -1479,18 +1478,18 @@ class SuperannotateBackendService(BaseBackendService):
                 params=params,
             )
             if not response.ok:
-                raise AppException("Failed to finish upload.")
+                raise AppException(str(await response.text()))
             del params["path"]
-            response = self._request(
+            response = await session.post(
                 urljoin(
                     self.assets_provider_url,
                     self.URL_START_FILE_SYNC.format(item_id=item_id),
                 ),
-                "post",
                 params=params,
+                headers=headers,
             )
             if not response.ok:
-                raise AppException("Sync failed.")
+                raise AppException(str(await response.text()))
             while True:
                 response = await session.get(
                     urljoin(
@@ -1498,6 +1497,7 @@ class SuperannotateBackendService(BaseBackendService):
                         self.URL_START_FILE_SYNC_STATUS.format(item_id=item_id),
                     ),
                     params=params,
+                    headers=headers,
                 )
                 if response.ok:
                     data = await response.json()
@@ -1508,7 +1508,7 @@ class SuperannotateBackendService(BaseBackendService):
                         return False
                     await asyncio.sleep(15)
                 else:
-                    return False
+                    raise AppException(str(await response.text()))
 
     def get_schema(
         self, team_id: int, project_type: int, version: str
