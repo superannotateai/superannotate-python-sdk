@@ -69,6 +69,7 @@ instances[1]                                    'points' is a required property"
                 "instances": [
                     {
                         "type": "bbox",
+                        "createdAt": '2021-11-18T13.36.53.293Z',
                         "createdBy": {'email': 'arturn@superannotate.com', 'role': 'dmin'},
                         "points": {
                             "x1": 437.16,

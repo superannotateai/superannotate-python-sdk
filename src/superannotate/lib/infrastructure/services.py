@@ -83,6 +83,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
             return "https://assets-provider.devsuperannotate.com/api/v1.01/"
+            # return "https://e53a-178-160-196-42.ngrok.io/api/v1.01/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
     @lru_cache(maxsize=32)
@@ -1418,10 +1419,8 @@ class SuperannotateBackendService(BaseBackendService):
         data: io.StringIO,
         chunk_size: int,
     ) -> bool:
-        headers = self.default_headers
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
         async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=False),
+            connector=aiohttp.TCPConnector(ssl=False), headers=self.default_headers
         ) as session:
             params = {
                 "team_id": team_id,
@@ -1438,12 +1437,12 @@ class SuperannotateBackendService(BaseBackendService):
                     "project_id": project_id,
                     "folder_id": folder_id,
                 },
-                headers=headers,
             )
             if not start_response.ok:
                 raise AppException(str(await start_response.text()))
             process_info = await start_response.json()
             params["path"] = process_info["path"]
+            headers = copy.copy(self.default_headers)
             headers["upload_id"] = process_info["upload_id"]
             chunk_id = 1
             data_sent = False
@@ -1459,7 +1458,7 @@ class SuperannotateBackendService(BaseBackendService):
                         ),
                         params=params,
                         headers=headers,
-                        data={"data_chunk": chunk},
+                        data=json.dumps({"data_chunk": chunk}),
                     )
                     if not response.ok:
                         raise AppException(str(await response.text()))

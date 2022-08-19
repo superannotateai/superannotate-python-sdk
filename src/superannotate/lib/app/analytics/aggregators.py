@@ -257,7 +257,7 @@ class DataAggregator:
                         )
                     if not timestamps:
                         raws.append(parameter_raw)
-                if not parameters and instance_type != 'tag':
+                if not parameters and instance_type != "tag":
                     raws.append(instance_raw)
             if not instances:
                 raws.append(raw_data)

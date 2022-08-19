@@ -20,6 +20,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
+import aiofiles
 import boto3
 import jsonschema.validators
 import lib.core as constants
@@ -188,28 +189,28 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         )
         return annotation
 
-    def get_annotation(
+    async def get_annotation(
         self, path: str
     ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
         mask = None
-
         if self._client_s3_bucket:
-            file = self.get_annotation_from_s3(self._client_s3_bucket, path)
-
+            content = self.get_annotation_from_s3(self._client_s3_bucket, path).read()
         else:
-            file = open(path)
+            async with aiofiles.open(path) as file:
+                content = await file.read()
             if self._project.type == constants.ProjectType.PIXEL.value:
-                mask = open(
+                async with aiofiles.open(
                     path.replace(
                         constants.PIXEL_ANNOTATION_POSTFIX,
                         constants.ANNOTATION_MASK_POSTFIX,
                     ),
                     "rb",
-                )
-        _tmp = file.read()
-        if not isinstance(_tmp, bytes):
-            _tmp = _tmp.encode("utf8")
-        file = io.BytesIO(_tmp)
+                ) as mask:
+                    mask = await mask.read()
+
+        if not isinstance(content, bytes):
+            content = content.encode("utf8")
+        file = io.BytesIO(content)
         file.seek(0)
         size = file.getbuffer().nbytes
         annotation = json.load(file)
@@ -393,7 +394,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             if item:
                 await self._upload_big_annotation(item)
             else:
-                await self._big_files_queue.put(None)
+                await self._big_files_queue.put_nowait(None)
                 break
 
     async def distribute_queues(self, items_to_upload: list):
@@ -403,28 +404,32 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             for idx, (item, processed) in enumerate(data):
                 if not processed:
                     try:
-                        annotation, mask, size = self.get_annotation(item.path)
+                        annotation, mask, size = await self.get_annotation(item.path)
                         t_item = copy.copy(item)
                         annotation_file = io.StringIO()
                         json.dump(annotation, annotation_file)
                         annotation_file.seek(0)
-                        del annotation
                         t_item.data = annotation_file
                         t_item.mask = mask
-                        if size > BIG_FILE_THRESHOLD:
-                            if self._big_files_queue.qsize() > 4:
-                                continue
-                            else:
+                        while True:
+                            if size > BIG_FILE_THRESHOLD:
+                                if self._big_files_queue.qsize() > 32:
+                                    await asyncio.sleep(3)
+                                    continue
                                 self._big_files_queue.put_nowait(t_item)
-                        else:
-                            self._small_files_queue.put_nowait(t_item)
+                                break
+                            else:
+                                self._small_files_queue.put_nowait(t_item)
+                                break
                     except Exception as e:
                         self.reporter.log_debug(str(e))
                         self._report.failed_annotations.append(item.name)
-                    finally:
                         self.reporter.update_progress()
                         data[idx][1] = True
                         processed_count += 1
+                    self.reporter.update_progress()
+                    data[idx][1] = True
+                    processed_count += 1
         self._big_files_queue.put_nowait(None)
         self._small_files_queue.put_nowait(None)
 
@@ -434,12 +439,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             self._small_files_queue = asyncio.Queue()
             await asyncio.gather(
                 self.distribute_queues(items_to_upload),
-                self.upload_small_annotations(),
                 self.upload_big_annotations(),
                 self.upload_big_annotations(),
                 self.upload_big_annotations(),
                 return_exceptions=True,
             )
+            await asyncio.gather(self.upload_small_annotations())
         except Exception as e:
             self.reporter.log_error(f"Error {str(e)}")
 
