@@ -1,4 +1,3 @@
-import json
 import os
 import tempfile
 from pathlib import Path
@@ -6,12 +5,10 @@ from pathlib import Path
 import pytest
 
 from src.superannotate import SAClient
-from src.superannotate.lib.core.reporter import Reporter
+from tests.integration.base import BaseTestCase
+
 
 sa = SAClient()
-
-from src.superannotate.lib.core.data_handlers import VideoFormatHandler
-from tests.integration.base import BaseTestCase
 
 
 class TestUploadVideoAnnotation(BaseTestCase):
@@ -101,39 +98,3 @@ class TestUploadVideoAnnotation(BaseTestCase):
             sa.download_export(self.PROJECT_NAME, export, output_path, True)
             uploaded, _, _ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, output_path)
             self.assertEqual(len(uploaded), 1)
-
-    def test_video_annotation_converter(self):
-        handler = VideoFormatHandler([], Reporter())
-        converted_video = handler.handle(
-            json.loads(open(f'{self.minimal_annotations_path}/video.mp4.json', 'r').read())
-        )
-
-        data = {'instances': [
-            {
-                'attributes': [], 'timeline': {
-                '0': {
-                    'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}},
-                17.271058: {
-                    'points': {
-                        'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}
-                },
-                30.526667: {
-                    'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}},
-                'type': 'bbox', 'locked': False, 'classId': -1,
-                "pointLabels": {
-                    "3": "point label bro"
-                },
-            },
-            {
-                'attributes': [],
-                'timeline': {29.713736: {'active': True, 'x': 1, 'y': 2}, 30.526667: {'active': False, 'x': 2, 'y': 3}},
-                'type': 'point', 'locked': False, 'classId': -1,
-            },
-            {
-                'attributes': [], 'timeline': {5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}},
-                'type': 'event', 'locked': False, 'classId': -1,
-            }
-        ],
-            'tags': ['some tag'], 'name': 'video.mp4',
-            'metadata': {'name': 'video.mp4', 'width': None, 'height': None}}
-        self.assertEqual(data, converted_video)

@@ -24,6 +24,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
+from lib.core.usecases.classes import GetAnnotationClassesUseCase
 from requests.exceptions import RequestException
 from superannotate.logger import get_default_logger
 
@@ -80,9 +81,10 @@ class GetProjectByNameUseCase(BaseUseCase):
         return self._response
 
 
-class GetProjectMetaDataUseCase(BaseUseCase):
+class GetProjectMetaDataUseCase(BaseReportableUseCase):
     def __init__(
         self,
+        reporter: Reporter,
         project: ProjectEntity,
         service: SuperannotateServiceProvider,
         annotation_classes: BaseManageableRepository,
@@ -95,7 +97,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         include_contributors: bool,
         include_complete_image_count: bool,
     ):
-        super().__init__()
+        super().__init__(reporter)
         self._project = project
         self._service = service
 
@@ -112,7 +114,9 @@ class GetProjectMetaDataUseCase(BaseUseCase):
 
     @property
     def annotation_classes_use_case(self):
-        return GetAnnotationClassesUseCase(classes=self._annotation_classes)
+        return GetAnnotationClassesUseCase(
+            reporter=self.reporter, project=self._project, backend_client=self._service
+        )
 
     @property
     def settings_use_case(self):
@@ -491,6 +495,8 @@ class CloneProjectUseCase(BaseReportableUseCase):
     def _copy_settings(self, to_project: ProjectEntity):
         new_settings = self._settings_repo(self._backend_service, to_project)
         for setting in self.settings.get_all():
+            if setting.attribute == "WorkflowType" and not self._include_workflow:
+                continue
             for new_setting in new_settings.get_all():
                 if new_setting.attribute == setting.attribute:
                     setting_copy = copy.copy(setting)
@@ -558,7 +564,9 @@ class CloneProjectUseCase(BaseReportableUseCase):
                 self._project_to_create.upload_state = (
                     constances.UploadState.INITIAL.value
                 )
+
             self._project_to_create.status = constances.ProjectStatus.NotStarted.value
+
             project = self._projects.insert(self._project_to_create)
             self.reporter.log_info(
                 f"Created project {self._project_to_create.name} with type"
@@ -566,6 +574,30 @@ class CloneProjectUseCase(BaseReportableUseCase):
             )
             annotation_classes_entity_mapping = defaultdict(AnnotationClassEntity)
             annotation_classes_created = False
+            if self._include_settings:
+                self.reporter.log_info(
+                    f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
+                )
+                try:
+                    self._copy_settings(project)
+                except (AppException, RequestException) as e:
+                    self.reporter.log_warning(
+                        f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
+                    )
+                    self.reporter.log_debug(str(e), exc_info=True)
+
+            if self._include_contributors:
+                self.reporter.log_info(
+                    f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
+                )
+                try:
+                    self._copy_include_contributors(project)
+                except (AppException, RequestException) as e:
+                    self.reporter.log_warning(
+                        f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
+                    )
+                    self.reporter.log_debug(str(e), exc_info=True)
+
             if self._include_annotation_classes:
                 self.reporter.log_info(
                     f"Cloning annotation classes from {self._project.name} to {self._project_to_create.name}."
@@ -578,18 +610,6 @@ class CloneProjectUseCase(BaseReportableUseCase):
                 except (AppException, RequestException) as e:
                     self.reporter.log_warning(
                         f"Failed to clone annotation classes from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    self.reporter.log_debug(str(e), exc_info=True)
-
-            if self._include_settings:
-                self.reporter.log_info(
-                    f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
-                )
-                try:
-                    self._copy_settings(project)
-                except (AppException, RequestException) as e:
-                    self.reporter.log_warning(
-                        f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
                     )
                     self.reporter.log_debug(str(e), exc_info=True)
 
@@ -617,17 +637,7 @@ class CloneProjectUseCase(BaseReportableUseCase):
                             f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
                         )
                         self.reporter.log_debug(str(e), exc_info=True)
-            if self._include_contributors:
-                self.reporter.log_info(
-                    f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
-                )
-                try:
-                    self._copy_include_contributors(project)
-                except (AppException, RequestException) as e:
-                    self.reporter.log_warning(
-                        f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    self.reporter.log_debug(str(e), exc_info=True)
+
             self._response.data = self._projects.get_one(
                 uuid=project.id, team_id=project.team_id
             )
@@ -703,21 +713,6 @@ class GetWorkflowsUseCase(BaseUseCase):
                             break
                 data.append(workflow_data)
             self._response.data = data
-        return self._response
-
-
-class GetAnnotationClassesUseCase(BaseUseCase):
-    def __init__(
-        self,
-        classes: BaseManageableRepository,
-        condition: Condition = None,
-    ):
-        super().__init__()
-        self._classes = classes
-        self._condition = condition
-
-    def execute(self):
-        self._response.data = self._classes.get_all(condition=self._condition)
         return self._response
 
 

@@ -21,7 +21,6 @@ import requests
 from botocore.exceptions import ClientError
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
-from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ImageInfoEntity
@@ -44,10 +43,9 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.usecases.projects import GetAnnotationClassesUseCase
+from lib.core.usecases.classes import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
 from superannotate.logger import get_default_logger
-from superannotate_schemas.validators import AnnotationValidators
 
 logger = get_default_logger()
 
@@ -740,14 +738,14 @@ class GetS3ImageUseCase(BaseUseCase):
         return self._response
 
 
-class DownloadImageUseCase(BaseUseCase):
+class DownloadImageUseCase(BaseReportableUseCase):
     def __init__(
         self,
+        reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
         images: BaseManageableRepository,
-        classes: BaseManageableRepository,
         backend_service_provider: SuperannotateServiceProvider,
         annotation_classes: BaseReadOnlyRepository,
         download_path: str,
@@ -756,7 +754,7 @@ class DownloadImageUseCase(BaseUseCase):
         include_fuse: bool = False,
         include_overlay: bool = False,
     ):
-        super().__init__()
+        super().__init__(reporter)
         self._project = project
         self._image = image
         self._download_path = download_path
@@ -779,7 +777,9 @@ class DownloadImageUseCase(BaseUseCase):
             annotation_classes=annotation_classes,
         )
         self.get_annotation_classes_ues_case = GetAnnotationClassesUseCase(
-            classes=classes,
+            reporter=self.reporter,
+            project=self._project,
+            backend_client=backend_service_provider,
         )
 
     def validate_project_type(self):
@@ -1750,7 +1750,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             annotation["className"] = annotation_class["name"]
             for attribute in [
                 i
-                for i in annotation["attributes"]
+                for i in annotation.get("attributes", [])
                 if "groupId" in i
                 and i["groupId"] in annotation_class["attribute_groups"].keys()
             ]:
@@ -1795,6 +1795,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 headers=annotation_json_creds["headers"],
             )
             if not response.ok:
+                # TODO remove
                 logger.warning("Couldn't load annotations.")
                 self._response.data = (None, None)
                 return self._response
@@ -1930,63 +1931,6 @@ class UnAssignFolderUseCase(BaseUseCase):
         return self._response
 
 
-class CreateAnnotationClassUseCase(BaseUseCase):
-    def __init__(
-        self,
-        annotation_classes: BaseManageableRepository,
-        annotation_class: AnnotationClassEntity,
-        project: ProjectEntity,
-    ):
-        super().__init__()
-        self._annotation_classes = annotation_classes
-        self._annotation_class = annotation_class
-        self._project = project
-
-    def validate_uniqueness(self):
-        annotation_classes = self._annotation_classes.get_all(
-            Condition("name", self._annotation_class.name, EQ)
-        )
-        if any(
-            [
-                True
-                for annotation_class in annotation_classes
-                if annotation_class.name == self._annotation_class.name
-            ]
-        ):
-            raise AppValidationException("Annotation class already exists.")
-
-    def validate_project_type(self):
-        if (
-            self._project.type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
-            and self._annotation_class.type == "tag"
-        ):
-            raise AppException(
-                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.type)}."
-            )
-
-    def validate_default_value(self):
-        if self._project.type == ProjectType.PIXEL.value and any(
-            getattr(attr_group, "default_value", None)
-            for attr_group in getattr(self._annotation_class, "attribute_groups", [])
-        ):
-            raise AppException(
-                'The "default_value" key is not supported for project type Pixel.'
-            )
-
-    def execute(self):
-        if self.is_valid():
-            logger.info(
-                "Creating annotation class in project %s with name %s",
-                self._project.name,
-                self._annotation_class.name,
-            )
-            created = self._annotation_classes.insert(entity=self._annotation_class)
-            self._response.data = created
-        else:
-            self._response.data = self._annotation_class
-        return self._response
-
-
 class DeleteAnnotationClassUseCase(BaseUseCase):
     def __init__(
         self,
@@ -2034,100 +1978,6 @@ class GetAnnotationClassUseCase(BaseUseCase):
             condition=Condition("name", self._annotation_class_name, EQ)
         )
         self._response.data = classes[0]
-        return self._response
-
-
-class DownloadAnnotationClassesUseCase(BaseUseCase):
-    def __init__(
-        self,
-        annotation_classes_repo: BaseManageableRepository,
-        download_path: str,
-        project_name: str,
-    ):
-        super().__init__()
-        self._annotation_classes_repo = annotation_classes_repo
-        self._download_path = download_path
-        self._project_name = project_name
-
-    def execute(self):
-        logger.info(
-            "Downloading classes.json from project %s to folder %s.",
-            self._project_name,
-            str(self._download_path),
-        )
-        classes = self._annotation_classes_repo.get_all()
-        classes = [entity.dict(by_alias=True) for entity in classes]
-        json_path = f"{self._download_path}/classes.json"
-        json.dump(classes, open(json_path, "w"), indent=4)
-        self._response.data = json_path
-        return self._response
-
-
-class CreateAnnotationClassesUseCase(BaseUseCase):
-    CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        annotation_classes_repo: BaseManageableRepository,
-        annotation_classes: List[AnnotationClassEntity],
-        project: ProjectEntity,
-    ):
-        super().__init__()
-        self._service = service
-        self._annotation_classes_repo = annotation_classes_repo
-        self._annotation_classes = annotation_classes
-        self._project = project
-
-    def validate_project_type(self):
-        if self._project.type in (
-            ProjectType.PIXEL.value,
-            ProjectType.VIDEO.value,
-        ) and any([True for i in self._annotation_classes if i.type == "tag"]):
-            raise AppException(
-                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.type)}."
-            )
-
-    def validate_default_value(self):
-        if self._project.type == ProjectType.PIXEL.value:
-            for annotation_class in self._annotation_classes:
-                if any(
-                    getattr(attr_group, "default_value", None)
-                    for attr_group in getattr(annotation_class, "attribute_groups", [])
-                ):
-                    raise AppException(
-                        'The "default_value" key is not supported for project type Pixel.'
-                    )
-
-    def execute(self):
-        if self.is_valid():
-            existing_annotation_classes = self._annotation_classes_repo.get_all()
-            existing_classes_name = [i.name for i in existing_annotation_classes]
-            unique_annotation_classes = []
-            for annotation_class in self._annotation_classes:
-                if annotation_class.name in existing_classes_name:
-                    logger.warning(
-                        "Annotation class %s already in project. Skipping.",
-                        annotation_class.name,
-                    )
-                    continue
-                else:
-                    unique_annotation_classes.append(annotation_class)
-            created = []
-            if len(unique_annotation_classes) > self.CHUNK_SIZE:
-                for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
-                    created.extend(
-                        self._annotation_classes_repo.bulk_insert(
-                            entities=unique_annotation_classes[
-                                i - self.CHUNK_SIZE : i
-                            ],  # noqa: E203
-                        )
-                    )
-            else:
-                created = self._annotation_classes_repo.bulk_insert(
-                    entities=unique_annotation_classes
-                )
-            self._response.data = created
         return self._response
 
 
@@ -2244,37 +2094,6 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
                 target_fps=self._target_fps,
             )
             yield from frames_generator
-
-
-class ValidateAnnotationUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project_type: str,
-        annotation: dict,
-        validators: AnnotationValidators,
-        allow_extra: bool = True,
-    ):
-        super().__init__()
-        self._project_type = project_type
-        self._annotation = annotation
-        self._validators = validators
-        self._allow_extra = allow_extra
-
-    def execute(self) -> Response:
-        try:
-            validator = self._validators.get_validator(self._project_type)
-
-            validator = validator(self._annotation, allow_extra=self._allow_extra)
-            if validator.is_valid():
-                self._response.data = True, validator.data
-            else:
-                self._response.report = validator.generate_report()
-                self._response.data = False, validator.data
-        except KeyError:
-            self._response.errors = AppException(
-                f"There is not validator for type {self._project_type}."
-            )
-        return self._response
 
 
 class UploadVideosAsImages(BaseReportableUseCase):

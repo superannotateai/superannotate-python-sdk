@@ -1,0 +1,216 @@
+[
+  {
+    "id": 1178455,
+    "project_id": 1290,
+    "name": "sdfg",
+    "color": "#880901",
+    "type": "tag",
+    "createdAt": "2022-02-16T12:49:36.000Z",
+    "updatedAt": "2022-07-14T06:32:21.000Z",
+    "attribute_groups": [
+      {
+        "group_type": "radio",
+        "id": 1815783,
+        "class_id": 1178455,
+        "name": "0",
+        "createdAt": "2022-07-14T06:32:21.000Z",
+        "updatedAt": "2022-07-14T06:32:21.000Z",
+        "attributes": [
+          {
+            "id": 4143110,
+            "group_id": 1815783,
+            "project_id": 1290,
+            "name": "s",
+            "count": 0,
+            "createdAt": "2022-07-14T06:32:21.000Z",
+            "updatedAt": "2022-07-14T06:32:21.000Z"
+          }
+        ],
+        "default_value": null
+      },
+      {
+        "group_type": "radio",
+        "id": 1815784,
+        "class_id": 1178455,
+        "name": "1",
+        "createdAt": "2022-07-14T06:32:21.000Z",
+        "updatedAt": "2022-07-14T06:32:21.000Z",
+        "attributes": [
+          {
+            "id": 4143111,
+            "group_id": 1815784,
+            "project_id": 1290,
+            "name": "d",
+            "count": 0,
+            "createdAt": "2022-07-14T06:32:21.000Z",
+            "updatedAt": "2022-07-14T06:32:21.000Z"
+          }
+        ],
+        "default_value": null
+      },
+      {
+        "group_type": "radio",
+        "id": 1815785,
+        "class_id": 1178455,
+        "name": "2",
+        "createdAt": "2022-07-14T06:32:21.000Z",
+        "updatedAt": "2022-07-14T06:32:21.000Z",
+        "attributes": [
+          {
+            "id": 4143112,
+            "group_id": 1815785,
+            "project_id": 1290,
+            "name": "d",
+            "count": 0,
+            "createdAt": "2022-07-14T06:32:21.000Z",
+            "updatedAt": "2022-07-14T06:32:21.000Z"
+          }
+        ],
+        "default_value": null
+      }
+    ]
+  },
+  {
+    "id": 755215,
+    "project_id": 1290,
+    "name": "Plhayer",
+    "color": "#0022c3",
+    "type": "object",
+    "createdAt": "2021-07-29T08:41:59.000Z",
+    "updatedAt": "2021-07-29T08:42:38.000Z",
+    "attribute_groups": []
+  },
+  {
+    "id": 7399,
+    "project_id": 1290,
+    "name": "Shirt Number",
+    "color": "#792568",
+    "type": "object",
+    "createdAt": "2020-06-03T07:33:51.000Z",
+    "updatedAt": "2020-06-03T07:33:51.000Z",
+    "attribute_groups": [
+      {
+        "group_type": "checklist",
+        "id": 5791,
+        "class_id": 7399,
+        "name": "Type",
+        "createdAt": "2020-06-03T07:33:51.000Z",
+        "updatedAt": "2020-06-03T07:33:51.000Z",
+        "attributes": [
+          {
+            "id": 13668,
+            "group_id": 5791,
+            "project_id": 1290,
+            "name": "Illegible",
+            "count": 0,
+            "createdAt": "2020-06-03T07:33:51.000Z",
+            "updatedAt": "2020-06-03T07:33:51.000Z"
+          },
+          {
+            "id": 13667,
+            "group_id": 5791,
+            "project_id": 1290,
+            "name": "Occluded",
+            "count": 0,
+            "createdAt": "2020-06-03T07:33:51.000Z",
+            "updatedAt": "2020-06-03T07:33:51.000Z"
+          }
+        ],
+        "default_value": []
+      }
+    ]
+  },
+  {
+    "id": 7398,
+    "project_id": 1290,
+    "name": "Referee",
+    "color": "#26eded",
+    "type": "object",
+    "createdAt": "2020-06-03T07:33:51.000Z",
+    "updatedAt": "2020-10-01T11:06:57.000Z",
+    "attribute_groups": [
+      {
+        "group_type": "radio",
+        "id": 5790,
+        "class_id": 7398,
+        "name": "Type",
+        "createdAt": "2020-06-03T07:33:51.000Z",
+        "updatedAt": "2020-06-03T07:33:51.000Z",
+        "attributes": [
+          {
+            "id": 13666,
+            "group_id": 5790,
+            "project_id": 1290,
+            "name": "Occluded",
+            "count": 0,
+            "createdAt": "2020-06-03T07:33:51.000Z",
+            "updatedAt": "2020-06-03T07:33:51.000Z"
+          }
+        ],
+        "default_value": null
+      }
+    ]
+  },
+  {
+    "id": 7397,
+    "project_id": 1290,
+    "name": "Goalkeeper",
+    "color": "#d002f6",
+    "type": "object",
+    "createdAt": "2020-06-03T07:33:51.000Z",
+    "updatedAt": "2020-11-09T13:01:12.000Z",
+    "attribute_groups": [
+      {
+        "group_type": "radio",
+        "id": 5789,
+        "class_id": 7397,
+        "name": "Type",
+        "createdAt": "2020-06-03T07:33:51.000Z",
+        "updatedAt": "2020-06-03T07:33:51.000Z",
+        "attributes": [
+          {
+            "id": 13665,
+            "group_id": 5789,
+            "project_id": 1290,
+            "name": "Occluded",
+            "count": 0,
+            "createdAt": "2020-06-03T07:33:51.000Z",
+            "updatedAt": "2020-06-03T07:33:51.000Z"
+          }
+        ],
+        "default_value": null
+      }
+    ]
+  },
+  {
+    "id": 7396,
+    "project_id": 1290,
+    "name": "Player",
+    "color": "#f90e35",
+    "type": "object",
+    "createdAt": "2020-06-03T07:33:51.000Z",
+    "updatedAt": "2020-11-09T13:01:12.000Z",
+    "attribute_groups": [
+      {
+        "group_type": "radio",
+        "id": 5788,
+        "class_id": 7396,
+        "name": "Type",
+        "createdAt": "2020-06-03T07:33:51.000Z",
+        "updatedAt": "2020-06-03T07:33:51.000Z",
+        "attributes": [
+          {
+            "id": 13664,
+            "group_id": 5788,
+            "project_id": 1290,
+            "name": "Occluded",
+            "count": 0,
+            "createdAt": "2020-06-03T07:33:51.000Z",
+            "updatedAt": "2020-11-09T13:01:12.000Z"
+          }
+        ],
+        "default_value": null
+      }
+    ]
+  }
+]

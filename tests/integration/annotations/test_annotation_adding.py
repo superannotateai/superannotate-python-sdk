@@ -18,6 +18,9 @@ class TestAnnotationAdding(BaseTestCase):
     EXAMPLE_IMAGE_1 = "example_image_1.jpg"
     EXAMPLE_IMAGE_2 = "example_image_2.jpg"
 
+    def _attach_fake_items(self):
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.EXAMPLE_IMAGE_1, "url": self.EXAMPLE_IMAGE_1}])  # noqa
+
     @property
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
@@ -30,29 +33,8 @@ class TestAnnotationAdding(BaseTestCase):
     def classes_json_path(self):
         return f"{self.folder_path}/classes/classes.json"
 
-    def test_upload_invalid_annotations(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-        uploaded_annotations, failed_annotations, missing_annotations = sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME, self.invalid_json_path
-        )
-        self.assertEqual(len(uploaded_annotations), 3)
-        self.assertEqual(len(failed_annotations), 1)
-        self.assertEqual(len(missing_annotations), 0)
-
-    def test_upload_annotations(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-        sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path
-        )
-
     def test_add_point_to_empty_image(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.EXAMPLE_IMAGE_1, "url": self.EXAMPLE_IMAGE_1}])  # noqa
 
         sa.add_annotation_point_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [250, 250], "test_add"
@@ -64,8 +46,8 @@ class TestAnnotationAdding(BaseTestCase):
 
         self.assertEqual(
             annotations_new["instances"][0], {
-                'x': 250.0,
-                'y': 250.0,
+                'x': 250,
+                'y': 250,
                 'creationType': 'Preannotation',
                 'visible': True,
                 'locked': False,
@@ -75,23 +57,18 @@ class TestAnnotationAdding(BaseTestCase):
                 'pointLabels': {},
                 'groupId': 0,
                 'classId': -1,
+                'className': "",
             }
         )
 
     def test_add_bbox_to_empty_annotation(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.EXAMPLE_IMAGE_1, "url": self.EXAMPLE_IMAGE_1}])  # noqa
         sa.add_annotation_bbox_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
         )
-
         annotations_new = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
-
         del annotations_new["instances"][0]['createdAt']
         del annotations_new["instances"][0]['updatedAt']
-
         self.assertEqual(annotations_new['instances'][0], {
             'creationType': 'Preannotation',
             'visible': True,
@@ -101,14 +78,13 @@ class TestAnnotationAdding(BaseTestCase):
             'type': 'bbox',
             'pointLabels': {},
             'groupId': 0,
-            'points': {'x1': 10.0, 'x2': 500.0, 'y1': 10.0, 'y2': 100.0},
+            'points': {'x1': 10, 'x2': 500, 'y1': 10, 'y2': 100},
             'classId': -1,
+            'className': '',
         })
 
     def test_add_comment_to_empty_annotation(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.EXAMPLE_IMAGE_1, "url": self.EXAMPLE_IMAGE_1}])  # noqa
 
         sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "some comment", [1, 2],
                                            "abc@abc.com")
@@ -124,15 +100,13 @@ class TestAnnotationAdding(BaseTestCase):
                           'creationType': 'Preannotation',
                           'createdAt': '',
                           'updatedAt': '',
-                          'x': 1.0, 'y': 2.0,
+                          'x': 1, 'y': 2,
                           'resolved': False,
                           'correspondence': [{'text': 'some comment', 'email': 'abc@abc.com'}]
                           })
 
-    def test_add_bbox(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
+    def test_adding(self):
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.EXAMPLE_IMAGE_1, "url": self.EXAMPLE_IMAGE_1}])  # noqa
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, self.classes_json_path
         )
@@ -216,7 +190,7 @@ class TestAnnotationAdding(BaseTestCase):
             )
 
     def test_add_bbox_with_dict(self):
-        sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.EXAMPLE_IMAGE_1, "url": self.EXAMPLE_IMAGE_1}])  # noqa
         sa.create_annotation_class(
             self.PROJECT_NAME,
             "test_add",

@@ -8,8 +8,10 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+
+sa = SAClient()
 
 
 class TestAnnotationUploadVector(BaseTestCase):
@@ -24,12 +26,16 @@ class TestAnnotationUploadVector(BaseTestCase):
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
-    @pytest.mark.flaky(reruns=3)
+    def test_annotation_upload_big_file(self):
+        annotation_path = join(self.folder_path, f"{self.IMAGE_NAME}___objects.json")
+        sa.attach_items(self.PROJECT_NAME, [{"name": self.IMAGE_NAME, "url": self.IMAGE_NAME}])  # noqa
+        sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
+
+    # @pytest.mark.flaky(reruns=3)
     @patch("lib.infrastructure.controller.Reporter")
     def test_annotation_upload(self, reporter):
         reporter_mock = MagicMock()
         reporter.return_value = reporter_mock
-
         annotation_path = join(self.folder_path, f"{self.IMAGE_NAME}___objects.json")
         sa.upload_image_to_project(self.PROJECT_NAME, join(self.folder_path, self.IMAGE_NAME))
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
@@ -39,10 +45,23 @@ class TestAnnotationUploadVector(BaseTestCase):
         reporter_calls = reporter_mock.method_calls
         for call in reporter_calls:
             call_groups[call[0]].append(call[1])
-        self.assertEqual(len(call_groups["log_warning"]), len(call_groups["store_message"]))
+
+        def replace_item(obj, key, replace_value):
+            if isinstance(obj, list):
+                for i in obj:
+                    replace_item(i, key, replace_value)
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if k == key:
+                        obj[k] = replace_value
+                    else:
+                        replace_item(v, key,  replace_value)
+            return obj
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, tmp_dir)
-            origin_annotation = json.load(open(annotation_path))
+            origin_annotation = replace_item(json.load(open(annotation_path)), "id", -1)
+            origin_annotation = replace_item(origin_annotation, 'groupId', -1)
             annotation = json.load(open(join(tmp_dir, f"{self.IMAGE_NAME}___objects.json")))
             self.assertEqual(
                 [i["attributes"]for i in annotation["instances"]],

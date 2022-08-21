@@ -1,16 +1,18 @@
-import tempfile
-from pathlib import Path
+import json
 import os
 import shutil
+import tempfile
 from os.path import join
-import json
-import pytest
-from unittest.mock import patch
+from pathlib import Path
 from unittest.mock import MagicMock
+from unittest.mock import patch
+
+import pytest
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationUploadVectorWithoutClasses(BaseTestCase):

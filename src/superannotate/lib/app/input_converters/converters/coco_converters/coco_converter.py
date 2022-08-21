@@ -305,7 +305,6 @@ class CocoBaseStrategy(baseStrategy):
             jsons = list(Path(self.export_root).glob("*objects.json"))
 
         self.set_num_total_images(len(jsons))
-        print()
         for fpath in jsons:
             with open(fpath) as fp:
                 json_data = json.load(fp)

@@ -2,15 +2,13 @@ pydicom>=2.0.0
 boto3>=1.14.53
 requests==2.26.0
 requests-toolbelt>=0.9.1
-tqdm==4.48.2
+tqdm==4.64.0
 pillow>=7.2.0
-numpy>=1.19.0
 matplotlib>=3.3.1
 xmltodict==0.12.0
 opencv-python>=4.4.0.42
 wheel==0.35.1
 packaging>=20.4
-pandas>=1.1.4
 plotly==4.1.0
 ffmpeg-python>=0.2.0
 fire==0.4.0
@@ -20,3 +18,7 @@ setuptools~=57.4.0
 aiohttp==3.8.1
 email-validator>=1.0.3
 nest-asyncio==1.5.4
+jsonschema==3.2.0
+pandas>=1.1.4
+aiofiles==0.8.0
+

@@ -20,6 +20,7 @@ from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
+from lib.app.helpers import wrap_error as wrap_validation_errors
 from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
 from lib.app.interface.types import AnnotationStatuses
@@ -42,15 +43,15 @@ from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import SettingEntity
+from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.classes import AttributeGroup
 from lib.core.entities.integrations import IntegrationEntity
-from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
-from lib.core.types import AttributeGroup
 from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
-from lib.infrastructure.controller import Controller
+from lib.infrastructure.validators import wrap_error
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
@@ -578,9 +579,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of dicts
         """
         project_name, folder_name = extract_project_folder(project)
-        classes = self.controller.search_annotation_classes(project_name, name_contains)
-        classes = [BaseSerializer(attribute).serialize() for attribute in classes.data]
-        return classes
+        response = self.controller.search_annotation_classes(
+            project_name, name_contains
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return [BaseSerializer(i).serialize(exclude_unset=True) for i in response.data]
 
     def set_project_default_image_quality_in_editor(
         self,
@@ -1140,35 +1144,98 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param name: name for the class
         :type name: str
-        :param color: RGB hex color value, e.g., "#FFFFAA"
+
+        :param color: RGB hex color value, e.g., "#F9E0FA"
         :type color: str
-        :param attribute_groups: example:
-         [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
-         { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
+
+        :param attribute_groups:  list of attribute group dicts.
+                                  The values for the "group_type" key are  "radio"|"checklist"|"text"|"numeric".
+                                  Mandatory keys for each attribute group are
+                                      -  "name"
         :type attribute_groups: list of dicts
-        :param class_type: class type
+
+        :param class_type: class type. Should be either "object" or "tag"
         :type class_type: str
 
         :return: new class metadata
         :rtype: dict
+
+        Request Example:
+        ::
+            attributes_list = [
+               {
+                   "group_type": "radio",
+                   "name": "Vehicle",
+                   "attributes": [
+                       {
+                           "name": "Car"
+                       },
+                       {
+                           "name": "Track"
+                       },
+                       {
+                           "name": "Bus"
+                       }
+                   ],
+                   "default_value": "Car"
+               },
+               {
+                   "group_type": "checklist",
+                   "name": "Color",
+                   "attributes": [
+                       {
+                           "name": "Yellow"
+                       },
+                       {
+                           "name": "Black"
+                       },
+                       {
+                           "name": "White"
+                       }
+                   ],
+                   "default_value": ["Yellow", "White"]
+               },
+               {
+                   "group_type": "text",
+                   "name": "Timestamp"
+               },
+               {
+                   "group_type": "numeric",
+                   "name": "Description"
+               }
+            ]
+            client.create_annotation_class(
+               project="Image Project",
+               name="Example Class",
+               color="#F9E0FA",
+               attribute_groups=attributes_list
+            )
+
         """
         if isinstance(project, Project):
             project = project.dict()
         attribute_groups = (
             list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
         )
+        try:
+            annotation_class = AnnotationClassEntity(
+                name=name,
+                color=color,  # noqa
+                attribute_groups=attribute_groups,
+                type=class_type,  # noqa
+            )
+        except ValidationError as e:
+            raise AppException(wrap_error(e))
+
         response = self.controller.create_annotation_class(
-            project_name=project,
-            name=name,
-            color=color,
-            attribute_groups=attribute_groups,
-            class_type=class_type,
+            project_name=project, annotation_class=annotation_class
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize()
+        return BaseSerializer(response.data).serialize(exclude_unset=True)
 
     def delete_annotation_class(
         self, project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]
@@ -1237,16 +1304,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             classes_json = json.load(data)
         try:
             annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
-        except ValidationError:
+        except ValidationError as _:
             raise AppException("Couldn't validate annotation classes.")
-        logger.info(f"Creating annotation classes in project {project}.")
         response = self.controller.create_annotation_classes(
             project_name=project,
             annotation_classes=annotation_classes,
         )
         if response.errors:
             raise AppException(response.errors)
-        return [BaseSerializer(i).serialize() for i in response.data]
+        return [BaseSerializer(i).serialize(exclude_unset=True) for i in response.data]
 
     def download_export(
         self,
@@ -1285,7 +1351,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        logger.info(response.data)
 
     def set_project_workflow(
         self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]
@@ -1831,13 +1896,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotations,
             point,
             annotation_class_name,
-            image_name,
             annotation_class_attributes,
             error,
         )
-        self.controller.upload_image_annotations(
+        response = self.controller.upload_image_annotations(
             project_name, folder_name, image_name, annotations
         )
+        if response.errors:
+            raise AppException(response.errors)
 
     def add_annotation_comment_to_image(
         self,
@@ -2104,7 +2170,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def validate_annotations(
-        self, project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
+        self,
+        project_type: ProjectTypes,
+        annotations_json: Union[NotEmptyStr, Path, dict],
     ):
         """Validates given annotation JSON.
 
@@ -2117,16 +2185,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: The success of the validation
         :rtype: bool
         """
-        with open(annotations_json) as file:
-            annotation_data = json.loads(file.read())
-            response = Controller.validate_annotations(project_type, annotation_data)
-            if response.errors:
-                raise AppException(response.errors)
-            is_valid, _ = response.data
-            if is_valid:
-                return True
-            print(response.report)
-            return False
+        if isinstance(annotations_json, dict):
+            annotation_data = annotations_json
+        else:
+            annotation_data = json.load(open(annotations_json))
+        response = self.controller.validate_annotations(project_type, annotation_data)
+        if response.errors:
+            raise AppException(response.errors)
+        report = response.data
+        if not report:
+            return True
+        print(wrap_validation_errors(report))
+        return False
 
     def add_contributors_to_project(
         self,

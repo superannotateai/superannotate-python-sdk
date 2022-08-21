@@ -54,7 +54,6 @@ class TestRecursiveFolder(BaseTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             sa.download_export(self.PROJECT_NAME, export["name"], tmp_dirname)
-
             non_empty_annotations = 0
             json_files = Path(tmp_dirname).glob("*.json")
             for json_file in json_files:
