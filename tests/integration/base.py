@@ -33,3 +33,9 @@ class BaseTestCase(TestCase):
                     pass
         except Exception as e:
             print(str(e))
+
+    def _attach_items(self):
+        sa.attach_items(
+            self.PROJECT_NAME,
+            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 5)]  # noqa
+        )

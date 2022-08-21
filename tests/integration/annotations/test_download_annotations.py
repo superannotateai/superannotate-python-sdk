@@ -27,9 +27,7 @@ class TestDownloadAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_download_annotations(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
+        self._attach_items()
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )

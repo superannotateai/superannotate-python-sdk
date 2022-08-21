@@ -7,6 +7,7 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import Extra
+from pydantic import Field
 from pydantic import parse_obj_as
 
 
@@ -69,6 +70,17 @@ class DownloadMLModelAuthData(BaseModel):
         super().__init__(**data)
 
 
+class UploadAnnotationsResponse(BaseModel):
+    class Resource(BaseModel):
+        classes: List[str] = Field([], alias="class")
+        templates: List[str] = Field([], alias="template")
+        attributes: List[str] = Field([], alias="attribute")
+        attribute_groups: Optional[List[str]] = Field([], alias="attributeGroup")
+
+    failed_items: List[str] = Field([], alias="failedItems")
+    missing_resources: Resource = Field({}, alias="missingResources")
+
+
 class UploadCustomFieldValues(BaseModel):
     succeeded_items: Optional[List[Any]]
     failed_items: Optional[List[str]]
@@ -76,17 +88,20 @@ class UploadCustomFieldValues(BaseModel):
 
 
 class ServiceResponse(BaseModel):
-    status: int
-    reason: str
-    content: Union[bytes, str]
-    data: Any
+    status: Optional[int]
+    reason: Optional[str]
+    content: Optional[Union[bytes, str]]
+    data: Optional[Any]
     count: Optional[int] = 0
-    _error: str
+    _error: Optional[str] = None
 
     class Config:
         extra = Extra.allow
 
-    def __init__(self, response, content_type=None, dispatcher: Callable = None):
+    def __init__(self, response=None, content_type=None, dispatcher: Callable = None):
+        if response is None:
+            super().__init__()
+            return
         data = {
             "status": response.status_code,
             "reason": response.reason,
@@ -121,7 +136,9 @@ class ServiceResponse(BaseModel):
 
     @property
     def ok(self):
-        return 199 < self.status < 300
+        if self.status:
+            return 199 < self.status < 300
+        return False
 
     @property
     def error(self):

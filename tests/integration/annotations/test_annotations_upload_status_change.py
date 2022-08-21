@@ -1,21 +1,23 @@
-from pathlib import Path
 import os
 from os.path import join
-import pytest
-from unittest.mock import patch
+from pathlib import Path
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from src.superannotate import SAClient
-sa = SAClient()
+import pytest
+
 import src.superannotate.lib.core as constances
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationUploadStatusChangeVector(BaseTestCase):
     PROJECT_NAME = "TestAnnotationUploadStatusChangeVector"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
-    S3_FOLDER_PATH = "sample_project_pixel"
+    S3_FOLDER_PATH = "sample_project_vector"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     IMAGE_NAME = "example_image_1.jpg"
 
@@ -60,7 +62,7 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
             sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
         )
 
-    @pytest.mark.flaky(reruns=2)
+    # @pytest.mark.flaky(reruns=2)
     @patch("lib.infrastructure.controller.Reporter")
     def test_add_annotation_bbox_to_image__annotation_status(self, reporter):
         reporter_mock = MagicMock()

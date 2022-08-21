@@ -1,3 +1,4 @@
+import io
 from abc import abstractmethod
 from typing import Any
 from typing import Callable
@@ -311,6 +312,10 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
+    def create_annotation_classes(self, project_id: int, team_id: int, data: List):
+        raise NotImplementedError
+
+    @abstractmethod
     async def download_annotations(
         self,
         project_id: int,
@@ -358,6 +363,31 @@ class SuperannotateServiceProvider:
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
         raise NotImplementedError
 
+    async def upload_annotations(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items_name_file_map: Dict[str, io.StringIO],
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    async def upload_big_annotation(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        item_id: int,
+        data: io.StringIO,
+        chunk_size: int,
+    ) -> bool:
+        raise NotImplementedError
+
+    def get_schema(
+        self, team_id: int, project_type: int, version: str
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
     def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:
         raise NotImplementedError
 
@@ -386,4 +416,10 @@ class SuperannotateServiceProvider:
         folder_id: int,
         items: List[Dict[str, List[str]]],
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_annotation_classes(
+        self, project_id: int, team_id: int, query_string: str = None
+    ):
         raise NotImplementedError

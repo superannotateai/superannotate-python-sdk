@@ -51,7 +51,7 @@ class TestCustomSchema(BaseTestCase):
         assert response == payload
         self.assertEqual(sa.get_custom_fields(self.PROJECT_NAME), payload)
 
-    def test_upload_delete_custom_values(self):
+    def test_upload_delete_custom_values_query(self):
         sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
         item_name = "test"
         payload = {"test": 12}
@@ -62,6 +62,19 @@ class TestCustomSchema(BaseTestCase):
         assert data[0]["custom_metadata"] == payload
         sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])
         data = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+        assert data[0]["custom_metadata"] == {}
+
+    def test_upload_delete_custom_values_search_items(self):
+        sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
+        item_name = "test"
+        payload = {"test": 12}
+        sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
+        response = sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
+        assert response == {'failed': [], 'succeeded': [item_name]}
+        data = sa.search_items(self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True)
+        assert data[0]["custom_metadata"] == payload
+        sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])
+        data = sa.search_items(self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True)
         assert data[0]["custom_metadata"] == {}
 
     def test_search_items(self):

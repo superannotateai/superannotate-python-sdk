@@ -1,12 +1,12 @@
 import os
-from os.path import dirname
 from pathlib import Path
 
 import pytest
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestDF(BaseTestCase):

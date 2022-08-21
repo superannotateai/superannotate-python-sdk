@@ -1,9 +1,14 @@
 import asyncio
+import copy
 import datetime
+import io
 import json
 import platform
+import threading
 import time
 from contextlib import contextmanager
+from functools import lru_cache
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -12,21 +17,25 @@ from typing import Tuple
 from typing import Union
 from urllib.parse import urljoin
 
+import aiohttp
 import lib.core as constance
 import requests.packages.urllib3
 from lib.core import entities
 from lib.core.entities import BaseItemEntity
+from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
+from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UploadCustomFieldValues
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
+from pydantic import BaseModel
+from pydantic import parse_obj_as
 from requests.exceptions import HTTPError
 from superannotate import __version__
 
@@ -35,8 +44,8 @@ requests.packages.urllib3.disable_warnings()
 
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
-        if hasattr(obj, "deserialize"):
-            return obj.deserialize()
+        if isinstance(obj, BaseModel):
+            return obj.dict(exclude_none=getattr(obj.Config, "exclude_none", False))
         if isinstance(obj, (datetime.date, datetime.datetime)):
             return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
@@ -73,14 +82,22 @@ class BaseBackendService(SuperannotateServiceProvider):
     @property
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
-            return "https://assets-provider.devsuperannotate.com/api/v1/"
+            return "https://assets-provider.devsuperannotate.com/api/v1.01/"
+            # return "https://e53a-178-160-196-42.ngrok.io/api/v1.01/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
-    @timed_lru_cache(seconds=360)
-    def get_session(self):
+    @lru_cache(maxsize=32)
+    def _get_session(self, thread_id, ttl=None):  # noqa
+        del ttl
+        del thread_id
         session = requests.Session()
         session.headers.update(self.default_headers)
         return session
+
+    def get_session(self):
+        return self._get_session(
+            thread_id=threading.get_ident(), ttl=round(time.time() / 360)
+        )
 
     @property
     def default_headers(self):
@@ -88,7 +105,7 @@ class BaseBackendService(SuperannotateServiceProvider):
             "Authorization": self._auth_token,
             "authtype": self.AUTH_TYPE,
             "Content-Type": "application/json",
-            "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()}; "
+            "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()};"
             f"OS: {platform.system()}; Team: {self.team_id}",
         }
 
@@ -126,15 +143,22 @@ class BaseBackendService(SuperannotateServiceProvider):
         params=None,
         retried=0,
         content_type=None,
+        files=None,
         dispatcher: Callable = None,
     ) -> Union[requests.Response, ServiceResponse]:
         kwargs = {"data": json.dumps(data, cls=PydanticEncoder)} if data else {}
         session = self.get_session()
+        if files and session.headers.get("Content-Type"):
+            del session.headers["Content-Type"]
         session.headers.update(headers if headers else {})
         with self.safe_api():
-            req = requests.Request(method=method, url=url, **kwargs, params=params)
+            req = requests.Request(
+                method=method, url=url, **kwargs, params=params, files=files
+            )
             prepared = session.prepare_request(req)
             response = session.send(request=prepared, verify=self._verify_ssl)
+        if files:
+            session.headers.update(self.default_headers)
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
@@ -160,7 +184,6 @@ class BaseBackendService(SuperannotateServiceProvider):
         response = self._request(url, params=params)
         if response.status_code != 200:
             return {"data": []}, 0
-            # raise AppException(f"Got invalid response for url {url}: {response.text}.")
         data = response.json()
         if data:
             if isinstance(data, dict):
@@ -184,6 +207,39 @@ class BaseBackendService(SuperannotateServiceProvider):
                 break
             offset += len(resources["data"])
         return total
+
+    def _paginate(
+        self,
+        url: str,
+        chunk_size: int = 2000,
+        content_type: Any = BaseItemEntity,
+        query_params: Dict[str, Any] = None,
+        dispatcher: Callable = None,
+    ) -> ServiceResponse:
+        offset = 0
+        total = []
+        splitter = "&" if "?" in url else "?"
+
+        while True:
+            _url = f"{url}{splitter}offset={offset}"
+            _response = self._request(
+                _url,
+                method="get",
+                content_type=List[content_type],
+                dispatcher=dispatcher,
+                params=query_params,
+            )
+            if _response.ok:
+                total.extend(_response.data)
+            else:
+                return _response
+            data_len = len(_response.data)
+            offset += data_len
+            if _response.count < chunk_size or _response.count - offset <= 0:
+                break
+        response = ServiceResponse(_response)
+        response.data = total
+        return response
 
 
 class SuperannotateBackendService(BaseBackendService):
@@ -240,7 +296,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
-    URL_GET_ANNOTATIONS = "images/annotations/stream"
+    URL_GET_ANNOTATIONS = "items/annotations/download"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
@@ -250,6 +306,13 @@ class SuperannotateBackendService(BaseBackendService):
     URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
+    URL_UPLOAD_ANNOTATIONS = "items/annotations/upload"
+    URL_ANNOTATION_SCHEMAS = "items/annotations/schema"
+    URL_START_FILE_UPLOAD_PROCESS = "items/{item_id}/annotations/upload/multipart/start"
+    URL_START_FILE_SEND_PART = "items/{item_id}/annotations/upload/multipart/part"
+    URL_START_FILE_SEND_FINISH = "items/{item_id}/annotations/upload/multipart/finish"
+    URL_START_FILE_SYNC = "items/{item_id}/annotations/sync"
+    URL_START_FILE_SYNC_STATUS = "items/{item_id}/annotations/sync/status"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -257,6 +320,7 @@ class SuperannotateBackendService(BaseBackendService):
         upload_priority_score_url = urljoin(
             self.api_url, self.URL_UPLOAD_PRIORITY_SCORES
         )
+
         res = self._request(
             upload_priority_score_url,
             "post",
@@ -383,13 +447,12 @@ class SuperannotateBackendService(BaseBackendService):
 
     def get_folder(self, query_string: str):
         get_folder_url = urljoin(self.api_url, self.URL_GET_FOLDER_BY_NAME)
+        params = {}
         if query_string:
             query_items = query_string.split("&")
-            params = {}
             for item in query_items:
                 tmp = item.split("=")
                 params[tmp[0]] = tmp[1]
-
         response = self._request(get_folder_url, "get", params=params)
         if response.ok:
             return response.json()
@@ -458,6 +521,20 @@ class SuperannotateBackendService(BaseBackendService):
         params = {"project_id": project_id, "team_id": team_id}
         return self._get_all_pages(get_annotation_classes_url, params=params)
 
+    def list_annotation_classes(
+        self, project_id: int, team_id: int, query_string: str = None
+    ):
+        annotation_classes_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        if query_string:
+            annotation_classes_url = f"{annotation_classes_url}?{query_string}"
+        params = {"project_id": project_id, "team_id": team_id}
+        return self._paginate(
+            url=annotation_classes_url,
+            query_params=params,
+            content_type=AnnotationClassEntity,
+            dispatcher=lambda x: x.pop("data"),
+        )
+
     def set_annotation_classes(self, project_id: int, team_id: int, data: List):
         set_annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
         params = {
@@ -468,6 +545,22 @@ class SuperannotateBackendService(BaseBackendService):
             set_annotation_class_url, "post", params=params, data={"classes": data}
         )
         return res.json()
+
+    def create_annotation_classes(
+        self, project_id: int, team_id: int, data: List[AnnotationClassEntity]
+    ):
+        annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        return self._request(
+            annotation_class_url,
+            "post",
+            params=params,
+            data={"classes": data},
+            content_type=List[AnnotationClassEntity],
+        )
 
     def get_project_workflows(self, project_id: int, team_id: int):
         get_project_workflow_url = urljoin(
@@ -543,32 +636,15 @@ class SuperannotateBackendService(BaseBackendService):
         return self._get_all_pages(url)
 
     def list_items(self, query_string) -> ServiceResponse:
-        chunk_size = 2000
         url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
-        offset = 0
-        total = []
-        splitter = "&" if "?" in url else "?"
-        while True:
-            _url = f"{url}{splitter}offset={offset}"
-            _response = self._request(
-                _url,
-                method="get",
-                content_type=List[BaseItemEntity],
-                dispatcher=lambda x: x.pop("data"),
-            )
-            if _response.ok:
-                total.extend(_response.data)
-            else:
-                return _response
-            data_len = len(_response.data)
-            offset += data_len
-            if _response.count < chunk_size or _response.count - offset <= 0:
-                break
-        response = ServiceResponse(_response)
-        response.data = total
-        return response
+        return self._paginate(
+            url=url,
+            chunk_size=2000,
+            content_type=BaseItemEntity,
+            dispatcher=lambda x: x.pop("data"),
+        )
 
     def prepare_export(
         self,
@@ -1066,20 +1142,11 @@ class SuperannotateBackendService(BaseBackendService):
         reporter: Reporter,
         callback: Callable = None,
     ) -> List[dict]:
-        import nest_asyncio
-        import platform
-
-        if platform.system().lower() == "windows":
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-        nest_asyncio.apply()
-
         query_params = {
             "team_id": team_id,
             "project_id": project_id,
+            "folder_id": folder_id,
         }
-        if folder_id:
-            query_params["folder_id"] = folder_id
 
         handler = StreamedAnnotations(
             self.default_headers,
@@ -1109,35 +1176,27 @@ class SuperannotateBackendService(BaseBackendService):
         items: List[str] = None,
         callback: Callable = None,
     ) -> int:
-        import aiohttp
 
-        async with aiohttp.ClientSession(
-            raise_for_status=True,
+        query_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "folder_id": folder_id,
+        }
+        handler = StreamedAnnotations(
             headers=self.default_headers,
-            connector=aiohttp.TCPConnector(ssl=False),
-        ) as session:
-            query_params = {
-                "team_id": team_id,
-                "project_id": project_id,
-            }
-            if folder_id:
-                query_params["folder_id"] = folder_id
-            handler = StreamedAnnotations(
-                self.default_headers,
-                reporter,
-                map_function=lambda x: {"image_names": x},
-                callback=callback,
-            )
+            reporter=reporter,
+            map_function=lambda x: {"image_names": x},
+            callback=callback,
+        )
 
-            return await handler.download_data(
-                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
-                data=items,
-                params=query_params,
-                chunk_size=self.DEFAULT_CHUNK_SIZE,
-                download_path=download_path,
-                postfix=postfix,
-                session=session,
-            )
+        return await handler.download_data(
+            url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+            data=items,
+            params=query_params,
+            chunk_size=self.DEFAULT_CHUNK_SIZE,
+            download_path=download_path,
+            postfix=postfix,
+        )
 
     def get_integrations(self, team_id: int) -> List[dict]:
         get_integrations_url = urljoin(
@@ -1301,5 +1360,165 @@ class SuperannotateBackendService(BaseBackendService):
             "delete",
             params=dict(team_id=team_id, folder_id=folder_id),
             data=dict(data=dict(ChainMap(*items))),
+            content_type=ServiceResponse,
+        )
+
+    async def upload_annotations(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items_name_file_map: Dict[str, io.StringIO],
+    ) -> UploadAnnotationsResponse:
+        url = urljoin(
+            self.assets_provider_url,
+            (
+                f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}"
+            ),
+        )
+
+        headers = copy.copy(self.default_headers)
+        del headers["Content-Type"]
+        async with aiohttp.ClientSession(
+            headers=headers, connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
+        ) as session:
+            data = aiohttp.FormData(quote_fields=False)
+            for key, file in items_name_file_map.items():
+                file.seek(0)
+                data.add_field(
+                    key,
+                    bytes(file.read(), "ascii"),
+                    filename=key,
+                    content_type="application/json",
+                )
+            _response = await session.post(
+                url,
+                params={
+                    "team_id": team_id,
+                    "project_id": project_id,
+                    "folder_id": folder_id,
+                },
+                data=data,
+            )
+            if not _response.ok:
+                self.logger.debug(await _response.text())
+                raise AppException("Can't upload annotations.")
+            data_json = await _response.json()
+            response = ServiceResponse()
+            response.status = _response.status
+            response._content = await _response.text()
+            response.data = parse_obj_as(UploadAnnotationsResponse, data_json)
+            return response
+
+    async def upload_big_annotation(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        item_id: int,
+        data: io.StringIO,
+        chunk_size: int,
+    ) -> bool:
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=False), headers=self.default_headers
+        ) as session:
+            params = {
+                "team_id": team_id,
+                "project_id": project_id,
+                "folder_id": folder_id,
+            }
+            start_response = await session.post(
+                urljoin(
+                    self.assets_provider_url,
+                    self.URL_START_FILE_UPLOAD_PROCESS.format(item_id=item_id),
+                ),
+                params={
+                    "team_id": team_id,
+                    "project_id": project_id,
+                    "folder_id": folder_id,
+                },
+            )
+            if not start_response.ok:
+                raise AppException(str(await start_response.text()))
+            process_info = await start_response.json()
+            params["path"] = process_info["path"]
+            headers = copy.copy(self.default_headers)
+            headers["upload_id"] = process_info["upload_id"]
+            chunk_id = 1
+            data_sent = False
+            while True:
+                chunk = data.read(chunk_size)
+                params["chunk_id"] = chunk_id
+                if chunk:
+                    data_sent = True
+                    response = await session.post(
+                        urljoin(
+                            self.assets_provider_url,
+                            self.URL_START_FILE_SEND_PART.format(item_id=item_id),
+                        ),
+                        params=params,
+                        headers=headers,
+                        data=json.dumps({"data_chunk": chunk}),
+                    )
+                    if not response.ok:
+                        raise AppException(str(await response.text()))
+                    chunk_id += 1
+                if not chunk and not data_sent:
+                    return False
+                if len(chunk) < chunk_size:
+                    break
+            del params["chunk_id"]
+            response = await session.post(
+                urljoin(
+                    self.assets_provider_url,
+                    self.URL_START_FILE_SEND_FINISH.format(item_id=item_id),
+                ),
+                headers=headers,
+                params=params,
+            )
+            if not response.ok:
+                raise AppException(str(await response.text()))
+            del params["path"]
+            response = await session.post(
+                urljoin(
+                    self.assets_provider_url,
+                    self.URL_START_FILE_SYNC.format(item_id=item_id),
+                ),
+                params=params,
+                headers=headers,
+            )
+            if not response.ok:
+                raise AppException(str(await response.text()))
+            while True:
+                response = await session.get(
+                    urljoin(
+                        self.assets_provider_url,
+                        self.URL_START_FILE_SYNC_STATUS.format(item_id=item_id),
+                    ),
+                    params=params,
+                    headers=headers,
+                )
+                if response.ok:
+                    data = await response.json()
+                    status = data.get("status")
+                    if status == "SUCCESS":
+                        return True
+                    elif status.startswith("FAILED"):
+                        return False
+                    await asyncio.sleep(15)
+                else:
+                    raise AppException(str(await response.text()))
+
+    def get_schema(
+        self, team_id: int, project_type: int, version: str
+    ) -> ServiceResponse:
+        return self._request(
+            urljoin(self.assets_provider_url, self.URL_ANNOTATION_SCHEMAS),
+            "get",
+            params={
+                "team_id": team_id,
+                "project_type": project_type,
+                "version": version,
+            },
             content_type=ServiceResponse,
         )
