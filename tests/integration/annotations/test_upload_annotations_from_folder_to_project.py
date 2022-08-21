@@ -70,12 +70,12 @@ class TestAnnotationUploadVector(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.large_annotations_folder_path}/classes/classes.json"
         )
-        uploaded, _, _ = sa.upload_annotations_from_folder_to_project(
+        uploaded, a, b = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.large_annotations_folder_path
         )
         assert len(uploaded) == 5
         annotations = sa.get_annotations(self.PROJECT_NAME)
-        assert [len(annotation["instances"]) > 1 for annotation in annotations].count(True) == 4
+        assert [len(annotation["instances"]) > 1 for annotation in annotations].count(True) == 5
 
     def test_upload_big_annotations(self):
         sa.attach_items(

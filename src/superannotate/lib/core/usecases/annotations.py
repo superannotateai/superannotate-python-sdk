@@ -6,7 +6,6 @@ import json
 import os
 import platform
 import re
-import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime
