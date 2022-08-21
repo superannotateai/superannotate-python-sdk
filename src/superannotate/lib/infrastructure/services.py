@@ -83,8 +83,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
             return "https://assets-provider.devsuperannotate.com/api/v1.01/"
-            # return "https://e53a-178-160-196-42.ngrok.io/api/v1.01/"
-        return "https://assets-provider.superannotate.com/api/v1/"
+        return "https://assets-provider.superannotate.com/api/v1.01/"
 
     @lru_cache(maxsize=32)
     def _get_session(self, thread_id, ttl=None):  # noqa
