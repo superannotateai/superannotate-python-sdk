@@ -1,5 +1,16 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
+## 4.4.2 - August 21, 2022
+### Updated
+- the **schema** of `classes JSON` to support new values for the `"group_type"` key for a given attribute group. `"group_type": "radio" | "checklist" | "text" | "numeric"`.
+- the **schema** of `video annotation JSON` to support instances that have a `"tag"` type. 
+### Fixed
+- `SAClient.get_annotations()` _method_ to address the issue of working with the large projects.
+- `SAClient.get_annotations_per_frame()` _method_ to address the issue of throwing an error on small videos when the fps is set to 1.
+- `SAClient.upload_annotations_from_folder_to_project()` to address the issue of timestamp values represented in seconds for the `"lastAction"`.
+- `SAClient.download_export()` _method_ to address the issue of empty logs.
+- `SAClient.clone_project()` _method_ to address the issue of having a corrupted project clone, when the source project has a keypoint workflow.
+###
 ## 4.4.1 - July 24, 2022
 ### Added
 - `SAClient.create_custom_fields()` _method_ to create/add new custom fields to a project’s custom field schema.
