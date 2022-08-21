@@ -1,6 +1,6 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
-## 4.4.2 - August 21, 2022
+## 4.4.2, 4.4.3 - August 21, 2022
 ### Updated
 - the **schema** of `classes JSON` to support new values for the `"group_type"` key for a given attribute group. `"group_type": "radio" | "checklist" | "text" | "numeric"`.
 - the **schema** of `video annotation JSON` to support instances that have a `"tag"` type. 
