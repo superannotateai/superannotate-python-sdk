@@ -242,11 +242,6 @@ class SuperannotateServiceProvider:
     ):
         raise NotImplementedError
 
-    def get_pre_annotation_upload_data(
-        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
-    ):
-        raise NotImplementedError
-
     def get_annotation_upload_data(
         self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
     ) -> ServiceResponse:

@@ -83,8 +83,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
             return "https://assets-provider.devsuperannotate.com/api/v1.01/"
-            # return "https://e53a-178-160-196-42.ngrok.io/api/v1.01/"
-        return "https://assets-provider.superannotate.com/api/v1/"
+        return "https://assets-provider.superannotate.com/api/v1.01/"
 
     @lru_cache(maxsize=32)
     def _get_session(self, thread_id, ttl=None):  # noqa
@@ -282,7 +281,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_EXPORTS = "exports"
     URL_GET_CLASS = "class/{}"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
-    URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_MODELS = "ml_models"
@@ -304,7 +302,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
     URL_LIST_SUBSETS = "/project/{project_id}/subset"
     URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
-    URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
     URL_UPLOAD_ANNOTATIONS = "items/annotations/upload"
     URL_ANNOTATION_SCHEMAS = "items/annotations/schema"
@@ -978,25 +975,6 @@ class SuperannotateBackendService(BaseBackendService):
     ):
         get_annotation_upload_data_url = urljoin(
             self.api_url, self.URL_ANNOTATION_UPLOAD_PATH_TOKEN
-        )
-        response = self._request(
-            get_annotation_upload_data_url,
-            "post",
-            data={
-                "project_id": project_id,
-                "team_id": team_id,
-                "ids": image_ids,
-                "folder_id": folder_id,
-            },
-            content_type=UploadAnnotationAuthData,
-        )
-        return response
-
-    def get_pre_annotation_upload_data(
-        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
-    ):
-        get_annotation_upload_data_url = urljoin(
-            self.api_url, self.URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN
         )
         response = self._request(
             get_annotation_upload_data_url,

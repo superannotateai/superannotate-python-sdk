@@ -5,16 +5,7 @@ from typing import Iterable
 from typing import List
 from typing import Union
 
-from lib.core.enums import ClassTypeEnum
 from lib.core.enums import SegmentationStatus
-from superannotate_schemas.schemas.classes import AnnotationClass
-
-
-class AnnotationClassEntity(AnnotationClass):
-    def deserialize(self):
-        data = self.dict()
-        data["type"] = ClassTypeEnum.get_value(data["type"])
-        return data
 
 
 class BaseEntity(ABC):

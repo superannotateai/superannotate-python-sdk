@@ -3,8 +3,9 @@ import os
 from typing import List
 from unittest import TestCase
 
-from pydantic import parse_obj_as
 from pydantic import ValidationError
+from pydantic import parse_obj_as
+
 from superannotate.lib.app.serializers import BaseSerializer
 from superannotate.lib.core.entities.classes import AnnotationClassEntity
 from superannotate.lib.core.entities.classes import AttributeGroup
@@ -56,8 +57,5 @@ class TestClassesSerializers(TestCase):
                 attribute_groups=[AttributeGroup(name="sad", is_multiselect="True", group_type="asd")]
             )
         except ValidationError as e:
-            assert [
-                'group_type', 'Invalid', 'value,', 'permitted:', "'radio',", "'checklist',", "'numeric',", "'text'"
-            ] == wrap_error(e).split()
-
-
+            assert ['group_type', 'Available', 'values', 'are:', 'RADIO,', 'CHECKLIST,', 'NUMERIC,',
+                    'TEXT'] == wrap_error(e).split()

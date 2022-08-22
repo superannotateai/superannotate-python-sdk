@@ -39,7 +39,6 @@ from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
 from superannotate.logger import get_default_logger
-from superannotate_schemas.validators import AnnotationValidators
 
 
 def build_condition(**kwargs) -> Condition:
@@ -192,10 +191,6 @@ class BaseController(metaclass=ABCMeta):
     @property
     def s3_repo(self):
         return S3Repository
-
-    @property
-    def annotation_validators(self) -> AnnotationValidators:
-        return AnnotationValidators()
 
 
 class Controller(BaseController):
@@ -444,26 +439,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def interactive_attach_urls(
-        self,
-        project_name: str,
-        files: List[ImageEntity],
-        folder_name: str = None,
-        annotation_status: str = None,
-        upload_state_code: int = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-
-        return usecases.InteractiveAttachFileUrlsUseCase(
-            project=project,
-            folder=folder,
-            attachments=files,
-            backend_service_provider=self._backend_client,
-            annotation_status=annotation_status,
-            upload_state_code=upload_state_code,
-        )
-
     def create_folder(self, project: str, folder_name: str):
         project = self._get_project(project)
         folder = FolderEntity(
@@ -540,25 +515,6 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             team_id=self.team_id,
             condition=condition,
-        )
-        return use_case.execute()
-
-    def search_images(
-        self,
-        project_name: str,
-        folder_path: str = None,
-        annotation_status: str = None,
-        image_name_prefix: str = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_path)
-
-        use_case = usecases.GetImagesUseCase(
-            project=project,
-            folder=folder,
-            images=self.images,
-            annotation_status=annotation_status,
-            image_name_prefix=image_name_prefix,
         )
         return use_case.execute()
 
@@ -676,48 +632,6 @@ class Controller(BaseController):
         for item, val in kwargs.items():
             setattr(image, item, val)
         use_case = usecases.UpdateImageUseCase(image=image, images=self.images)
-        return use_case.execute()
-
-    def bulk_copy_images(
-        self,
-        project_name: str,
-        from_folder_name: str,
-        to_folder_name: str,
-        image_names: List[str],
-        include_annotations: bool,
-        include_pin: bool,
-    ):
-        project = self._get_project(project_name)
-        from_folder = self._get_folder(project, from_folder_name)
-        to_folder = self._get_folder(project, to_folder_name)
-        use_case = usecases.ImagesBulkCopyUseCase(
-            project=project,
-            from_folder=from_folder,
-            to_folder=to_folder,
-            image_names=image_names,
-            backend_service_provider=self._backend_client,
-            include_annotations=include_annotations,
-            include_pin=include_pin,
-        )
-        return use_case.execute()
-
-    def bulk_move_images(
-        self,
-        project_name: str,
-        from_folder_name: str,
-        to_folder_name: str,
-        image_names: List[str],
-    ):
-        project = self._get_project(project_name)
-        from_folder = self._get_folder(project, from_folder_name)
-        to_folder = self._get_folder(project, to_folder_name)
-        use_case = usecases.ImagesBulkMoveUseCase(
-            project=project,
-            from_folder=from_folder,
-            to_folder=to_folder,
-            image_names=image_names,
-            backend_service_provider=self._backend_client,
-        )
         return use_case.execute()
 
     def get_project_metadata(
@@ -954,17 +868,6 @@ class Controller(BaseController):
                 project=project,
             ),
             project_name=project_name,
-        )
-        return use_case.execute()
-
-    def get_annotation_class(self, project_name: str, annotation_class_name: str):
-        project = self._get_project(project_name)
-        use_case = usecases.GetAnnotationClassUseCase(
-            annotation_class_name=annotation_class_name,
-            annotation_classes_repo=AnnotationClassRepository(
-                service=self._backend_client,
-                project=project,
-            ),
         )
         return use_case.execute()
 
@@ -1239,22 +1142,6 @@ class Controller(BaseController):
             images_list=images_list,
             service=self._backend_client,
             folder=folder,
-        )
-        return use_case.execute()
-
-    def list_images(
-        self,
-        project_name: str,
-        annotation_status: str = None,
-        name_prefix: str = None,
-    ):
-        project = self._get_project(project_name)
-
-        use_case = usecases.GetAllImagesUseCase(
-            project=project,
-            service_provider=self._backend_client,
-            annotation_status=annotation_status,
-            name_prefix=name_prefix,
         )
         return use_case.execute()
 
