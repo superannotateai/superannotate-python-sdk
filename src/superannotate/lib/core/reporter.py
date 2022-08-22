@@ -79,9 +79,6 @@ class Reporter:
     def disable_info(self):
         self._log_info = False
 
-    def enable_warnings(self):
-        self._log_warning = True
-
     def enable_info(self):
         self._log_info = True
 
@@ -126,14 +123,6 @@ class Reporter:
     def update_progress(self, value: int = 1):
         if self.progress_bar:
             self.progress_bar.update(value)
-
-    def generate_report(self) -> str:
-        report = ""
-        if self.info_messages:
-            report += "\n".join(self.info_messages)
-        if self.warning_messages:
-            report += "\n".join(self.warning_messages)
-        return report
 
     def store_message(self, key: str, value: str):
         self.custom_messages[key].add(value)

@@ -301,18 +301,6 @@ class AnnotationClassRepository(BaseManageableRepository):
             annotation_class_id=uuid,
         )
 
-    def bulk_insert(self, entities: List[AnnotationClassEntity]):
-        res = self._service.set_annotation_classes(
-            self.project.id, self.project.team_id, entities
-        )
-        if "error" in res:
-            raise AppException(res["error"])
-
-        return [self.dict2entity(i) for i in res]
-
-    def update(self, entity: AnnotationClassEntity):
-        raise NotImplementedError
-
     @staticmethod
     def dict2entity(data: dict) -> AnnotationClassEntity:
         return AnnotationClassEntity(

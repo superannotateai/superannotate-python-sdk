@@ -50,55 +50,6 @@ from superannotate.logger import get_default_logger
 logger = get_default_logger()
 
 
-class GetImagesUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        images: BaseReadOnlyRepository,
-        annotation_status: str = None,
-        image_name_prefix: str = None,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._images = images
-        self._annotation_status = annotation_status
-        self._image_name_prefix = image_name_prefix
-
-    def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
-            )
-
-    def validate_annotation_status(self):
-        if (
-            self._annotation_status
-            and self._annotation_status.lower()
-            not in constances.AnnotationStatus.values()
-        ):
-            raise AppValidationException("Invalid annotations status.")
-
-    def execute(self):
-        if self.is_valid():
-            condition = (
-                Condition("team_id", self._project.team_id, EQ)
-                & Condition("project_id", self._project.id, EQ)
-                & Condition("folder_id", self._folder.uuid, EQ)
-            )
-            if self._image_name_prefix:
-                condition = condition & Condition("name", self._image_name_prefix, EQ)
-            if self._annotation_status:
-                condition = condition & Condition(
-                    "annotation_status",
-                    constances.AnnotationStatus.get_value(self._annotation_status),
-                    EQ,
-                )
-            self._response.data = self._images.get_all(condition)
-        return self._response
-
-
 class GetImageUseCase(BaseUseCase):
     def __init__(
         self,
@@ -131,41 +82,6 @@ class GetImageUseCase(BaseUseCase):
             self._response.data = images[0]
         else:
             raise AppException("Image not found.")
-        return self._response
-
-
-class GetAllImagesUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        service_provider: SuperannotateServiceProvider,
-        annotation_status: str = None,
-        name_prefix: str = None,
-    ):
-        super().__init__()
-        self._project = project
-        self._service_provider = service_provider
-        self._annotation_status = annotation_status
-        self._name_prefix = name_prefix
-
-    @property
-    def annotation_status(self):
-        return constances.AnnotationStatus.get_value(self._annotation_status)
-
-    def execute(self):
-        condition = (
-            Condition("team_id", self._project.team_id, EQ)
-            & Condition("project_id", self._project.id, EQ)
-            & Condition("folder_id", 0, EQ)
-        )
-        if self._annotation_status:
-            condition &= Condition("annotation_status", self.annotation_status, EQ)
-        if self._name_prefix:
-            condition &= Condition("name", self._name_prefix, EQ)
-        images_list = self._service_provider.list_images(
-            query_string=condition.build_query()
-        )
-        self._response.data = [ImageEntity.from_dict(**image) for image in images_list]
         return self._response
 
 
@@ -1961,35 +1877,6 @@ class DeleteAnnotationClassUseCase(BaseUseCase):
             self._annotation_class_name,
         )
         self._annotation_classes_repo.delete(uuid=self.uuid)
-
-
-class GetAnnotationClassUseCase(BaseUseCase):
-    def __init__(
-        self,
-        annotation_classes_repo: BaseManageableRepository,
-        annotation_class_name: str,
-    ):
-        super().__init__()
-        self._annotation_classes_repo = annotation_classes_repo
-        self._annotation_class_name = annotation_class_name
-
-    def execute(self):
-        classes = self._annotation_classes_repo.get_all(
-            condition=Condition("name", self._annotation_class_name, EQ)
-        )
-        self._response.data = classes[0]
-        return self._response
-
-
-class UploadFileToS3UseCase(BaseUseCase):
-    def __init__(self, to_s3_bucket, path, s3_key: str):
-        super().__init__()
-        self._to_s3_bucket = to_s3_bucket
-        self._path = path
-        self._s3_key = s3_key
-
-    def execute(self):
-        self._to_s3_bucket.upload_file(str(self._path), self._s3_key)
 
 
 class ExtractFramesUseCase(BaseInteractiveUseCase):

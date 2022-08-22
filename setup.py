@@ -12,23 +12,15 @@ def get_version():
 
 sdk_version = get_version()
 
-
-requirements_path = "requirements_{}.txt".format('dev' if 'dev' in sdk_version else 'prod')
-
 requirements = []
 
 with open("requirements.txt") as f:
     requirements.extend(f.read().splitlines())
 
-with open(requirements_path) as f:
-    requirements.extend(f.read().splitlines())
-
-
 with open('README.md') as f:
     readme = f.read()
 
 readme = "\n".join(readme.split('\n')[2:])
-
 
 setup(
     name='superannotate',
