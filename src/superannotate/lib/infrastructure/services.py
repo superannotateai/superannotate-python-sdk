@@ -1390,6 +1390,7 @@ class SuperannotateBackendService(BaseBackendService):
                     filename=key,
                     content_type="application/json",
                 )
+
             _response = await session.post(
                 url,
                 params={
