@@ -6,7 +6,6 @@ import json
 import os
 import platform
 import re
-import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -81,6 +80,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         path: str
         data: io.StringIO = None
         mask: io.BytesIO = None
+        size: int = None
 
     def __init__(
         self,
@@ -348,20 +348,23 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 self.reporter.log_debug(str(e))
                 self._report.failed_annotations.extend([i.name for i in _chunk])
 
+        _size = 0
         while True:
             item = await self._small_files_queue.get()
             self._small_files_queue.task_done()
             if not item:
                 self._small_files_queue.put_nowait(None)
                 break
-            chunk.append(item)
             if (
-                sys.getsizeof(chunk) >= self.CHUNK_SIZE_MB
+                _size + item.size >= self.CHUNK_SIZE_MB
                 or sum([len(i.name) for i in chunk])
-                >= self.URI_THRESHOLD - len(chunk) * 14
+                >= self.URI_THRESHOLD - (len(chunk) + 1) * 14
             ):
                 await upload(chunk)
                 chunk = []
+                _size = 0
+            chunk.append(item)
+            _size += item.size
         if chunk:
             await upload(chunk)
 
@@ -411,6 +414,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                         annotation_file.seek(0)
                         t_item.data = annotation_file
                         t_item.mask = mask
+                        t_item.size = size
                         while True:
                             if size > BIG_FILE_THRESHOLD:
                                 if self._big_files_queue.qsize() > 32:
