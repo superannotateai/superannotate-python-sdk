@@ -18,7 +18,7 @@ from typing import Union
 from urllib.parse import urljoin
 
 import aiohttp
-import lib.core as constance
+import lib.core as constants
 import requests.packages.urllib3
 from lib.core import entities
 from lib.core.entities import BaseItemEntity
@@ -81,7 +81,7 @@ class BaseBackendService(SuperannotateServiceProvider):
 
     @property
     def assets_provider_url(self):
-        if self.api_url != constance.BACKEND_URL:
+        if self.api_url != constants.BACKEND_URL:
             return "https://assets-provider.devsuperannotate.com/api/v1.01/"
         return "https://assets-provider.superannotate.com/api/v1.01/"
 
@@ -655,7 +655,7 @@ class SuperannotateBackendService(BaseBackendService):
         prepare_export_url = urljoin(self.api_url, self.URL_PREPARE_EXPORT)
 
         annotation_statuses = ",".join(
-            [str(constance.AnnotationStatus.get_value(i)) for i in annotation_statuses]
+            [str(constants.AnnotationStatus.get_value(i)) for i in annotation_statuses]
         )
 
         data = {
