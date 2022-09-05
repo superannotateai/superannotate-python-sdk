@@ -234,10 +234,8 @@ class TestFolders(BaseTestCase):
             project, self.folder_path, annotation_status="Completed"
         )
         project_metadata = sa.get_project_metadata(self.PROJECT_NAME, include_complete_image_count=True)
-        self.assertEqual(project_metadata['completed_images_count'], 8)
-        self.assertEqual(project_metadata['root_folder_completed_images_count'], 4)
-
-
+        self.assertEqual(project_metadata['completedImagesCount'], 8)
+        self.assertEqual(project_metadata['rootFolderCompletedImagesCount'], 4)
 
     def test_folder_misnamed(self):
 

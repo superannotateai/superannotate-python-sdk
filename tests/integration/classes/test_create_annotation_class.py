@@ -107,6 +107,30 @@ class TestCreateAnnotationClass(BaseTestCase):
                                   '"classes[0].attribute_groups[1].attributes" is required.\n' \
                                   '"classes[0].attribute_groups[2].default_value" must be a string'
 
+    def test_create_annotation_classes_with_empty_default_attribute(self):
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME,
+            classes_json=[
+                {
+                    "name": "Personal vehicle",
+                    "color": "#ecb65f",
+                    "count": 25,
+                    "createdAt": "2020-10-12T11:35:20.000Z",
+                    "updatedAt": "2020-10-12T11:48:19.000Z",
+                    "attribute_groups": [
+                        {
+                            "name": "test",
+                            "group_type": "radio",
+                            "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                        }
+                    ]
+                }
+            ]
+        )
+        classes = sa.search_annotation_classes(self.PROJECT_NAME)
+        assert classes[0]['attribute_groups'][0]["default_value"] is None
+        assert "is_multiselect" not in classes[0]['attribute_groups'][0]
+
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
     PROJECT_NAME = "TestCreateAnnotationClassNonVectorWithError"

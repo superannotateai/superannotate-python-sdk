@@ -57,6 +57,9 @@ class BaseTitledEnum(int, Enum):
     def __eq__(self, other):
         return super().__eq__(other)
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 class AnnotationTypes(str, Enum):
     BBOX = "bbox"

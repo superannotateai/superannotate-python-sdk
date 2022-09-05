@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from typing import Any
 from typing import Iterable
@@ -5,18 +6,18 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from lib.core.entities.base import BaseModel
+from lib.core.entities.base import TimedBaseModel
+from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.enums import BaseTitledEnum
+from lib.core.enums import ProjectStatus
+from lib.core.enums import ProjectType
 from pydantic import Extra
 from pydantic import Field
 from pydantic import StrictBool
 from pydantic import StrictFloat
 from pydantic import StrictInt
 from pydantic import StrictStr
-
-from lib.core.enums import ProjectType
-from lib.core.enums import ProjectStatus
-from lib.core.entities.base import BaseModel
-from lib.core.entities.base import TimedBaseModel
-from lib.core.entities.classes import AnnotationClassEntity
 
 
 class AttachmentEntity(BaseModel):
@@ -33,7 +34,7 @@ class WorkflowEntity(BaseModel):
     class_id: Optional[int]
     step: Optional[int]
     tool: Optional[int]
-    attribute: Iterable = tuple(),
+    attribute: Iterable = (tuple(),)
 
     def __copy__(self):
         return WorkflowEntity(step=self.step, tool=self.tool, attribute=self.attribute)
@@ -68,16 +69,23 @@ class ProjectEntity(TimedBaseModel):
     upload_state: Optional[int]
     users: Optional[List[Any]] = []
     unverified_users: Optional[List[Any]] = []
-    contributors: Optional[List[Any]] = []
-    settings: Optional[List[SettingEntity]] = []
-    classes: Optional[List[AnnotationClassEntity]] = []
+    contributors: List[Any] = []
+    settings: List[SettingEntity] = []
+    classes: List[AnnotationClassEntity] = []
     workflows: Optional[List[WorkflowEntity]] = []
-    completedImagesCount: Optional[int]
-    rootFolderCompletedImagesCount: Optional[int]
+    completed_images_count: Optional[int] = Field(None, alias="completedImagesCount")
+    root_folder_completed_images_count: Optional[int] = Field(
+        None, alias="rootFolderCompletedImagesCount"
+    )
 
     class Config:
         extra = Extra.ignore
         use_enum_names = True
+        json_encoders = {
+            BaseTitledEnum: lambda v: v.value,
+            datetime.date: lambda v: v.isoformat(),
+            datetime.datetime: lambda v: v.isoformat(),
+        }
 
     def __copy__(self):
         return ProjectEntity(

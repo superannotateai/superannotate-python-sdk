@@ -118,7 +118,7 @@ class ProjectSerializer(BaseSerializer):
     def serialize(
         self,
         fields: List[str] = None,
-        by_alias: bool = False,
+        by_alias: bool = True,
         flat: bool = False,
         exclude: Set[str] = None,
     ):
@@ -130,11 +130,9 @@ class ProjectSerializer(BaseSerializer):
             data["settings"] = [
                 SettingsSerializer(setting).serialize() for setting in data["settings"]
             ]
-        data["type"] = constance.ProjectType.get_name(data["type"])
-        if data.get("status"):
-            data["status"] = constance.ProjectStatus.get_name(data["status"])
-        else:
+        if not data.get("status"):
             data["status"] = "Undefined"
+
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
         if data.get("users"):
@@ -152,18 +150,14 @@ class FolderSerializer(BaseSerializer):
         return data
 
 
-class SettingsSerializer(BaseSerializer):
-    def serialize(
-        self,
-        fields: List[str] = None,
-        by_alias: bool = True,
-        flat: bool = False,
-        exclude=None,
-    ):
-        data = super().serialize(fields, by_alias, flat, exclude)
-        if data["attribute"] == "ImageQuality":
-            data["value"] = constance.ImageQuality.get_name(data["value"])
-        return data
+class SettingsSerializer:
+    def __init__(self, data: dict):
+        self.data = data
+
+    def serialize(self):
+        if self.data["attribute"] == "ImageQuality":
+            self.data["value"] = constance.ImageQuality.get_name(self.data["value"])
+        return self.data
 
 
 class EntitySerializer:

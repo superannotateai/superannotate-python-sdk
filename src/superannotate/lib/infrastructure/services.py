@@ -22,6 +22,7 @@ import lib.core as constance
 import requests.packages.urllib3
 from lib.core import entities
 from lib.core.entities import BaseItemEntity
+from lib.core.entities import ProjectEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
@@ -45,9 +46,7 @@ requests.packages.urllib3.disable_warnings()
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, BaseModel):
-            return obj.dict(exclude_none=getattr(obj.Config, "exclude_none", False))
-        if isinstance(obj, (datetime.date, datetime.datetime)):
-            return obj.isoformat()
+            return json.loads(obj.json(exclude_unset=True, exclude_none=True))
         return json.JSONEncoder.default(self, obj)
 
 
@@ -412,8 +411,8 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(url, "delete")
         return res.ok
 
-    def update_project(self, data: dict, query_string: str = None) -> dict:
-        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data["id"]))
+    def update_project(self, data: ProjectEntity, query_string: str = None) -> dict:
+        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data.id))
         if query_string:
             url = f"{url}?{query_string}"
         res = self._request(url, "put", data)
@@ -555,7 +554,9 @@ class SuperannotateBackendService(BaseBackendService):
             annotation_class_url,
             "post",
             params=params,
-            data={"classes": data},
+            data={
+                "classes": [i.dict(exclude_none=True, exclude_unset=True) for i in data]
+            },
             content_type=List[AnnotationClassEntity],
         )
 

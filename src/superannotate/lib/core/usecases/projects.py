@@ -131,7 +131,6 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
         )
 
     def execute(self):
-        data = {}
         project = self._projects.get_one(
             uuid=self._project.id, team_id=self._project.team_id
         )
@@ -146,8 +145,8 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
                 if i["is_root"]:
                     root_completed_count = i["completedCount"]
 
-            project.rootFolderCompletedImagesCount = root_completed_count
-            project.completedImagesCount = total_completed_count
+            project.root_folder_completed_images_count = root_completed_count
+            project.completed_images_count = total_completed_count
 
         if self._include_annotation_classes:
             project.classes = self.annotation_classes_use_case.execute().data

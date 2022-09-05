@@ -176,7 +176,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
                 team_id=self._project.team_id,
-                project_type=self._project.type,
+                project_type=self._project.type.value,
                 annotation=annotation,
                 backend_service_provider=self._backend_service,
             )
@@ -617,7 +617,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         use_case = ValidateAnnotationUseCase(
             reporter=self.reporter,
             team_id=self._project.team_id,
-            project_type=self._project.type,
+            project_type=self._project.type.value,
             annotation=json_data,
             backend_service_provider=self._backend_service,
         )
@@ -1033,10 +1033,7 @@ class DownloadAnnotations(BaseReportableUseCase):
             classes_path.mkdir(parents=True, exist_ok=True)
             with open(classes_path / "classes.json", "w+") as file:
                 json.dump(
-                    [
-                        i.dict(exclude_unset=True, by_alias=True, fill_enum_values=True)
-                        for i in response.data
-                    ],
+                    [i.dict(exclude_unset=True, by_alias=True) for i in response.data],
                     file,
                     indent=4,
                 )
