@@ -517,17 +517,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_workflow,
             include_contributors,
             include_complete_image_count,
-        ).data
+        )
+        if response.errors:
+            raise AppException(response.errors)
 
-        metadata = ProjectSerializer(response["project"]).serialize()
-
-        for elem in "classes", "workflows", "contributors":
-            if response.get(elem):
-                metadata[elem] = [
-                    BaseSerializer(attribute).serialize()
-                    for attribute in response[elem]
-                ]
-        return metadata
+        return response.data.dict()
+        # metadata = ProjectSerializer(response["project"]).serialize()
+        #
+        # for elem in "classes", "workflows", "contributors":
+        #     if response.get(elem):
+        #         metadata[elem] = [
+        #             BaseSerializer(attribute).serialize()
+        #             for attribute in response[elem]
+        #         ]
+        # return metadata
 
     def get_project_settings(self, project: Union[NotEmptyStr, dict]):
         """Gets project's settings.

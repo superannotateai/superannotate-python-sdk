@@ -135,7 +135,6 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
         project = self._projects.get_one(
             uuid=self._project.id, team_id=self._project.team_id
         )
-        data["project"] = project
         if self._include_complete_image_count:
             completed_images_data = self._service.bulk_get_folders(
                 self._project.team_id, [project.id]
@@ -147,24 +146,24 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
                 if i["is_root"]:
                     root_completed_count = i["completedCount"]
 
-            project.root_folder_completed_images_count = root_completed_count
-            project.completed_images_count = total_completed_count
+            project.rootFolderCompletedImagesCount = root_completed_count
+            project.completedImagesCount = total_completed_count
 
         if self._include_annotation_classes:
-            data["classes"] = self.annotation_classes_use_case.execute().data
+            project.classes = self.annotation_classes_use_case.execute().data
 
         if self._include_settings:
-            data["project"].settings = self.settings_use_case.execute().data
+            project.settings = self.settings_use_case.execute().data
 
         if self._include_workflow:
-            data["workflows"] = self.work_flow_use_case.execute().data
+            project.workflows = self.work_flow_use_case.execute().data
 
         if self._include_contributors:
-            data["contributors"] = project.users
+            project.contributors = project.users
         else:
             project.users = []
 
-        self._response.data = data
+        self._response.data = project
         return self._response
 
 
