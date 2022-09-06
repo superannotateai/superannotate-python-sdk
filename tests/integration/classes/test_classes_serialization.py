@@ -39,14 +39,14 @@ class TestClassesSerializers(TestCase):
         annotation_class = AnnotationClassEntity(name="asd", color="blue",
                                                  attribute_groups=[AttributeGroup(name="sad")])
         serializer_data = json.loads(json.dumps(annotation_class, cls=PydanticEncoder))
-        assert {'name': 'asd', 'color': '#0000FF', 'attribute_groups': [{'name': 'sad'}]} == serializer_data
+        assert {'type': 1, 'name': 'asd', 'color': '#0000FF', 'attribute_groups': [{'name': 'sad'}]} == serializer_data
 
     def test_empty_multiselect_bool_serializer(self):
         annotation_class = AnnotationClassEntity(
             name="asd", color="blue", attribute_groups=[AttributeGroup(name="sad", is_multiselect="True")]
         )
         serializer_data = json.loads(json.dumps(annotation_class, cls=PydanticEncoder))
-        assert {'name': 'asd', 'color': '#0000FF',
+        assert {'type': 1,'name': 'asd', 'color': '#0000FF',
                 'attribute_groups': [{'name': 'sad', 'is_multiselect': True}]} == serializer_data
 
     def test_group_type_wrong_arg(self):

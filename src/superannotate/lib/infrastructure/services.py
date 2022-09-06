@@ -46,7 +46,7 @@ requests.packages.urllib3.disable_warnings()
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, BaseModel):
-            return json.loads(obj.json(exclude_unset=True, exclude_none=True))
+            return json.loads(obj.json(exclude_none=True))
         return json.JSONEncoder.default(self, obj)
 
 
@@ -555,7 +555,8 @@ class SuperannotateBackendService(BaseBackendService):
             "post",
             params=params,
             data={
-                "classes": [i.dict(exclude_none=True, exclude_unset=True) for i in data]
+                # "classes": [json.loads(i.json(exclude_none=True, exclude_unset=True)) for i in data]
+                "classes": data
             },
             content_type=List[AnnotationClassEntity],
         )
