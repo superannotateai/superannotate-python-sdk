@@ -1091,34 +1091,20 @@ class DownloadAnnotations(BaseReportableUseCase):
         postfix = self.get_postfix()
         while item is not None:
             item = await cur_queue.get()
-            if not item:
-                await self._backend_client.download_small_annotations(
-                        team_id=self._project.team_id,
-                        project_id=self._project.id,
-                        folder_id=self._folder.uuid,
-                        items=items,
-                        reporter=self.reporter,
-                        download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-                        postfix=postfix,
-                        callback=self._callback,
-                    )
-                await cur_queue.put(None)
-                break
+            if item:
+                items.append(item)
 
-            items.append(item)
-            if len(items) == max_chunk_size:
-                await self._backend_client.download_small_annotations(
-                        team_id=self._project.team_id,
-                        project_id=self._project.id,
-                        folder_id=self._folder.uuid,
-                        items=items,
-                        reporter=self.reporter,
-                        download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-                        postfix=postfix,
-                        callback=self._callback,
-                    )
-                items = []
 
+        await self._backend_client.download_small_annotations(
+                team_id=self._project.team_id,
+                project_id=self._project.id,
+                folder_id=self._folder.uuid,
+                items=items,
+                reporter=self.reporter,
+                download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
+                postfix=postfix,
+                callback=self._callback,
+            )
 
     async def distribute_to_queues(self, item_names, sm_queue_id, l_queue_id, folder_id):
 
@@ -1212,11 +1198,11 @@ class DownloadAnnotations(BaseReportableUseCase):
                     new_export_path = export_path
                     if folder.name != 'root':
                         new_export_path +=  f'/{folder.name}'
-                    executor.submit(self.per_folder_execute, item_names, folder.uuid, new_export_path)
+                    future = executor.submit(self.per_folder_execute, item_names, folder.uuid, new_export_path)
+                    futures.append(future)
 
-
-                    for future in concurrent.futures.as_completed(futures):
-                        print("asd")
+                for future in concurrent.futures.as_completed(futures):
+                    pass
 
 
             self.reporter.stop_spinner()
