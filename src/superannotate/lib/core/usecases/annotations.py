@@ -963,6 +963,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
                 self.reporter.warning_messages("Empty scores.")
         return self._response
 
+
 class DownloadAnnotations(BaseReportableUseCase):
     def __init__(
         self,
@@ -1056,75 +1057,70 @@ class DownloadAnnotations(BaseReportableUseCase):
         loop.close()
         return count
 
-    async def _download_big_annotation(self, item, export_path):
+    async def _download_big_annotation(self, item, export_path, folder_id):
         postfix = self.get_postfix()
-        response = await self._backend_client.download_big_annotation(
-            item = item,
+        await self._backend_client.download_big_annotation(
+            item=item,
             team_id=self._project.team_id,
             project_id=self._project.id,
-            folder_id=self._folder.uuid,
+            folder_id=folder_id,
             reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
             postfix=postfix,
             callback=self._callback,
         )
 
-        return
-
-    async def download_big_annotations(self, queue_idx, export_path):
+    async def download_big_annotations(self, queue_idx, export_path, folder_id):
         while True:
             cur_queue = self._big_file_queues[queue_idx]
             item = await cur_queue.get()
             cur_queue.task_done()
             if item:
-                await self._download_big_annotation(item, export_path)
+                await self._download_big_annotation(item, export_path, folder_id)
             else:
                 cur_queue.put_nowait(None)
                 break
 
-    async def download_small_annotations(self, queue_idx, export_path):
-        max_chunk_size = 50000
-
+    async def download_small_annotations(self, queue_idx, export_path, folder_id):
         cur_queue = self._small_file_queues[queue_idx]
 
         items = []
-        i = 0
         item = ""
-
         postfix = self.get_postfix()
         while item is not None:
             item = await cur_queue.get()
             if item:
                 items.append(item)
-
-
         await self._backend_client.download_small_annotations(
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                folder_id=self._folder.uuid,
-                items=items,
-                reporter=self.reporter,
-                download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-                postfix=postfix,
-                callback=self._callback,
+            team_id=self._project.team_id,
+            project_id=self._project.id,
+            folder_id=folder_id,
+            items=items,
+            reporter=self.reporter,
+            download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
+            postfix=postfix,
+            callback=self._callback,
+        )
+
+    async def distribute_to_queues(
+        self, item_names, sm_queue_id, l_queue_id, folder_id
+    ):
+        try:
+            team_id = self._project.team_id
+            project_id = self._project.id
+
+            resp = self._backend_client.sort_items_by_size(
+                item_names, team_id, project_id, folder_id
             )
 
-    async def distribute_to_queues(self, item_names, sm_queue_id, l_queue_id, folder_id):
+            for item in resp["large"]:
+                await self._big_file_queues[l_queue_id].put(item)
 
-        team_id=self._project.team_id
-        project_id=self._project.id
-
-        resp = self._backend_client.sort_items_by_size(item_names, team_id, project_id, folder_id)
-
-        for item in resp['large']:
-            await self._big_file_queues[l_queue_id].put(item)
-
-        for item in resp['small']:
-            await self._small_file_queues[sm_queue_id].put(item['name'])
-
-
-        await self._big_file_queues[l_queue_id].put(None)
-        await self._small_file_queues[sm_queue_id].put(None)
+            for item in resp["small"]:
+                await self._small_file_queues[sm_queue_id].put(item["name"])
+        finally:
+            await self._big_file_queues[l_queue_id].put(None)
+            await self._small_file_queues[sm_queue_id].put(None)
 
     async def run_workers(self, item_names, folder_id, export_path):
         try:
@@ -1132,19 +1128,28 @@ class DownloadAnnotations(BaseReportableUseCase):
             self._small_file_queues.append(asyncio.Queue())
             small_file_queue_idx = len(self._small_file_queues) - 1
             big_file_queue_idx = len(self._big_file_queues) - 1
-
             res = await asyncio.gather(
-                self.distribute_to_queues(item_names, small_file_queue_idx, big_file_queue_idx, folder_id),
-                self.download_big_annotations(big_file_queue_idx, export_path),
-                self.download_big_annotations(big_file_queue_idx, export_path),
-                self.download_big_annotations(big_file_queue_idx, export_path),
-                self.download_small_annotations(small_file_queue_idx, export_path),
-                return_exceptions=True
+                self.distribute_to_queues(
+                    item_names, small_file_queue_idx, big_file_queue_idx, folder_id
+                ),
+                self.download_big_annotations(
+                    big_file_queue_idx, export_path, folder_id
+                ),
+                self.download_big_annotations(
+                    big_file_queue_idx, export_path, folder_id
+                ),
+                self.download_big_annotations(
+                    big_file_queue_idx, export_path, folder_id
+                ),
+                self.download_small_annotations(
+                    small_file_queue_idx, export_path, folder_id
+                ),
+                return_exceptions=True,
             )
-
+            if any(res):
+                self.reporter.log_error(f"Error {str([i for i in res if i])}")
         except Exception as e:
             self.reporter.log_error(f"Error {str(e)}")
-
 
     def per_folder_execute(self, item_names, folder_id, export_path):
         asyncio.run(self.run_workers(item_names, folder_id, export_path))
@@ -1170,23 +1175,11 @@ class DownloadAnnotations(BaseReportableUseCase):
                     & Condition("project_id", self._project.id, EQ),
                 )
                 folders.append(self._folder)
-            postfix = self.get_postfix()
-
-            import nest_asyncio
-            import platform
-
-            if platform.system().lower() == "windows":
-                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-            nest_asyncio.apply()
 
             if not folders:
                 folders.append(self._folder)
-
-
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                 futures = []
-
                 for folder in folders:
                     if not self._item_names:
                         condition = (
@@ -1194,19 +1187,29 @@ class DownloadAnnotations(BaseReportableUseCase):
                             & Condition("project_id", self._project.id, EQ)
                             & Condition("folder_id", folder.uuid, EQ)
                         )
-                        item_names = [item.name for item in self._images.get_all(condition)]
+                        item_names = [
+                            item.name for item in self._images.get_all(condition)
+                        ]
                     else:
                         item_names = self._item_names
 
                     new_export_path = export_path
-                    if folder.name != 'root':
-                        new_export_path +=  f'/{folder.name}'
-                    future = executor.submit(self.per_folder_execute, item_names, folder.uuid, new_export_path)
+                    if folder.name != "root":
+                        new_export_path += f"/{folder.name}"
+
+                    # TODO check
+                    if not item_names:
+                        continue
+                    future = executor.submit(
+                        self.per_folder_execute,
+                        item_names,
+                        folder.uuid,
+                        new_export_path,
+                    )
                     futures.append(future)
 
                 for future in concurrent.futures.as_completed(futures):
-                    pass
-
+                    print(future.result())
 
             self.reporter.stop_spinner()
             count = self.get_items_count(export_path)

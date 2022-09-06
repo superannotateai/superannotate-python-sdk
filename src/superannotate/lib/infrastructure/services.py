@@ -8,6 +8,7 @@ import threading
 import time
 from contextlib import contextmanager
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -15,7 +16,6 @@ from typing import Iterable
 from typing import List
 from typing import Tuple
 from typing import Union
-from pathlib import Path
 from urllib.parse import urljoin
 
 import aiohttp
@@ -57,7 +57,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     PAGINATE_BY = 100
     LIMIT = 100
     MAX_ITEMS_COUNT = 50 * 1000
-    ASSETS_PROVIDER_VERSION = 'v2'
+    ASSETS_PROVIDER_VERSION = "v2"
 
     """
     Base service class
@@ -81,15 +81,11 @@ class BaseBackendService(SuperannotateServiceProvider):
         self._testing = testing
         self.get_session()
 
-
     @property
     def assets_provider_url(self):
         if self.api_url != constants.BACKEND_URL:
             return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
         return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
-
-
-
 
     @lru_cache(maxsize=32)
     def _get_session(self, thread_id, ttl=None):  # noqa
@@ -1163,68 +1159,65 @@ class SuperannotateBackendService(BaseBackendService):
         download_path: str,
         postfix: str,
         item: int,
-        callback: Callable = None
+        callback: Callable = None,
     ):
-        item_id = item['id']
-        item_name = item['name']
+        item_id = item["id"]
+        item_name = item["name"]
         query_params = {
-            "team_id" : team_id,
+            "team_id": team_id,
             "project_id": project_id,
             "annotation_type": "MAIN",
-            "version":"V1.00"
+            "version": "V1.00",
         }
 
-        url = urljoin(self.assets_provider_url, self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id))
+        url = urljoin(
+            self.assets_provider_url,
+            self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id),
+        )
 
         sync_params = {
             "team_id": team_id,
             "project_id": project_id,
             "desired_transform_version": "export",
-            "desired_version":"V1.00",
+            "desired_version": "V1.00",
             "current_transform_version": "V1.00",
-            "current_source":"main",
-            "desired_source":"secondary"
+            "current_source": "main",
+            "desired_source": "secondary",
         }
 
-        sync_url = urljoin(self.assets_provider_url, self.URL_SYNC_LARGE_ANNOTATION.format(item_id=item_id))
-
-        res = self._request(
-            url = sync_url,
-            params = sync_params,
-            method="POST"
+        sync_url = urljoin(
+            self.assets_provider_url,
+            self.URL_SYNC_LARGE_ANNOTATION.format(item_id=item_id),
         )
 
-        sync_params.pop('current_source')
-        sync_params.pop('desired_source')
+        res = self._request(url=sync_url, params=sync_params, method="POST")
 
+        sync_params.pop("current_source")
+        sync_params.pop("desired_source")
 
         synced = False
 
-        sync_status_url = urljoin(self.assets_provider_url, self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id=item_id))
-        while synced != 'SUCCESS':
+        sync_status_url = urljoin(
+            self.assets_provider_url,
+            self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id=item_id),
+        )
+        while synced != "SUCCESS":
             synced = self._request(
-                url = sync_status_url,
-                params = sync_params,
-                method = "GET"
-            ).json()['status']
+                url=sync_status_url, params=sync_params, method="GET"
+            ).json()["status"]
             await asyncio.sleep(1)
 
-
         async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=False), headers = self.default_headers,
+            connector=aiohttp.TCPConnector(ssl=False),
+            headers=self.default_headers,
         ) as session:
-
-            start_response = await session.post(
-                url,
-                params = query_params
-            )
+            start_response = await session.post(url, params=query_params)
             res = await start_response.json()
             Path(download_path).mkdir(exist_ok=True, parents=True)
 
             dest_path = Path(download_path) / (item_name + postfix)
-            with open(dest_path, 'w') as fp:
+            with open(dest_path, "w") as fp:
                 json.dump(res, fp)
-
 
     async def download_small_annotations(
         self,
@@ -1243,7 +1236,6 @@ class SuperannotateBackendService(BaseBackendService):
             "project_id": project_id,
             "folder_id": folder_id,
         }
-
         handler = StreamedAnnotations(
             headers=self.default_headers,
             reporter=reporter,
@@ -1594,20 +1586,10 @@ class SuperannotateBackendService(BaseBackendService):
             "folder_id": folder_id,
         }
 
-        url = urljoin(
-            self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE
-        )
+        url = urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE)
 
-        body = {
-            "item_names": item_names,
-            "folder_id": folder_id
-        }
-
-
-        return self._request(
-            url = url,
-            method = "POST",
-            params = query_params,
-            data = body
-        ).json()
-
+        body = {"item_names": item_names, "folder_id": folder_id}
+        response = self._request(url=url, method="POST", params=query_params, data=body)
+        if not response.ok:
+            raise AppException(response.json().get("errors", "Undefined"))
+        return response.json()
