@@ -739,7 +739,7 @@ class Controller(BaseController):
     ):
         project_entity = self.get_project_metadata(
             project_name, include_contributors=True
-        ).data["project"]
+        ).data
         folder = self._get_folder(project_entity, folder_name)
         use_case = usecases.AssignItemsUseCase(
             project=project_entity,
@@ -1206,7 +1206,7 @@ class Controller(BaseController):
         use_case = usecases.AddContributorsToProject(
             reporter=self.get_default_reporter(),
             team=self.team,
-            project=project.data["project"],
+            project=project.data,
             emails=emails,
             role=role,
             service=self.backend_client,

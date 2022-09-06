@@ -33,7 +33,6 @@ class TestClassesSerializers(TestCase):
             data_json = json.load(file)
             classes = parse_obj_as(List[AnnotationClassEntity], data_json)
             serializer_data = json.loads(json.dumps(classes, cls=PydanticEncoder))
-            print(serializer_data)
             assert all([isinstance(i.get("type"), int) for i in serializer_data])
 
     def test_empty_multiselect_excluded(self):
@@ -47,7 +46,7 @@ class TestClassesSerializers(TestCase):
             name="asd", color="blue", attribute_groups=[AttributeGroup(name="sad", is_multiselect="True")]
         )
         serializer_data = json.loads(json.dumps(annotation_class, cls=PydanticEncoder))
-        assert {'type': 1, 'name': 'asd', 'color': '#0000FF',
+        assert {'type': 1,'name': 'asd', 'color': '#0000FF',
                 'attribute_groups': [{'name': 'sad', 'is_multiselect': True}]} == serializer_data
 
     def test_group_type_wrong_arg(self):
