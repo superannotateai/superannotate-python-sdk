@@ -29,6 +29,7 @@ try:
     from pydantic import MappingIntStrAny  # noqa
 except ImportError:
     pass
+_missing = object()
 
 
 class BaseModel(PydanticBaseModel):
@@ -36,6 +37,70 @@ class BaseModel(PydanticBaseModel):
     Added new extra keys
     - use_enum_names: that's for BaseTitledEnum to use names instead of enum objects
     """
+
+    def _iter(
+        self,
+        to_dict: bool = False,
+        by_alias: bool = False,
+        include: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
+        exclude: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+    ) -> "TupleGenerator":  # noqa
+
+        # Merge field set excludes with explicit exclude parameter with explicit overriding field set options.
+        # The extra "is not None" guards are not logically necessary but optimizes performance for the simple case.
+        if exclude is not None or self.__exclude_fields__ is not None:
+            exclude = ValueItems.merge(self.__exclude_fields__, exclude)
+
+        if include is not None or self.__include_fields__ is not None:
+            include = ValueItems.merge(self.__include_fields__, include, intersect=True)
+
+        allowed_keys = self._calculate_keys(
+            include=include, exclude=exclude, exclude_unset=exclude_unset  # type: ignore
+        )
+        if allowed_keys is None and not (
+            by_alias or exclude_unset or exclude_defaults or exclude_none
+        ):
+            # huge boost for plain _iter()
+            yield from self.__dict__.items()
+            return
+
+        value_exclude = ValueItems(self, exclude) if exclude is not None else None
+        value_include = ValueItems(self, include) if include is not None else None
+
+        for field_key, v in self.__dict__.items():
+            if (allowed_keys is not None and field_key not in allowed_keys) or (
+                exclude_none and v is None
+            ):
+                continue
+
+            if exclude_defaults:
+                model_field = self.__fields__.get(field_key)
+                if (
+                    not getattr(model_field, "required", True)
+                    and getattr(model_field, "default", _missing) == v
+                ):
+                    continue
+
+            if by_alias and field_key in self.__fields__:
+                dict_key = self.__fields__[field_key].alias
+            else:
+                dict_key = field_key
+
+            # if to_dict or value_include or value_exclude:
+            v = self._get_value(
+                v,
+                to_dict=to_dict,
+                by_alias=by_alias,
+                include=value_include and value_include.for_element(field_key),
+                exclude=value_exclude and value_exclude.for_element(field_key),
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            )
+            yield dict_key, v
 
     @classmethod
     @no_type_check

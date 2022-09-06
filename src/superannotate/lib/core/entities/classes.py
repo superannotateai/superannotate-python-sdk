@@ -102,5 +102,4 @@ class AnnotationClassEntity(TimedBaseModel):
             BaseTitledEnum: lambda v: v.value,
         }
         validate_assignment = True
-        # exclude_none = True
         use_enum_names = True

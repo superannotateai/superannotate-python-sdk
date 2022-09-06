@@ -1145,7 +1145,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     DEFAULT_VERSION = "V1.00"
     SCHEMAS: Dict[str, Draft7Validator] = {}
     PATTERN_MAP = {
-        "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "YYYY-MM-DDTHH:MM:SS.fffZ"
+        "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "does not match YYYY-MM-DDTHH:MM:SS.fffZ",
+        "^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$": "invalid email",
     }
 
     def __init__(
@@ -1228,7 +1229,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     def _pattern(validator, patrn, instance, schema):
         if validator.is_type(instance, "string") and not re.search(patrn, instance):
             yield ValidationError(
-                f"{instance} does not match {ValidateAnnotationUseCase.PATTERN_MAP.get(patrn, patrn)}"
+                f"{instance}  {ValidateAnnotationUseCase.PATTERN_MAP.get(patrn, patrn)}"
             )
 
     @staticmethod
