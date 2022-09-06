@@ -57,6 +57,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     PAGINATE_BY = 100
     LIMIT = 100
     MAX_ITEMS_COUNT = 50 * 1000
+    ASSETS_PROVIDER_VERSION = 'v2'
 
     """
     Base service class
@@ -80,12 +81,14 @@ class BaseBackendService(SuperannotateServiceProvider):
         self._testing = testing
         self.get_session()
 
-    def get_assets_provider_url(self, version = 'v2'):
-        if self.api_url != constants.BACKEND_URL:
-            return f"https://assets-provider.devsuperannotate.com/api/{version}/"
-        return f"https://assets-provider.superannotate.com/api/{version}/"
 
-    assets_provider_url = property(get_assets_provider_url)
+    @property
+    def assets_provider_url(self):
+        if self.api_url != constants.BACKEND_URL:
+            return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
+        return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
+
+
 
 
     @lru_cache(maxsize=32)
@@ -315,8 +318,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_START_FILE_SYNC = "items/{item_id}/annotations/sync"
     URL_START_FILE_SYNC_STATUS = "items/{item_id}/annotations/sync/status"
     URL_CLASSIFY_ITEM_SIZE = "items/annotations/download/method"
-    URL_SYNC_LARGE_ANNOTATION = "items/{}/annotations/sync"
-    URL_SYNC_LARGE_ANNOTATION_STATUS = "items/{}/annotations/sync/status"
+    URL_SYNC_LARGE_ANNOTATION = "items/{item_id}/annotations/sync"
+    URL_SYNC_LARGE_ANNOTATION_STATUS = "items/{item_id}/annotations/sync/status"
+    URL_DOWNLOAD_LARGE_ANNOTATION = "items/{item_id}/annotations/download"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -1170,7 +1174,7 @@ class SuperannotateBackendService(BaseBackendService):
             "version":"V1.00"
         }
 
-        url = urljoin(self.get_assets_provider_url('v1.01'), f'items/{item_id}/annotations/download')
+        url = urljoin(self.assets_provider_url, self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id))
 
         sync_params = {
             "team_id": team_id,
@@ -1182,7 +1186,7 @@ class SuperannotateBackendService(BaseBackendService):
             "desired_source":"secondary"
         }
 
-        sync_url = urljoin(self.get_assets_provider_url('v2'), self.URL_SYNC_LARGE_ANNOTATION.format(item_id))
+        sync_url = urljoin(self.assets_provider_url, self.URL_SYNC_LARGE_ANNOTATION.format(item_id=item_id))
 
         res = self._request(
             url = sync_url,
@@ -1196,7 +1200,7 @@ class SuperannotateBackendService(BaseBackendService):
 
         synced = False
 
-        sync_status_url = urljoin(self.get_assets_provider_url('v2'), self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id))
+        sync_status_url = urljoin(self.assets_provider_url, self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id=item_id))
         while synced != 'SUCCESS':
             synced = self._request(
                 url = sync_status_url,
@@ -1207,7 +1211,7 @@ class SuperannotateBackendService(BaseBackendService):
 
 
         async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=False), headers = self.default_headers
+            connector=aiohttp.TCPConnector(ssl=False), headers = self.default_headers,
         ) as session:
 
             start_response = await session.post(
@@ -1247,7 +1251,6 @@ class SuperannotateBackendService(BaseBackendService):
             callback=callback,
         )
 
-        Path(download_path).mkdir(exist_ok=True, parents=True)
         return await handler.download_data(
             url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
             data=items,
@@ -1592,7 +1595,7 @@ class SuperannotateBackendService(BaseBackendService):
         }
 
         url = urljoin(
-            self.get_assets_provider_url('v2'), 'items/annotations/download/method'
+            self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE
         )
 
         body = {
