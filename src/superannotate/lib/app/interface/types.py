@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
+from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
@@ -32,7 +33,11 @@ class EnumMemberError(PydanticTypeError):
     code = "enum"
 
     def __str__(self) -> str:
-        permitted = ", ".join(str(v.name) for v in self.enum_values)  # type: ignore
+        enum_values = list(self.enum_values)  # noqa
+        if isinstance(enum_values[0], BaseTitledEnum):
+            permitted = ", ".join(str(v.name) for v in enum_values)  # type: ignore
+        else:
+            permitted = ", ".join(f"'{str(v.value)}'" for v in enum_values)  # type: ignore
         return f"Available values are: {permitted}"
 
 
