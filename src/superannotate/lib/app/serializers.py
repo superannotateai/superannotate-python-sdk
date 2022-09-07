@@ -121,8 +121,13 @@ class ProjectSerializer(BaseSerializer):
         exclude: Set[str] = None,
     ):
 
-        to_exclude = {"sync_status": True, "unverified_users": True,
-                   "classes": {"__all__": {"attribute_groups": {"__all__": {"is_multiselect"}}}}}
+        to_exclude = {
+            "sync_status": True,
+            "unverified_users": True,
+            "classes": {
+                "__all__": {"attribute_groups": {"__all__": {"is_multiselect"}}}
+            },
+        }
         if exclude:
             for field in exclude:
                 to_exclude[field] = True
