@@ -116,7 +116,7 @@ class ProjectSerializer(BaseSerializer):
     def serialize(
         self,
         fields: List[str] = None,
-        by_alias: bool = True,
+        by_alias: bool = False,
         flat: bool = False,
         exclude: Set[str] = None,
     ):

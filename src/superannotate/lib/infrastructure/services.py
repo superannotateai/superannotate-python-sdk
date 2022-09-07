@@ -19,8 +19,12 @@ from typing import Union
 from urllib.parse import urljoin
 
 import aiohttp
-import lib.core as constants
 import requests.packages.urllib3
+from pydantic import BaseModel
+from pydantic import parse_obj_as
+from requests.exceptions import HTTPError
+
+import lib.core as constants
 from lib.core import entities
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ProjectEntity
@@ -36,9 +40,6 @@ from lib.core.service_types import UploadCustomFieldValues
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
-from pydantic import BaseModel
-from pydantic import parse_obj_as
-from requests.exceptions import HTTPError
 from superannotate import __version__
 
 requests.packages.urllib3.disable_warnings()
@@ -63,13 +64,13 @@ class BaseBackendService(SuperannotateServiceProvider):
     """
 
     def __init__(
-        self,
-        api_url: str,
-        auth_token: str,
-        logger,
-        paginate_by=None,
-        verify_ssl: bool = False,
-        testing: bool = False,
+            self,
+            api_url: str,
+            auth_token: str,
+            logger,
+            paginate_by=None,
+            verify_ssl: bool = False,
+            testing: bool = False,
     ):
         self.api_url = api_url
         self._auth_token = auth_token
@@ -106,7 +107,7 @@ class BaseBackendService(SuperannotateServiceProvider):
             "authtype": self.AUTH_TYPE,
             "Content-Type": "application/json",
             "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()};"
-            f"OS: {platform.system()}; Team: {self.team_id}",
+                          f"OS: {platform.system()}; Team: {self.team_id}",
         }
 
     @property
@@ -135,16 +136,16 @@ class BaseBackendService(SuperannotateServiceProvider):
             return self.PAGINATE_BY
 
     def _request(
-        self,
-        url,
-        method="get",
-        data=None,
-        headers=None,
-        params=None,
-        retried=0,
-        content_type=None,
-        files=None,
-        dispatcher: Callable = None,
+            self,
+            url,
+            method="get",
+            data=None,
+            headers=None,
+            params=None,
+            retried=0,
+            content_type=None,
+            files=None,
+            dispatcher: Callable = None,
     ) -> Union[requests.Response, ServiceResponse]:
         kwargs = {"data": json.dumps(data, cls=PydanticEncoder)} if data else {}
         session = self.get_session()
@@ -210,12 +211,12 @@ class BaseBackendService(SuperannotateServiceProvider):
         return total
 
     def _paginate(
-        self,
-        url: str,
-        chunk_size: int = 2000,
-        content_type: Any = BaseItemEntity,
-        query_params: Dict[str, Any] = None,
-        dispatcher: Callable = None,
+            self,
+            url: str,
+            chunk_size: int = 2000,
+            content_type: Any = BaseItemEntity,
+            query_params: Dict[str, Any] = None,
+            dispatcher: Callable = None,
     ) -> ServiceResponse:
         offset = 0
         total = []
@@ -318,7 +319,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DOWNLOAD_LARGE_ANNOTATION = "items/{item_id}/annotations/download"
 
     def upload_priority_scores(
-        self, team_id: int, project_id: int, folder_id: int, priorities: list
+            self, team_id: int, project_id: int, folder_id: int, priorities: list
     ) -> dict:
         upload_priority_score_url = urljoin(
             self.api_url, self.URL_UPLOAD_PRIORITY_SCORES
@@ -352,12 +353,12 @@ class SuperannotateBackendService(BaseBackendService):
         return response.json()
 
     def get_download_token(
-        self,
-        project_id: int,
-        team_id: int,
-        folder_id: int,
-        image_id: int,
-        include_original: int = 1,
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            image_id: int,
+            include_original: int = 1,
     ):
         download_token_url = urljoin(
             self.api_url,
@@ -377,11 +378,11 @@ class SuperannotateBackendService(BaseBackendService):
         return response.json()
 
     def get_upload_token(
-        self,
-        project_id: int,
-        team_id: int,
-        folder_id: int,
-        image_id: int,
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            image_id: int,
     ):
         download_token_url = urljoin(
             self.api_url,
@@ -426,14 +427,14 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def attach_files(
-        self,
-        project_id: int,
-        folder_id: int,
-        team_id: int,
-        files: List[Dict],
-        annotation_status_code,
-        upload_state_code,
-        meta,
+            self,
+            project_id: int,
+            folder_id: int,
+            team_id: int,
+            files: List[Dict],
+            annotation_status_code,
+            upload_state_code,
+            meta,
     ):
         data = {
             "project_id": project_id,
@@ -516,7 +517,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def get_annotation_classes(
-        self, project_id: int, team_id: int, query_string: str = None
+            self, project_id: int, team_id: int, query_string: str = None
     ):
         get_annotation_classes_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
         if query_string:
@@ -525,7 +526,7 @@ class SuperannotateBackendService(BaseBackendService):
         return self._get_all_pages(get_annotation_classes_url, params=params)
 
     def list_annotation_classes(
-        self, project_id: int, team_id: int, query_string: str = None
+            self, project_id: int, team_id: int, query_string: str = None
     ):
         annotation_classes_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
         if query_string:
@@ -550,7 +551,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def create_annotation_classes(
-        self, project_id: int, team_id: int, data: List[AnnotationClassEntity]
+            self, project_id: int, team_id: int, data: List[AnnotationClassEntity]
     ):
         annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
         params = {
@@ -653,13 +654,13 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def prepare_export(
-        self,
-        project_id: int,
-        team_id: int,
-        folders: List[str],
-        annotation_statuses: Iterable[str],
-        include_fuse: bool,
-        only_pinned: bool,
+            self,
+            project_id: int,
+            team_id: int,
+            folders: List[str],
+            annotation_statuses: Iterable[str],
+            include_fuse: bool,
+            only_pinned: bool,
     ):
         prepare_export_url = urljoin(self.api_url, self.URL_PREPARE_EXPORT)
 
@@ -691,7 +692,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def invite_contributors(
-        self, team_id: int, team_role: int, emails: list
+            self, team_id: int, team_role: int, emails: list
     ) -> Tuple[List[str], List[str]]:
         invite_contributors_url = urljoin(
             self.api_url, self.URL_INVITE_CONTRIBUTORS.format(team_id)
@@ -715,14 +716,14 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def copy_items_between_folders_transaction(
-        self,
-        team_id: int,
-        project_id: int,
-        from_folder_id: int,
-        to_folder_id: int,
-        items: List[str],
-        include_annotations: bool = False,
-        include_pin: bool = False,
+            self,
+            team_id: int,
+            project_id: int,
+            from_folder_id: int,
+            to_folder_id: int,
+            items: List[str],
+            include_annotations: bool = False,
+            include_pin: bool = False,
     ) -> int:
         """
         Returns poll id.
@@ -745,12 +746,12 @@ class SuperannotateBackendService(BaseBackendService):
             return res.json()["poll_id"]
 
     def move_images_between_folders(
-        self,
-        team_id: int,
-        project_id: int,
-        from_folder_id: int,
-        to_folder_id: int,
-        images: List[str],
+            self,
+            team_id: int,
+            project_id: int,
+            from_folder_id: int,
+            to_folder_id: int,
+            images: List[str],
     ) -> List[str]:
         move_images_url = urljoin(self.api_url, self.URL_MOVE_IMAGES_FROM_FOLDER)
         res = self._request(
@@ -768,7 +769,7 @@ class SuperannotateBackendService(BaseBackendService):
         return []
 
     def get_progress(
-        self, project_id: int, team_id: int, poll_id: int
+            self, project_id: int, team_id: int, poll_id: int
     ) -> Tuple[int, int]:
         get_progress_url = urljoin(self.api_url, self.URL_GET_COPY_PROGRESS)
 
@@ -792,12 +793,12 @@ class SuperannotateBackendService(BaseBackendService):
             raise BackendError(e)
 
     def set_images_statuses_bulk(
-        self,
-        image_names: list,
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        annotation_status: int,
+            self,
+            image_names: list,
+            team_id: int,
+            project_id: int,
+            folder_id: int,
+            annotation_status: int,
     ):
         set_images_statuses_bulk_url = urljoin(
             self.api_url, self.URL_SET_IMAGES_STATUSES_BULK
@@ -816,7 +817,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def get_bulk_images(
-        self, project_id: int, team_id: int, folder_id: int, images: List[str]
+            self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[dict]:
 
         bulk_get_images_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
@@ -833,7 +834,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def get_bulk_items(
-        self, project_id: int, team_id: int, folder_id: int, items: List[str]
+            self, project_id: int, team_id: int, folder_id: int, items: List[str]
     ) -> List[dict]:
 
         bulk_get_items_url = urljoin(self.api_url, self.URL_BULK_GET_ITEMS)
@@ -862,12 +863,12 @@ class SuperannotateBackendService(BaseBackendService):
         return ServiceResponse(res, ServiceResponse)
 
     def assign_items(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        user: str,
-        item_names: list,
+            self,
+            team_id: int,
+            project_id: int,
+            folder_name: str,
+            user: str,
+            item_names: list,
     ) -> ServiceResponse:
         assign_items_url = urljoin(self.api_url, self.URL_ASSIGN_ITEMS)
         return self._request(
@@ -883,11 +884,11 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def un_assign_items(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        item_names: List[str],
+            self,
+            team_id: int,
+            project_id: int,
+            folder_name: str,
+            item_names: List[str],
     ):
         un_assign_items_url = urljoin(self.api_url, self.URL_ASSIGN_ITEMS)
         res = self._request(
@@ -903,10 +904,10 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def un_assign_folder(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
+            self,
+            team_id: int,
+            project_id: int,
+            folder_name: str,
     ):
         un_assign_folder_url = urljoin(self.api_url, self.URL_ASSIGN_FOLDER)
         res = self._request(
@@ -918,7 +919,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def assign_folder(
-        self, team_id: int, project_id: int, folder_name: str, users: list
+            self, team_id: int, project_id: int, folder_name: str, users: list
     ):
         assign_folder_url = urljoin(self.api_url, self.URL_ASSIGN_FOLDER)
         res = self._request(
@@ -953,7 +954,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def delete_annotation_class(
-        self, team_id: int, project_id: int, annotation_class_id: int
+            self, team_id: int, project_id: int, annotation_class_id: int
     ):
         delete_image_url = urljoin(
             self.api_url, self.URL_GET_CLASS.format(annotation_class_id)
@@ -966,7 +967,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def set_project_workflow_attributes_bulk(
-        self, project_id: int, team_id: int, attributes: list
+            self, project_id: int, team_id: int, attributes: list
     ):
         set_project_workflow_attribute_url = urljoin(
             self.api_url, self.URL_PROJECT_WORKFLOW_ATTRIBUTE.format(project_id)
@@ -980,7 +981,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def get_annotation_upload_data(
-        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
+            self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
     ):
         get_annotation_upload_data_url = urljoin(
             self.api_url, self.URL_ANNOTATION_UPLOAD_PATH_TOKEN
@@ -1062,7 +1063,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def run_prediction(
-        self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
+            self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
     ):
         prediction_url = urljoin(self.api_url, self.URL_PREDICTION)
         res = self._request(
@@ -1078,11 +1079,11 @@ class SuperannotateBackendService(BaseBackendService):
         return res
 
     def delete_image_annotations(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_id: int = None,
-        image_names: List[str] = None,
+            self,
+            team_id: int,
+            project_id: int,
+            folder_id: int = None,
+            image_names: List[str] = None,
     ) -> dict:
         delete_annotations_url = urljoin(self.api_url, self.URL_DELETE_ANNOTATIONS)
         params = {"team_id": team_id, "project_id": project_id}
@@ -1098,7 +1099,7 @@ class SuperannotateBackendService(BaseBackendService):
             return response.json()
 
     def get_annotations_delete_progress(
-        self, team_id: int, project_id: int, poll_id: int
+            self, team_id: int, project_id: int, poll_id: int
     ):
         get_progress_url = urljoin(self.api_url, self.URL_DELETE_ANNOTATIONS_PROGRESS)
 
@@ -1110,7 +1111,7 @@ class SuperannotateBackendService(BaseBackendService):
         return response.json()
 
     def get_limitations(
-        self, team_id: int, project_id: int, folder_id: int = None
+            self, team_id: int, project_id: int, folder_id: int = None
     ) -> ServiceResponse:
         get_limits_url = urljoin(self.api_url, self.URL_GET_LIMITS.format(project_id))
         return self._request(
@@ -1121,13 +1122,13 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def get_annotations(
-        self,
-        project_id: int,
-        team_id: int,
-        folder_id: int,
-        items: List[str],
-        reporter: Reporter,
-        callback: Callable = None,
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            items: List[str],
+            reporter: Reporter,
+            callback: Callable = None,
     ) -> List[dict]:
         query_params = {
             "team_id": team_id,
@@ -1153,15 +1154,13 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     async def download_big_annotation(
-        self,
-        project_id: int,
-        team_id: int,
-        folder_id: int,
-        reporter: Reporter,
-        download_path: str,
-        postfix: str,
-        item: int,
-        callback: Callable = None,
+            self,
+            project_id: int,
+            team_id: int,
+            download_path: str,
+            postfix: str,
+            item: dict,
+            callback: Callable = None,
     ):
         item_id = item["id"]
         item_name = item["name"]
@@ -1210,8 +1209,8 @@ class SuperannotateBackendService(BaseBackendService):
             await asyncio.sleep(1)
 
         async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=False),
-            headers=self.default_headers,
+                connector=aiohttp.TCPConnector(ssl=False),
+                headers=self.default_headers,
         ) as session:
             start_response = await session.post(url, params=query_params)
             res = await start_response.json()
@@ -1219,18 +1218,20 @@ class SuperannotateBackendService(BaseBackendService):
 
             dest_path = Path(download_path) / (item_name + postfix)
             with open(dest_path, "w") as fp:
+                if callback:
+                    res = callback(res)
                 json.dump(res, fp)
 
     async def download_small_annotations(
-        self,
-        project_id: int,
-        team_id: int,
-        folder_id: int,
-        reporter: Reporter,
-        download_path: str,
-        postfix: str,
-        items: List[str] = None,
-        callback: Callable = None,
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            reporter: Reporter,
+            download_path: str,
+            postfix: str,
+            items: List[str] = None,
+            callback: Callable = None,
     ):
 
         query_params = {
@@ -1267,12 +1268,12 @@ class SuperannotateBackendService(BaseBackendService):
         return []
 
     def attach_integrations(
-        self,
-        team_id: int,
-        project_id: int,
-        integration_id: int,
-        folder_id: int,
-        folder_name: str = None,
+            self,
+            team_id: int,
+            project_id: int,
+            integration_id: int,
+            folder_id: int,
+            folder_name: str = None,
     ) -> bool:
         attach_integrations_url = urljoin(
             self.api_url, self.URL_ATTACH_INTEGRATIONS.format(team_id)
@@ -1289,12 +1290,12 @@ class SuperannotateBackendService(BaseBackendService):
         return response.ok
 
     def saqul_query(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        query: str = None,
-        subset_id: int = None,
+            self,
+            team_id: int,
+            project_id: int,
+            folder_id: int,
+            query: str = None,
+            subset_id: int = None,
     ) -> ServiceResponse:
 
         query_url = urljoin(self.api_url, self.URL_SAQUL_QUERY)
@@ -1347,7 +1348,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def create_custom_schema(
-        self, team_id: int, project_id: int, schema: dict
+            self, team_id: int, project_id: int, schema: dict
     ) -> ServiceResponse:
         return self._request(
             urljoin(
@@ -1372,7 +1373,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def delete_custom_schema(
-        self, team_id: int, project_id: int, fields: List[str]
+            self, team_id: int, project_id: int, fields: List[str]
     ) -> ServiceResponse:
         return self._request(
             urljoin(
@@ -1386,7 +1387,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def upload_custom_fields(
-        self, team_id: int, project_id: int, folder_id: int, items: List[dict]
+            self, team_id: int, project_id: int, folder_id: int, items: List[dict]
     ):
         from collections import ChainMap
 
@@ -1401,11 +1402,11 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def delete_custom_fields(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        items: List[Dict[str, List[str]]],
+            self,
+            team_id: int,
+            project_id: int,
+            folder_id: int,
+            items: List[Dict[str, List[str]]],
     ):
         from collections import ChainMap
 
@@ -1420,11 +1421,11 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     async def upload_annotations(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        items_name_file_map: Dict[str, io.StringIO],
+            self,
+            team_id: int,
+            project_id: int,
+            folder_id: int,
+            items_name_file_map: Dict[str, io.StringIO],
     ) -> UploadAnnotationsResponse:
         url = urljoin(
             self.assets_provider_url,
@@ -1436,7 +1437,7 @@ class SuperannotateBackendService(BaseBackendService):
         headers = copy.copy(self.default_headers)
         del headers["Content-Type"]
         async with aiohttp.ClientSession(
-            headers=headers, connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
+                headers=headers, connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
         ) as session:
             data = aiohttp.FormData(quote_fields=False)
             for key, file in items_name_file_map.items():
@@ -1468,16 +1469,16 @@ class SuperannotateBackendService(BaseBackendService):
             return response
 
     async def upload_big_annotation(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        item_id: int,
-        data: io.StringIO,
-        chunk_size: int,
+            self,
+            team_id: int,
+            project_id: int,
+            folder_id: int,
+            item_id: int,
+            data: io.StringIO,
+            chunk_size: int,
     ) -> bool:
         async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=False), headers=self.default_headers
+                connector=aiohttp.TCPConnector(ssl=False), headers=self.default_headers
         ) as session:
             params = {
                 "team_id": team_id,
@@ -1567,7 +1568,7 @@ class SuperannotateBackendService(BaseBackendService):
                     raise AppException(str(await response.text()))
 
     def get_schema(
-        self, team_id: int, project_type: int, version: str
+            self, team_id: int, project_type: int, version: str
     ) -> ServiceResponse:
         return self._request(
             urljoin(self.assets_provider_url, self.URL_ANNOTATION_SCHEMAS),
@@ -1580,7 +1581,7 @@ class SuperannotateBackendService(BaseBackendService):
             content_type=ServiceResponse,
         )
 
-    def sort_items_by_size(self, item_names, team_id, project_id, folder_id):
+    def sort_items_by_size(self, item_names: List[str], team_id: int, project_id: int, folder_id: int):
 
         query_params = {
             "team_id": team_id,

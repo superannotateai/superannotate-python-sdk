@@ -1069,8 +1069,6 @@ class DownloadAnnotations(BaseReportableUseCase):
             item=item,
             team_id=self._project.team_id,
             project_id=self._project.id,
-            folder_id=folder_id,
-            reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
             postfix=postfix,
             callback=self._callback,
