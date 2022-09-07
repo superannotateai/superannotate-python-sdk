@@ -1198,8 +1198,10 @@ class DownloadAnnotations(BaseReportableUseCase):
                         item_names = self._item_names
 
                     new_export_path = export_path
-                    if folder.name != "root":
+
+                    if not folder.is_root and self._folder.is_root:
                         new_export_path += f"/{folder.name}"
+
 
                     # TODO check
                     if not item_names:
@@ -1211,9 +1213,6 @@ class DownloadAnnotations(BaseReportableUseCase):
                         new_export_path,
                     )
                     futures.append(future)
-
-                for future in concurrent.futures.as_completed(futures):
-                    print(future.result())
 
             self.reporter.stop_spinner()
             count = self.get_items_count(export_path)
