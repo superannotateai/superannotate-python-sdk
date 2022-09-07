@@ -113,8 +113,6 @@ class TeamSerializer(BaseSerializer):
 
 
 class ProjectSerializer(BaseSerializer):
-    DEFAULT_EXCLUDE_SET = {"sync_status", "unverified_users"}
-
     def serialize(
         self,
         fields: List[str] = None,
@@ -122,9 +120,13 @@ class ProjectSerializer(BaseSerializer):
         flat: bool = False,
         exclude: Set[str] = None,
     ):
-        to_exclude = self.DEFAULT_EXCLUDE_SET
+
+        to_exclude = {"sync_status": True, "unverified_users": True,
+                   "classes": {"__all__": {"attribute_groups": {"__all__": {"is_multiselect"}}}}}
         if exclude:
-            to_exclude = exclude.union(self.DEFAULT_EXCLUDE_SET)
+            for field in exclude:
+                to_exclude[field] = True
+
         data = super().serialize(fields, by_alias, flat, to_exclude)
         if data.get("settings"):
             data["settings"] = [
