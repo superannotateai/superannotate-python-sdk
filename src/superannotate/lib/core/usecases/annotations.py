@@ -1103,6 +1103,7 @@ class DownloadAnnotations(BaseReportableUseCase):
 
     async def distribute_to_queues(
             self, item_names, sm_queue_id, l_queue_id, folder_id
+
     ):
         try:
             team_id = self._project.team_id
