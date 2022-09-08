@@ -96,7 +96,7 @@ class AnnotationClassEntity(TimedBaseModel):
         return hash(f"{self.id}{self.type}{self.name}")
 
     class Config:
-        extra = Extra.ignore
+        extra = Extra.allow
         json_encoders = {
             HexColor: lambda v: v.__root__,
             BaseTitledEnum: lambda v: v.value,

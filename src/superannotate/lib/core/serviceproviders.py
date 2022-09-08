@@ -418,3 +418,33 @@ class SuperannotateServiceProvider:
         self, project_id: int, team_id: int, query_string: str = None
     ):
         raise NotImplementedError
+
+    @abstractmethod
+    async def download_big_annotation(
+            self,
+            project_id: int,
+            team_id: int,
+            download_path: str,
+            postfix: str,
+            item: dict,
+            callback: Callable = None,
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def download_small_annotations(
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            reporter: Reporter,
+            download_path: str,
+            postfix: str,
+            items: List[str] = None,
+            callback: Callable = None,
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def sort_items_by_size(self, item_names: List[str], team_id: int, project_id: int, folder_id: int):
+        raise NotImplementedError

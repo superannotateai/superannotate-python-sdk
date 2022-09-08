@@ -22,13 +22,12 @@ from typing import Tuple
 import aiofiles
 import boto3
 import jsonschema.validators
+import lib.core as constants
 import nest_asyncio
 from jsonschema import Draft7Validator
 from jsonschema import ValidationError
-
-import lib.core as constants
-from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
@@ -84,20 +83,20 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         size: int = None
 
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            team: TeamEntity,
-            images: BaseManageableRepository,
-            folders: BaseManageableRepository,
-            annotation_classes: List[AnnotationClassEntity],
-            annotation_paths: List[str],
-            backend_service_provider: SuperannotateServiceProvider,
-            templates: List[dict],
-            pre_annotation: bool = False,
-            client_s3_bucket=None,
-            folder_path: str = None,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        team: TeamEntity,
+        images: BaseManageableRepository,
+        folders: BaseManageableRepository,
+        annotation_classes: List[AnnotationClassEntity],
+        annotation_paths: List[str],
+        backend_service_provider: SuperannotateServiceProvider,
+        templates: List[dict],
+        pre_annotation: bool = False,
+        client_s3_bucket=None,
+        folder_path: str = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -137,7 +136,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         return name_path_mappings
 
     def _log_report(
-            self,
+        self,
     ):
         if self._report.missing_classes:
             logger.warning(
@@ -191,7 +190,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         return annotation
 
     async def get_annotation(
-            self, path: str
+        self, path: str
     ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
         mask = None
         if self._client_s3_bucket:
@@ -201,11 +200,11 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 content = await file.read()
             if self._project.type == constants.ProjectType.PIXEL.value:
                 async with aiofiles.open(
-                        path.replace(
-                            constants.PIXEL_ANNOTATION_POSTFIX,
-                            constants.ANNOTATION_MASK_POSTFIX,
-                        ),
-                        "rb",
+                    path.replace(
+                        constants.PIXEL_ANNOTATION_POSTFIX,
+                        constants.ANNOTATION_MASK_POSTFIX,
+                    ),
+                    "rb",
                 ) as mask:
                     mask = await mask.read()
 
@@ -231,17 +230,17 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
     def extract_name(value: str):
         return os.path.basename(
             value.replace(constants.PIXEL_ANNOTATION_POSTFIX, "")
-                .replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
-                .replace(constants.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
+            .replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
+            .replace(constants.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
         )
 
     def get_existing_name_item_mapping(
-            self, name_path_mappings: Dict[str, str]
+        self, name_path_mappings: Dict[str, str]
     ) -> dict:
         item_names = list(name_path_mappings.keys())
         existing_name_item_mapping = {}
         for i in range(0, len(item_names), self.CHUNK_SIZE):
-            items_to_check = item_names[i: i + self.CHUNK_SIZE]  # noqa: E203
+            items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
             response = GetBulkImages(
                 service=self._backend_service,
                 project_id=self._project.id,
@@ -257,7 +256,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         failed_on_chunk = False
         for i in range(0, len(item_names), self.STATUS_CHANGE_CHUNK_SIZE):
             status_changed = self._backend_service.set_images_statuses_bulk(
-                image_names=item_names[i: i + self.CHUNK_SIZE],  # noqa: E203
+                image_names=item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 team_id=self._project.team_id,
                 project_id=self._project.id,
                 folder_id=self._folder.uuid,
@@ -357,9 +356,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 self._small_files_queue.put_nowait(None)
                 break
             if (
-                    _size + item.size >= self.CHUNK_SIZE_MB
-                    or sum([len(i.name) for i in chunk])
-                    >= self.URI_THRESHOLD - (len(chunk) + 1) * 14
+                _size + item.size >= self.CHUNK_SIZE_MB
+                or sum([len(i.name) for i in chunk])
+                >= self.URI_THRESHOLD - (len(chunk) + 1) * 14
             ):
                 await upload(chunk)
                 chunk = []
@@ -380,7 +379,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 chunk_size=5 * 1024 * 1024,
             )
             if is_uploaded and (
-                    self._project.type == constants.ProjectType.PIXEL.value and item.mask
+                self._project.type == constants.ProjectType.PIXEL.value and item.mask
             ):
                 self._upload_mask(item.mask)
             return item.name, is_uploaded
@@ -507,24 +506,24 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
 class UploadAnnotationUseCase(BaseReportableUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image: ImageEntity,
-            images: BaseManageableRepository,
-            team: TeamEntity,
-            annotation_classes: List[AnnotationClassEntity],
-            backend_service_provider: SuperannotateServiceProvider,
-            reporter: Reporter,
-            templates: List[dict],
-            annotation_upload_data: UploadAnnotationAuthData = None,
-            annotations: dict = None,
-            s3_bucket=None,
-            client_s3_bucket=None,
-            mask=None,
-            verbose: bool = True,
-            annotation_path: str = None,
-            pass_validation: bool = False,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image: ImageEntity,
+        images: BaseManageableRepository,
+        team: TeamEntity,
+        annotation_classes: List[AnnotationClassEntity],
+        backend_service_provider: SuperannotateServiceProvider,
+        reporter: Reporter,
+        templates: List[dict],
+        annotation_upload_data: UploadAnnotationAuthData = None,
+        annotations: dict = None,
+        s3_bucket=None,
+        client_s3_bucket=None,
+        mask=None,
+        verbose: bool = True,
+        annotation_path: str = None,
+        pass_validation: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -706,8 +705,8 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                             )
 
                         if (
-                                self._project.type == constants.ProjectType.PIXEL.value
-                                and mask
+                            self._project.type == constants.ProjectType.PIXEL.value
+                            and mask
                         ):
                             self.s3_bucket.put_object(
                                 Key=self.annotation_upload_data.images[
@@ -734,14 +733,14 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
 
 class GetAnnotations(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            images: BaseManageableRepository,
-            item_names: Optional[List[str]],
-            backend_service_provider: SuperannotateServiceProvider,
-            show_process: bool = True,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        images: BaseManageableRepository,
+        item_names: Optional[List[str]],
+        backend_service_provider: SuperannotateServiceProvider,
+        show_process: bool = True,
     ):
         super().__init__(reporter)
         self._project = project
@@ -768,9 +767,9 @@ class GetAnnotations(BaseReportableUseCase):
         else:
             self._item_names_provided = False
             condition = (
-                    Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.id, EQ)
-                    & Condition("folder_id", self._folder.uuid, EQ)
+                Condition("team_id", self._project.team_id, EQ)
+                & Condition("project_id", self._project.id, EQ)
+                & Condition("folder_id", self._folder.uuid, EQ)
             )
 
             self._item_names = [item.name for item in self._images.get_all(condition)]
@@ -882,14 +881,14 @@ class GetAnnotations(BaseReportableUseCase):
 
 class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            images: BaseManageableRepository,
-            video_name: str,
-            fps: int,
-            backend_service_provider: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        images: BaseManageableRepository,
+        video_name: str,
+        fps: int,
+        backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -945,13 +944,13 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 100
 
     def __init__(
-            self,
-            reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            scores: List[PriorityScore],
-            project_folder_name: str,
-            backend_service_provider: SuperannotateServiceProvider,
+        self,
+        reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        scores: List[PriorityScore],
+        project_folder_name: str,
+        backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -1007,8 +1006,8 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
             if iterations:
                 for i in iterations:
                     priorities_to_upload = priorities[
-                                           i: i + self.CHUNK_SIZE
-                                           ]  # noqa: E203
+                        i : i + self.CHUNK_SIZE
+                    ]  # noqa: E203
                     res = self._client.upload_priority_scores(
                         team_id=self._project.team_id,
                         project_id=self._project.id,
@@ -1031,19 +1030,19 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
 
 class DownloadAnnotations(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            destination: str,
-            recursive: bool,
-            item_names: List[str],
-            backend_service_provider: SuperannotateServiceProvider,
-            items: BaseReadOnlyRepository,
-            folders: BaseReadOnlyRepository,
-            classes: BaseReadOnlyRepository,
-            images: BaseManageableRepository,
-            callback: Callable = None,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        destination: str,
+        recursive: bool,
+        item_names: List[str],
+        backend_service_provider: SuperannotateServiceProvider,
+        items: BaseReadOnlyRepository,
+        folders: BaseReadOnlyRepository,
+        classes: BaseReadOnlyRepository,
+        images: BaseManageableRepository,
+        callback: Callable = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -1074,7 +1073,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         if self._destination:
             destination = str(self._destination)
             if not os.path.exists(destination) or not os.access(
-                    destination, os.X_OK | os.W_OK
+                destination, os.X_OK | os.W_OK
             ):
                 raise AppException(
                     f"Local path {destination} is not an existing directory or access denied."
@@ -1100,8 +1099,16 @@ class DownloadAnnotations(BaseReportableUseCase):
             classes_path.mkdir(parents=True, exist_ok=True)
             with open(classes_path / "classes.json", "w+") as file:
                 json.dump(
-                    [i.dict(exclude_unset=True, by_alias=True,
-                            exclude={"attribute_groups": {"__all__": {"is_multiselect"}}}) for i in response.data],
+                    [
+                        i.dict(
+                            exclude_unset=True,
+                            by_alias=True,
+                            exclude={
+                                "attribute_groups": {"__all__": {"is_multiselect"}}
+                            },
+                        )
+                        for i in response.data
+                    ],
                     file,
                     indent=4,
                 )
@@ -1126,8 +1133,6 @@ class DownloadAnnotations(BaseReportableUseCase):
             item=item,
             team_id=self._project.team_id,
             project_id=self._project.id,
-            folder_id=folder_id,
-            reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
             postfix=postfix,
             callback=self._callback,
@@ -1166,8 +1171,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         )
 
     async def distribute_to_queues(
-            self, item_names, sm_queue_id, l_queue_id, folder_id
-
+        self, item_names, sm_queue_id, l_queue_id, folder_id
     ):
         try:
             team_id = self._project.team_id
@@ -1247,9 +1251,9 @@ class DownloadAnnotations(BaseReportableUseCase):
                 for folder in folders:
                     if not self._item_names:
                         condition = (
-                                Condition("team_id", self._project.team_id, EQ)
-                                & Condition("project_id", self._project.id, EQ)
-                                & Condition("folder_id", folder.uuid, EQ)
+                            Condition("team_id", self._project.team_id, EQ)
+                            & Condition("project_id", self._project.id, EQ)
+                            & Condition("folder_id", folder.uuid, EQ)
                         )
                         item_names = [
                             item.name for item in self._images.get_all(condition)
@@ -1258,8 +1262,10 @@ class DownloadAnnotations(BaseReportableUseCase):
                         item_names = self._item_names
 
                     new_export_path = export_path
-                    if folder.name != "root":
+
+                    if not folder.is_root and self._folder.is_root:
                         new_export_path += f"/{folder.name}"
+
 
                     # TODO check
                     if not item_names:
@@ -1271,9 +1277,6 @@ class DownloadAnnotations(BaseReportableUseCase):
                         new_export_path,
                     )
                     futures.append(future)
-
-                for future in concurrent.futures.as_completed(futures):
-                    print(future.result())
 
             self.reporter.stop_spinner()
             count = self.get_items_count(export_path)
@@ -1292,12 +1295,12 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     }
 
     def __init__(
-            self,
-            reporter: Reporter,
-            team_id: int,
-            project_type: int,
-            annotation: dict,
-            backend_service_provider: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        team_id: int,
+        project_type: int,
+        annotation: dict,
+        backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._team_id = team_id
@@ -1370,9 +1373,11 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     @staticmethod
     def _pattern(validator, patrn, instance, schema):
         if validator.is_type(instance, "string") and not re.search(patrn, instance):
-            yield ValidationError(
-                f"{instance}  {ValidateAnnotationUseCase.PATTERN_MAP.get(patrn, patrn)}"
-            )
+            _patrn = ValidateAnnotationUseCase.PATTERN_MAP.get(patrn)
+            if _patrn:
+                yield ValidationError(f"{instance}  {_patrn}")
+            else:
+                yield ValidationError(f"{instance} does not match {patrn}")
 
     @staticmethod
     def iter_errors(self, instance, _schema=None):
@@ -1460,9 +1465,9 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         for sub_error in sorted(error.context, key=lambda e: e.schema_path):
             tmp_path = sub_error.path  # if sub_error.path else real_path
             _path = (
-                    f"{''.join(path)}"
-                    + ("." if tmp_path else "")
-                    + "".join(ValidateAnnotationUseCase.extract_path(tmp_path))
+                f"{''.join(path)}"
+                + ("." if tmp_path else "")
+                + "".join(ValidateAnnotationUseCase.extract_path(tmp_path))
             )
             if sub_error.context:
                 self.extract_messages(_path, sub_error, report)

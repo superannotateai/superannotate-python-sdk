@@ -46,7 +46,7 @@ class TestClassesSerializers(TestCase):
             name="asd", color="blue", attribute_groups=[AttributeGroup(name="sad", is_multiselect="True")]
         )
         serializer_data = json.loads(json.dumps(annotation_class, cls=PydanticEncoder))
-        assert {'type': 1,'name': 'asd', 'color': '#0000FF',
+        assert {'type': 1, 'name': 'asd', 'color': '#0000FF',
                 'attribute_groups': [{'name': 'sad', 'is_multiselect': True}]} == serializer_data
 
     def test_group_type_wrong_arg(self):
@@ -56,5 +56,5 @@ class TestClassesSerializers(TestCase):
                 attribute_groups=[AttributeGroup(name="sad", is_multiselect="True", group_type="asd")]
             )
         except ValidationError as e:
-            assert ['group_type', 'Available', 'values', 'are:', 'RADIO,', 'CHECKLIST,', 'NUMERIC,',
-                    'TEXT'] == wrap_error(e).split()
+            assert ['group_type', 'Available', 'values', 'are:', "'radio',", "'checklist',", "'numeric',",
+                    "'text'"] == wrap_error(e).split()
