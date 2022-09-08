@@ -97,7 +97,7 @@ class TestInterface(BaseTestCase):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         sa.set_annotation_statuses(self.PROJECT_NAME,  "Completed", [self.EXAMPLE_IMAGE_1])
         data = sa.search_projects(self.PROJECT_NAME, return_metadata=True, include_complete_image_count=True)
-        self.assertIsNotNone(data[0]['completedImagesCount'])
+        self.assertIsNotNone(data[0]['completed_images_count'])
 
     def test_overlay_fuse(self):
         sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")

@@ -781,7 +781,7 @@ class GetAnnotations(BaseReportableUseCase):
             for annotation in annotations:
                 restruct[annotation["metadata"]["name"]] = annotation
             try:
-                return [restruct[x] for x in self._item_names]
+                return [restruct[x] for x in self._item_names if x in restruct]
             except KeyError:
                 raise AppException("Broken data.")
 
