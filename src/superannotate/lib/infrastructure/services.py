@@ -317,6 +317,43 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SYNC_LARGE_ANNOTATION_STATUS = "items/{item_id}/annotations/sync/status"
     URL_DOWNLOAD_LARGE_ANNOTATION = "items/{item_id}/annotations/download"
 
+
+    async def _sync_large_annotation(self, team_id, project_id, item_id):
+
+        sync_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "desired_transform_version": "export",
+            "desired_version": "V1.00",
+            "current_transform_version": "V1.00",
+            "current_source": "main",
+            "desired_source": "secondary",
+        }
+
+        sync_url = urljoin(
+            self.assets_provider_url,
+            self.URL_SYNC_LARGE_ANNOTATION.format(item_id=item_id),
+        )
+
+        res = self._request(url=sync_url, params=sync_params, method="POST")
+
+        sync_params.pop("current_source")
+        sync_params.pop("desired_source")
+
+        synced = False
+
+        sync_status_url = urljoin(
+            self.assets_provider_url,
+            self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id=item_id),
+        )
+        while synced != "SUCCESS":
+            synced = self._request(
+                url=sync_status_url, params=sync_params, method="GET"
+            ).json()["status"]
+            await asyncio.sleep(1)
+
+        return synced
+
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
     ) -> dict:
@@ -1120,7 +1157,46 @@ class SuperannotateBackendService(BaseBackendService):
             content_type=UserLimits,
         )
 
-    def get_annotations(
+    async def get_big_annotation(
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        item: dict,
+        reporter: Reporter,
+        callback: Callable = None
+    ):
+
+
+        url = urljoin(
+            self.assets_provider_url,
+            self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item['id']),
+        )
+
+        query_params={
+            'team_id': team_id,
+            'project_id': project_id,
+            "annotation_type": "MAIN",
+            "version": "V1.00",
+        }
+
+        synced = await self._sync_large_annotation(
+            team_id = team_id,
+            project_id = project_id,
+            item_id = item['id']
+        )
+
+
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=False),
+            headers=self.default_headers,
+        ) as session:
+            start_response = await session.post(url, params=query_params)
+            large_annotation = await start_response.json()
+
+        reporter.update_progress()
+        return large_annotation
+    async def get_small_annotations(
         self,
         project_id: int,
         team_id: int,
@@ -1141,6 +1217,7 @@ class SuperannotateBackendService(BaseBackendService):
             map_function=lambda x: {"image_names": x},
             callback=callback,
         )
+
         loop = asyncio.new_event_loop()
 
         return loop.run_until_complete(
@@ -1177,37 +1254,12 @@ class SuperannotateBackendService(BaseBackendService):
             self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id),
         )
 
-        sync_params = {
-            "team_id": team_id,
-            "project_id": project_id,
-            "desired_transform_version": "export",
-            "desired_version": "V1.00",
-            "current_transform_version": "V1.00",
-            "current_source": "main",
-            "desired_source": "secondary",
-        }
 
-        sync_url = urljoin(
-            self.assets_provider_url,
-            self.URL_SYNC_LARGE_ANNOTATION.format(item_id=item_id),
+        synced = await self._sync_large_annotation(
+            team_id = team_id,
+            project_id = project_id,
+            item_id = item_id
         )
-
-        res = self._request(url=sync_url, params=sync_params, method="POST")
-
-        sync_params.pop("current_source")
-        sync_params.pop("desired_source")
-
-        synced = False
-
-        sync_status_url = urljoin(
-            self.assets_provider_url,
-            self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id=item_id),
-        )
-        while synced != "SUCCESS":
-            synced = self._request(
-                url=sync_status_url, params=sync_params, method="GET"
-            ).json()["status"]
-            await asyncio.sleep(1)
 
         async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=False),
@@ -1232,7 +1284,6 @@ class SuperannotateBackendService(BaseBackendService):
         items: List[str] = None,
         callback: Callable = None,
     ):
-
         query_params = {
             "team_id": team_id,
             "project_id": project_id,
