@@ -41,9 +41,7 @@ class StreamedAnnotations:
         kwargs = {"params": params, "json": {"folder_id": params.pop("folder_id")}}
         if data:
             kwargs["json"].update(data)
-        response = await session._request(
-            method, url, **kwargs, raise_for_status=True, timeout=TIMEOUT
-        )
+        response = await session._request(method, url, **kwargs, timeout=TIMEOUT)
         buffer = b""
         async for line in response.content.iter_any():
             slices = line.split(self.DELIMITER)
@@ -76,6 +74,7 @@ class StreamedAnnotations:
             headers=self._headers,
             timeout=TIMEOUT,
             connector=aiohttp.TCPConnector(ssl=verify_ssl, keepalive_timeout=2**32),
+            raise_for_status=True,
         ) as session:
             async for annotation in self.fetch(
                 method,
@@ -98,10 +97,10 @@ class StreamedAnnotations:
         params: dict = None,
     ):
         async with aiohttp.ClientSession(
-            raise_for_status=True,
             headers=self._headers,
             timeout=TIMEOUT,
             connector=aiohttp.TCPConnector(ssl=False, keepalive_timeout=2**32),
+            raise_for_status=True,
         ) as session:
             async for annotation in self.fetch(
                 method,

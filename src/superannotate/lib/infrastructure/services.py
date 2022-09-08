@@ -339,7 +339,7 @@ class SuperannotateBackendService(BaseBackendService):
             headers=self.default_headers,
             raise_for_status=True,
         ) as session:
-            res = await session.post(sync_url, params=sync_params)
+            await session.post(sync_url, params=sync_params)
 
             sync_params.pop("current_source")
             sync_params.pop("desired_source")
@@ -1165,10 +1165,8 @@ class SuperannotateBackendService(BaseBackendService):
         self,
         project_id: int,
         team_id: int,
-        folder_id: int,
         item: dict,
         reporter: Reporter,
-        callback: Callable = None,
     ):
 
         url = urljoin(
@@ -1183,13 +1181,14 @@ class SuperannotateBackendService(BaseBackendService):
             "version": "V1.00",
         }
 
-        synced = await self._sync_large_annotation(
+        await self._sync_large_annotation(
             team_id=team_id, project_id=project_id, item_id=item["id"]
         )
 
         async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.default_headers,
+            raise_for_status=True,
         ) as session:
             start_response = await session.post(url, params=query_params)
             large_annotation = await start_response.json()
@@ -1253,13 +1252,14 @@ class SuperannotateBackendService(BaseBackendService):
             self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id),
         )
 
-        synced = await self._sync_large_annotation(
+        await self._sync_large_annotation(
             team_id=team_id, project_id=project_id, item_id=item_id
         )
 
         async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.default_headers,
+            raise_for_status=True,
         ) as session:
             start_response = await session.post(url, params=query_params)
             res = await start_response.json()
@@ -1485,7 +1485,9 @@ class SuperannotateBackendService(BaseBackendService):
         headers = copy.copy(self.default_headers)
         del headers["Content-Type"]
         async with aiohttp.ClientSession(
-            headers=headers, connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
+            headers=headers,
+            connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
+            raise_for_status=True,
         ) as session:
             data = aiohttp.FormData(quote_fields=False)
             for key, file in items_name_file_map.items():
@@ -1526,7 +1528,9 @@ class SuperannotateBackendService(BaseBackendService):
         chunk_size: int,
     ) -> bool:
         async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=False), headers=self.default_headers
+            connector=aiohttp.TCPConnector(ssl=False),
+            headers=self.default_headers,
+            raise_for_status=True,
         ) as session:
             params = {
                 "team_id": team_id,
