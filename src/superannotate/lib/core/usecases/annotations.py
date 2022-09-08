@@ -833,6 +833,10 @@ class GetAnnotations(BaseReportableUseCase):
     def execute(self):
         if self.is_valid():
             items_count = len(self._item_names)
+            if not items_count:
+                self.reporter.log_info("No annotations to download.")
+                self._response.data = []
+                return self._response
             self.reporter.log_info(
                 f"Getting {items_count} annotations from "
                 f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}."
