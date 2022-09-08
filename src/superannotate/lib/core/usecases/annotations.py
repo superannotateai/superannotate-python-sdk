@@ -329,6 +329,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         except Exception:  # noqa
             failed_annotations.extend([i.name for i in chunk])
         finally:
+            print(1111, len(chunk))
             self.reporter.update_progress(len(chunk))
         return Report(
             failed_annotations, missing_classes, missing_attr_groups, missing_attrs
@@ -430,7 +431,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                         self.reporter.update_progress()
                         data[idx][1] = True
                         processed_count += 1
-                    self.reporter.update_progress()
                     data[idx][1] = True
                     processed_count += 1
         self._big_files_queue.put_nowait(None)
