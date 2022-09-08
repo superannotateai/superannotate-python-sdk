@@ -790,7 +790,9 @@ class GetAnnotations(BaseReportableUseCase):
                 raise AppException("Broken data.")
         return annotations
 
-    async def get_big_annotation(self, ):
+    async def get_big_annotation(
+        self,
+    ):
 
         large_annotations = []
         while True:
@@ -811,8 +813,6 @@ class GetAnnotations(BaseReportableUseCase):
 
         return large_annotations
 
-
-
     async def get_small_annotations(self, item_names):
         small_annotations = await self._client.get_small_annotations(
             team_id=self._project.team_id,
@@ -821,7 +821,6 @@ class GetAnnotations(BaseReportableUseCase):
             items=item_names,
             reporter=self.reporter,
         )
-
 
         return small_annotations
 
@@ -832,7 +831,6 @@ class GetAnnotations(BaseReportableUseCase):
 
         await self._big_annotations_queue.put(None)
 
-
     async def run_workers(self, big_annotations, small_annotations):
 
         annotations = await asyncio.gather(
@@ -841,7 +839,7 @@ class GetAnnotations(BaseReportableUseCase):
             self.get_big_annotation(),
             self.get_big_annotation(),
             self.get_big_annotation(),
-            return_exceptions=True
+            return_exceptions=True,
         )
 
         annotations = [i for x in annotations[1:] for i in x if x]
@@ -858,15 +856,16 @@ class GetAnnotations(BaseReportableUseCase):
             self.reporter.start_progress(items_count, disable=not self._show_process)
 
             items = self._client.sort_items_by_size(
-                item_names = self._item_names,
-                team_id = self._project.team_id,
-                folder_id = self._folder.uuid,
-                project_id = self._project.id
+                item_names=self._item_names,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                project_id=self._project.id,
             )
 
-
-            small_annotations = [x['name'] for x in items['small']]
-            annotations = asyncio.run(self.run_workers(items['large'], small_annotations))
+            small_annotations = [x["name"] for x in items["small"]]
+            annotations = asyncio.run(
+                self.run_workers(items["large"], small_annotations)
+            )
 
             received_items_count = len(annotations)
             self.reporter.finish_progress()
@@ -1265,7 +1264,6 @@ class DownloadAnnotations(BaseReportableUseCase):
 
                     if not folder.is_root and self._folder.is_root:
                         new_export_path += f"/{folder.name}"
-
 
                     # TODO check
                     if not item_names:
