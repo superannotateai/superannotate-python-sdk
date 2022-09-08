@@ -774,21 +774,6 @@ class GetAnnotations(BaseReportableUseCase):
 
             self._item_names = [item.name for item in self._images.get_all(condition)]
 
-    def _prettify_annotations(self, annotations: List[dict]):
-        if self._item_names_provided:
-            try:
-                data = []
-                for annotation in annotations:
-                    data.append(
-                        (
-                            self._item_names.index(annotation["metadata"]["name"]),
-                            annotation,
-                        )
-                    )
-                return [i[1] for i in sorted(data, key=lambda x: x[0])]
-            except KeyError:
-                raise AppException("Broken data.")
-        return annotations
 
     async def get_big_annotation(
         self,
@@ -873,7 +858,6 @@ class GetAnnotations(BaseReportableUseCase):
                 self.reporter.log_warning(
                     f"Could not find annotations for {items_count - received_items_count}/{items_count} items."
                 )
-            self._response.data = self._prettify_annotations(annotations)
             self._response.data = annotations
         return self._response
 
