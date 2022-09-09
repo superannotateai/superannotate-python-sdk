@@ -1637,16 +1637,37 @@ class SuperannotateBackendService(BaseBackendService):
         self, item_names: List[str], team_id: int, project_id: int, folder_id: int
     ):
 
+        PARTITION_MAX_SIZE = 2000
+
         query_params = {
             "team_id": team_id,
             "project_id": project_id,
             "folder_id": folder_id,
         }
 
+        result = {"small": [], "large": []}
+
         url = urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE)
 
-        body = {"item_names": item_names, "folder_id": folder_id}
-        response = self._request(url=url, method="POST", params=query_params, data=body)
-        if not response.ok:
-            raise AppException(response.json().get("errors", "Undefined"))
-        return response.json()
+        n = len(item_names)
+
+        item_names = [
+            item_names[i : i + PARTITION_MAX_SIZE]
+            for i in range(0, n, PARTITION_MAX_SIZE)
+        ]
+
+        for partition in item_names:
+            body = {"item_names": partition, "folder_id": folder_id}
+
+            response = self._request(
+                url=url, method="POST", params=query_params, data=body
+            )
+
+            if not response.ok:
+                raise AppException(response.json().get("errors", "Undefined"))
+
+            data = response.json()
+            result["small"] += data["small"]
+            result["large"] += data["large"]
+
+        return result
