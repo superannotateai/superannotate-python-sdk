@@ -329,7 +329,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         except Exception:  # noqa
             failed_annotations.extend([i.name for i in chunk])
         finally:
-            print(1111, len(chunk))
             self.reporter.update_progress(len(chunk))
         return Report(
             failed_annotations, missing_classes, missing_attr_groups, missing_attrs
