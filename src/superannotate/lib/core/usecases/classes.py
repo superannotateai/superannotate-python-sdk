@@ -60,7 +60,7 @@ class CreateAnnotationClassUseCase(BaseReportableUseCase):
 
     def validate_project_type(self):
         if (
-            self._project.type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
+            self._project.type in (ProjectType.PIXEL, ProjectType.VIDEO)
             and self._annotation_class.type == "tag"
         ):
             raise AppException(
@@ -113,8 +113,8 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
 
     def validate_project_type(self):
         if self._project.type in (
-            ProjectType.PIXEL.value,
-            ProjectType.VIDEO.value,
+            ProjectType.PIXEL,
+            ProjectType.VIDEO,
         ) and any([True for i in self._annotation_classes if i.type == "tag"]):
             raise AppException(
                 f"Predefined tagging functionality is not supported"
@@ -197,7 +197,7 @@ class DownloadAnnotationClassesUseCase(BaseReportableUseCase):
         )
         if response.ok:
             classes = [
-                entity.dict(by_alias=True, fill_enum_values=True, exclude_unset=True)
+                entity.dict(by_alias=True, exclude_unset=True)
                 for entity in response.data
             ]
             json_path = f"{self._download_path}/classes.json"

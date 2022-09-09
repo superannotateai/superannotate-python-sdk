@@ -237,8 +237,6 @@ class TestFolders(BaseTestCase):
         self.assertEqual(project_metadata['completed_images_count'], 8)
         self.assertEqual(project_metadata['root_folder_completed_images_count'], 4)
 
-
-
     def test_folder_misnamed(self):
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)

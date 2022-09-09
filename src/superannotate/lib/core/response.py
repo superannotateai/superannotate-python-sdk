@@ -28,10 +28,6 @@ class Response:
         self._report.append(value)
 
     @property
-    def report_messages(self):
-        return self._report
-
-    @property
     def status(self):
         return self._status
 

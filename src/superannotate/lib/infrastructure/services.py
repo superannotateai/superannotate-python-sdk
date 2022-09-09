@@ -8,6 +8,7 @@ import threading
 import time
 from contextlib import contextmanager
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -18,10 +19,11 @@ from typing import Union
 from urllib.parse import urljoin
 
 import aiohttp
-import lib.core as constance
+import lib.core as constants
 import requests.packages.urllib3
 from lib.core import entities
 from lib.core.entities import BaseItemEntity
+from lib.core.entities import ProjectEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
@@ -45,9 +47,7 @@ requests.packages.urllib3.disable_warnings()
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, BaseModel):
-            return obj.dict(exclude_none=getattr(obj.Config, "exclude_none", False))
-        if isinstance(obj, (datetime.date, datetime.datetime)):
-            return obj.isoformat()
+            return json.loads(obj.json(exclude_none=True))
         return json.JSONEncoder.default(self, obj)
 
 
@@ -56,6 +56,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     PAGINATE_BY = 100
     LIMIT = 100
     MAX_ITEMS_COUNT = 50 * 1000
+    ASSETS_PROVIDER_VERSION = "v2"
 
     """
     Base service class
@@ -81,9 +82,9 @@ class BaseBackendService(SuperannotateServiceProvider):
 
     @property
     def assets_provider_url(self):
-        if self.api_url != constance.BACKEND_URL:
-            return "https://assets-provider.devsuperannotate.com/api/v1.01/"
-        return "https://assets-provider.superannotate.com/api/v1.01/"
+        if self.api_url != constants.BACKEND_URL:
+            return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
+        return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
 
     @lru_cache(maxsize=32)
     def _get_session(self, thread_id, ttl=None):  # noqa
@@ -156,6 +157,7 @@ class BaseBackendService(SuperannotateServiceProvider):
             )
             prepared = session.prepare_request(req)
             response = session.send(request=prepared, verify=self._verify_ssl)
+
         if files:
             session.headers.update(self.default_headers)
         if response.status_code == 404 and retried < 3:
@@ -281,7 +283,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_EXPORTS = "exports"
     URL_GET_CLASS = "class/{}"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
-    URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_MODELS = "ml_models"
@@ -303,7 +304,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
     URL_LIST_SUBSETS = "/project/{project_id}/subset"
     URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
-    URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
     URL_UPLOAD_ANNOTATIONS = "items/annotations/upload"
     URL_ANNOTATION_SCHEMAS = "items/annotations/schema"
@@ -312,6 +312,51 @@ class SuperannotateBackendService(BaseBackendService):
     URL_START_FILE_SEND_FINISH = "items/{item_id}/annotations/upload/multipart/finish"
     URL_START_FILE_SYNC = "items/{item_id}/annotations/sync"
     URL_START_FILE_SYNC_STATUS = "items/{item_id}/annotations/sync/status"
+    URL_CLASSIFY_ITEM_SIZE = "items/annotations/download/method"
+    URL_SYNC_LARGE_ANNOTATION = "items/{item_id}/annotations/sync"
+    URL_SYNC_LARGE_ANNOTATION_STATUS = "items/{item_id}/annotations/sync/status"
+    URL_DOWNLOAD_LARGE_ANNOTATION = "items/{item_id}/annotations/download"
+
+    async def _sync_large_annotation(self, team_id, project_id, item_id):
+
+        sync_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "desired_transform_version": "export",
+            "desired_version": "V1.00",
+            "current_transform_version": "V1.00",
+            "current_source": "main",
+            "desired_source": "secondary",
+        }
+
+        sync_url = urljoin(
+            self.assets_provider_url,
+            self.URL_SYNC_LARGE_ANNOTATION.format(item_id=item_id),
+        )
+
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=False),
+            headers=self.default_headers,
+            raise_for_status=True,
+        ) as session:
+            await session.post(sync_url, params=sync_params)
+
+            sync_params.pop("current_source")
+            sync_params.pop("desired_source")
+
+            synced = False
+
+            sync_status_url = urljoin(
+                self.assets_provider_url,
+                self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id=item_id),
+            )
+            while synced != "SUCCESS":
+                synced = await session.get(sync_status_url, params=sync_params)
+                synced = await synced.json()
+                synced = synced["status"]
+                await asyncio.sleep(1)
+
+        return synced
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -414,8 +459,8 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(url, "delete")
         return res.ok
 
-    def update_project(self, data: dict, query_string: str = None) -> dict:
-        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data["id"]))
+    def update_project(self, data: ProjectEntity, query_string: str = None) -> dict:
+        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data.id))
         if query_string:
             url = f"{url}?{query_string}"
         res = self._request(url, "put", data)
@@ -557,7 +602,10 @@ class SuperannotateBackendService(BaseBackendService):
             annotation_class_url,
             "post",
             params=params,
-            data={"classes": data},
+            data={
+                # "classes": [json.loads(i.json(exclude_none=True, exclude_unset=True)) for i in data]
+                "classes": data
+            },
             content_type=List[AnnotationClassEntity],
         )
 
@@ -657,7 +705,7 @@ class SuperannotateBackendService(BaseBackendService):
         prepare_export_url = urljoin(self.api_url, self.URL_PREPARE_EXPORT)
 
         annotation_statuses = ",".join(
-            [str(constance.AnnotationStatus.get_value(i)) for i in annotation_statuses]
+            [str(constants.AnnotationStatus.get_value(i)) for i in annotation_statuses]
         )
 
         data = {
@@ -991,25 +1039,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return response
 
-    def get_pre_annotation_upload_data(
-        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
-    ):
-        get_annotation_upload_data_url = urljoin(
-            self.api_url, self.URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN
-        )
-        response = self._request(
-            get_annotation_upload_data_url,
-            "post",
-            data={
-                "project_id": project_id,
-                "team_id": team_id,
-                "ids": image_ids,
-                "folder_id": folder_id,
-            },
-            content_type=UploadAnnotationAuthData,
-        )
-        return response
-
     def get_templates(self, team_id: int):
         get_templates_url = urljoin(self.api_url, self.URL_GET_TEMPLATES)
         response = self._request(get_templates_url, "get", params={"team_id": team_id})
@@ -1132,7 +1161,42 @@ class SuperannotateBackendService(BaseBackendService):
             content_type=UserLimits,
         )
 
-    def get_annotations(
+    async def get_big_annotation(
+        self,
+        project_id: int,
+        team_id: int,
+        item: dict,
+        reporter: Reporter,
+    ):
+
+        url = urljoin(
+            self.assets_provider_url,
+            self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item["id"]),
+        )
+
+        query_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "annotation_type": "MAIN",
+            "version": "V1.00",
+        }
+
+        await self._sync_large_annotation(
+            team_id=team_id, project_id=project_id, item_id=item["id"]
+        )
+
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=False),
+            headers=self.default_headers,
+            raise_for_status=True,
+        ) as session:
+            start_response = await session.post(url, params=query_params)
+            large_annotation = await start_response.json()
+
+        reporter.update_progress()
+        return large_annotation
+
+    async def get_small_annotations(
         self,
         project_id: int,
         team_id: int,
@@ -1153,6 +1217,7 @@ class SuperannotateBackendService(BaseBackendService):
             map_function=lambda x: {"image_names": x},
             callback=callback,
         )
+
         loop = asyncio.new_event_loop()
 
         return loop.run_until_complete(
@@ -1164,7 +1229,49 @@ class SuperannotateBackendService(BaseBackendService):
             )
         )
 
-    async def download_annotations(
+    async def download_big_annotation(
+        self,
+        project_id: int,
+        team_id: int,
+        download_path: str,
+        postfix: str,
+        item: dict,
+        callback: Callable = None,
+    ):
+        item_id = item["id"]
+        item_name = item["name"]
+        query_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "annotation_type": "MAIN",
+            "version": "V1.00",
+        }
+
+        url = urljoin(
+            self.assets_provider_url,
+            self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id),
+        )
+
+        await self._sync_large_annotation(
+            team_id=team_id, project_id=project_id, item_id=item_id
+        )
+
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=False),
+            headers=self.default_headers,
+            raise_for_status=True,
+        ) as session:
+            start_response = await session.post(url, params=query_params)
+            res = await start_response.json()
+            Path(download_path).mkdir(exist_ok=True, parents=True)
+
+            dest_path = Path(download_path) / (item_name + postfix)
+            with open(dest_path, "w") as fp:
+                if callback:
+                    res = callback(res)
+                json.dump(res, fp)
+
+    async def download_small_annotations(
         self,
         project_id: int,
         team_id: int,
@@ -1174,8 +1281,7 @@ class SuperannotateBackendService(BaseBackendService):
         postfix: str,
         items: List[str] = None,
         callback: Callable = None,
-    ) -> int:
-
+    ):
         query_params = {
             "team_id": team_id,
             "project_id": project_id,
@@ -1379,7 +1485,9 @@ class SuperannotateBackendService(BaseBackendService):
         headers = copy.copy(self.default_headers)
         del headers["Content-Type"]
         async with aiohttp.ClientSession(
-            headers=headers, connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
+            headers=headers,
+            connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
+            raise_for_status=True,
         ) as session:
             data = aiohttp.FormData(quote_fields=False)
             for key, file in items_name_file_map.items():
@@ -1390,6 +1498,7 @@ class SuperannotateBackendService(BaseBackendService):
                     filename=key,
                     content_type="application/json",
                 )
+
             _response = await session.post(
                 url,
                 params={
@@ -1419,7 +1528,9 @@ class SuperannotateBackendService(BaseBackendService):
         chunk_size: int,
     ) -> bool:
         async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=False), headers=self.default_headers
+            connector=aiohttp.TCPConnector(ssl=False),
+            headers=self.default_headers,
+            raise_for_status=True,
         ) as session:
             params = {
                 "team_id": team_id,
@@ -1521,3 +1632,30 @@ class SuperannotateBackendService(BaseBackendService):
             },
             content_type=ServiceResponse,
         )
+
+    def sort_items_by_size(
+        self, item_names: List[str], team_id: int, project_id: int, folder_id: int
+    ):
+        chunk_size = 2000
+        query_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "folder_id": folder_id,
+        }
+
+        response_data = {"small": [], "large": []}
+        url = urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE)
+        for i in range(0, len(item_names), chunk_size):
+            body = {
+                "item_names": item_names[i : i + chunk_size],
+                "folder_id": folder_id,
+            }  # noqa
+            response = self._request(
+                url=url, method="POST", params=query_params, data=body
+            )
+            if not response.ok:
+                raise AppException(response.json().get("errors", "Undefined"))
+            response_json = response.json()
+            response_data["small"].extend(response_json.get("small", []))
+            response_data["large"].extend(response_json.get("large", []))
+        return response_data

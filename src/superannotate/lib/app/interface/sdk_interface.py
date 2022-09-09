@@ -162,13 +162,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if return_metadata:
             return [
                 ProjectSerializer(project).serialize(
-                    exclude={
-                        "annotation_classes",
-                        "workflows",
-                        "settings",
-                        "contributors",
-                        "classes",
-                    }
+                    exclude={"settings", "workflows", "contributors", "classes"}
                 )
                 for project in result
             ]
@@ -434,16 +428,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             destination_project
         ).data
 
-        if destination_project_metadata["project"].type in [
+        if destination_project_metadata.type.value in [
             constants.ProjectType.VIDEO.value,
             constants.ProjectType.DOCUMENT.value,
-        ] or source_project_metadata["project"].type in [
+        ] or source_project_metadata.type.value in [
             constants.ProjectType.VIDEO.value,
             constants.ProjectType.DOCUMENT.value,
         ]:
-            raise AppException(
-                LIMITED_FUNCTIONS[source_project_metadata["project"].type]
-            )
+            raise AppException(LIMITED_FUNCTIONS[source_project_metadata.type])
 
         response = self.controller.copy_image(
             from_project_name=source_project_name,
@@ -517,17 +509,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_workflow,
             include_contributors,
             include_complete_image_count,
-        ).data
+        )
+        if response.errors:
+            raise AppException(response.errors)
 
-        metadata = ProjectSerializer(response["project"]).serialize()
-
-        for elem in "classes", "workflows", "contributors":
-            if response.get(elem):
-                metadata[elem] = [
-                    BaseSerializer(attribute).serialize()
-                    for attribute in response[elem]
-                ]
-        return metadata
+        return ProjectSerializer(response.data).serialize()
 
     def get_project_settings(self, project: Union[NotEmptyStr, dict]):
         """Gets project's settings.
@@ -543,7 +529,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
         settings = self.controller.get_project_settings(project_name=project_name)
         settings = [
-            SettingsSerializer(attribute).serialize() for attribute in settings.data
+            SettingsSerializer(attribute.dict()).serialize()
+            for attribute in settings.data
         ]
         return settings
 
@@ -584,7 +571,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return [BaseSerializer(i).serialize(exclude_unset=True) for i in response.data]
+        return [
+            i.dict(exclude={"attribute_groups": {"__all__": {"is_multiselect"}}})
+            for i in response.data
+        ]
 
     def set_project_default_image_quality_in_editor(
         self,
@@ -1516,11 +1506,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
         project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
         project = self.controller.get_project_metadata(project_name).data
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
+        if project.type in [
+            constants.ProjectType.VIDEO,
+            constants.ProjectType.DOCUMENT,
         ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
+            raise AppException(LIMITED_FUNCTIONS[project.type])
         if recursive_subfolders:
             logger.info(
                 "When using recursive subfolder parsing same name annotations in different "
@@ -1579,11 +1569,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
 
         project = self.controller.get_project_metadata(project_name).data
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
+        if project.type in [
+            constants.ProjectType.VIDEO,
+            constants.ProjectType.DOCUMENT,
         ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
+            raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not mask:
             if not isinstance(annotation_json, dict):
@@ -1665,11 +1655,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name = project["name"]
 
         project = self.controller.get_project_metadata(project_name).data
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
+        if project.type in [
+            constants.ProjectType.VIDEO,
+            constants.ProjectType.DOCUMENT,
         ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
+            raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not export_root:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -1817,11 +1807,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
+        if project.type in [
+            constants.ProjectType.VIDEO,
+            constants.ProjectType.DOCUMENT,
         ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
+            raise AppException(LIMITED_FUNCTIONS[project.type])
         response = self.controller.get_annotations(
             project_name=project_name,
             folder_name=folder_name,
@@ -1875,11 +1865,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
+        if project.type in [
+            constants.ProjectType.VIDEO,
+            constants.ProjectType.DOCUMENT,
         ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
+            raise AppException(LIMITED_FUNCTIONS[project.type])
         response = self.controller.get_annotations(
             project_name=project_name,
             folder_name=folder_name,
@@ -1931,11 +1921,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
+        if project.type in [
+            constants.ProjectType.VIDEO,
+            constants.ProjectType.DOCUMENT,
         ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
+            raise AppException(LIMITED_FUNCTIONS[project.type])
         response = self.controller.get_annotations(
             project_name=project_name,
             folder_name=folder_name,

@@ -33,7 +33,6 @@ class BaseManageableRepository(BaseReadOnlyRepository):
     def insert(self, entity: BaseEntity) -> BaseEntity:
         raise NotImplementedError
 
-    @abstractmethod
     def update(self, entity: BaseEntity) -> BaseEntity:
         raise NotImplementedError
 

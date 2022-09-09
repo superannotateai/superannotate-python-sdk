@@ -6,7 +6,6 @@ import json
 import os
 import platform
 import re
-import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -81,6 +80,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         path: str
         data: io.StringIO = None
         mask: io.BytesIO = None
+        size: int = None
 
     def __init__(
         self,
@@ -176,7 +176,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
                 team_id=self._project.team_id,
-                project_type=self._project.type,
+                project_type=self._project.type.value,
                 annotation=annotation,
                 backend_service_provider=self._backend_service,
             )
@@ -345,23 +345,26 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 self._report.missing_attr_groups.extend(report.missing_attr_groups)
                 self._report.missing_attrs.extend(report.missing_attrs)
             except Exception as e:
-                self.reporter.log_debug(str(e))
+                self.reporter.log_error(str(e))
                 self._report.failed_annotations.extend([i.name for i in _chunk])
 
+        _size = 0
         while True:
             item = await self._small_files_queue.get()
             self._small_files_queue.task_done()
             if not item:
                 self._small_files_queue.put_nowait(None)
                 break
-            chunk.append(item)
             if (
-                sys.getsizeof(chunk) >= self.CHUNK_SIZE_MB
+                _size + item.size >= self.CHUNK_SIZE_MB
                 or sum([len(i.name) for i in chunk])
-                >= self.URI_THRESHOLD - len(chunk) * 14
+                >= self.URI_THRESHOLD - (len(chunk) + 1) * 14
             ):
                 await upload(chunk)
                 chunk = []
+                _size = 0
+            chunk.append(item)
+            _size += item.size
         if chunk:
             await upload(chunk)
 
@@ -383,7 +386,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         except Exception as e:
             self.reporter.log_debug(str(e))
             self._report.failed_annotations.append(item.name)
-            raise
         finally:
             self.reporter.update_progress()
 
@@ -394,7 +396,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             if item:
                 await self._upload_big_annotation(item)
             else:
-                await self._big_files_queue.put_nowait(None)
+                self._big_files_queue.put_nowait(None)
                 break
 
     async def distribute_queues(self, items_to_upload: list):
@@ -411,6 +413,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                         annotation_file.seek(0)
                         t_item.data = annotation_file
                         t_item.mask = mask
+                        t_item.size = size
                         while True:
                             if size > BIG_FILE_THRESHOLD:
                                 if self._big_files_queue.qsize() > 32:
@@ -427,26 +430,21 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                         self.reporter.update_progress()
                         data[idx][1] = True
                         processed_count += 1
-                    self.reporter.update_progress()
                     data[idx][1] = True
                     processed_count += 1
         self._big_files_queue.put_nowait(None)
         self._small_files_queue.put_nowait(None)
 
     async def run_workers(self, items_to_upload):
-        try:
-            self._big_files_queue = asyncio.Queue()
-            self._small_files_queue = asyncio.Queue()
-            await asyncio.gather(
-                self.distribute_queues(items_to_upload),
-                self.upload_big_annotations(),
-                self.upload_big_annotations(),
-                self.upload_big_annotations(),
-                return_exceptions=True,
-            )
-            await asyncio.gather(self.upload_small_annotations())
-        except Exception as e:
-            self.reporter.log_error(f"Error {str(e)}")
+        self._big_files_queue = asyncio.Queue()
+        self._small_files_queue = asyncio.Queue()
+        await asyncio.gather(
+            self.distribute_queues(items_to_upload),
+            self.upload_big_annotations(),
+            self.upload_big_annotations(),
+            self.upload_big_annotations(),
+        )
+        await asyncio.gather(self.upload_small_annotations())
 
     def execute(self):
         missing_annotations = []
@@ -468,7 +466,11 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 items_to_upload.append(self.AnnotationToUpload(item.uuid, name, path))
             except KeyError:
                 missing_annotations.append(name)
-        asyncio.run(self.run_workers(items_to_upload))
+        try:
+            asyncio.run(self.run_workers(items_to_upload))
+        except Exception as e:
+            self.reporter.log_error(str(e))
+            self._response.errors = AppException("Can't upload annotations.")
         self.reporter.finish_progress()
         self._log_report()
         uploaded_annotations = list(
@@ -613,7 +615,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         use_case = ValidateAnnotationUseCase(
             reporter=self.reporter,
             team_id=self._project.team_id,
-            project_type=self._project.type,
+            project_type=self._project.type.value,
             annotation=json_data,
             backend_service_provider=self._backend_service,
         )
@@ -671,7 +673,6 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                     )
                     if not uploaded:
                         self._response.errors = constants.INVALID_JSON_MESSAGE
-
                 else:
                     response = asyncio.run(
                         self._backend_service.upload_annotations(
@@ -746,6 +747,7 @@ class GetAnnotations(BaseReportableUseCase):
         self._client = backend_service_provider
         self._show_process = show_process
         self._item_names_provided = True
+        self._big_annotations_queue = None
 
     def validate_project_type(self):
         if self._project.type == constants.ProjectType.PIXEL.value:
@@ -771,36 +773,90 @@ class GetAnnotations(BaseReportableUseCase):
             self._item_names = [item.name for item in self._images.get_all(condition)]
 
     def _prettify_annotations(self, annotations: List[dict]):
+        re_struct = {}
+
         if self._item_names_provided:
+            for annotation in annotations:
+                re_struct[annotation["metadata"]["name"]] = annotation
             try:
-                data = []
-                for annotation in annotations:
-                    data.append(
-                        (
-                            self._item_names.index(annotation["metadata"]["name"]),
-                            annotation,
-                        )
-                    )
-                return [i[1] for i in sorted(data, key=lambda x: x[0])]
+                return [re_struct[x] for x in self._item_names if x in re_struct]
             except KeyError:
                 raise AppException("Broken data.")
+
+        return annotations
+
+    async def get_big_annotation(self):
+
+        large_annotations = []
+        while True:
+            item = await self._big_annotations_queue.get()
+            if not item:
+                await self._big_annotations_queue.put(None)
+                break
+            large_annotation = await self._client.get_big_annotation(
+                team_id=self._project.team_id,
+                project_id=self._project.id,
+                item=item,
+                reporter=self.reporter,
+            )
+            large_annotations.append(large_annotation)
+        return large_annotations
+
+    async def get_small_annotations(self, item_names):
+        return await self._client.get_small_annotations(
+            team_id=self._project.team_id,
+            project_id=self._project.id,
+            folder_id=self._folder.uuid,
+            items=item_names,
+            reporter=self.reporter,
+        )
+
+    async def distribute_to_queue(self, big_annotations):
+        for item in big_annotations:
+            await self._big_annotations_queue.put(item)
+        await self._big_annotations_queue.put(None)
+
+    async def run_workers(self, big_annotations, small_annotations):
+        self._big_annotations_queue = asyncio.Queue()
+        annotations = await asyncio.gather(
+            self.distribute_to_queue(big_annotations),
+            self.get_small_annotations(small_annotations),
+            self.get_big_annotation(),
+            self.get_big_annotation(),
+            self.get_big_annotation(),
+        )
+
+        annotations = [i for x in annotations[1:] for i in x if x]
         return annotations
 
     def execute(self):
         if self.is_valid():
             items_count = len(self._item_names)
+            if not items_count:
+                self.reporter.log_info("No annotations to download.")
+                self._response.data = []
+                return self._response
             self.reporter.log_info(
                 f"Getting {items_count} annotations from "
                 f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}."
             )
             self.reporter.start_progress(items_count, disable=not self._show_process)
-            annotations = self._client.get_annotations(
+
+            items = self._client.sort_items_by_size(
+                item_names=self._item_names,
                 team_id=self._project.team_id,
-                project_id=self._project.id,
                 folder_id=self._folder.uuid,
-                items=self._item_names,
-                reporter=self.reporter,
+                project_id=self._project.id,
             )
+            small_annotations = [x["name"] for x in items["small"]]
+            try:
+                annotations = asyncio.run(
+                    self.run_workers(items["large"], small_annotations)
+                )
+            except Exception as e:
+                self.reporter.log_error(str(e))
+                self._response.errors = AppException("Can't upload annotations.")
+                return self._response
             received_items_count = len(annotations)
             self.reporter.finish_progress()
             if items_count > received_items_count:
@@ -988,6 +1044,8 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._classes = classes
         self._callback = callback
         self._images = images
+        self._big_file_queues = []
+        self._small_file_queues = []
 
     def validate_item_names(self):
         if self._item_names:
@@ -1030,7 +1088,13 @@ class DownloadAnnotations(BaseReportableUseCase):
             with open(classes_path / "classes.json", "w+") as file:
                 json.dump(
                     [
-                        i.dict(exclude_unset=True, by_alias=True, fill_enum_values=True)
+                        i.dict(
+                            exclude_unset=True,
+                            by_alias=True,
+                            exclude={
+                                "attribute_groups": {"__all__": {"is_multiselect"}}
+                            },
+                        )
                         for i in response.data
                     ],
                     file,
@@ -1051,6 +1115,88 @@ class DownloadAnnotations(BaseReportableUseCase):
         loop.close()
         return count
 
+    async def download_big_annotations(self, queue_idx, export_path):
+        while True:
+            cur_queue = self._big_file_queues[queue_idx]
+            item = await cur_queue.get()
+            cur_queue.task_done()
+            if item:
+                postfix = self.get_postfix()
+                await self._backend_client.download_big_annotation(
+                    item=item,
+                    team_id=self._project.team_id,
+                    project_id=self._project.id,
+                    download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
+                    postfix=postfix,
+                    callback=self._callback,
+                )
+            else:
+                cur_queue.put_nowait(None)
+                break
+
+    async def download_small_annotations(self, queue_idx, export_path, folder_id):
+        cur_queue = self._small_file_queues[queue_idx]
+        items = []
+        item = ""
+        postfix = self.get_postfix()
+        while item is not None:
+            item = await cur_queue.get()
+            if item:
+                items.append(item)
+        await self._backend_client.download_small_annotations(
+            team_id=self._project.team_id,
+            project_id=self._project.id,
+            folder_id=folder_id,
+            items=items,
+            reporter=self.reporter,
+            download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
+            postfix=postfix,
+            callback=self._callback,
+        )
+
+    async def distribute_to_queues(
+        self, item_names, sm_queue_id, l_queue_id, folder_id
+    ):
+        try:
+            team_id = self._project.team_id
+            project_id = self._project.id
+
+            resp = self._backend_client.sort_items_by_size(
+                item_names, team_id, project_id, folder_id
+            )
+
+            for item in resp["large"]:
+                await self._big_file_queues[l_queue_id].put(item)
+
+            for item in resp["small"]:
+                await self._small_file_queues[sm_queue_id].put(item["name"])
+        finally:
+            await self._big_file_queues[l_queue_id].put(None)
+            await self._small_file_queues[sm_queue_id].put(None)
+
+    async def run_workers(self, item_names, folder_id, export_path):
+        try:
+            self._big_file_queues.append(asyncio.Queue())
+            self._small_file_queues.append(asyncio.Queue())
+            small_file_queue_idx = len(self._small_file_queues) - 1
+            big_file_queue_idx = len(self._big_file_queues) - 1
+            res = await asyncio.gather(
+                self.distribute_to_queues(
+                    item_names, small_file_queue_idx, big_file_queue_idx, folder_id
+                ),
+                self.download_big_annotations(big_file_queue_idx, export_path),
+                self.download_big_annotations(big_file_queue_idx, export_path),
+                self.download_big_annotations(big_file_queue_idx, export_path),
+                self.download_small_annotations(
+                    small_file_queue_idx, export_path, folder_id
+                ),
+                return_exceptions=True,
+            )
+            if any(res):
+                self.reporter.log_error(f"Error {str([i for i in res if i])}")
+        except Exception as e:
+            self.reporter.log_error(f"Error {str(e)}")
+
     def execute(self):
         if self.is_valid():
             export_path = str(
@@ -1063,6 +1209,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                 f"Downloading the annotations of the requested items to {export_path}\nThis might take a while…"
             )
             self.reporter.start_spinner()
+
             folders = []
             if self._folder.is_root and self._recursive:
                 folders = self._folders.get_all(
@@ -1070,70 +1217,42 @@ class DownloadAnnotations(BaseReportableUseCase):
                     & Condition("project_id", self._project.id, EQ),
                 )
                 folders.append(self._folder)
-            postfix = self.get_postfix()
-            import nest_asyncio
-            import platform
-
-            if platform.system().lower() == "windows":
-                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-            nest_asyncio.apply()
 
             if not folders:
-                loop = asyncio.new_event_loop()
-                if not self._item_names:
-                    condition = (
-                        Condition("team_id", self._project.team_id, EQ)
-                        & Condition("project_id", self._project.id, EQ)
-                        & Condition("folder_id", self._folder.uuid, EQ)
-                    )
-                    item_names = [item.name for item in self._images.get_all(condition)]
-                else:
-                    item_names = self._item_names
-                count = loop.run_until_complete(
-                    self._backend_client.download_annotations(
-                        team_id=self._project.team_id,
-                        project_id=self._project.id,
-                        folder_id=self._folder.uuid,
-                        items=item_names,
-                        reporter=self.reporter,
-                        download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-                        postfix=postfix,
-                        callback=self._callback,
-                    )
-                )
-            else:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                    coroutines = []
-                    for folder in folders:
-                        if not self._item_names:
-                            condition = (
-                                Condition("team_id", self._project.team_id, EQ)
-                                & Condition("project_id", self._project.id, EQ)
-                                & Condition("folder_id", folder.uuid, EQ)
-                            )
-                            item_names = [
-                                item.name for item in self._images.get_all(condition)
-                            ]
-                        else:
-                            item_names = self._item_names
-                        coroutines.append(
-                            self._backend_client.download_annotations(
-                                team_id=self._project.team_id,
-                                project_id=self._project.id,
-                                folder_id=folder.uuid,
-                                items=item_names,
-                                reporter=self.reporter,
-                                download_path=f"{export_path}{'/' + folder.name if not folder.is_root else ''}",  # noqa
-                                postfix=postfix,
-                                callback=self._callback,
-                            )
+                folders.append(self._folder)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                futures = []
+                for folder in folders:
+                    if not self._item_names:
+                        condition = (
+                            Condition("team_id", self._project.team_id, EQ)
+                            & Condition("project_id", self._project.id, EQ)
+                            & Condition("folder_id", folder.uuid, EQ)
                         )
-                    count = sum(
-                        [i for i in executor.map(self.coroutine_wrapper, coroutines)]
+                        item_names = [
+                            item.name for item in self._images.get_all(condition)
+                        ]
+                    else:
+                        item_names = self._item_names
+                    new_export_path = export_path
+                    if not folder.is_root and self._folder.is_root:
+                        new_export_path += f"/{folder.name}"
+                    if not item_names:
+                        continue
+                    futures.append(
+                        executor.submit(
+                            asyncio.run,
+                            self.run_workers(item_names, folder.uuid, new_export_path),
+                        )
                     )
 
+            for future in concurrent.futures.as_completed(futures):
+                exception = future.exception()
+                if exception:
+                    self._response.errors = exception
+
             self.reporter.stop_spinner()
+            count = self.get_items_count(export_path)
             self.reporter.log_info(f"Downloaded annotations for {count} items.")
             self.download_annotation_classes(export_path)
             self._response.data = os.path.abspath(export_path)
@@ -1144,7 +1263,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     DEFAULT_VERSION = "V1.00"
     SCHEMAS: Dict[str, Draft7Validator] = {}
     PATTERN_MAP = {
-        "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "YYYY-MM-DDTHH:MM:SS.fffZ"
+        "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "does not match YYYY-MM-DDTHH:MM:SS.fffZ",
+        "^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$": "invalid email",
     }
 
     def __init__(
@@ -1226,9 +1346,11 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     @staticmethod
     def _pattern(validator, patrn, instance, schema):
         if validator.is_type(instance, "string") and not re.search(patrn, instance):
-            yield ValidationError(
-                f"{instance} does not match {ValidateAnnotationUseCase.PATTERN_MAP.get(patrn, patrn)}"
-            )
+            _patrn = ValidateAnnotationUseCase.PATTERN_MAP.get(patrn)
+            if _patrn:
+                yield ValidationError(f"{instance}  {_patrn}")
+            else:
+                yield ValidationError(f"{instance} does not match {patrn}")
 
     @staticmethod
     def iter_errors(self, instance, _schema=None):
