@@ -114,11 +114,10 @@ class TestGetAnnotations(BaseTestCase):
         count = 10000
         sa.attach_items(
             self.PROJECT_NAME,
-            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, count)]  # noqa
+            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(count)]  # noqa
         )
         a = sa.get_annotations(self.PROJECT_NAME)
         assert len(a) == count
-
 
 
 class TestGetAnnotationsVideo(BaseTestCase):
@@ -170,4 +169,3 @@ class TestGetAnnotationsVideo(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(path, self.annotations_path)
         annotations = sa.get_annotations(path)
         self.assertEqual(len(annotations), 2)
-
