@@ -1636,17 +1636,26 @@ class SuperannotateBackendService(BaseBackendService):
     def sort_items_by_size(
         self, item_names: List[str], team_id: int, project_id: int, folder_id: int
     ):
-
+        chunk_size = 2000
         query_params = {
             "team_id": team_id,
             "project_id": project_id,
             "folder_id": folder_id,
         }
 
+        response_data = {"small": [], "large": []}
         url = urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE)
-
-        body = {"item_names": item_names, "folder_id": folder_id}
-        response = self._request(url=url, method="POST", params=query_params, data=body)
-        if not response.ok:
-            raise AppException(response.json().get("errors", "Undefined"))
-        return response.json()
+        for i in range(0, len(item_names), chunk_size):
+            body = {
+                "item_names": item_names[i : i + chunk_size],
+                "folder_id": folder_id,
+            }  # noqa
+            response = self._request(
+                url=url, method="POST", params=query_params, data=body
+            )
+            if not response.ok:
+                raise AppException(response.json().get("errors", "Undefined"))
+            response_json = response.json()
+            response_data["small"].extend(response_json.get("small", []))
+            response_data["large"].extend(response_json.get("large", []))
+        return response_data
