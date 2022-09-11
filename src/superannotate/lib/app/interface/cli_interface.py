@@ -195,9 +195,7 @@ class CLIFacade:
                     output_dir=temp_dir,
                     dataset_format=format,
                     dataset_name=dataset_name,
-                    project_type=constances.ProjectType.get_name(
-                        project["project"].type
-                    ),
+                    project_type=project.type.name,
                     task=task,
                 )
                 annotations_path = temp_dir

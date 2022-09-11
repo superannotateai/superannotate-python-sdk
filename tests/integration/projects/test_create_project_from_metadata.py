@@ -34,7 +34,8 @@ class CreateProjectFromMetadata(TestCase):
                         {
                             "name": "test",
                             "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
-                            "default_value": "Bus"
+                            "default_value": "Bus",
+                            "is_multiselect": 0
                         }
                     ]
                 }
@@ -45,3 +46,4 @@ class CreateProjectFromMetadata(TestCase):
         sa.create_project_from_metadata(pr_1_metadata)
         pr_2_metadata = sa.get_project_metadata(self.PROJECT_2, include_annotation_classes=True)
         assert pr_2_metadata["classes"][0]["attribute_groups"][0]["default_value"] == "Bus"
+        assert "is_multiselect" not in pr_2_metadata["classes"][0]["attribute_groups"][0]

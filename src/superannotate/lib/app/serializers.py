@@ -113,8 +113,6 @@ class TeamSerializer(BaseSerializer):
 
 
 class ProjectSerializer(BaseSerializer):
-    DEFAULT_EXCLUDE_SET = {"sync_status", "unverified_users"}
-
     def serialize(
         self,
         fields: List[str] = None,
@@ -122,19 +120,26 @@ class ProjectSerializer(BaseSerializer):
         flat: bool = False,
         exclude: Set[str] = None,
     ):
-        to_exclude = self.DEFAULT_EXCLUDE_SET
+
+        to_exclude = {
+            "sync_status": True,
+            "unverified_users": True,
+            "classes": {
+                "__all__": {"attribute_groups": {"__all__": {"is_multiselect"}}}
+            },
+        }
         if exclude:
-            to_exclude = exclude.union(self.DEFAULT_EXCLUDE_SET)
+            for field in exclude:
+                to_exclude[field] = True
+
         data = super().serialize(fields, by_alias, flat, to_exclude)
         if data.get("settings"):
             data["settings"] = [
                 SettingsSerializer(setting).serialize() for setting in data["settings"]
             ]
-        data["type"] = constance.ProjectType.get_name(data["type"])
-        if data.get("status"):
-            data["status"] = constance.ProjectStatus.get_name(data["status"])
-        else:
+        if not data.get("status"):
             data["status"] = "Undefined"
+
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
         if data.get("users"):
@@ -152,18 +157,14 @@ class FolderSerializer(BaseSerializer):
         return data
 
 
-class SettingsSerializer(BaseSerializer):
-    def serialize(
-        self,
-        fields: List[str] = None,
-        by_alias: bool = True,
-        flat: bool = False,
-        exclude=None,
-    ):
-        data = super().serialize(fields, by_alias, flat, exclude)
-        if data["attribute"] == "ImageQuality":
-            data["value"] = constance.ImageQuality.get_name(data["value"])
-        return data
+class SettingsSerializer:
+    def __init__(self, data: dict):
+        self.data = data
+
+    def serialize(self):
+        if self.data["attribute"] == "ImageQuality":
+            self.data["value"] = constance.ImageQuality.get_name(self.data["value"])
+        return self.data
 
 
 class EntitySerializer:

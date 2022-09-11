@@ -3,18 +3,8 @@ from abc import abstractmethod
 from typing import Any
 from typing import Iterable
 from typing import List
-from typing import Union
 
-from lib.core.enums import ClassTypeEnum
 from lib.core.enums import SegmentationStatus
-from superannotate_schemas.schemas.classes import AnnotationClass
-
-
-class AnnotationClassEntity(AnnotationClass):
-    def deserialize(self):
-        data = self.dict()
-        data["type"] = ClassTypeEnum.get_value(data["type"])
-        return data
 
 
 class BaseEntity(ABC):
@@ -72,90 +62,6 @@ class ConfigEntity(BaseEntity):
 
     def to_dict(self):
         return {"key": self.uuid, "value": self.value}
-
-
-class ProjectEntity(BaseTimedEntity):
-    def __init__(
-        self,
-        uuid: int = None,
-        createdAt: str = None,
-        updatedAt: str = None,
-        team_id: int = None,
-        name: str = None,
-        project_type: int = None,
-        description: Union[str, None] = None,
-        instructions_link: str = None,
-        creator_id: str = None,
-        entropy_status: int = None,
-        sharing_status: int = None,
-        status: int = None,
-        folder_id: int = None,
-        sync_status: int = None,
-        upload_state: int = None,
-        users: Iterable = (),
-        unverified_users: Iterable = (),
-        contributors: List = None,
-        settings: List = None,
-        annotation_classes: List = None,
-        workflow: List = None,
-        completed_images_count: int = None,
-        root_folder_completed_images_count: int = None,
-    ):
-        super().__init__(uuid, createdAt, updatedAt)
-        self.team_id = team_id
-        self.name = name
-        self.type = project_type
-        self.description = description
-        self.instructions_link = instructions_link
-        self.creator_id = creator_id
-        self.entropy_status = entropy_status
-        self.sharing_status = sharing_status
-        self.status = status
-        self.sync_status = sync_status
-        self.folder_id = folder_id
-        self.upload_state = upload_state
-        self.users = users
-        self.unverified_users = unverified_users
-        self.contributors = contributors
-        self.settings = settings
-        self.annotation_classes = annotation_classes
-        self.workflow = workflow
-        self.completed_images_count = completed_images_count
-        self.root_folder_completed_images_count = root_folder_completed_images_count
-
-    def __copy__(self):
-        return ProjectEntity(
-            team_id=self.team_id,
-            name=self.name,
-            project_type=self.type,
-            description=self.description,
-            instructions_link=self.instructions_link
-            if self.description
-            else f"Copy of {self.name}.",
-            status=self.status,
-            folder_id=self.folder_id,
-            users=self.users,
-            upload_state=self.upload_state,
-        )
-
-    def to_dict(self):
-        return {
-            **super().to_dict(),
-            "team_id": self.team_id,
-            "name": self.name,
-            "type": self.type,
-            "description": self.description,
-            "status": self.status,
-            "instructions_link": self.instructions_link,
-            "entropy_status": self.entropy_status,
-            "sharing_status": self.sharing_status,
-            "creator_id": self.creator_id,
-            "folder_id": self.folder_id,
-            "upload_state": self.upload_state,
-            "users": self.users,
-            "completed_images_count": self.completed_images_count,
-            "rootFolderCompletedImagesCount": self.root_folder_completed_images_count,
-        }
 
 
 class WorkflowEntity(BaseEntity):

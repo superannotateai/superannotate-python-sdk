@@ -97,7 +97,7 @@ class ProjectRepository(BaseManageableRepository):
         return parse_obj_as(List[ProjectEntity], self._service.get_projects(condition))
 
     def insert(self, entity: ProjectEntity) -> ProjectEntity:
-        result = self._service.create_project(entity.dict(exclude_none=True))
+        result = self._service.create_project(entity)
         if "error" in result:
             raise AppException(result["error"])
         return ProjectEntity(**result)
@@ -105,7 +105,7 @@ class ProjectRepository(BaseManageableRepository):
     def update(self, entity: ProjectEntity):
         condition = Condition("team_id", entity.team_id, EQ)
         result = self._service.update_project(
-            entity.dict(exclude_none=True), query_string=condition.build_query()
+            entity, query_string=condition.build_query()
         )
         return ProjectEntity(**result)
 
@@ -300,18 +300,6 @@ class AnnotationClassRepository(BaseManageableRepository):
             project_id=self.project.id,
             annotation_class_id=uuid,
         )
-
-    def bulk_insert(self, entities: List[AnnotationClassEntity]):
-        res = self._service.set_annotation_classes(
-            self.project.id, self.project.team_id, entities
-        )
-        if "error" in res:
-            raise AppException(res["error"])
-
-        return [self.dict2entity(i) for i in res]
-
-    def update(self, entity: AnnotationClassEntity):
-        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict) -> AnnotationClassEntity:

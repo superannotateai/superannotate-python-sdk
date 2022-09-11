@@ -1,17 +1,15 @@
-import tempfile
-from collections import defaultdict
-from pathlib import Path
-import os
-from os.path import join
 import json
+import os
+import tempfile
+from os.path import join
+from pathlib import Path
+
 import pytest
-from unittest.mock import patch
-from unittest.mock import MagicMock
 
 from src.superannotate import SAClient
-sa = SAClient()
-from superannotate_schemas.schemas.base import CreationTypeEnum
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationUploadVector(BaseTestCase):
@@ -35,10 +33,9 @@ class TestAnnotationUploadVector(BaseTestCase):
             sa.download_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, tmp_dir)
             annotation = json.load(open(join(tmp_dir, f"{self.IMAGE_NAME}___objects.json")))
             for instance in annotation["instances"]:
-                self.assertEqual(instance["creationType"], CreationTypeEnum.PRE_ANNOTATION.value)
+                self.assertEqual(instance["creationType"], "Preannotation")
             assert annotation["metadata"]["lastAction"]["email"] == sa.controller.team_data.creator_id
             self.assertEqual(
                 type(annotation["metadata"]["lastAction"]["timestamp"]),
                 int
             )
-

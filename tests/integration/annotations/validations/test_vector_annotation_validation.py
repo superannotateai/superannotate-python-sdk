@@ -60,35 +60,3 @@ class TestVectorValidators(TestCase):
 instances[0].createdBy.role                     'dmin' is not one of ['Customer', 'Admin', 'Annotator', 'QA']
 instances[1]                                    'points' is a required property"""
         )
-
-    def test_should_be_valid(self):
-        is_valid = sa.validate_annotations(
-            "Vector",
-            {
-                "metadata": {"name": "12"},
-                "instances": [
-                    {
-                        "type": "bbox",
-                        "createdAt": '2021-11-18T13.36.53.293Z',
-                        "createdBy": {'email': 'arturn@superannotate.com', 'role': 'dmin'},
-                        "points": {
-                            "x1": 437.16,
-                            "x2": 465.23,
-                            "y1": 341.5,
-                            "y2": 357.09
-                        },
-                        "attributes": [
-                            {
-                                "name": 4,
-                                "groupName": "Num doors1"
-                            },
-                            {
-                                "name": 4,
-                                "groupName": "Num doors1"
-                            }
-                        ]
-
-                    },
-                ]
-            }
-        )
