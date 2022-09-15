@@ -1598,3 +1598,16 @@ class Controller(BaseController):
             backend_client=self.backend_client,
         )
         return use_case.execute()
+
+    def add_items_to_subset(project_name: str, subset: str, items: List[dict]):
+
+        project = self._get_project(project_name)
+
+        use_case = usecases.AddItemsToSubsetUseCase(
+            reporter = self.get_default_reporter(),
+            project = project,
+            subset = subset,
+            items = items
+        )
+
+        return use_case.execute()

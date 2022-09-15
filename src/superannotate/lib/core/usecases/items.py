@@ -1,6 +1,7 @@
 import copy
 from typing import List
 from typing import Optional
+from collections import defaultdict
 
 import superannotate.lib.core as constants
 from lib.core.conditions import Condition
@@ -23,6 +24,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
+
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
@@ -809,3 +811,113 @@ class DeleteItemsUseCase(BaseUseCase):
             )
 
         return self._response
+
+class AddItemsToSubsetUseCase(BaseUseCase):
+    CHUNK_SIZE = 5000
+
+    def __init__(self, reporter, project, subset_name, items ):
+        self.reporter = reporter
+        self.project = project
+        self.subset_name = subset_name
+        self.items=items
+        self.results = {
+            "failed":[],
+            "skipped":[],
+            "succeded": []
+        }
+        self.item_ids = []
+        self.path_separated = defaultdict(list)
+
+    def __filter_duplicates():
+        def uniqueQ(item, seen):
+            result = True
+            if "id" in item:
+                if item["id"] in seen:
+                    result = False
+                else:
+                    seen.add(item["id"])
+
+            if "name" in item and "path" in item:
+                unique_str = f"{item['path']}/item['name']"
+                if unique_str in seen:
+                    result = False
+                else:
+                    seen.add(unique_str)
+            return result
+
+        seen = set()
+        uniques = [x for x in self.items if uniqueQ(x, seen)]
+        return uniques
+
+    def __filter_invalid_items():
+        def validQ(item):
+            if "id" in items:
+                return True
+            if "name" in item and "path" in item:
+                return True
+            self.results['skipped'].append(item)
+            return False
+
+        filtered_items = [x for x in self.items if validQ(x)]
+
+
+        return filtered_items
+
+    def __separate_to_paths():
+        for item in self.items:
+            if 'id' in item:
+                self.item_ids.append(item['id'])
+            else:
+                self.path_separated[item['path']].append(item["name"])
+
+
+    def __query(path, item_names):
+        folder = None
+        query_use_case = QueryEntitiesUseCase(
+            reporter = self.reporter,
+            project = self.project,
+            folder = folder,
+            backend_service_provider = self._backend_client,
+            query = query
+        )
+
+        queried_items = query_use_case.execute()
+        return [x["id"] for x in queried_items]
+
+    def validate_items():
+        filtered_items = self.__filter_duplicates()
+        if len(filtered_items) != len(self.items):
+            self.reporter.log_info(
+                f"Dropping duplicates found {len(filtered_items)} / {len(self.items)} unique items"
+            )
+        self.items = filtered_items
+        self.items = self.__filter_invalid_items()
+        self.__separate_to_paths()
+
+    def execute():
+        if self.is_valid():
+
+            futures = []
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                for path, item_names in self.path_separated.items():
+                    future = executor.submit(self.__query, path, item_names)
+                    futures.append(future)
+
+            for future in as_completed(futures):
+                ids = future.result
+                self.item_ids.exend(ids)
+
+
+            for i in range(0, len(self.item_ids), self.CHUNK_SIZE):
+                response = self._backend_client.attach_items_to_subset(
+                    project = self.project.id,
+                    team_id = self.project.team,
+                    item_ids = self.item_ids[i:i+self.CHUNK_SIZE]
+                )
+
+                if response.ok:
+                    ...
+                else:
+                    ...
+
+
