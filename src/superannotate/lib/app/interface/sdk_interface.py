@@ -3046,7 +3046,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def add_items_to_subset(
-        project: NotEmptyStr, subset: NotEmptyStr, items: List[dict]
+        self, project: NotEmptyStr, subset: NotEmptyStr, items: List[dict]
     ):
         """
 
@@ -3109,11 +3109,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         project_name, _ = extract_project_folder(project)
 
-        response = self.controller.add_items_to_subset(
-            project,
-            subset,
-            items
-        )
+        response = self.controller.add_items_to_subset(project_name, subset, items)
 
         if response.errors:
             raise AppException(response.errors)
+
+        return response.data
