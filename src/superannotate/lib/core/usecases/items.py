@@ -959,13 +959,14 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             subset=None,
         )
 
-        try:
-            queried_items = query_use_case.execute().data
-        except Exception as e:
-            # If we failed the query for whatever reason
-            # Add all items of the folder to skipped
+        queried_items = query_use_case.execute()
+        # If we failed the query for whatever reason
+        # Add all items of the folder to skipped
+        if queried_items.errors:
             self.results["skipped"].extend(items["items"])
+            return
 
+        queried_items = queried_items.data
         # Adding the images missing from specified folder to 'skipped'
         tmp = {item["name"]: item for item in items["items"]}
         tmp_q = (x.name for x in queried_items)
@@ -1023,7 +1024,9 @@ class AddItemsToSubsetUseCase(BaseUseCase):
 
             for future in as_completed(futures):
                 ids = future.result()
-                self.item_ids.extend(ids)
+
+                if not ids:
+                    self.item_ids.extend(ids)
 
             subset = self._backend_client.get_subset(
                 self.project.team_id, self.project.id, self.subset_name
