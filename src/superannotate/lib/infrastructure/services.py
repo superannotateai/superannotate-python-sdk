@@ -1714,7 +1714,7 @@ class SuperannotateBackendService(BaseBackendService):
 
         return None
 
-    def create_subset(self, team_id, project_id, subset_name, reporter):
+    def create_subset(self, team_id, project_id, subset_name):
 
         create_subset_url = urljoin(
             self.api_url, self.URL_CREATE_SUBSET.format(project_id=project_id)
@@ -1732,6 +1732,5 @@ class SuperannotateBackendService(BaseBackendService):
         if not response.ok:
             raise AppException(response.json().get("errors", "undefined"))
 
-        reporter.log_info("You've successfully created a new subset - {subset name}.")
 
-        return response.json()
+        return response.json()[0]

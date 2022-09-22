@@ -1002,6 +1002,14 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self.items = self.__filter_invalid_items()
         self.__separate_to_paths()
 
+    def validate_project(self):
+        response = self._backend_client.validate_saqul_query(
+            self.project.team_id, self.project.id, "_"
+        )
+        error = response.get("error")
+        if error:
+            raise AppException(response["error"])
+
     def execute(
         self,
     ):
@@ -1026,11 +1034,13 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     self.project.team_id,
                     self.project.id,
                     self.subset_name,
-                    self.reporter,
-                )[0]
+                )
+
+                self.reporter.log_info("You've successfully created a new subset - {subset name}.")
 
             subset_id = subset["id"]
             response = None
+
             for i in range(0, len(self.item_ids), self.CHUNK_SIZE):
                 tmp_response = self._backend_client.add_items_to_subset(
                     project_id=self.project.id,
