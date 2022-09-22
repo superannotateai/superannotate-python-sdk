@@ -145,7 +145,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
         folder: FolderEntity,
         backend_service_provider: SuperannotateServiceProvider,
         query: str,
-        subset: str,
+        subset: str = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -918,7 +918,8 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     folders=self.folder_repository,
                     condition=Condition.get_empty_condition(),
                 ).execute()
-
+                if folder_candidates.errors:
+                    raise AppException(folder_candidates.errors)
                 for f in folder_candidates.data:
                     if f.name == folder:
                         value["folder"] = f
@@ -931,7 +932,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             except Exception as e:
                 removeables.append(path)
 
-        ## Removing completely incorrect paths and their items
+        # Removing completely incorrect paths and their items
         for item in removeables:
             self.results["skipped"].extend(self.path_separated[item]["items"])
             self.path_separated.pop(item)
@@ -945,7 +946,6 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         return query_str
 
     def __query(self, path, items):
-        folder = None
         _, folder = extract_project_folder(path)
 
         item_names = [item["name"] for item in items["items"]]
@@ -1039,7 +1039,9 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     self.subset_name,
                 )
 
-                self.reporter.log_info("You've successfully created a new subset - {subset name}.")
+                self.reporter.log_info(
+                    f"You've successfully created a new subset - {self.subset_name}."
+                )
 
             subset_id = subset["id"]
             response = None
@@ -1048,7 +1050,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                 tmp_response = self._backend_client.add_items_to_subset(
                     project_id=self.project.id,
                     team_id=self.project.team_id,
-                    item_ids=self.item_ids[i : i + self.CHUNK_SIZE],
+                    item_ids=self.item_ids[i : i + self.CHUNK_SIZE],  # noqa
                     subset_id=subset_id,
                 )
 

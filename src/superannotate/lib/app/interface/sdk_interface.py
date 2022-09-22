@@ -3052,59 +3052,65 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Associates selected items with a given subset. Non-existing subset will be automatically created.
 
-        :param project:  – project name (e.g., “project1”)
+        :param project:  project name (e.g., “project1”)
         :type project: str
 
         :param subset: a name of an existing/new subset to associate items with. New subsets will be automatically created.
         :type subset: str
 
-        :param items: – list of items metadata. Required keys are 'name' and 'path'
+        :param items: list of items metadata. Required keys are 'name' and 'path'
         :type items: list of dicts
 
         Request Example:
-
         ::
-        client = SAClient()
+            client = SAClient()
 
-        # option 1
-        queried_items = client.query(
-            project="Image Project",
-            query="instance(error = true)"
-         )
+            # option 1
+            queried_items = client.query(
+                project="Image Project",
+                query="instance(error = true)"
+             )
 
-        client.add_items_to_subset(
-            project="Medical Annotations",
-            subset="Brain Study - Disapproved",
-            items=queried_items
-        )
+            client.add_items_to_subset(
+                project="Medical Annotations",
+                subset="Brain Study - Disapproved",
+                items=queried_items
+            )
 
-        items_list = [
-            {
-                'name': 'image_1.jpeg',
-                'path': 'Image Project'
-            },
-            {
-                'name': 'image_2.jpeg',
-                'path': 'Image Project/Subfolder A'
-            }
-        ]
+            items_list = [
+                {
+                    'name': 'image_1.jpeg',
+                    'path': 'Image Project'
+                },
+                {
+                    'name': 'image_2.jpeg',
+                    'path': 'Image Project/Subfolder A'
+                }
+            ]
 
-        client.add_items_to_subset(
-            project="Image Project",
-            subset="Subset Name",
-            items=items_list
+            client.add_items_to_subset(
+                project="Image Project",
+                subset="Subset Name",
+                items=items_list
 
-        )
-
+            )
 
         Response Example:
         ::
-        {
-            "succeeded": [{}, {}],
-            "failed": [],
-            "skipped": []
-        }
-
+            {
+                "succeeded": [
+                    {
+                        'name': 'image_1.jpeg',
+                        'path': 'Image Project'
+                    },
+                    {
+                        'name': 'image_2.jpeg',
+                        'path': 'Image Project/Subfolder A'
+                    }
+                ],
+                "failed": [],
+                "skipped": []
+            }
         """
 
         project_name, _ = extract_project_folder(project)
