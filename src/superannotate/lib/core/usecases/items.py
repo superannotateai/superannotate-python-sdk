@@ -1023,10 +1023,12 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     futures.append(future)
 
             for future in as_completed(futures):
-                ids = future.result()
+                try:
+                    ids = future.result()
+                except Exception as e:
+                    continue
 
-                if not ids:
-                    self.item_ids.extend(ids)
+                self.item_ids.extend(ids)
 
             subset = self._backend_client.get_subset(
                 self.project.team_id, self.project.id, self.subset_name
