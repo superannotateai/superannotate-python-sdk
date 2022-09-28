@@ -1663,7 +1663,9 @@ class SuperannotateBackendService(BaseBackendService):
             response_data["large"].extend(response_json.get("large", []))
         return response_data
 
-    def add_items_to_subset(self, project_id, team_id, item_ids, subset_id):
+    def add_items_to_subset(
+        self, project_id: int, team_id: int, item_ids: List[int], subset_id: int
+    ):
         params = {"team_id": team_id}
 
         data = {"action": "ATTACH", "item_ids": item_ids}
@@ -1711,7 +1713,6 @@ class SuperannotateBackendService(BaseBackendService):
         for subset in subsets:
             if subset["name"] == subset_name:
                 return subset
-
         return None
 
     def create_subset(self, team_id, project_id, subset_name):
@@ -1731,6 +1732,5 @@ class SuperannotateBackendService(BaseBackendService):
 
         if not response.ok:
             raise AppException(response.json().get("errors", "undefined"))
-
 
         return response.json()[0]
