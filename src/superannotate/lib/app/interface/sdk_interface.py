@@ -3058,7 +3058,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param subset: a name of an existing/new subset to associate items with. New subsets will be automatically created.
         :type subset: str
 
-        :param items: – list of items metadata. Required keys are 'name' and 'path'
+        :param items: – list of items metadata. Required keys are 'name' and 'path' if the 'id' key is not provided in the dict.
         :type items: list of dicts
 
         Request Example:

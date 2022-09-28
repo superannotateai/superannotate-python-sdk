@@ -833,7 +833,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self.project = project
         self.subset_name = subset_name
         self.items = items
-        self.results = {"failed": [], "skipped": [], "succeeded": []}
+        self.results = {"succeeded":[],"failed": [], "skipped": []}
         self.item_ids = []
         self.path_separated = defaultdict(dict)
         self._backend_client = backend_client
@@ -969,7 +969,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         queried_items = queried_items.data
         # Adding the images missing from specified folder to 'skipped'
         tmp = {item["name"]: item for item in items["items"]}
-        tmp_q = (x.name for x in queried_items)
+        tmp_q = set([x.name for x in queried_items])
 
         for i, val in tmp.items():
             if i not in tmp_q:
@@ -997,7 +997,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         filtered_items = self.__filter_duplicates()
         if len(filtered_items) != len(self.items):
             self.reporter.log_info(
-                f"Dropping duplicates found {len(filtered_items)} / {len(self.items)} unique items"
+                f"Dropping duplicates. Found {len(filtered_items)} / {len(self.items)} unique items"
             )
         self.items = filtered_items
         self.items = self.__filter_invalid_items()
