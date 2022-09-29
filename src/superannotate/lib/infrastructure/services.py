@@ -316,6 +316,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SYNC_LARGE_ANNOTATION = "items/{item_id}/annotations/sync"
     URL_SYNC_LARGE_ANNOTATION_STATUS = "items/{item_id}/annotations/sync/status"
     URL_DOWNLOAD_LARGE_ANNOTATION = "items/{item_id}/annotations/download"
+    URL_ADD_ITEMS_TO_SUBSET = "project/{project_id}/subset/{subset_id}/change"
+    URL_GET_SUBSET = "project/{project_id}/subset"
+    URL_CREATE_SUBSET = "project/{project_id}/subset/bulk"
 
     async def _sync_large_annotation(self, team_id, project_id, item_id):
 
@@ -1659,3 +1662,75 @@ class SuperannotateBackendService(BaseBackendService):
             response_data["small"].extend(response_json.get("small", []))
             response_data["large"].extend(response_json.get("large", []))
         return response_data
+
+    def add_items_to_subset(
+        self, project_id: int, team_id: int, item_ids: List[int], subset_id: int
+    ):
+        params = {"team_id": team_id}
+
+        data = {"action": "ATTACH", "item_ids": item_ids}
+
+        add_items_to_subset_url = urljoin(
+            self.api_url,
+            self.URL_ADD_ITEMS_TO_SUBSET.format(
+                project_id=project_id, subset_id=subset_id
+            ),
+        )
+
+        response = self._request(
+            url=add_items_to_subset_url,
+            method="POST",
+            params=params,
+            data=data,
+            content_type=ServiceResponse,
+        )
+
+        if not response.ok:
+            response.data["skipped"] = set()
+            response.data["failed"] = set(item_ids)
+
+        response.data["skipped"] = set(response.data["skipped"])
+        response.data["failed"] = set(response.data["failed"])
+        response.data["success"] = set(item_ids) - response.data["skipped"].union(
+            response.data["failed"]
+        )
+        return response
+
+    def get_subset(self, team_id, project_id, subset_name):
+        params = {"team_id": team_id}
+
+        get_subset_url = urljoin(
+            self.api_url, self.URL_GET_SUBSET.format(project_id=project_id)
+        )
+
+        response = self._request(url=get_subset_url, method="GET", params=params)
+
+        if not response.ok:
+            raise AppException(response.json().get("errors", "undefined"))
+
+        subsets = response.json()
+
+        for subset in subsets:
+            if subset["name"] == subset_name:
+                return subset
+        return None
+
+    def create_subset(self, team_id, project_id, subset_name):
+
+        create_subset_url = urljoin(
+            self.api_url, self.URL_CREATE_SUBSET.format(project_id=project_id)
+        )
+        params = {
+            "team_id": team_id,
+        }
+
+        data = {"names": [subset_name]}
+
+        response = self._request(
+            url=create_subset_url, method="POST", params=params, data=data
+        )
+
+        if not response.ok:
+            raise AppException(response.json().get("errors", "undefined"))
+
+        return response.json()[0]

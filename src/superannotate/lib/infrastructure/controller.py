@@ -1598,3 +1598,20 @@ class Controller(BaseController):
             backend_client=self.backend_client,
         )
         return use_case.execute()
+
+    def add_items_to_subset(self, project_name: str, subset: str, items: List[dict]):
+
+        project = self._get_project(project_name)
+        root_folder = FolderEntity(uuid=project.id, name="root")
+
+        use_case = usecases.AddItemsToSubsetUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            subset_name=subset,
+            items=items,
+            backend_client=self.backend_client,
+            folder_repo=self.folders,
+            root_folder=root_folder,
+        )
+
+        return use_case.execute()

@@ -264,6 +264,7 @@ class BaseItemEntity(TimedBaseModel):
     createdAt: str = Field(description="Date of creation")
     updatedAt: str = Field(description="Update date")
     custom_metadata: Optional[dict]
+    id: Optional[int]
 
     class Config:
         extra = Extra.allow

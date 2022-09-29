@@ -1,8 +1,12 @@
 import copy
+from collections import defaultdict
+from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from typing import Optional
 
 import superannotate.lib.core as constants
+from lib.app.helpers import extract_project_folder
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
@@ -23,6 +27,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
+from lib.core.usecases.folders import SearchFoldersUseCase
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
@@ -140,7 +145,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
         folder: FolderEntity,
         backend_service_provider: SuperannotateServiceProvider,
         query: str,
-        subset: str,
+        subset: str = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -809,3 +814,282 @@ class DeleteItemsUseCase(BaseUseCase):
             )
 
         return self._response
+
+
+class AddItemsToSubsetUseCase(BaseUseCase):
+    CHUNK_SIZE = 5000
+
+    def __init__(
+        self,
+        reporter,
+        project,
+        subset_name,
+        items,
+        backend_client,
+        folder_repo,
+        root_folder,
+    ):
+        self.reporter = reporter
+        self.project = project
+        self.subset_name = subset_name
+        self.items = items
+        self.results = {"succeeded": [], "failed": [], "skipped": []}
+        self.item_ids = []
+        self.path_separated = defaultdict(dict)
+        self._backend_client = backend_client
+        self.folder_repository = folder_repo
+        self.root_folder = root_folder
+        super().__init__()
+
+    def __filter_duplicates(
+        self,
+    ):
+        def uniqueQ(item, seen):
+            result = True
+            if "id" in item:
+                if item["id"] in seen:
+                    result = False
+                else:
+                    seen.add(item["id"])
+            if "name" in item and "path" in item:
+                unique_str = f"{item['path']}/{item['name']}"
+                if unique_str in seen:
+                    result = False
+                else:
+                    seen.add(unique_str)
+            return result
+
+        seen = set()
+        uniques = [x for x in self.items if uniqueQ(x, seen)]
+        return uniques
+
+    def __filter_invalid_items(
+        self,
+    ):
+        def validQ(item):
+            if "id" in item:
+                return True
+            if "name" in item and "path" in item:
+                return True
+            self.results["skipped"].append(item)
+            return False
+
+        filtered_items = [x for x in self.items if validQ(x)]
+
+        return filtered_items
+
+    def __separate_to_paths(
+        self,
+    ):
+        for item in self.items:
+            if "id" in item:
+                self.item_ids.append(item["id"])
+            else:
+                if "items" not in self.path_separated[item["path"]]:
+                    self.path_separated[item["path"]]["items"] = []
+
+                self.path_separated[item["path"]]["items"].append(item)
+
+        # Removing paths that have incorrect folders in them
+        # And adding their items to "skipped list" and removing it from self.path_separated
+        # so that we don't query them later.
+        # Otherwise include folder in path object in order to later run a query
+
+        removeables = []
+        for path, value in self.path_separated.items():
+
+            project, folder = extract_project_folder(path)
+
+            if project != self.project.name:
+                removeables.append(path)
+                continue
+
+            # If no folder was provided in the path use "root"
+            # Problems with folders name 'root' are going to arise
+
+            if not folder:
+                value["folder"] = self.root_folder
+                continue
+            folder_found = False
+            try:
+                folder_candidates = SearchFoldersUseCase(
+                    project=self.project,
+                    folder_name=folder,
+                    folders=self.folder_repository,
+                    condition=Condition.get_empty_condition(),
+                ).execute()
+                if folder_candidates.errors:
+                    raise AppException(folder_candidates.errors)
+                for f in folder_candidates.data:
+                    if f.name == folder:
+                        value["folder"] = f
+                        folder_found = True
+                        break
+                # If the folder did not exist add to skipped
+                if not folder_found:
+                    removeables.append(path)
+
+            except Exception as e:
+                removeables.append(path)
+
+        # Removing completely incorrect paths and their items
+        for item in removeables:
+            self.results["skipped"].extend(self.path_separated[item]["items"])
+            self.path_separated.pop(item)
+
+    def __build_query_string(self, path, item_names):
+        _, folder = extract_project_folder(path)
+        if not folder:
+            folder = "root"
+        query_str = f"metadata(name IN {str(item_names)}) AND folder={folder}"
+
+        return query_str
+
+    def __query(self, path, items):
+        _, folder = extract_project_folder(path)
+
+        item_names = [item["name"] for item in items["items"]]
+        query = self.__build_query_string(path, item_names)
+        query_use_case = QueryEntitiesUseCase(
+            reporter=self.reporter,
+            project=self.project,
+            backend_service_provider=self._backend_client,
+            query=query,
+            folder=items["folder"],
+            subset=None,
+        )
+
+        queried_items = query_use_case.execute()
+        # If we failed the query for whatever reason
+        # Add all items of the folder to skipped
+        if queried_items.errors:
+            self.results["skipped"].extend(items["items"])
+            return
+
+        queried_items = queried_items.data
+        # Adding the images missing from specified folder to 'skipped'
+        tmp = {item["name"]: item for item in items["items"]}
+        tmp_q = {x.name for x in queried_items}
+
+        for i, val in tmp.items():
+            if i not in tmp_q:
+                self.results["skipped"].append(val)
+
+        # Adding ids to path_separated to later see if they've succeded
+
+        self.path_separated[path] = [
+            {"id": x.id, "name": x.name, "path": x.path} for x in queried_items
+        ]
+        return [x.id for x in queried_items]
+
+    def __distribute_to_results(self, item_id, response, item):
+
+        if item_id in response.data["success"]:
+            self.results["succeeded"].append(item)
+        elif item_id in response.data["skipped"]:
+            self.results["skipped"].append(item)
+        else:
+            self.results["failed"].append(item)
+
+    def validate_items(
+        self,
+    ):
+        filtered_items = self.__filter_duplicates()
+        if len(filtered_items) != len(self.items):
+            self.reporter.log_info(
+                f"Dropping duplicates. Found {len(filtered_items)} / {len(self.items)} unique items"
+            )
+        self.items = filtered_items
+        self.items = self.__filter_invalid_items()
+        self.__separate_to_paths()
+
+    def validate_project(self):
+        response = self._backend_client.validate_saqul_query(
+            self.project.team_id, self.project.id, "_"
+        )
+        error = response.get("error")
+        if error:
+            raise AppException(response["error"])
+
+    def execute(
+        self,
+    ):
+        if self.is_valid():
+
+            futures = []
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                for path, items in self.path_separated.items():
+                    future = executor.submit(self.__query, path, items)
+                    futures.append(future)
+
+            for future in as_completed(futures):
+                try:
+                    ids = future.result()
+                except Exception as e:
+                    continue
+
+                self.item_ids.extend(ids)
+
+            subset = self._backend_client.get_subset(
+                self.project.team_id, self.project.id, self.subset_name
+            )
+
+            if not subset:
+                subset = self._backend_client.create_subset(
+                    self.project.team_id,
+                    self.project.id,
+                    self.subset_name,
+                )
+
+                self.reporter.log_info(
+                    f"You've successfully created a new subset - {self.subset_name}."
+                )
+
+            subset_id = subset["id"]
+            response = None
+
+            for i in range(0, len(self.item_ids), self.CHUNK_SIZE):
+                tmp_response = self._backend_client.add_items_to_subset(
+                    project_id=self.project.id,
+                    team_id=self.project.team_id,
+                    item_ids=self.item_ids[i : i + self.CHUNK_SIZE],  # noqa
+                    subset_id=subset_id,
+                )
+
+                if not response:
+                    response = tmp_response
+                else:
+                    response.data["failed"] = response.data["failed"].union(
+                        tmp_response.data["failed"]
+                    )
+                    response.data["skipped"] = response.data["skipped"].union(
+                        tmp_response.data["skipped"]
+                    )
+                    response.data["success"] = response.data["success"].union(
+                        tmp_response.data["success"]
+                    )
+
+            # Iterating over all path_separated (that now have ids in them and sorting them into
+            # "success", "failed" and "skipped")
+
+            for path, value in self.path_separated.items():
+                for item in value:
+                    item_id = item.pop(
+                        "id"
+                    )  # Need to remove it, since its added artificially
+                    self.__distribute_to_results(item_id, response, item)
+
+            for item in self.items:
+                if "id" not in item:
+                    continue
+                item_id = item[
+                    "id"
+                ]  # No need to remove id, since it was supplied by the user
+
+                self.__distribute_to_results(item_id, response, item)
+
+            self._response.data = self.results
+            # The function should either return something or raise an exception prior to
+            # returning control to the interface function that called it. So no need for
+            # error handling in the response
+            return self._response
