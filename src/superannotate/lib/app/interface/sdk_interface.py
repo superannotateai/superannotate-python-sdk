@@ -3,6 +3,7 @@ import io
 import json
 import os
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -13,6 +14,12 @@ from typing import Tuple
 from typing import Union
 
 import boto3
+from pydantic import StrictBool
+from pydantic import conlist
+from pydantic import parse_obj_as
+from pydantic.error_wrappers import ValidationError
+from tqdm import tqdm
+
 import lib.core as constants
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -52,12 +59,7 @@ from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.validators import wrap_error
-from pydantic import conlist
-from pydantic import parse_obj_as
-from pydantic import StrictBool
-from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
-from tqdm import tqdm
 
 logger = get_default_logger()
 
@@ -76,9 +78,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     """
 
     def __init__(
-        self,
-        token: str = None,
-        config_path: str = None,
+            self,
+            token: str = None,
+            config_path: str = None,
     ):
         super().__init__(token, config_path)
 
@@ -92,11 +94,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return TeamSerializer(response.data).serialize()
 
     def search_team_contributors(
-        self,
-        email: EmailStr = None,
-        first_name: NotEmptyStr = None,
-        last_name: NotEmptyStr = None,
-        return_metadata: bool = True,
+            self,
+            email: EmailStr = None,
+            first_name: NotEmptyStr = None,
+            last_name: NotEmptyStr = None,
+            return_metadata: bool = True,
     ):
         """Search for contributors in the team
 
@@ -122,11 +124,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return contributors
 
     def search_projects(
-        self,
-        name: Optional[NotEmptyStr] = None,
-        return_metadata: bool = False,
-        include_complete_image_count: bool = False,
-        status: Optional[Union[ProjectStatusEnum, List[ProjectStatusEnum]]] = None,
+            self,
+            name: Optional[NotEmptyStr] = None,
+            return_metadata: bool = False,
+            include_complete_image_count: bool = False,
+            status: Optional[Union[ProjectStatusEnum, List[ProjectStatusEnum]]] = None,
     ):
         """
         Project name based case-insensitive search for projects.
@@ -170,11 +172,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return [project.name for project in result]
 
     def create_project(
-        self,
-        project_name: NotEmptyStr,
-        project_description: NotEmptyStr,
-        project_type: NotEmptyStr,
-        settings: List[Setting] = None,
+            self,
+            project_name: NotEmptyStr,
+            project_description: NotEmptyStr,
+            project_type: NotEmptyStr,
+            settings: List[Setting] = None,
     ):
         """Create a new project in the team.
 
@@ -233,14 +235,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return ProjectSerializer(response.data).serialize()
 
     def clone_project(
-        self,
-        project_name: Union[NotEmptyStr, dict],
-        from_project: Union[NotEmptyStr, dict],
-        project_description: Optional[NotEmptyStr] = None,
-        copy_annotation_classes: Optional[StrictBool] = True,
-        copy_settings: Optional[StrictBool] = True,
-        copy_workflow: Optional[StrictBool] = True,
-        copy_contributors: Optional[StrictBool] = False,
+            self,
+            project_name: Union[NotEmptyStr, dict],
+            from_project: Union[NotEmptyStr, dict],
+            project_description: Optional[NotEmptyStr] = None,
+            copy_annotation_classes: Optional[StrictBool] = True,
+            copy_settings: Optional[StrictBool] = True,
+            copy_workflow: Optional[StrictBool] = True,
+            copy_contributors: Optional[StrictBool] = False,
     ):
         """Create a new project in the team using annotation classes and settings from from_project.
 
@@ -361,10 +363,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(f"Folders {folder_names} deleted in project {project}")
 
     def search_folders(
-        self,
-        project: NotEmptyStr,
-        folder_name: Optional[NotEmptyStr] = None,
-        return_metadata: Optional[StrictBool] = False,
+            self,
+            project: NotEmptyStr,
+            folder_name: Optional[NotEmptyStr] = None,
+            return_metadata: Optional[StrictBool] = False,
     ):
         """Folder name based case-insensitive search for folders in project.
 
@@ -390,13 +392,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return [folder.name for folder in data]
 
     def copy_image(
-        self,
-        source_project: Union[NotEmptyStr, dict],
-        image_name: NotEmptyStr,
-        destination_project: Union[NotEmptyStr, dict],
-        include_annotations: Optional[StrictBool] = False,
-        copy_annotation_status: Optional[StrictBool] = False,
-        copy_pin: Optional[StrictBool] = False,
+            self,
+            source_project: Union[NotEmptyStr, dict],
+            image_name: NotEmptyStr,
+            destination_project: Union[NotEmptyStr, dict],
+            include_annotations: Optional[StrictBool] = False,
+            copy_annotation_status: Optional[StrictBool] = False,
+            copy_pin: Optional[StrictBool] = False,
     ):
         """Copy image to a project. The image's project is the same as destination
         project then the name will be changed to <image_name>_(<num>).<image_ext>,
@@ -416,6 +418,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param copy_pin: enables image pin status copy
         :type copy_pin: bool
         """
+        warning_msg = "The SAClient.copy_image method will be deprecated with the Superannotate Python SDK 4.4.6 release"
+        warnings.warn(warning_msg, DeprecationWarning)
+        logger.warning(warning_msg)
         source_project_name, source_folder_name = extract_project_folder(source_project)
 
         destination_project, destination_folder = extract_project_folder(
@@ -469,13 +474,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
     def get_project_metadata(
-        self,
-        project: Union[NotEmptyStr, dict],
-        include_annotation_classes: Optional[StrictBool] = False,
-        include_settings: Optional[StrictBool] = False,
-        include_workflow: Optional[StrictBool] = False,
-        include_contributors: Optional[StrictBool] = False,
-        include_complete_image_count: Optional[StrictBool] = False,
+            self,
+            project: Union[NotEmptyStr, dict],
+            include_annotation_classes: Optional[StrictBool] = False,
+            include_settings: Optional[StrictBool] = False,
+            include_workflow: Optional[StrictBool] = False,
+            include_contributors: Optional[StrictBool] = False,
+            include_complete_image_count: Optional[StrictBool] = False,
     ):
         """Returns project metadata
 
@@ -552,7 +557,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return workflow.data
 
     def search_annotation_classes(
-        self, project: Union[NotEmptyStr, dict], name_contains: Optional[str] = None
+            self, project: Union[NotEmptyStr, dict], name_contains: Optional[str] = None
     ):
         """Searches annotation classes by name_prefix (case-insensitive)
 
@@ -577,9 +582,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ]
 
     def set_project_default_image_quality_in_editor(
-        self,
-        project: Union[NotEmptyStr, dict],
-        image_quality_in_editor: Optional[str],
+            self,
+            project: Union[NotEmptyStr, dict],
+            image_quality_in_editor: Optional[str],
     ):
         """Sets project's default image quality in editor setting.
 
@@ -602,10 +607,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def pin_image(
-        self,
-        project: Union[NotEmptyStr, dict],
-        image_name: str,
-        pin: Optional[StrictBool] = True,
+            self,
+            project: Union[NotEmptyStr, dict],
+            image_name: str,
+            pin: Optional[StrictBool] = True,
     ):
         """Pins (or unpins) image
 
@@ -641,7 +646,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def assign_items(
-        self, project: Union[NotEmptyStr, dict], items: List[str], user: str
+            self, project: Union[NotEmptyStr, dict], items: List[str], user: str
     ):
         """Assigns items  to a user. The assignment role, QA or Annotator, will
         be deduced from the user's role in the project. The type of the objects` image, video or text
@@ -666,7 +671,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def unassign_items(
-        self, project: Union[NotEmptyStr, dict], items: List[NotEmptyStr]
+            self, project: Union[NotEmptyStr, dict], items: List[NotEmptyStr]
     ):
         """Removes assignment of given items for all assignees. With SDK,
         the user can be assigned to a role in the project with the share_project
@@ -702,10 +707,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def assign_folder(
-        self,
-        project_name: NotEmptyStr,
-        folder_name: NotEmptyStr,
-        users: List[NotEmptyStr],
+            self,
+            project_name: NotEmptyStr,
+            folder_name: NotEmptyStr,
+            users: List[NotEmptyStr],
     ):
         """Assigns folder to users. With SDK, the user can be
         assigned to a role in the project with the share_project function.
@@ -722,8 +727,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             self.controller.get_project_metadata(
                 project_name=project_name, include_contributors=True
             )
-            .data["project"]
-            .users
+                .data["project"]
+                .users
         )
         verified_users = [i["user_id"] for i in contributors]
         verified_users = set(users).intersection(set(verified_users))
@@ -747,19 +752,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def upload_images_from_folder_to_project(
-        self,
-        project: Union[NotEmptyStr, dict],
-        folder_path: Union[NotEmptyStr, Path],
-        extensions: Optional[
-            Union[List[NotEmptyStr], Tuple[NotEmptyStr]]
-        ] = constants.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status="NotStarted",
-        from_s3_bucket=None,
-        exclude_file_patterns: Optional[
-            Iterable[NotEmptyStr]
-        ] = constants.DEFAULT_FILE_EXCLUDE_PATTERNS,
-        recursive_subfolders: Optional[StrictBool] = False,
-        image_quality_in_editor: Optional[str] = None,
+            self,
+            project: Union[NotEmptyStr, dict],
+            folder_path: Union[NotEmptyStr, Path],
+            extensions: Optional[
+                Union[List[NotEmptyStr], Tuple[NotEmptyStr]]
+            ] = constants.DEFAULT_IMAGE_EXTENSIONS,
+            annotation_status="NotStarted",
+            from_s3_bucket=None,
+            exclude_file_patterns: Optional[
+                Iterable[NotEmptyStr]
+            ] = constants.DEFAULT_FILE_EXCLUDE_PATTERNS,
+            recursive_subfolders: Optional[StrictBool] = False,
+            image_quality_in_editor: Optional[str] = None,
     ):
         """Uploads all images with given extensions from folder_path to the project.
         Sets status of all the uploaded images to set_status if it is not None.
@@ -854,7 +859,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return [], [], duplicates
         if use_case.is_valid():
             with tqdm(
-                total=len(images_to_upload), desc="Uploading images"
+                    total=len(images_to_upload), desc="Uploading images"
             ) as progress_bar:
                 for _ in use_case.execute():
                     progress_bar.update(1)
@@ -862,9 +867,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         raise AppException(use_case.response.errors)
 
     def get_project_image_count(
-        self,
-        project: Union[NotEmptyStr, dict],
-        with_all_subfolders: Optional[StrictBool] = False,
+            self,
+            project: Union[NotEmptyStr, dict],
+            with_all_subfolders: Optional[StrictBool] = False,
     ):
         """Returns number of images in the project.
 
@@ -889,10 +894,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def download_image_annotations(
-        self,
-        project: Union[NotEmptyStr, dict],
-        image_name: NotEmptyStr,
-        local_dir_path: Union[str, Path],
+            self,
+            project: Union[NotEmptyStr, dict],
+            image_name: NotEmptyStr,
+            local_dir_path: Union[str, Path],
     ):
         """Downloads annotations of the image (JSON and mask if pixel type project)
         to local_dir_path.
@@ -919,7 +924,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return res.data
 
     def get_exports(
-        self, project: NotEmptyStr, return_metadata: Optional[StrictBool] = False
+            self, project: NotEmptyStr, return_metadata: Optional[StrictBool] = False
     ):
         """Get all prepared exports of the project.
 
@@ -937,12 +942,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def prepare_export(
-        self,
-        project: Union[NotEmptyStr, dict],
-        folder_names: Optional[List[NotEmptyStr]] = None,
-        annotation_statuses: Optional[List[AnnotationStatuses]] = None,
-        include_fuse: Optional[StrictBool] = False,
-        only_pinned=False,
+            self,
+            project: Union[NotEmptyStr, dict],
+            folder_names: Optional[List[NotEmptyStr]] = None,
+            annotation_statuses: Optional[List[AnnotationStatuses]] = None,
+            include_fuse: Optional[StrictBool] = False,
+            only_pinned=False,
     ):
         """Prepare annotations and classes.json for export. Original and fused images for images with
         annotations can be included with include_fuse flag.
@@ -989,19 +994,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_videos_from_folder_to_project(
-        self,
-        project: Union[NotEmptyStr, dict],
-        folder_path: Union[NotEmptyStr, Path],
-        extensions: Optional[
-            Union[Tuple[NotEmptyStr], List[NotEmptyStr]]
-        ] = constants.DEFAULT_VIDEO_EXTENSIONS,
-        exclude_file_patterns: Optional[List[NotEmptyStr]] = (),
-        recursive_subfolders: Optional[StrictBool] = False,
-        target_fps: Optional[int] = None,
-        start_time: Optional[float] = 0.0,
-        end_time: Optional[float] = None,
-        annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-        image_quality_in_editor: Optional[ImageQualityChoices] = None,
+            self,
+            project: Union[NotEmptyStr, dict],
+            folder_path: Union[NotEmptyStr, Path],
+            extensions: Optional[
+                Union[Tuple[NotEmptyStr], List[NotEmptyStr]]
+            ] = constants.DEFAULT_VIDEO_EXTENSIONS,
+            exclude_file_patterns: Optional[List[NotEmptyStr]] = (),
+            recursive_subfolders: Optional[StrictBool] = False,
+            target_fps: Optional[int] = None,
+            start_time: Optional[float] = 0.0,
+            end_time: Optional[float] = None,
+            annotation_status: Optional[AnnotationStatuses] = "NotStarted",
+            image_quality_in_editor: Optional[ImageQualityChoices] = None,
     ):
         """Uploads image frames from all videos with given extensions from folder_path to the project.
         Sets status of all the uploaded images to set_status if it is not None.
@@ -1072,14 +1077,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_video_to_project(
-        self,
-        project: Union[NotEmptyStr, dict],
-        video_path: Union[NotEmptyStr, Path],
-        target_fps: Optional[int] = None,
-        start_time: Optional[float] = 0.0,
-        end_time: Optional[float] = None,
-        annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-        image_quality_in_editor: Optional[ImageQualityChoices] = None,
+            self,
+            project: Union[NotEmptyStr, dict],
+            video_path: Union[NotEmptyStr, Path],
+            target_fps: Optional[int] = None,
+            start_time: Optional[float] = 0.0,
+            end_time: Optional[float] = None,
+            annotation_status: Optional[AnnotationStatuses] = "NotStarted",
+            image_quality_in_editor: Optional[ImageQualityChoices] = None,
     ):
         """Uploads image frames from video to platform. Uploaded images will have
         names "<video_name>_<frame_no>.jpg".
@@ -1123,12 +1128,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def create_annotation_class(
-        self,
-        project: Union[Project, NotEmptyStr],
-        name: NotEmptyStr,
-        color: NotEmptyStr,
-        attribute_groups: Optional[List[AttributeGroup]] = None,
-        class_type: ClassType = "object",
+            self,
+            project: Union[Project, NotEmptyStr],
+            name: NotEmptyStr,
+            color: NotEmptyStr,
+            attribute_groups: Optional[List[AttributeGroup]] = None,
+            class_type: ClassType = "object",
     ):
         """Create annotation class in project
 
@@ -1228,7 +1233,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return BaseSerializer(response.data).serialize(exclude_unset=True)
 
     def delete_annotation_class(
-        self, project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]
+            self, project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]
     ):
         """Deletes annotation class from project
 
@@ -1242,7 +1247,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
     def download_annotation_classes_json(
-        self, project: NotEmptyStr, folder: Union[str, Path]
+            self, project: NotEmptyStr, folder: Union[str, Path]
     ):
         """Downloads project classes.json to folder
 
@@ -1262,10 +1267,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def create_annotation_classes_from_classes_json(
-        self,
-        project: Union[NotEmptyStr, dict],
-        classes_json: Union[List[AnnotationClassEntity], str, Path],
-        from_s3_bucket=False,
+            self,
+            project: Union[NotEmptyStr, dict],
+            classes_json: Union[List[AnnotationClassEntity], str, Path],
+            from_s3_bucket=False,
     ):
         """Creates annotation classes in project from a SuperAnnotate format
         annotation classes.json.
@@ -1305,12 +1310,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return [BaseSerializer(i).serialize(exclude_unset=True) for i in response.data]
 
     def download_export(
-        self,
-        project: Union[NotEmptyStr, dict],
-        export: Union[NotEmptyStr, dict],
-        folder_path: Union[str, Path],
-        extract_zip_contents: Optional[StrictBool] = True,
-        to_s3_bucket=None,
+            self,
+            project: Union[NotEmptyStr, dict],
+            export: Union[NotEmptyStr, dict],
+            folder_path: Union[str, Path],
+            extract_zip_contents: Optional[StrictBool] = True,
+            to_s3_bucket=None,
     ):
         """Download prepared export.
 
@@ -1343,7 +1348,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def set_project_workflow(
-        self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]
+            self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]
     ):
         """Sets project's workflow.
 
@@ -1365,14 +1370,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def download_image(
-        self,
-        project: Union[NotEmptyStr, dict],
-        image_name: NotEmptyStr,
-        local_dir_path: Optional[Union[str, Path]] = "./",
-        include_annotations: Optional[StrictBool] = False,
-        include_fuse: Optional[StrictBool] = False,
-        include_overlay: Optional[StrictBool] = False,
-        variant: Optional[str] = "original",
+            self,
+            project: Union[NotEmptyStr, dict],
+            image_name: NotEmptyStr,
+            local_dir_path: Optional[Union[str, Path]] = "./",
+            include_annotations: Optional[StrictBool] = False,
+            include_fuse: Optional[StrictBool] = False,
+            include_overlay: Optional[StrictBool] = False,
+            variant: Optional[str] = "original",
     ):
         """Downloads the image (and annotation if not None) to local_dir_path
 
@@ -1412,11 +1417,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_annotations_from_folder_to_project(
-        self,
-        project: Union[NotEmptyStr, dict],
-        folder_path: Union[str, Path],
-        from_s3_bucket=None,
-        recursive_subfolders: Optional[StrictBool] = False,
+            self,
+            project: Union[NotEmptyStr, dict],
+            folder_path: Union[str, Path],
+            from_s3_bucket=None,
+            recursive_subfolders: Optional[StrictBool] = False,
     ):
         """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -1474,11 +1479,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_preannotations_from_folder_to_project(
-        self,
-        project: Union[NotEmptyStr, dict],
-        folder_path: Union[str, Path],
-        from_s3_bucket=None,
-        recursive_subfolders: Optional[StrictBool] = False,
+            self,
+            project: Union[NotEmptyStr, dict],
+            folder_path: Union[str, Path],
+            from_s3_bucket=None,
+            recursive_subfolders: Optional[StrictBool] = False,
     ):
         """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
@@ -1539,12 +1544,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_image_annotations(
-        self,
-        project: Union[NotEmptyStr, dict],
-        image_name: str,
-        annotation_json: Union[str, Path, dict],
-        mask: Optional[Union[str, Path, bytes]] = None,
-        verbose: Optional[StrictBool] = True,
+            self,
+            project: Union[NotEmptyStr, dict],
+            image_name: str,
+            annotation_json: Union[str, Path, dict],
+            mask: Optional[Union[str, Path, bytes]] = None,
+            verbose: Optional[StrictBool] = True,
     ):
         """Upload annotations from JSON (also mask for pixel annotations)
         to the image.
@@ -1621,14 +1626,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return BaseSerializer(res.data).serialize()
 
     def benchmark(
-        self,
-        project: Union[NotEmptyStr, dict],
-        gt_folder: str,
-        folder_names: List[NotEmptyStr],
-        export_root: Optional[Union[str, Path]] = None,
-        image_list=None,
-        annot_type: Optional[AnnotationType] = "bbox",
-        show_plots=False,
+            self,
+            project: Union[NotEmptyStr, dict],
+            gt_folder: str,
+            folder_names: List[NotEmptyStr],
+            export_root: Optional[Union[str, Path]] = None,
+            image_list=None,
+            annot_type: Optional[AnnotationType] = "bbox",
+            show_plots=False,
     ):
         """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in folder_names list:
 
@@ -1688,13 +1693,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def consensus(
-        self,
-        project: NotEmptyStr,
-        folder_names: List[NotEmptyStr],
-        export_root: Optional[Union[NotEmptyStr, Path]] = None,
-        image_list: Optional[List[NotEmptyStr]] = None,
-        annot_type: Optional[AnnotationType] = "bbox",
-        show_plots: Optional[StrictBool] = False,
+            self,
+            project: NotEmptyStr,
+            folder_names: List[NotEmptyStr],
+            export_root: Optional[Union[NotEmptyStr, Path]] = None,
+            image_list: Optional[List[NotEmptyStr]] = None,
+            annot_type: Optional[AnnotationType] = "bbox",
+            show_plots: Optional[StrictBool] = False,
     ):
         """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
 
@@ -1741,10 +1746,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def run_prediction(
-        self,
-        project: Union[NotEmptyStr, dict],
-        images_list: List[NotEmptyStr],
-        model: Union[NotEmptyStr, dict],
+            self,
+            project: Union[NotEmptyStr, dict],
+            images_list: List[NotEmptyStr],
+            model: Union[NotEmptyStr, dict],
     ):
         """This function runs smart prediction on given list of images from a given project using the neural network of your choice
 
@@ -1779,13 +1784,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def add_annotation_bbox_to_image(
-        self,
-        project: NotEmptyStr,
-        image_name: NotEmptyStr,
-        bbox: List[float],
-        annotation_class_name: NotEmptyStr,
-        annotation_class_attributes: Optional[List[dict]] = None,
-        error: Optional[StrictBool] = None,
+            self,
+            project: NotEmptyStr,
+            image_name: NotEmptyStr,
+            bbox: List[float],
+            annotation_class_name: NotEmptyStr,
+            annotation_class_attributes: Optional[List[dict]] = None,
+            error: Optional[StrictBool] = None,
     ):
         """Add a bounding box annotation to image annotations
 
@@ -1838,13 +1843,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
     def add_annotation_point_to_image(
-        self,
-        project: NotEmptyStr,
-        image_name: NotEmptyStr,
-        point: List[float],
-        annotation_class_name: NotEmptyStr,
-        annotation_class_attributes: Optional[List[dict]] = None,
-        error: Optional[StrictBool] = None,
+            self,
+            project: NotEmptyStr,
+            image_name: NotEmptyStr,
+            point: List[float],
+            annotation_class_name: NotEmptyStr,
+            annotation_class_attributes: Optional[List[dict]] = None,
+            error: Optional[StrictBool] = None,
     ):
         """Add a point annotation to image annotations
 
@@ -1896,13 +1901,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def add_annotation_comment_to_image(
-        self,
-        project: NotEmptyStr,
-        image_name: NotEmptyStr,
-        comment_text: NotEmptyStr,
-        comment_coords: List[float],
-        comment_author: EmailStr,
-        resolved: Optional[StrictBool] = False,
+            self,
+            project: NotEmptyStr,
+            image_name: NotEmptyStr,
+            comment_text: NotEmptyStr,
+            comment_coords: List[float],
+            comment_author: EmailStr,
+            resolved: Optional[StrictBool] = False,
     ):
         """Add a comment to SuperAnnotate format annotation JSON
 
@@ -1951,13 +1956,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
     def upload_image_to_project(
-        self,
-        project: NotEmptyStr,
-        img,
-        image_name: Optional[NotEmptyStr] = None,
-        annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-        from_s3_bucket=None,
-        image_quality_in_editor: Optional[NotEmptyStr] = None,
+            self,
+            project: NotEmptyStr,
+            img,
+            image_name: Optional[NotEmptyStr] = None,
+            annotation_status: Optional[AnnotationStatuses] = "NotStarted",
+            from_s3_bucket=None,
+            image_quality_in_editor: Optional[NotEmptyStr] = None,
     ):
         """Uploads image (io.BytesIO() or filepath to image) to project.
         Sets status of the uploaded image to set_status if it is not None.
@@ -1992,12 +1997,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def search_models(
-        self,
-        name: Optional[NotEmptyStr] = None,
-        type_: Optional[NotEmptyStr] = None,  # noqa
-        project_id: Optional[int] = None,
-        task: Optional[NotEmptyStr] = None,
-        include_global: Optional[StrictBool] = True,
+            self,
+            name: Optional[NotEmptyStr] = None,
+            type_: Optional[NotEmptyStr] = None,  # noqa
+            project_id: Optional[int] = None,
+            task: Optional[NotEmptyStr] = None,
+            include_global: Optional[StrictBool] = True,
     ):
         r"""Search for ML models.
 
@@ -2029,12 +2034,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return res.data
 
     def upload_images_to_project(
-        self,
-        project: NotEmptyStr,
-        img_paths: List[NotEmptyStr],
-        annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-        from_s3_bucket=None,
-        image_quality_in_editor: Optional[ImageQualityChoices] = None,
+            self,
+            project: NotEmptyStr,
+            img_paths: List[NotEmptyStr],
+            annotation_status: Optional[AnnotationStatuses] = "NotStarted",
+            from_s3_bucket=None,
+            image_quality_in_editor: Optional[ImageQualityChoices] = None,
     ):
         """Uploads all images given in list of path objects in img_paths to the project.
         Sets status of all the uploaded images to set_status if it is not None.
@@ -2081,7 +2086,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return uploaded, failed_images, duplications
         if use_case.is_valid():
             with tqdm(
-                total=len(images_to_upload), desc="Uploading images"
+                    total=len(images_to_upload), desc="Uploading images"
             ) as progress_bar:
                 for _ in use_case.execute():
                     progress_bar.update(1)
@@ -2093,9 +2098,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     @staticmethod
     def aggregate_annotations_as_df(
-        project_root: Union[NotEmptyStr, Path],
-        project_type: ProjectTypes,
-        folder_names: Optional[List[Union[Path, NotEmptyStr]]] = None,
+            project_root: Union[NotEmptyStr, Path],
+            project_type: ProjectTypes,
+            folder_names: Optional[List[Union[Path, NotEmptyStr]]] = None,
     ):
         """Aggregate annotations as pandas dataframe from project root.
 
@@ -2113,8 +2118,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: pandas DataFrame
         """
         if project_type in (
-            constants.ProjectType.VECTOR.name,
-            constants.ProjectType.PIXEL.name,
+                constants.ProjectType.VECTOR.name,
+                constants.ProjectType.PIXEL.name,
         ):
             from superannotate.lib.app.analytics.common import (
                 aggregate_image_annotations_as_df,
@@ -2128,8 +2133,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 folder_names=folder_names,
             )
         elif project_type in (
-            constants.ProjectType.VIDEO.name,
-            constants.ProjectType.DOCUMENT.name,
+                constants.ProjectType.VIDEO.name,
+                constants.ProjectType.DOCUMENT.name,
         ):
             from superannotate.lib.app.analytics.aggregators import DataAggregator
 
@@ -2140,7 +2145,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ).aggregate_annotations_as_df()
 
     def delete_annotations(
-        self, project: NotEmptyStr, item_names: Optional[List[NotEmptyStr]] = None
+            self, project: NotEmptyStr, item_names: Optional[List[NotEmptyStr]] = None
     ):
         """
         Delete item annotations from a given list of items.
@@ -2160,9 +2165,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def validate_annotations(
-        self,
-        project_type: ProjectTypes,
-        annotations_json: Union[NotEmptyStr, Path, dict],
+            self,
+            project_type: ProjectTypes,
+            annotations_json: Union[NotEmptyStr, Path, dict],
     ):
         """Validates given annotation JSON.
 
@@ -2189,10 +2194,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return False
 
     def add_contributors_to_project(
-        self,
-        project: NotEmptyStr,
-        emails: conlist(EmailStr, min_items=1),
-        role: AnnotatorRole,
+            self,
+            project: NotEmptyStr,
+            emails: conlist(EmailStr, min_items=1),
+            role: AnnotatorRole,
     ) -> Tuple[List[str], List[str]]:
         """Add contributors to project.
 
@@ -2216,7 +2221,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def invite_contributors_to_team(
-        self, emails: conlist(EmailStr, min_items=1), admin: StrictBool = False
+            self, emails: conlist(EmailStr, min_items=1), admin: StrictBool = False
     ) -> Tuple[List[str], List[str]]:
         """Invites contributors to the team.
 
@@ -2237,7 +2242,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def get_annotations(
-        self, project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None
+            self, project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None
     ):
         """Returns annotations for the given list of items.
 
@@ -2257,7 +2262,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def get_annotations_per_frame(
-        self, project: NotEmptyStr, video: NotEmptyStr, fps: int = 1
+            self, project: NotEmptyStr, video: NotEmptyStr, fps: int = 1
     ):
         """Returns per frame annotations for the given video.
 
@@ -2317,10 +2322,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return BaseSerializer.serialize_iterable(integrations, ("name", "type", "root"))
 
     def attach_items_from_integrated_storage(
-        self,
-        project: NotEmptyStr,
-        integration: Union[NotEmptyStr, IntegrationEntity],
-        folder_path: Optional[NotEmptyStr] = None,
+            self,
+            project: NotEmptyStr,
+            integration: Union[NotEmptyStr, IntegrationEntity],
+            folder_path: Optional[NotEmptyStr] = None,
     ):
         """Link images from integrated external storage to SuperAnnotate.
 
@@ -2345,10 +2350,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def query(
-        self,
-        project: NotEmptyStr,
-        query: Optional[NotEmptyStr] = None,
-        subset: Optional[NotEmptyStr] = None,
+            self,
+            project: NotEmptyStr,
+            query: Optional[NotEmptyStr] = None,
+            subset: Optional[NotEmptyStr] = None,
     ):
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/query-search-1).
@@ -2375,10 +2380,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return BaseSerializer.serialize_iterable(response.data)
 
     def get_item_metadata(
-        self,
-        project: NotEmptyStr,
-        item_name: NotEmptyStr,
-        include_custom_metadata: bool = False,
+            self,
+            project: NotEmptyStr,
+            item_name: NotEmptyStr,
+            include_custom_metadata: bool = False,
     ):
         """Returns item metadata
 
@@ -2433,14 +2438,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return BaseSerializer(response.data).serialize(exclude=exclude)
 
     def search_items(
-        self,
-        project: NotEmptyStr,
-        name_contains: NotEmptyStr = None,
-        annotation_status: Optional[AnnotationStatuses] = None,
-        annotator_email: Optional[NotEmptyStr] = None,
-        qa_email: Optional[NotEmptyStr] = None,
-        recursive: bool = False,
-        include_custom_metadata: bool = False,
+            self,
+            project: NotEmptyStr,
+            name_contains: NotEmptyStr = None,
+            annotation_status: Optional[AnnotationStatuses] = None,
+            annotator_email: Optional[NotEmptyStr] = None,
+            qa_email: Optional[NotEmptyStr] = None,
+            recursive: bool = False,
+            include_custom_metadata: bool = False,
     ):
         """Search items by filtering criteria.
 
@@ -2528,10 +2533,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return BaseSerializer.serialize_iterable(response.data, exclude=exclude)
 
     def attach_items(
-        self,
-        project: Union[NotEmptyStr, dict],
-        attachments: AttachmentArg,
-        annotation_status: Optional[AnnotationStatuses] = "NotStarted",
+            self,
+            project: Union[NotEmptyStr, dict],
+            attachments: AttachmentArg,
+            annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     ):
         """Link items from external storage to SuperAnnotate using URLs.
 
@@ -2590,11 +2595,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return uploaded, fails, duplicated
 
     def copy_items(
-        self,
-        source: Union[NotEmptyStr, dict],
-        destination: Union[NotEmptyStr, dict],
-        items: Optional[List[NotEmptyStr]] = None,
-        include_annotations: Optional[StrictBool] = True,
+            self,
+            source: Union[NotEmptyStr, dict],
+            destination: Union[NotEmptyStr, dict],
+            items: Optional[List[NotEmptyStr]] = None,
+            include_annotations: Optional[StrictBool] = True,
     ):
         """Copy images in bulk between folders in a project
 
@@ -2633,10 +2638,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def move_items(
-        self,
-        source: Union[NotEmptyStr, dict],
-        destination: Union[NotEmptyStr, dict],
-        items: Optional[List[NotEmptyStr]] = None,
+            self,
+            source: Union[NotEmptyStr, dict],
+            destination: Union[NotEmptyStr, dict],
+            items: Optional[List[NotEmptyStr]] = None,
     ):
         """Move images in bulk between folders in a project
 
@@ -2668,10 +2673,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def set_annotation_statuses(
-        self,
-        project: Union[NotEmptyStr, dict],
-        annotation_status: AnnotationStatuses,
-        items: Optional[List[NotEmptyStr]] = None,
+            self,
+            project: Union[NotEmptyStr, dict],
+            annotation_status: AnnotationStatuses,
+            items: Optional[List[NotEmptyStr]] = None,
     ):
         """Sets annotation statuses of items
 
@@ -2704,12 +2709,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             logger.info("Annotation statuses of items changed")
 
     def download_annotations(
-        self,
-        project: Union[NotEmptyStr, dict],
-        path: Union[str, Path] = None,
-        items: Optional[List[NotEmptyStr]] = None,
-        recursive: bool = False,
-        callback: Callable = None,
+            self,
+            project: Union[NotEmptyStr, dict],
+            path: Union[str, Path] = None,
+            items: Optional[List[NotEmptyStr]] = None,
+            recursive: bool = False,
+            callback: Callable = None,
     ):
         """Downloads annotation JSON files of the selected items to the local directory.
 
@@ -2889,7 +2894,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def delete_custom_fields(
-        self, project: NotEmptyStr, fields: conlist(NotEmptyStr, min_items=1)
+            self, project: NotEmptyStr, fields: conlist(NotEmptyStr, min_items=1)
     ):
         """Remove custom fields from a project’s custom metadata schema.
 
@@ -2942,7 +2947,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_custom_values(
-        self, project: NotEmptyStr, items: conlist(Dict[str, dict], min_items=1)
+            self, project: NotEmptyStr, items: conlist(Dict[str, dict], min_items=1)
     ):
         """
         Attach custom metadata to items.
@@ -3012,7 +3017,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def delete_custom_values(
-        self, project: NotEmptyStr, items: conlist(Dict[str, List[str]], min_items=1)
+            self, project: NotEmptyStr, items: conlist(Dict[str, List[str]], min_items=1)
     ):
         """
         Remove custom data from items
@@ -3046,7 +3051,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def add_items_to_subset(
-        self, project: NotEmptyStr, subset: NotEmptyStr, items: List[dict]
+            self, project: NotEmptyStr, subset: NotEmptyStr, items: List[dict]
     ):
         """
 
