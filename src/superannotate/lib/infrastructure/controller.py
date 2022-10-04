@@ -1,13 +1,10 @@
-import copy
 import io
 import os
 from abc import ABCMeta
 from pathlib import Path
 from typing import Callable
-from typing import Iterable
 from typing import List
 from typing import Optional
-from typing import Tuple
 from typing import Union
 
 import lib.core as constances
@@ -27,10 +24,8 @@ from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import AnnotationClassRepository
-from lib.infrastructure.repositories import FolderRepository
 from lib.infrastructure.repositories import ImageRepository
 from lib.infrastructure.repositories import IntegrationRepository
-from lib.infrastructure.repositories import ItemRepository
 from lib.infrastructure.repositories import MLModelRepository
 from lib.infrastructure.repositories import ProjectRepository
 from lib.infrastructure.repositories import ProjectSettingsRepository
@@ -38,6 +33,8 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
+from lib.infrastructure.services_.http_client import HttpClient
+from lib.infrastructure.services_.serviceprovider import ServiceProvider
 from superannotate.logger import get_default_logger
 
 
@@ -47,6 +44,159 @@ def build_condition(**kwargs) -> Condition:
         for key, value in ((key, value) for key, value in kwargs.items() if value):
             condition = condition & Condition(key, value, EQ)
     return condition
+
+
+class BaseManager:
+    def __init__(self, service_provider: ServiceProvider):
+        self.service_provider = service_provider
+
+
+class ProjectManager(BaseManager):
+    def create(self, entity: ProjectEntity) -> Response:
+        use_case = usecases.CreateProjectUseCase(
+            project=entity, service_provider=self.service_provider
+        )
+        return use_case.execute()
+
+    def list(self, condition: Condition):
+        use_case = usecases.GetProjectsUseCase(
+            condition=condition,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def delete(self, name: str):
+        use_case = usecases.DeleteProjectUseCase(
+            project_name=name, service_provider=self.service_provider
+        )
+        return use_case.execute()
+
+    def update(self, entity: ProjectEntity) -> Response:
+        use_case = usecases.UpdateProjectUseCase(
+            entity, service_provider=self.service_provider
+        )
+        return use_case.execute()
+
+    def clone(
+        self,
+        project: ProjectEntity,
+        new_project: ProjectEntity,
+        copy_annotation_classes=True,
+        copy_settings=True,
+        copy_workflow=True,
+        copy_contributors=False,
+    ):
+        use_case = usecases.CloneProjectUseCase(
+            project=project,
+            service_provider=self.service_provider,
+            project_to_create=new_project,
+            include_contributors=copy_contributors,
+            include_settings=copy_settings,
+            include_workflow=copy_workflow,
+            include_annotation_classes=copy_annotation_classes,
+        )
+        return use_case.execute()
+
+    def set_settings(self, project: ProjectEntity, settings: List[SettingEntity]):
+        use_case = usecases.UpdateSettingsUseCase(
+            to_update=settings,
+            service_provider=self.service_provider,
+            project=project,
+        )
+        return use_case.execute()
+
+    def list_workflow(self, project: ProjectEntity):
+        use_case = usecases.GetWorkflowsUseCase(
+            project=project, service_provider=self.service_provider
+        )
+        return use_case.execute()
+
+    def set_workflows(self, project: ProjectEntity, steps: List):
+        use_case = usecases.SetWorkflowUseCase(
+            service_provider=self.service_provider,
+            steps=steps,
+            project=project,
+        )
+        return use_case.execute()
+
+
+class AnnotationClassManager(BaseManager):
+    def list(self, condition: Condition):
+        use_case = usecases.GetAnnotationClassesUseCase(
+            service_provider=self.service_provider,
+            condition=condition,
+        )
+        return use_case.execute()
+
+
+class FolderManager(BaseManager):
+    def create(self, project: ProjectEntity, folder: FolderEntity):
+        use_case = usecases.CreateFolderUseCase(
+            project=project,
+            folder=folder,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def list(self, project: ProjectEntity, condition: Condition = None):
+        use_case = usecases.SearchFoldersUseCase(
+            project=project, service_provider=self.service_provider, condition=condition
+        )
+        return use_case.execute()
+
+    def delete_multiple(self, project: ProjectEntity, folders: List[FolderEntity]):
+        use_case = usecases.DeleteFolderUseCase(
+            project=project,
+            folders=folders,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def get_by_name(self, project: ProjectEntity, name: str = None):
+        name = Controller.get_folder_name(name)
+        use_case = usecases.GetFolderUseCase(
+            project=project,
+            folder_name=name,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+
+class ItemManager(BaseManager):
+    def list(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        condition: Condition = None,
+        recursive: bool = False,
+        include_custom_metadata: bool = False,
+    ):
+        use_case = usecases.ListItems(
+            project=project,
+            folder=folder,
+            service_provider=self.service_provider,
+            recursive=recursive,
+            search_condition=condition,
+            include_custom_metadata=include_custom_metadata,
+        )
+        return use_case.execute()
+
+    def attach(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        attachments: List[AttachmentEntity],
+        annotation_status: str,
+    ):
+        use_case = usecases.AttachItems(
+            reporter=Reporter(),
+            project=project,
+            folder=folder,
+            attachments=attachments,
+            annotation_status=annotation_status,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
 
 
 class BaseController(metaclass=ABCMeta):
@@ -77,6 +227,13 @@ class BaseController(metaclass=ABCMeta):
         self._reporter = None
         self._team = self._get_team()
 
+        http_client = HttpClient(team_id=self._team.id, api_url=host, token=token)
+        self.service_provider = ServiceProvider(http_client)
+        self.annotation_classes = AnnotationClassManager(self.service_provider)
+        self.projects = ProjectManager(self.service_provider)
+        self.folders = FolderManager(self.service_provider)
+        self.items = ItemManager(self.service_provider)
+
     @staticmethod
     def validate_token(token: str):
         try:
@@ -95,17 +252,11 @@ class BaseController(metaclass=ABCMeta):
             self._user_id, _ = self.get_team()
         return self._user_id
 
-    @property
-    def projects(self):
-        if not self._projects:
-            self._projects = ProjectRepository(self._backend_client)
-        return self._projects
-
-    @property
-    def folders(self):
-        if not self._folders:
-            self._folders = FolderRepository(self._backend_client)
-        return self._folders
+    # @property
+    # def projects(self):
+    #     if not self._projects:
+    #         self._projects = ProjectRepository(self._backend_client)
+    #     return self._projects
 
     @property
     def team(self):
@@ -143,12 +294,6 @@ class BaseController(metaclass=ABCMeta):
         if not self._images:
             self._images = ImageRepository(self._backend_client)
         return self._images
-
-    @property
-    def items(self):
-        if not self._items:
-            self._items = ItemRepository(self._backend_client)
-        return self._items
 
     def get_integrations_repo(self, team_id: int):
         if not self._integrations:
@@ -203,9 +348,16 @@ class Controller(BaseController):
 
     def _get_project(self, name: str) -> ProjectEntity:
         use_case = usecases.GetProjectByNameUseCase(
-            name=name,
-            team_id=self.team_id,
-            projects=ProjectRepository(service=self._backend_client),
+            name=name, service_provider=self.service_provider
+        )
+        response = use_case.execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def get_project(self, name: str) -> ProjectEntity:
+        use_case = usecases.GetProjectByNameUseCase(
+            name=name, service_provider=self.service_provider
         )
         response = use_case.execute()
         if response.errors:
@@ -216,9 +368,8 @@ class Controller(BaseController):
         name = self.get_folder_name(name)
         use_case = usecases.GetFolderUseCase(
             project=project,
-            folders=self.folders,
+            service_provider=self.service_provider,
             folder_name=name,
-            team_id=self.team_id,
         )
         response = use_case.execute()
         if not response.data or response.errors:
@@ -230,85 +381,6 @@ class Controller(BaseController):
         if name:
             return name
         return "root"
-
-    def search_project(
-        self,
-        name: str = None,
-        include_complete_image_count=False,
-        statuses: Union[List[str], Tuple[str]] = (),
-        **kwargs,
-    ) -> Response:
-        condition = Condition.get_empty_condition()
-        if name:
-            condition &= Condition("name", name, EQ)
-        if include_complete_image_count:
-            condition &= Condition(
-                "completeImagesCount", include_complete_image_count, EQ
-            )
-        for status in statuses:
-            condition &= Condition(
-                "status", constances.ProjectStatus.get_value(status), EQ
-            )
-
-        condition &= build_condition(**kwargs)
-        use_case = usecases.GetProjectsUseCase(
-            condition=condition,
-            projects=self.projects,
-            team_id=self.team_id,
-        )
-        return use_case.execute()
-
-    def create_project(
-        self,
-        name: str,
-        description: str,
-        project_type: str,
-        settings: Iterable[SettingEntity] = None,
-        classes: Iterable = tuple(),
-        workflows: Iterable = tuple(),
-        **extra_kwargs,
-    ) -> Response:
-
-        try:
-            project_type = constances.ProjectType[project_type.upper()].value
-        except KeyError:
-            raise AppException(
-                "Please provide a valid project type: Vector, Pixel, Document, or Video."
-            )
-        entity = ProjectEntity(
-            name=name,
-            description=description,
-            type=project_type,
-            team_id=self.team_id,
-            settings=settings if settings else [],
-            **extra_kwargs,
-        )
-        use_case = usecases.CreateProjectUseCase(
-            project=entity,
-            projects=self.projects,
-            backend_service_provider=self._backend_client,
-            workflows_repo=WorkflowRepository,
-            annotation_classes_repo=AnnotationClassRepository,
-            workflows=workflows,
-            classes=[
-                AnnotationClassEntity(**annotation_class)
-                for annotation_class in classes
-            ],
-        )
-        return use_case.execute()
-
-    def delete_project(self, name: str):
-        use_case = usecases.DeleteProjectUseCase(
-            project_name=name,
-            team_id=self.team_id,
-            projects=self.projects,
-        )
-        return use_case.execute()
-
-    def update_project(self, name: str, project_data: dict) -> Response:
-        project = self._get_project(name)
-        use_case = usecases.UpdateProjectUseCase(project, project_data, self.projects)
-        return use_case.execute()
 
     def upload_image_to_project(
         self,
@@ -402,91 +474,6 @@ class Controller(BaseController):
             recursive_sub_folders=recursive_sub_folders,
             image_quality_in_editor=image_quality_in_editor,
         )
-
-    def clone_project(
-        self,
-        name: str,
-        from_name: str,
-        project_description: str,
-        copy_annotation_classes=True,
-        copy_settings=True,
-        copy_workflow=True,
-        copy_contributors=False,
-    ):
-
-        project = self._get_project(from_name)
-        project_to_create = copy.copy(project)
-        reporter = self.get_default_reporter()
-        reporter.track(
-            "external", project.upload_state == constances.UploadState.EXTERNAL.value
-        )
-        project_to_create.name = name
-        if project_description is not None:
-            project_to_create.description = project_description
-        use_case = usecases.CloneProjectUseCase(
-            reporter=reporter,
-            project=project,
-            project_to_create=project_to_create,
-            projects=self.projects,
-            settings_repo=ProjectSettingsRepository,
-            workflows_repo=WorkflowRepository,
-            annotation_classes_repo=AnnotationClassRepository,
-            backend_service_provider=self._backend_client,
-            include_contributors=copy_contributors,
-            include_settings=copy_settings,
-            include_workflow=copy_workflow,
-            include_annotation_classes=copy_annotation_classes,
-        )
-        return use_case.execute()
-
-    def create_folder(self, project: str, folder_name: str):
-        project = self._get_project(project)
-        folder = FolderEntity(
-            name=folder_name, project_id=project.id, team_id=project.team_id
-        )
-        use_case = usecases.CreateFolderUseCase(
-            project=project,
-            folder=folder,
-            folders=self.folders,
-        )
-        return use_case.execute()
-
-    def get_folder(self, project_name: str, folder_name: str):
-        project = self._get_project(project_name)
-        use_case = usecases.GetFolderUseCase(
-            project=project,
-            folders=self.folders,
-            folder_name=folder_name,
-            team_id=self.team_id,
-        )
-        return use_case.execute()
-
-    def search_folders(
-        self, project_name: str, folder_name: str = None, include_users=False, **kwargs
-    ):
-        condition = build_condition(**kwargs)
-        project = self._get_project(project_name)
-        use_case = usecases.SearchFoldersUseCase(
-            project=project,
-            folders=self.folders,
-            condition=condition,
-            folder_name=folder_name,
-            include_users=include_users,
-        )
-        return use_case.execute()
-
-    def delete_folders(self, project_name: str, folder_names: List[str]):
-        project = self._get_project(project_name)
-        folders = self.search_folders(project_name=project_name).data
-
-        use_case = usecases.DeleteFolderUseCase(
-            project=project,
-            folders=self.folders,
-            folders_to_delete=[
-                folder for folder in folders if folder.name in folder_names
-            ],
-        )
-        return use_case.execute()
 
     def prepare_export(
         self,
@@ -705,14 +692,9 @@ class Controller(BaseController):
     def set_project_settings(self, project_name: str, new_settings: List[dict]):
         project_entity = self._get_project(project_name)
         use_case = usecases.UpdateSettingsUseCase(
-            projects=self.projects,
-            settings=ProjectSettingsRepository(
-                service=self._backend_client, project=project_entity
-            ),
             to_update=new_settings,
-            backend_service_provider=self._backend_client,
-            project_id=project_entity.id,
-            team_id=project_entity.team_id,
+            service_provider=self.service_provider,
+            project=project_entity,
         )
         return use_case.execute()
 

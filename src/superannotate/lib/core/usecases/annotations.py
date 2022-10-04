@@ -245,7 +245,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 service=self._backend_service,
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 images=items_to_check,
             ).execute()
             if not response.errors:
@@ -259,7 +259,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 image_names=item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 team_id=self._project.team_id,
                 project_id=self._project.id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 annotation_status=constants.AnnotationStatus.IN_PROGRESS.value,
             )
             if not status_changed:
@@ -272,7 +272,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             response = self._backend_service.get_annotation_upload_data(
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 image_ids=self._item_ids,
             )
             if response.ok:
@@ -373,7 +373,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             is_uploaded = await self._backend_service.upload_big_annotation(
                 team_id=self._project.team_id,
                 project_id=self._project.id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 item_id=item.id,
                 data=item.data,
                 chunk_size=5 * 1024 * 1024,
@@ -547,7 +547,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
             response = self._backend_service.get_annotation_upload_data(
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 image_ids=[self._image.uuid],
             )
             if response.ok:
@@ -665,7 +665,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                         self._backend_service.upload_big_annotation(
                             team_id=self._project.team_id,
                             project_id=self._project.id,
-                            folder_id=self._folder.uuid,
+                            folder_id=self._folder.id,
                             item_id=self._image.id,
                             data=annotation_file,
                             chunk_size=5 * 1024 * 1024,
@@ -678,7 +678,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                         self._backend_service.upload_annotations(
                             team_id=self._project.team_id,
                             project_id=self._project.id,
-                            folder_id=self._folder.uuid,
+                            folder_id=self._folder.id,
                             items_name_file_map={self._image.name: annotation_file},
                         )
                     )
@@ -767,7 +767,7 @@ class GetAnnotations(BaseReportableUseCase):
             condition = (
                 Condition("team_id", self._project.team_id, EQ)
                 & Condition("project_id", self._project.id, EQ)
-                & Condition("folder_id", self._folder.uuid, EQ)
+                & Condition("folder_id", self._folder.id, EQ)
             )
 
             self._item_names = [item.name for item in self._images.get_all(condition)]
@@ -806,7 +806,7 @@ class GetAnnotations(BaseReportableUseCase):
         return await self._client.get_small_annotations(
             team_id=self._project.team_id,
             project_id=self._project.id,
-            folder_id=self._folder.uuid,
+            folder_id=self._folder.id,
             items=item_names,
             reporter=self.reporter,
         )
@@ -845,7 +845,7 @@ class GetAnnotations(BaseReportableUseCase):
             items = self._client.sort_items_by_size(
                 item_names=self._item_names,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 project_id=self._project.id,
             )
             small_annotations = [x["name"] for x in items["small"]]
@@ -999,7 +999,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
                     res = self._client.upload_priority_scores(
                         team_id=self._project.team_id,
                         project_id=self._project.id,
-                        folder_id=self._folder.uuid,
+                        folder_id=self._folder.id,
                         priorities=priorities_to_upload,
                     )
                     self.reporter.update_progress(len(priorities_to_upload))
@@ -1227,7 +1227,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                         condition = (
                             Condition("team_id", self._project.team_id, EQ)
                             & Condition("project_id", self._project.id, EQ)
-                            & Condition("folder_id", folder.uuid, EQ)
+                            & Condition("folder_id", folder.id, EQ)
                         )
                         item_names = [
                             item.name for item in self._images.get_all(condition)
@@ -1242,7 +1242,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                     futures.append(
                         executor.submit(
                             asyncio.run,
-                            self.run_workers(item_names, folder.uuid, new_export_path),
+                            self.run_workers(item_names, folder.id, new_export_path),
                         )
                     )
 

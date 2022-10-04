@@ -10,7 +10,6 @@ import boto3
 from lib.core.conditions import Condition
 from lib.core.entities import BaseEntity
 from lib.core.entities import ProjectEntity
-from lib.core.serviceproviders import SuperannotateServiceProvider
 from pydantic import BaseModel
 
 
@@ -54,7 +53,7 @@ class BaseManageableRepository(BaseReadOnlyRepository):
 class BaseProjectRelatedManageableRepository(
     BaseManageableRepository, metaclass=ABCMeta
 ):
-    def __init__(self, service: SuperannotateServiceProvider, project: ProjectEntity):
+    def __init__(self, service, project: ProjectEntity):
         self._service = service
         self._project = project
 

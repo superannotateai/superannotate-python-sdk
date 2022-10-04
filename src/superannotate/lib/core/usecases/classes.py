@@ -7,29 +7,28 @@ from lib.core.entities import ProjectEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
+from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
+from lib.core.usecases.base import BaseUseCase
 
 
-class GetAnnotationClassesUseCase(BaseReportableUseCase):
+class GetAnnotationClassesUseCase(BaseUseCase):
     def __init__(
         self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         condition: Condition = None,
     ):
-        super().__init__(reporter)
-        self._project = project
-        self._backend_client = backend_client
+        super().__init__()
+        self._service_provider = service_provider
         self._condition = condition
 
     def execute(self):
-        self._response.data = self._backend_client.list_annotation_classes(
-            project_id=self._project.id,
-            team_id=self._project.team_id,
-            query_string=self._condition.build_query() if self._condition else None,
-        ).data
+        response = self._service_provider.annotation_classes.list(self._condition)
+        if response.ok:
+            self._response.data = response.data
+        else:
+            self._response.errors = response.error
         return self._response
 
 

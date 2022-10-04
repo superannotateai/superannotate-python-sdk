@@ -5,6 +5,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from lib.core import entities
 from pydantic import BaseModel
 from pydantic import Extra
 from pydantic import Field
@@ -98,9 +99,11 @@ class ServiceResponse(BaseModel):
     class Config:
         extra = Extra.allow
 
-    def __init__(self, response=None, content_type=None, dispatcher: Callable = None):
+    def __init__(
+        self, response=None, content_type=None, dispatcher: Callable = None, data=None
+    ):
         if response is None:
-            super().__init__()
+            super().__init__(data=data, status=200)
             return
         data = {
             "status": response.status_code,
@@ -149,3 +152,31 @@ class ServiceResponse(BaseModel):
             return self.data.get("error", default_message)
         else:
             return getattr(self.data, "error", default_message)
+
+
+class UserLimitsResponse(ServiceResponse):
+    data: UserLimits
+
+
+class ItemListResponse(ServiceResponse):
+    data: List[entities.BaseItemEntity]
+
+
+class FolderResponse(ServiceResponse):
+    data: entities.FolderEntity
+
+
+class FolderListResponse(ServiceResponse):
+    data: List[entities.FolderEntity]
+
+
+class ProjectResponse(ServiceResponse):
+    data: entities.ProjectEntity
+
+
+class ProjectListResponse(ServiceResponse):
+    data: List[entities.ProjectEntity]
+
+
+class SettingsListResponse(ServiceResponse):
+    data: List[entities.SettingEntity]

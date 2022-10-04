@@ -8,7 +8,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.repositories import BaseManageableRepository
-from lib.core.repositories import BaseReadOnlyRepository
+from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
@@ -21,12 +21,12 @@ class CreateFolderUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        folders: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._project = project
         self._folder = folder
-        self._folders = folders
+        self._service_provider = service_provider
         self._origin_name = folder.name
 
     def validate_folder(self):
@@ -53,7 +53,9 @@ class CreateFolderUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             self._folder.project_id = self._project.id
-            self._response.data = self._folders.insert(self._folder)
+            self._response.data = self._service_provider.folders.create(
+                self._project, self._folder
+            ).data
             if self._response.data.name not in (self._origin_name, self._folder.name):
                 logger.warning(
                     f"Created folder has name {self._response.data.name},"
@@ -66,24 +68,19 @@ class GetFolderUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        folders: BaseReadOnlyRepository,
+        service_provider: BaseServiceProvider,
         folder_name: str,
-        team_id: int,
     ):
         super().__init__()
         self._project = project
-        self._folders = folders
+        self._service_provider = service_provider
         self._folder_name = folder_name
-        self._team_id = team_id
 
     def execute(self):
-        condition = (
-            Condition("name", self._folder_name, EQ)
-            & Condition("team_id", self._team_id, EQ)
-            & Condition("project_id", self._project.id, EQ)
-        )
         try:
-            self._response.data = self._folders.get_one(condition)
+            self._response.data = self._service_provider.folders.get_by_name(
+                self._project, self._folder_name
+            ).data
         except AppException as e:
             self._response.errors = e
         return self._response
@@ -93,28 +90,19 @@ class SearchFoldersUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        folders: BaseReadOnlyRepository,
+        service_provider: BaseServiceProvider,
         condition: Condition,
-        folder_name: str = None,
-        include_users=False,
     ):
         super().__init__()
         self._project = project
-        self._folders = folders
-        self._folder_name = folder_name
+        self._service_provider = service_provider
         self._condition = condition
-        self._include_users = include_users
 
     def execute(self):
-        condition = (
-            self._condition
-            & Condition("project_id", self._project.id, EQ)
-            & Condition("team_id", self._project.team_id, EQ)
-            & Condition("includeUsers", self._include_users, EQ)
-        )
-        if self._folder_name:
-            condition &= Condition("name", self._folder_name, EQ)
-        self._response.data = self._folders.get_all(condition)
+        condition = Condition("project_id", self._project.id, EQ)
+        if self._condition:
+            condition &= self._condition
+        self._response.data = self._service_provider.folders.list(condition).data
         return self._response
 
 
@@ -122,18 +110,20 @@ class DeleteFolderUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        folders: BaseManageableRepository,
-        folders_to_delete: List[FolderEntity],
+        folders: List[FolderEntity],
+        service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._project = project
         self._folders = folders
-        self._folders_to_delete = folders_to_delete
+        self.service_provider = service_provider
 
     def execute(self):
-        if self._folders_to_delete:
-            is_deleted = self._folders.bulk_delete(self._folders_to_delete)
-            if not is_deleted:
+        if self._folders:
+            response = self.service_provider.folders.delete_multiple(
+                self._project, self._folders
+            )
+            if not response.ok:
                 self._response.errors = AppException("Couldn't delete folders.")
         else:
             self._response.errors = AppException("There is no folder to delete.")

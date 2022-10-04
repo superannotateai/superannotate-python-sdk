@@ -335,28 +335,24 @@ class ImageRepository(BaseManageableRepository):
 
     def update(self, entity: ImageEntity):
         self._service.update_image(
-            image_id=entity.uuid,
+            image_id=entity.id,
             project_id=entity.project_id,
             team_id=entity.team_id,
-            data=entity.to_dict(),
+            data=entity.dict(),
         )
         return entity
 
     @staticmethod
     def dict2entity(data: dict) -> ImageEntity:
         return ImageEntity(
-            uuid=data["id"],
+            id=data["id"],
             name=data["name"],
             path=data["path"],
-            project_id=data["project_id"],
-            team_id=data["team_id"],
-            annotation_status_code=data["annotation_status"],
-            folder_id=data["folder_id"],
-            annotator_id=data["annotator_id"],
-            annotator_name=data["annotator_name"],
+            segmentation_status=data["annotation_status"],
+            annotator_email=data["annotator_id"],
             is_pinned=data.get("is_pinned"),
-            created_at=data["createdAt"],
-            updated_at=data["updatedAt"],
+            createdAt=data["createdAt"],
+            updatedAt=data["updatedAt"],
         )
 
 

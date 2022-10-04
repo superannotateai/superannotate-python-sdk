@@ -12,17 +12,6 @@ CONDITION_LT = "<"
 CONDITION_LE = "<="
 
 
-class EmptyCondition:
-    def __or__(self, other):
-        return other
-
-    def __and__(self, other):
-        return other
-
-    def build_query(self):
-        return ""
-
-
 class Condition:
     def __init__(self, key: str, value: Any, condition_type: str):
         self._key = key
@@ -62,3 +51,17 @@ class Condition:
         return str(self) + "".join(
             [f"{condition[0]}{condition[1]}" for condition in self._condition_set]
         )
+
+
+class EmptyCondition(Condition):
+    def __init__(self, *args, **kwargs):  # noqa
+        ...
+
+    def __or__(self, other):
+        return other
+
+    def __and__(self, other):
+        return other
+
+    def build_query(self):
+        return ""

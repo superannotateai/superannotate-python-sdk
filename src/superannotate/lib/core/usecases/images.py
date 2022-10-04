@@ -23,7 +23,6 @@ from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
-from lib.core.entities import ImageInfoEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import S3FileEntity
 from lib.core.entities import SettingEntity
@@ -72,7 +71,7 @@ class GetImageUseCase(BaseUseCase):
                 service=self._service,
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 images=[self._image_name],
             )
             .execute()
@@ -113,7 +112,7 @@ class GetBulkImages(BaseUseCase):
             )
             if "error" in response:
                 raise AppException(response["error"])
-            res += [ImageEntity.from_dict(**image) for image in response]
+            res += [ImageEntity(**image) for image in response]
         self._response.data = res
         return self._response
 
@@ -140,7 +139,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
             project_id=self._project.id,
-            folder_id=self._folder.uuid,
+            folder_id=self._folder.id,
         )
         if not response.ok:
             raise AppValidationException(response.error)
@@ -172,7 +171,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         response = self._backend_service.get_bulk_images(
             project_id=self._project.id,
             team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
+            folder_id=self._folder.id,
             images=[image.name for image in self._attachments],
         )
         if isinstance(response, dict) and "error" in response:
@@ -186,8 +185,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
             if image.name not in duplications:
                 to_upload.append({"name": image.name, "path": image.path})
                 meta[image.name] = {
-                    "width": image.meta.width,
-                    "height": image.meta.height,
+                    "width": image.meta["width"],
+                    "height": image.meta["height"],
                 }
         try:
             self._validate_limitations(len(to_upload))
@@ -197,7 +196,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         if to_upload:
             backend_response = self._backend_service.attach_files(
                 project_id=self._project.id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 team_id=self._project.team_id,
                 files=to_upload,
                 annotation_status_code=self.annotation_status_code,
@@ -800,7 +799,7 @@ class UploadImageToProject(BaseUseCase):
     @property
     def s3_repo(self):
         self._auth_data = self._backend_client.get_s3_upload_auth_token(
-            self._project.team_id, self._folder.uuid, self._project.id
+            self._project.team_id, self._folder.id, self._project.id
         )
         if "error" in self._auth_data:
             raise AppException(self._auth_data.get("error"))
@@ -826,7 +825,7 @@ class UploadImageToProject(BaseUseCase):
         response = self._backend_client.get_limitations(
             team_id=self._project.team_id,
             project_id=self._project.id,
-            folder_id=self._folder.uuid,
+            folder_id=self._folder.id,
         )
         if response.data.folder_limit.remaining_image_count < 1:
             raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
@@ -852,7 +851,7 @@ class UploadImageToProject(BaseUseCase):
                 service=self._backend_client,
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 images=[
                     self._image_name
                     if self._image_name
@@ -961,7 +960,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         response = self._backend_client.get_limitations(
             team_id=self._project.team_id,
             project_id=self._project.id,
-            folder_id=self._folder.uuid,
+            folder_id=self._folder.id,
         )
         if not response.ok:
             raise AppValidationException(response.error)
@@ -1008,7 +1007,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         if not self._auth_data:
             response = self._backend_client.get_s3_upload_auth_token(
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 project_id=self._project.id,
             )
             if "error" in response:
@@ -1101,7 +1100,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 service=self._backend_client,
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 images=[image.split("/")[-1] for image in filtered_paths],
             )
             .execute()
@@ -1346,7 +1345,7 @@ class UploadImageS3UseCase(BaseUseCase):
             self._response.data = ImageEntity(
                 name=image_name,
                 path=image_key,
-                meta=ImageInfoEntity(width=origin_width, height=origin_height),
+                meta=dict(width=origin_width, height=origin_height),
             )
         except (ImageProcessingException, UnidentifiedImageError) as e:
             self._response.errors = e
@@ -1407,13 +1406,13 @@ class CopyImageUseCase(BaseUseCase):
         response = self._backend_service.get_limitations(
             team_id=self._to_project.team_id,
             project_id=self._to_project.id,
-            folder_id=self._to_folder.uuid,
+            folder_id=self._to_folder.id,
         )
         if not response.ok:
             raise AppValidationException(response.error)
 
         if self._move and self._from_project.id == self._to_project.id:
-            if self._from_folder.uuid == self._to_folder.uuid:
+            if self._from_folder.id == self._to_folder.id:
                 raise AppValidationException(
                     "Cannot move image if source_project == destination_project."
                 )
@@ -1431,7 +1430,7 @@ class CopyImageUseCase(BaseUseCase):
     @property
     def s3_repo(self):
         self._auth_data = self._backend_service.get_s3_upload_auth_token(
-            self._to_project.team_id, self._to_folder.uuid, self._to_project.id
+            self._to_project.team_id, self._to_folder.id, self._to_project.id
         )
         if "error" in self._auth_data:
             raise AppException(self._auth_data.get("error"))
@@ -1468,7 +1467,7 @@ class CopyImageUseCase(BaseUseCase):
 
             auth_data = self._backend_service.get_s3_upload_auth_token(
                 team_id=self._to_project.team_id,
-                folder_id=self._to_folder.uuid,
+                folder_id=self._to_folder.id,
                 project_id=self._to_project.id,
             )
             if "error" in auth_data:
@@ -1526,7 +1525,7 @@ class DeleteAnnotations(BaseUseCase):
                 response = self._backend_service.delete_image_annotations(
                     project_id=self._project.id,
                     team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
+                    folder_id=self._folder.id,
                     image_names=self._image_names[
                         idx : idx + self.CHUNK_SIZE  # noqa: E203
                     ],
@@ -1537,7 +1536,7 @@ class DeleteAnnotations(BaseUseCase):
             response = self._backend_service.delete_image_annotations(
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
             )
             if response:
                 polling_states[response.get("poll_id")] = False
@@ -1695,7 +1694,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             token = self._service.get_download_token(
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 image_id=image_response.data.uuid,
             )
             credentials = token["annotations"]["MAIN"][0]
@@ -1790,7 +1789,7 @@ class GetImageAnnotationsUseCase(BaseReportableUseCase):
             token = self._service.get_download_token(
                 project_id=self._project.id,
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
                 image_id=image_response.data.uuid,
             )
             credentials = token["annotations"]["MAIN"][0]
@@ -1932,7 +1931,7 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
             self._limitation_response = self._backend_service.get_limitations(
                 team_id=self._project.team_id,
                 project_id=self._project.id,
-                folder_id=self._folder.uuid,
+                folder_id=self._folder.id,
             )
             if not self._limitation_response.ok:
                 raise AppValidationException(self._limitation_response.error)
@@ -2074,7 +2073,7 @@ class UploadVideosAsImages(BaseReportableUseCase):
                             service=self._service,
                             project_id=self._project.id,
                             team_id=self._project.team_id,
-                            folder_id=self._folder.uuid,
+                            folder_id=self._folder.id,
                             images=frame_names,
                         )
                         .execute()

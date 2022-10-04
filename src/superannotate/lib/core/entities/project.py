@@ -1,7 +1,6 @@
 import datetime
 import uuid
 from typing import Any
-from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Union
@@ -29,12 +28,12 @@ class AttachmentEntity(BaseModel):
 
 
 class WorkflowEntity(BaseModel):
-    uuid: Optional[int]
+    id: Optional[int]
     project_id: Optional[int]
     class_id: Optional[int]
     step: Optional[int]
     tool: Optional[int]
-    attribute: Iterable = (tuple(),)
+    attribute: List = (tuple(),)
 
     def __copy__(self):
         return WorkflowEntity(step=self.step, tool=self.tool, attribute=self.attribute)
