@@ -6,11 +6,11 @@ from typing import Optional
 
 import lib.core as constances
 from lib import __file__ as lib_path
-from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
 from lib.app.interface.sdk_interface import SAClient
 from lib.core.entities import ConfigEntity
 from lib.infrastructure.repositories import ConfigRepository
+from lib.infrastructure.utils import split_project_path
 
 
 class CLIFacade:

@@ -256,7 +256,8 @@ class TimedBaseModel(BaseModel):
 
 
 class BaseItemEntity(TimedBaseModel):
-    name: str
+    id: Optional[int]
+    name: Optional[str]
     path: Optional[str] = Field(
         None, description="Item’s path in SuperAnnotate project"
     )
@@ -268,7 +269,6 @@ class BaseItemEntity(TimedBaseModel):
     )
     entropy_value: Optional[float] = Field(description="Priority score of given item")
     custom_metadata: Optional[dict]
-    id: Optional[int]
 
     class Config:
         extra = Extra.allow

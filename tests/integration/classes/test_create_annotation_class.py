@@ -93,8 +93,8 @@ class TestCreateAnnotationClass(BaseTestCase):
 
     def test_create_annotation_class_backend_errors(self):
         from lib.core.entities.classes import AnnotationClassEntity
-        response = sa.controller.create_annotation_class(
-            self.PROJECT_NAME, AnnotationClassEntity(
+        response = sa.controller.annotation_classes.create(
+            sa.controller.projects.get_by_name(self.PROJECT_NAME).data, AnnotationClassEntity(
                 name="t", color="blue",
                 attribute_groups=[
                     {"name": "t"}, {"name": "t"},

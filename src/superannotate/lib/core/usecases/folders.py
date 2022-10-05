@@ -7,9 +7,7 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
-from lib.core.repositories import BaseManageableRepository
 from lib.core.serviceproviders import BaseServiceProvider
-from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
 
@@ -133,12 +131,14 @@ class DeleteFolderUseCase(BaseUseCase):
 class UpdateFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        folders: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
         folder: FolderEntity,
+        project: ProjectEntity,
     ):
         super().__init__()
-        self._folders = folders
+        self._service_provider = service_provider
         self._folder = folder
+        self._project = project
 
     def validate_folder(self):
         if not self._folder.name:
@@ -163,35 +163,36 @@ class UpdateFolderUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            folder = self._folders.update(self._folder)
-            if not folder:
+            response = self._service_provider.folders.update(
+                self._project, self._folder
+            )
+            if not response.ok:
                 self._response.errors = AppException("Couldn't rename folder.")
-            self._response.data = folder
+            self._response.data = response.data
         return self._response
 
 
 class AssignFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
-        project_entity: ProjectEntity,
+        service_provider: BaseServiceProvider,
+        project: ProjectEntity,
         folder: FolderEntity,
         users: List[str],
     ):
         super().__init__()
-        self._service = service
-        self._project_entity = project_entity
+        self._service_provider = service_provider
+        self._project = project
         self._folder = folder
         self._users = users
 
     def execute(self):
-        is_assigned = self._service.assign_folder(
-            team_id=self._project_entity.team_id,
-            project_id=self._project_entity.id,
-            folder_name=self._folder.name,
+        response = self._service_provider.folders.assign(
+            project=self._project,
+            folder=self._folder,
             users=self._users,
         )
-        if is_assigned:
+        if response.ok:
             logger.info(
                 f'Assigned {self._folder.name} to users: {", ".join(self._users)}'
             )

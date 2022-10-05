@@ -5,9 +5,3 @@ class PathError(AppException):
     """
     User input Error
     """
-
-
-class EmptyOutputError(AppException):
-    """
-    Empty Output Error
-    """

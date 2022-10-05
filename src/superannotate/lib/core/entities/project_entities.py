@@ -1,7 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
 from typing import Any
-from typing import List
 
 
 class BaseEntity(ABC):
@@ -23,25 +22,6 @@ class BaseEntity(ABC):
     @abstractmethod
     def to_dict(self):
         raise NotImplementedError
-
-
-class BaseTimedEntity(BaseEntity):
-    def __init__(
-        self,
-        uuid: Any = None,
-        createdAt: str = None,
-        updatedAt: str = None,
-    ):
-        super().__init__(uuid)
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-
-    def to_dict(self):
-        return {
-            "id": self.uuid,
-            "createdAt": self.createdAt,
-            "updatedAt": self.updatedAt,
-        }
 
 
 class ConfigEntity(BaseEntity):
@@ -173,131 +153,3 @@ class S3FileEntity(BaseEntity):
 
     def to_dict(self):
         return {"uuid": self.uuid, "bytes": self.data, "metadata": self.metadata}
-
-
-class UserEntity(BaseEntity):
-    def __init__(
-        self,
-        uuid: int = None,
-        first_name: str = None,
-        last_name: str = None,
-        email: str = None,
-        picture: int = None,
-        user_role: int = None,
-    ):
-        super().__init__(uuid)
-        self.first_name = first_name
-        self.last_name = last_name
-        self.email = email
-        self.picture = picture
-        self.user_role = user_role
-
-    def to_dict(self):
-        return {
-            "id": self.uuid,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "email": self.email,
-            "picture": self.picture,
-            "user_role": self.user_role,
-        }
-
-
-class TeamEntity(BaseEntity):
-    def __init__(
-        self,
-        uuid: int = None,
-        name: str = None,
-        description: str = None,
-        team_type: int = None,
-        user_role: int = None,
-        is_default: bool = None,
-        users: List[UserEntity] = None,
-        pending_invitations: List = None,
-        creator_id: str = None,
-    ):
-        super().__init__(uuid)
-        self.name = name
-        self.description = description
-        self.team_type = team_type
-        self.user_role = user_role
-        self.is_default = is_default
-        self.users = users
-        self.pending_invitations = pending_invitations
-        self.creator_id = creator_id
-
-    def to_dict(self):
-        return {
-            "id": self.uuid,
-            "name": self.name,
-            "description": self.description,
-            "type": self.team_type,
-            "user_role": self.user_role,
-            "is_default": self.is_default,
-            "users": [user.to_dict() for user in self.users],
-            "pending_invitations": self.pending_invitations,
-            "creator_id": self.creator_id,
-        }
-
-
-class MLModelEntity(BaseTimedEntity):
-    def __init__(
-        self,
-        uuid: int = None,
-        team_id: int = None,
-        name: str = None,
-        createdAt: str = None,
-        updatedAt: str = None,
-        path: str = None,
-        config_path: str = None,
-        model_type: int = None,
-        description: str = None,
-        output_path: str = None,
-        task: str = None,
-        base_model_id: int = None,
-        image_count: int = None,
-        training_status: int = None,
-        test_folder_ids: List[int] = None,
-        train_folder_ids: List[int] = None,
-        is_trainable: bool = None,
-        is_global: bool = None,
-        hyper_parameters: dict = {},
-    ):
-        super().__init__(uuid, createdAt, updatedAt)
-        self.name = name
-        self.path = path
-        self.team_id = team_id
-        self.config_path = config_path
-        self.output_path = output_path
-        self.model_type = model_type
-        self.description = description
-        self.task = task
-        self.base_model_id = base_model_id
-        self.image_count = image_count
-        self.training_status = training_status
-        self.test_folder_ids = test_folder_ids
-        self.train_folder_ids = train_folder_ids
-        self.is_trainable = is_trainable
-        self.is_global = is_global
-        self.hyper_parameters = hyper_parameters
-
-    def to_dict(self):
-        return {
-            **super().to_dict(),
-            "name": self.name,
-            "team_id": self.team_id,
-            "description": self.description,
-            "task": self.task,
-            "project_type": self.model_type,
-            "path": self.path,
-            "config_path": self.config_path,
-            "output_path": self.output_path,
-            "base_model_id": self.base_model_id,
-            "image_count": self.image_count,
-            "training_status": self.training_status,
-            "test_folder_ids": self.test_folder_ids,
-            "train_folder_ids": self.train_folder_ids,
-            "is_trainable": self.is_trainable,
-            "is_global": self.is_global,
-            **self.hyper_parameters,
-        }

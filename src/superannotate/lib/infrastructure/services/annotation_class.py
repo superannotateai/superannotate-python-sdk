@@ -2,6 +2,7 @@ from typing import List
 
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseAnnotationClassService
 
@@ -9,6 +10,25 @@ from lib.core.serviceproviders import BaseAnnotationClassService
 class AnnotationClassService(BaseAnnotationClassService):
     URL_LIST = "classes"
     URL_GET = "class/{}"
+
+    def create_multiple(
+        self,
+        project: entities.ProjectEntity,
+        classes: List[entities.AnnotationClassEntity],
+    ):
+        params = {
+            "project_id": project.id,
+        }
+        return self.client.request(
+            self.URL_LIST,
+            "post",
+            params=params,
+            data={
+                # "classes": [json.loads(i.json(exclude_none=True, exclude_unset=True)) for i in data]
+                "classes": classes
+            },
+            content_type=AnnotationClassListResponse,
+        )
 
     def list(self, condition: Condition = None) -> ServiceResponse:
         return self.client.paginate(
@@ -29,14 +49,6 @@ class AnnotationClassService(BaseAnnotationClassService):
             return response
         response.data = response.data[0]
         return response
-
-    def create_multiple(
-        self, project_id: int, items: List[entities.AnnotationClassEntity]
-    ) -> ServiceResponse:
-        params = {"project_id": project_id}
-        return self.client.request(
-            self.URL_LIST, "post", params=params, data={"classes": items}
-        )
 
     def delete(self, project_id: int, annotation_class_id: int) -> ServiceResponse:
         return self.client.request(

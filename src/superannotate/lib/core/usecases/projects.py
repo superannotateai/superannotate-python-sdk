@@ -14,15 +14,11 @@ from lib.core.entities import TeamEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
-from lib.core.repositories import BaseManageableRepository
-from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
-from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
-from lib.core.usecases.classes import GetAnnotationClassesUseCase
 from requests.exceptions import RequestException
 from superannotate.logger import get_default_logger
 
@@ -87,11 +83,7 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
-        service: SuperannotateServiceProvider,
-        annotation_classes: BaseManageableRepository,
-        settings: BaseManageableRepository,
-        workflows: BaseManageableRepository,
-        projects: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
         include_annotation_classes: bool,
         include_settings: bool,
         include_workflow: bool,
@@ -100,12 +92,7 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
     ):
         super().__init__(reporter)
         self._project = project
-        self._service = service
-
-        self._annotation_classes = annotation_classes
-        self._settings = settings
-        self._workflows = workflows
-        self._projects = projects
+        self._service_provider = service_provider
 
         self._include_annotation_classes = include_annotation_classes
         self._include_settings = include_settings
@@ -113,56 +100,43 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
         self._include_contributors = include_contributors
         self._include_complete_image_count = include_complete_image_count
 
-    @property
-    def annotation_classes_use_case(self):
-        return GetAnnotationClassesUseCase(
-            reporter=self.reporter, project=self._project, backend_client=self._service
-        )
-
-    @property
-    def settings_use_case(self):
-        return GetSettingsUseCase(settings=self._settings)
-
-    @property
-    def work_flow_use_case(self):
-        return GetWorkflowsUseCase(
-            project=self._project,
-            workflows=self._workflows,
-            annotation_classes=self._annotation_classes,
-        )
-
     def execute(self):
-        project = self._projects.get_one(
-            uuid=self._project.id, team_id=self._project.team_id
-        )
+        project = self._service_provider.projects.get(self._project.id).data
         if self._include_complete_image_count:
-            completed_images_data = self._service.bulk_get_folders(
-                self._project.team_id, [project.id]
-            )
+            folders = self._service_provider.folders.list(
+                Condition("project_id", self._project.id, EQ)
+                & Condition("completedImagesCount", True, EQ)
+            ).data
             root_completed_count = 0
             total_completed_count = 0
-            for i in completed_images_data["data"]:
-                total_completed_count += i["completedCount"]
-                if i["is_root"]:
-                    root_completed_count = i["completedCount"]
-
+            for folder in folders:
+                try:
+                    total_completed_count += folder.completedCount  # noqa
+                    if folder.is_root:
+                        root_completed_count = folder.completedCount  # noqa
+                except AttributeError:
+                    pass
             project.root_folder_completed_images_count = root_completed_count
             project.completed_images_count = total_completed_count
-
         if self._include_annotation_classes:
-            project.classes = self.annotation_classes_use_case.execute().data
+            project.classes = self._service_provider.annotation_classes.list(
+                Condition("project_id", self._project.id, EQ)
+            ).data
 
         if self._include_settings:
-            project.settings = self.settings_use_case.execute().data
+            project.settings = self._service_provider.projects.list_settings(
+                self._project
+            ).data
 
         if self._include_workflow:
-            project.workflows = self.work_flow_use_case.execute().data
+            project.workflows = self._service_provider.projects.list_workflows(
+                self._project
+            ).data
 
         if self._include_contributors:
             project.contributors = project.users
         else:
             project.users = []
-
         self._response.data = project
         return self._response
 
@@ -274,7 +248,7 @@ class CreateProjectUseCase(BaseUseCase):
                     annotation_classes_mapping[
                         annotation_class.id
                     ] = self._service_provider.annotation_classes.create_multiple(
-                        entity.id, [annotation_class]
+                        entity, [annotation_class]
                     )
                 self._response.data.classes = self._project.classes
             if self._project.workflows:
@@ -622,34 +596,36 @@ class CloneProjectUseCase(BaseUseCase):
 class UnShareProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
-        project_entity: ProjectEntity,
+        service_provider: BaseServiceProvider,
+        project: ProjectEntity,
         user_id: str,
     ):
         super().__init__()
-        self._service = service
-        self._project_entity = project_entity
+        self._service_provider = service_provider
+        self._project = project
         self._user_id = user_id
 
     def execute(self):
-        self._response.data = self._service.un_share_project(
-            team_id=self._project_entity.team_id,
-            project_id=self._project_entity.id,
+        self._response.data = self._service_provider.projects.un_share(
+            project=self._project,
             user_id=self._user_id,
-        )
+        ).data
         logger.info(
-            f"Unshared project {self._project_entity.name} from user ID {self._user_id}"
+            f"Unshared project {self._project.name} from user ID {self._user_id}"
         )
         return self._response
 
 
 class GetSettingsUseCase(BaseUseCase):
-    def __init__(self, settings: BaseManageableRepository):
+    def __init__(self, project: ProjectEntity, service_provider: BaseServiceProvider):
         super().__init__()
-        self._settings = settings
+        self._project = project
+        self._service_provider = service_provider
 
     def execute(self):
-        self._response.data = self._settings.get_all()
+        self._response.data = self._service_provider.projects.list_settings(
+            self._project
+        ).data
         return self._response
 
 
@@ -750,13 +726,13 @@ class UpdateSettingsUseCase(BaseUseCase):
 class GetProjectImageCountUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         with_all_sub_folders: bool = False,
     ):
         super().__init__()
-        self._service = service
+        self._service_provider = service_provider
         self._project = project
         self._folder = folder
         self._with_all_sub_folders = with_all_sub_folders
@@ -773,9 +749,7 @@ class GetProjectImageCountUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            data = self._service.get_project_images_count(
-                project_id=self._project.id, team_id=self._project.team_id
-            )
+            data = self._service_provider.get_project_images_count(self._project).data
             count = 0
             if self._folder.name == "root":
                 count += data["images"]["count"]
@@ -878,14 +852,17 @@ class SetWorkflowUseCase(BaseUseCase):
 
 
 class GetTeamUseCase(BaseUseCase):
-    def __init__(self, teams: BaseReadOnlyRepository, team_id: int):
+    def __init__(self, service_provider: BaseServiceProvider, team_id: int):
         super().__init__()
-        self._teams = teams
+        self._service_provider = service_provider
         self._team_id = team_id
 
     def execute(self):
         try:
-            self._response.data = self._teams.get_one(self._team_id)
+            response = self._service_provider.get_team(self._team_id)
+            if not response.ok:
+                raise AppException(response.error)
+            self._response.data = response.data
         except Exception:
             raise AppException("Can't get team data.") from None
         return self._response
@@ -894,25 +871,18 @@ class GetTeamUseCase(BaseUseCase):
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
         self,
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         team_id: int,
         condition: Condition = None,
     ):
         super().__init__()
-        self._backend_service = backend_service_provider
+        self._service_provider = service_provider
         self._team_id = team_id
         self._condition = condition
 
-    @property
-    def condition(self):
-        if self._condition:
-            return self._condition.build_query()
-
     def execute(self):
-        res = self._backend_service.search_team_contributors(
-            self._team_id, self.condition
-        )
-        self._response.data = res
+        res = self._service_provider.search_team_contributors(self._condition)
+        self._response.data = res.data
         return self._response
 
 
@@ -928,13 +898,13 @@ class AddContributorsToProject(BaseUserBasedUseCase):
         project: ProjectEntity,
         emails: list,
         role: str,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team
         self._project = project
         self._role = role
-        self._service = service
+        self._service_provider = service_provider
 
     @property
     def user_role(self):
@@ -965,15 +935,14 @@ class AddContributorsToProject(BaseUserBasedUseCase):
                     "contributors that are out of the team scope or already have access to the project."
                 )
             if to_add:
-                response = self._service.share_project_bulk(
-                    team_id=self._team.uuid,
-                    project_id=self._project.id,
+                response = self._service_provider.projects.share(
+                    project=self._project,
                     users=[
                         dict(user_id=user_id, user_role=self.user_role)
                         for user_id in to_add
                     ],
                 )
-                if response and not response.get("invalidUsers"):
+                if response and not response.data.get("invalidUsers"):
                     self.reporter.log_info(
                         f"Added {len(to_add)}/{len(self._emails)} "
                         f"contributors to the project {self._project.name} with the {self._role} role."
@@ -993,12 +962,12 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
         team: TeamEntity,
         emails: list,
         set_admin: bool,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team
         self._set_admin = set_admin
-        self._service = service
+        self._service_provider = service_provider
 
     def execute(self):
         if self.is_valid():
@@ -1018,13 +987,17 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
                 )
             if to_add:
-                invited, failed = self._service.invite_contributors(
+                response = self._service_provider.invite_contributors(
                     team_id=self._team.uuid,
                     # REMINDER UserRole.VIEWER is the contributor for the teams
                     team_role=constances.UserRole.ADMIN.value
                     if self._set_admin
                     else constances.UserRole.VIEWER.value,
                     emails=to_add,
+                )
+                invited, failed = (
+                    response.data["success"]["emails"],
+                    response.data["failed"]["emails"],
                 )
                 if invited:
                     self.reporter.log_info(
@@ -1047,24 +1020,21 @@ class ListSubsetsUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def validate_arguments(self):
-        response = self._backend_client.validate_saqul_query(
-            self._project.team_id, self._project.id, "_"
-        )
-        error = response.get("error")
-        if error:
-            raise AppException(response["error"])
+        response = self._service_provider.validate_saqul_query(self._project, "_")
+        if not response.ok:
+            raise AppException(response.error)
 
     def execute(self) -> Response:
         if self.is_valid():
-            sub_sets_response = self._backend_client.list_sub_sets(
-                team_id=self._project.team_id, project_id=self._project.id
+            sub_sets_response = self._service_provider.subsets.list(
+                project=self._project
             )
             if sub_sets_response.ok:
                 self._response.data = sub_sets_response.data

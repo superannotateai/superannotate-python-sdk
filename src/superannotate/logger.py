@@ -47,8 +47,12 @@ def get_default_logger():
                 formatter = Formatter(
                     "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
                 )
+                stream_handler = logging.StreamHandler()
+                stream_handler.setFormatter(formatter)
+                stream_handler.setLevel("DEBUG")
                 file_handler.setFormatter(formatter)
                 file_handler.setLevel("DEBUG")
+                default_logger.addHandler(stream_handler)
                 default_logger.addHandler(file_handler)
         except OSError:
             pass

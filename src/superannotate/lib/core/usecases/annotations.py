@@ -28,21 +28,17 @@ from jsonschema import Draft7Validator
 from jsonschema import ValidationError
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
-from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import TeamEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
-from lib.core.repositories import BaseManageableRepository
-from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.service_types import UploadAnnotationAuthData
-from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.types import PriorityScore
 from lib.core.usecases.base import BaseReportableUseCase
-from lib.core.usecases.images import GetBulkImages
 from lib.core.video_convertor import VideoFrameGenerator
 from superannotate.logger import get_default_logger
 
@@ -88,12 +84,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         team: TeamEntity,
-        images: BaseManageableRepository,
-        folders: BaseManageableRepository,
-        annotation_classes: List[AnnotationClassEntity],
         annotation_paths: List[str],
-        backend_service_provider: SuperannotateServiceProvider,
-        templates: List[dict],
+        service_provider: BaseServiceProvider,
         pre_annotation: bool = False,
         client_s3_bucket=None,
         folder_path: str = None,
@@ -102,14 +94,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._team = team
-        self._images = images
-        self._folders = folders
-        self._backend_service = backend_service_provider
-        self._annotation_classes = annotation_classes
+        self._service_provider = service_provider
+        self._annotation_classes = service_provider.annotation_classes.list(
+            Condition("project_id", project.id, EQ)
+        ).data
         self._annotation_paths = annotation_paths
         self._client_s3_bucket = client_s3_bucket
         self._pre_annotation = pre_annotation
-        self._templates = templates
+        self._templates = service_provider.list_templates().data
         self._annotations_to_upload = []
         self._missing_annotations = []
         self.missing_attribute_groups = set()
@@ -178,7 +170,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 team_id=self._project.team_id,
                 project_type=self._project.type.value,
                 annotation=annotation,
-                backend_service_provider=self._backend_service,
+                service_provider=self._service_provider,
             )
             errors = use_case.execute().data
         if errors:
@@ -241,25 +233,20 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         existing_name_item_mapping = {}
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-            response = GetBulkImages(
-                service=self._backend_service,
-                project_id=self._project.id,
-                team_id=self._project.team_id,
-                folder_id=self._folder.id,
-                images=items_to_check,
-            ).execute()
-            if not response.errors:
+            response = self._service_provider.items.list_by_names(
+                project=self._project, folder=self._folder, names=items_to_check
+            )
+            if response.ok:
                 existing_name_item_mapping.update({i.name: i for i in response.data})
         return existing_name_item_mapping
 
     def _set_annotation_statuses_in_progress(self, item_names: List[str]) -> bool:
         failed_on_chunk = False
         for i in range(0, len(item_names), self.STATUS_CHANGE_CHUNK_SIZE):
-            status_changed = self._backend_service.set_images_statuses_bulk(
-                image_names=item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                folder_id=self._folder.id,
+            status_changed = self._service_provider.items.set_statuses(
+                project=self._project,
+                folder=self._folder,
+                item_names=item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 annotation_status=constants.AnnotationStatus.IN_PROGRESS.value,
             )
             if not status_changed:
@@ -269,11 +256,10 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
     @property
     def annotation_upload_data(self) -> UploadAnnotationAuthData:
         if not self._annotation_upload_data:
-            response = self._backend_service.get_annotation_upload_data(
-                project_id=self._project.id,
-                team_id=self._project.team_id,
-                folder_id=self._folder.id,
-                image_ids=self._item_ids,
+            response = self._service_provider.get_annotation_upload_data(
+                project=self._project,
+                folder=self._folder,
+                item_ids=self._item_ids,
             )
             if response.ok:
                 self._annotation_upload_data = response.data
@@ -308,11 +294,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             [],
         )
         try:
-            response = await self._backend_service.upload_annotations(
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                folder_id=self._folder.id,
-                items_name_file_map={i.name: i.data for i in chunk},
+            response = (
+                await self._service_provider.annotations.upload_small_annotations(
+                    project=self._project,
+                    folder=self._folder,
+                    items_name_file_map={i.name: i.data for i in chunk},
+                )
             )
             if response.ok:
                 if response.data.failed_items:  # noqa
@@ -370,13 +357,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     async def _upload_big_annotation(self, item) -> Tuple[str, bool]:
         try:
-            is_uploaded = await self._backend_service.upload_big_annotation(
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                folder_id=self._folder.id,
-                item_id=item.id,
-                data=item.data,
-                chunk_size=5 * 1024 * 1024,
+            is_uploaded = (
+                await self._service_provider.annotations.upload_big_annotation(
+                    project=self._project,
+                    folder=self._folder,
+                    item_id=item.id,
+                    data=item.data,
+                    chunk_size=5 * 1024 * 1024,
+                )
             )
             if is_uploaded and (
                 self._project.type == constants.ProjectType.PIXEL.value and item.mask
@@ -462,8 +450,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             try:
                 item = existing_name_item_mapping.pop(name)
                 name_path_mappings_to_upload[name] = path
-                self._item_ids.append(item.uuid)
-                items_to_upload.append(self.AnnotationToUpload(item.uuid, name, path))
+                self._item_ids.append(item.id)
+                items_to_upload.append(self.AnnotationToUpload(item.id, name, path))
             except KeyError:
                 missing_annotations.append(name)
         try:
@@ -508,12 +496,9 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
-        images: BaseManageableRepository,
         team: TeamEntity,
-        annotation_classes: List[AnnotationClassEntity],
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         reporter: Reporter,
-        templates: List[dict],
         annotation_upload_data: UploadAnnotationAuthData = None,
         annotations: dict = None,
         s3_bucket=None,
@@ -527,14 +512,15 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._image = image
-        self._images = images
         self._team = team
-        self._backend_service = backend_service_provider
-        self._annotation_classes = annotation_classes
+        self._service_provider = service_provider
+        self._annotation_classes = service_provider.annotation_classes.list(
+            Condition("project_id", project.id, EQ)
+        ).data
         self._annotation_json = annotations
         self._mask = mask
         self._verbose = verbose
-        self._templates = templates
+        self._templates = service_provider.list_templates().data
         self._annotation_path = annotation_path
         self._annotation_upload_data = annotation_upload_data
         self._s3_bucket = s3_bucket
@@ -544,11 +530,10 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
     @property
     def annotation_upload_data(self) -> UploadAnnotationAuthData:
         if not self._annotation_upload_data:
-            response = self._backend_service.get_annotation_upload_data(
-                project_id=self._project.id,
-                team_id=self._project.team_id,
-                folder_id=self._folder.id,
-                image_ids=[self._image.uuid],
+            response = self._service_provider.get_annotation_upload_data(
+                project=self._project,
+                folder=self._folder,
+                item_ids=[self._image.id],
             )
             if response.ok:
                 self._annotation_upload_data = response.data
@@ -617,7 +602,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
             team_id=self._project.team_id,
             project_type=self._project.type.value,
             annotation=json_data,
-            backend_service_provider=self._backend_service,
+            service_provider=self._service_provider,
         )
         return use_case.execute().data
 
@@ -662,23 +647,21 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                 annotation_file.seek(0)
                 if size > BIG_FILE_THRESHOLD:
                     uploaded = asyncio.run(
-                        self._backend_service.upload_big_annotation(
-                            team_id=self._project.team_id,
-                            project_id=self._project.id,
-                            folder_id=self._folder.id,
+                        self._service_provider.annotations.upload_big_annotation(
+                            project=self._project,
+                            folder=self._folder,
                             item_id=self._image.id,
                             data=annotation_file,
                             chunk_size=5 * 1024 * 1024,
                         )
                     )
-                    if not uploaded:
+                    if not uploaded.ok:
                         self._response.errors = constants.INVALID_JSON_MESSAGE
                 else:
                     response = asyncio.run(
-                        self._backend_service.upload_annotations(
-                            team_id=self._project.team_id,
-                            project_id=self._project.id,
-                            folder_id=self._folder.id,
+                        self._service_provider.annotations.upload_small_annotations(
+                            project=self._project,
+                            folder=self._folder,
                             items_name_file_map={self._image.name: annotation_file},
                         )
                     )
@@ -706,15 +689,15 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                             and mask
                         ):
                             self.s3_bucket.put_object(
-                                Key=self.annotation_upload_data.images[
-                                    self._image.uuid
-                                ]["annotation_bluemap_path"],
+                                Key=self.annotation_upload_data.images[self._image.id][
+                                    "annotation_bluemap_path"
+                                ],
                                 Body=mask,
                             )
-                    self._image.annotation_status_code = (
+                    self._image.annotation_status = (
                         constants.AnnotationStatus.IN_PROGRESS.value
                     )
-                    self._images.update(self._image)
+                    self._service_provider.items.update(self._project, self._image)
                     if self._verbose:
                         self.reporter.log_info(
                             f"Uploading annotations for image {str(self._image.name)} in project {self._project.name}."
@@ -734,17 +717,15 @@ class GetAnnotations(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        images: BaseManageableRepository,
         item_names: Optional[List[str]],
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         show_process: bool = True,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
-        self._images = images
+        self._service_provider = service_provider
         self._item_names = item_names
-        self._client = backend_service_provider
         self._show_process = show_process
         self._item_names_provided = True
         self._big_annotations_queue = None
@@ -764,13 +745,13 @@ class GetAnnotations(BaseReportableUseCase):
                 self._item_names = item_names
         else:
             self._item_names_provided = False
-            condition = (
-                Condition("team_id", self._project.team_id, EQ)
-                & Condition("project_id", self._project.id, EQ)
-                & Condition("folder_id", self._folder.id, EQ)
+            condition = Condition("project_id", self._project.id, EQ) & Condition(
+                "folder_id", self._folder.id, EQ
             )
 
-            self._item_names = [item.name for item in self._images.get_all(condition)]
+            self._item_names = [
+                item.name for item in self._service_provider.items.list(condition).data
+            ]
 
     def _prettify_annotations(self, annotations: List[dict]):
         re_struct = {}
@@ -793,20 +774,20 @@ class GetAnnotations(BaseReportableUseCase):
             if not item:
                 await self._big_annotations_queue.put(None)
                 break
-            large_annotation = await self._client.get_big_annotation(
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                item=item,
-                reporter=self.reporter,
+            large_annotation = (
+                await self._service_provider.annotations.get_big_annotation(
+                    project=self._project,
+                    item=item,
+                    reporter=self.reporter,
+                )
             )
             large_annotations.append(large_annotation)
         return large_annotations
 
     async def get_small_annotations(self, item_names):
-        return await self._client.get_small_annotations(
-            team_id=self._project.team_id,
-            project_id=self._project.id,
-            folder_id=self._folder.id,
+        return await self._service_provider.annotations.get_small_annotations(
+            project=self._project,
+            folder=self._folder,
             items=item_names,
             reporter=self.reporter,
         )
@@ -842,11 +823,8 @@ class GetAnnotations(BaseReportableUseCase):
             )
             self.reporter.start_progress(items_count, disable=not self._show_process)
 
-            items = self._client.sort_items_by_size(
-                item_names=self._item_names,
-                team_id=self._project.team_id,
-                folder_id=self._folder.id,
-                project_id=self._project.id,
+            items = self._service_provider.annotations.sort_items_by_size(
+                project=self._project, folder=self._folder, item_names=self._item_names
             )
             small_annotations = [x["name"] for x in items["small"]]
             try:
@@ -855,7 +833,7 @@ class GetAnnotations(BaseReportableUseCase):
                 )
             except Exception as e:
                 self.reporter.log_error(str(e))
-                self._response.errors = AppException("Can't upload annotations.")
+                self._response.errors = AppException("Can't get annotations.")
                 return self._response
             received_items_count = len(annotations)
             self.reporter.finish_progress()
@@ -873,18 +851,16 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        images: BaseManageableRepository,
         video_name: str,
         fps: int,
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
-        self._images = images
         self._video_name = video_name
         self._fps = fps
-        self._client = backend_service_provider
+        self._service_provider = service_provider
 
     def validate_project_type(self):
         if self._project.type != constants.ProjectType.VIDEO.value:
@@ -900,9 +876,8 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
                 reporter=self.reporter,
                 project=self._project,
                 folder=self._folder,
-                images=self._images,
                 item_names=[self._video_name],
-                backend_service_provider=self._client,
+                service_provider=self._service_provider,
                 show_process=False,
             ).execute()
             self.reporter.enable_info()
@@ -938,13 +913,13 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
         folder: FolderEntity,
         scores: List[PriorityScore],
         project_folder_name: str,
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._scores = scores
-        self._client = backend_service_provider
+        self._service_provider = service_provider
         self._project_folder_name = project_folder_name
 
     @staticmethod
@@ -996,16 +971,16 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
                     priorities_to_upload = priorities[
                         i : i + self.CHUNK_SIZE
                     ]  # noqa: E203
-                    res = self._client.upload_priority_scores(
-                        team_id=self._project.team_id,
-                        project_id=self._project.id,
-                        folder_id=self._folder.id,
+                    res = self._service_provider.projects.upload_priority_scores(
+                        project=self._project,
+                        folder=self._folder,
                         priorities=priorities_to_upload,
                     )
+                    _data = res.data["data"]
+                    if not _data:
+                        _data = []
                     self.reporter.update_progress(len(priorities_to_upload))
-                    uploaded_score_names.extend(
-                        list(map(lambda x: x["name"], res.get("data", [])))
-                    )
+                    uploaded_score_names.extend(list(map(lambda x: x["name"], _data)))
                 self.reporter.finish_progress()
                 skipped_score_names = list(
                     set(initial_scores) - set(uploaded_score_names)
@@ -1025,11 +1000,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         destination: str,
         recursive: bool,
         item_names: List[str],
-        backend_service_provider: SuperannotateServiceProvider,
-        items: BaseReadOnlyRepository,
-        folders: BaseReadOnlyRepository,
-        classes: BaseReadOnlyRepository,
-        images: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
         callback: Callable = None,
     ):
         super().__init__(reporter)
@@ -1038,12 +1009,8 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._destination = destination
         self._recursive = recursive
         self._item_names = item_names
-        self._backend_client = backend_service_provider
-        self._items = items
-        self._folders = folders
-        self._classes = classes
+        self._service_provider = service_provider
         self._callback = callback
-        self._images = images
         self._big_file_queues = []
         self._small_file_queues = []
 
@@ -1079,8 +1046,8 @@ class DownloadAnnotations(BaseReportableUseCase):
         return ".json"
 
     def download_annotation_classes(self, path: str):
-        response = self._backend_client.list_annotation_classes(
-            team_id=self._project.team_id, project_id=self._project.id
+        response = self._service_provider.annotation_classes.list(
+            Condition("project_id", self._project.id, EQ)
         )
         if response.ok:
             classes_path = Path(path) / "classes"
@@ -1122,10 +1089,9 @@ class DownloadAnnotations(BaseReportableUseCase):
             cur_queue.task_done()
             if item:
                 postfix = self.get_postfix()
-                await self._backend_client.download_big_annotation(
+                await self._service_provider.annotations.download_big_annotation(
+                    project=self._project,
                     item=item,
-                    team_id=self._project.team_id,
-                    project_id=self._project.id,
                     download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
                     postfix=postfix,
                     callback=self._callback,
@@ -1143,10 +1109,9 @@ class DownloadAnnotations(BaseReportableUseCase):
             item = await cur_queue.get()
             if item:
                 items.append(item)
-        await self._backend_client.download_small_annotations(
-            team_id=self._project.team_id,
-            project_id=self._project.id,
-            folder_id=folder_id,
+        await self._service_provider.annotations.download_small_annotations(
+            project=self._project,
+            folder=self._folder,
             items=items,
             reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
@@ -1158,11 +1123,8 @@ class DownloadAnnotations(BaseReportableUseCase):
         self, item_names, sm_queue_id, l_queue_id, folder_id
     ):
         try:
-            team_id = self._project.team_id
-            project_id = self._project.id
-
-            resp = self._backend_client.sort_items_by_size(
-                item_names, team_id, project_id, folder_id
+            resp = self._service_provider.annotations.sort_items_by_size(
+                project=self._project, folder=self._folder, item_names=item_names
             )
 
             for item in resp["large"]:
@@ -1212,10 +1174,9 @@ class DownloadAnnotations(BaseReportableUseCase):
 
             folders = []
             if self._folder.is_root and self._recursive:
-                folders = self._folders.get_all(
-                    Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.id, EQ),
-                )
+                folders = self._service_provider.folders.list(
+                    Condition("project_id", self._project.id, EQ)
+                ).data
                 folders.append(self._folder)
 
             if not folders:
@@ -1224,13 +1185,14 @@ class DownloadAnnotations(BaseReportableUseCase):
                 futures = []
                 for folder in folders:
                     if not self._item_names:
-                        condition = (
-                            Condition("team_id", self._project.team_id, EQ)
-                            & Condition("project_id", self._project.id, EQ)
-                            & Condition("folder_id", folder.id, EQ)
-                        )
+                        condition = Condition(
+                            "project_id", self._project.id, EQ
+                        ) & Condition("folder_id", folder.id, EQ)
                         item_names = [
-                            item.name for item in self._images.get_all(condition)
+                            item.name
+                            for item in self._service_provider.items.list(
+                                condition
+                            ).data
                         ]
                     else:
                         item_names = self._item_names
@@ -1273,13 +1235,13 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         team_id: int,
         project_type: int,
         annotation: dict,
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._team_id = team_id
         self._project_type = project_type
         self._annotation = annotation
-        self._backend_client = backend_service_provider
+        self._service_provider = service_provider
 
     @staticmethod
     def _get_const(items, path=()):
@@ -1419,8 +1381,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         key = f"{self._project_type}__{version}"
         validator = ValidateAnnotationUseCase.SCHEMAS.get(key)
         if not validator:
-            schema_response = self._backend_client.get_schema(
-                self._team_id, self._project_type, version
+            schema_response = self._service_provider.annotations.get_schema(
+                self._project_type, version
             )
             if not schema_response.ok:
                 raise AppException(f"Schema {version} does not exist.")

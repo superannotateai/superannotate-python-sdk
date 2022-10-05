@@ -31,8 +31,8 @@ class PydanticEncoder(json.JSONEncoder):
 class HttpClient(BaseClient):
     AUTH_TYPE = "sdk"
 
-    def __init__(self, team_id: int, api_url: str, token: str, verify_ssl: bool = True):
-        super().__init__(team_id, api_url, token)
+    def __init__(self, api_url: str, token: str, verify_ssl: bool = True):
+        super().__init__(api_url, token)
         self._verify_ssl = verify_ssl
 
     @lru_cache(maxsize=32)
@@ -87,12 +87,19 @@ class HttpClient(BaseClient):
             response = session.send(request=prepared, verify=self._verify_ssl)
 
         if response.status_code == 404 and retried < 3:
-            return self.request(url, method=method, retried=retried + 1, **kwargs)
+            return self._request(
+                url, method=method, session=session, retried=retried + 1, **kwargs
+            )
         if response.status_code > 299:
             logger.debug(
                 f"Got {response.status_code} response from backend: {response.text}"
             )
         return response
+
+    def _get_url(self, url):
+        if not url.startswith("htt"):
+            return urllib.parse.urljoin(self._api_url, url)
+        return url
 
     def request(
         self,
@@ -108,7 +115,7 @@ class HttpClient(BaseClient):
         dispatcher: Callable = None,
     ) -> ServiceResponse:
         kwargs = {"params": {"team_id": self.team_id}}
-        _url = urllib.parse.urljoin(self._api_url, url)
+        _url = self._get_url(url)
         if data:
             kwargs["data"] = json.dumps(data, cls=PydanticEncoder)
         if params:
@@ -125,7 +132,7 @@ class HttpClient(BaseClient):
     def paginate(
         self,
         url: str,
-        item_type: Any,
+        item_type: Any = None,
         chunk_size: int = 2000,
         query_params: Dict[str, Any] = None,
         dispatcher: str = "data",
@@ -153,9 +160,14 @@ class HttpClient(BaseClient):
                     break
                 data_len = len(data)
                 offset += data_len
-                if data_len < chunk_size or data_len - offset <= 0:
+                if data_len < chunk_size or response.count - offset < 0:
                     break
             else:
                 break
-        response = ServiceResponse(data=pydantic.parse_obj_as(List[item_type], total))
+        if item_type:
+            response = ServiceResponse(
+                data=pydantic.parse_obj_as(List[item_type], total)
+            )
+        else:
+            response = ServiceResponse(data=total)
         return response

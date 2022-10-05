@@ -15,7 +15,10 @@ class ProjectService(BaseProjectService):
     URL_SETTINGS = "project/{}/settings"
     URL_SHARE = "project/{}/share/bulk"
     URL_WORKFLOW = "project/{}/workflow"
+    URL_SHARE_PROJECT = "project/{}/share"
     URL_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
+    URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
+    URL_ASSIGN_ITEMS = "images/editAssignment/"
 
     def get(self, uuid: int):
         return self.client.request(
@@ -78,7 +81,6 @@ class ProjectService(BaseProjectService):
     def set_workflow(
         self, project: entities.ProjectEntity, workflow: entities.WorkflowEntity
     ):
-
         return self.client.request(
             self.URL_WORKFLOW.format(project.id),
             "post",
@@ -96,9 +98,67 @@ class ProjectService(BaseProjectService):
     def set_project_workflow_attributes(
         self, project: entities.ProjectEntity, attributes: list
     ):
-
         return self.client.request(
             self.URL_WORKFLOW_ATTRIBUTE.format(project.id),
             "post",
             data={"data": attributes},
+        )
+
+    def un_share(self, project: entities.ProjectEntity, user_id: int):
+        return self.client.request(
+            self.URL_SHARE_PROJECT.format(project.id),
+            "delete",
+            data={"user_id": user_id},
+        )
+
+    def assign_items(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        user: str,
+        item_names: List[str],
+    ) -> ServiceResponse:
+        return self.client.request(
+            self.URL_ASSIGN_ITEMS,
+            "put",
+            params={"project_id": project.id},
+            data={
+                "image_names": item_names,
+                "assign_user_id": user,
+                "folder_name": folder.name,
+            },
+            content_type=ServiceResponse,
+        )
+
+    def un_assign_items(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_names: List[str],
+    ) -> ServiceResponse:
+        return self.client.request(
+            self.URL_ASSIGN_ITEMS,
+            "put",
+            params={"project_id": project.id},
+            data={
+                "image_names": item_names,
+                "remove_user_ids": ["all"],
+                "folder_name": folder.name,
+            },
+        )
+
+    def upload_priority_scores(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        priorities: list,
+    ):
+        return self.client.request(
+            self.URL_UPLOAD_PRIORITY_SCORES,
+            "post",
+            params={
+                "project_id": project.id,
+                "folder_id": folder.id,
+            },
+            data={"image_entropies": priorities},
         )

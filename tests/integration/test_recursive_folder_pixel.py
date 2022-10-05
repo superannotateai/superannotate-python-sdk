@@ -1,7 +1,8 @@
 from src.superannotate import SAClient
 
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestRecursiveFolderPixel(BaseTestCase):

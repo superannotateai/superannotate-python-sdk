@@ -15,7 +15,7 @@ class ImageEntity(BaseItemEntity):
         SegmentationStatus.NOT_STARTED
     )
     approval_status: Optional[ApprovalStatus] = Field(None)
-    is_pinned: Optional[bool]
+    is_pinned: Optional[int]
     meta: Optional[dict]
 
     class Config:

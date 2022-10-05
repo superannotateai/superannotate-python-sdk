@@ -19,7 +19,6 @@ import lib.core as constants
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
 from lib.app.annotation_helpers import add_annotation_point_to_json
-from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
 from lib.app.helpers import wrap_error as wrap_validation_errors
@@ -57,6 +56,7 @@ from lib.core.exceptions import AppException
 from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
+from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 from pydantic import conlist
 from pydantic import parse_obj_as
@@ -363,11 +363,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of folder
         :rtype: dict
         """
-        project = self.controller.get_project(project)
-        result = self.controller.folders.get_by_name(project, folder_name).data
-        if not result:
+        project, folder = self.controller.get_project_folder(project, folder_name)
+        if not folder:
             raise AppException("Folder not found.")
-        return FolderSerializer(result).serialize()
+        return FolderSerializer(folder).serialize()
 
     def delete_folders(self, project: NotEmptyStr, folder_names: List[NotEmptyStr]):
         """Delete folder in project.
@@ -458,15 +457,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         warnings.warn(warning_msg, DeprecationWarning)
         logger.warning(warning_msg)
         source_project_name, source_folder_name = extract_project_folder(source_project)
-
-        destination_project, destination_folder = extract_project_folder(
+        destination_project_name, destination_folder_name = extract_project_folder(
             destination_project
         )
-        source_project_metadata = self.controller.get_project_metadata(
+        source_project_metadata = self.controller.projects.get_by_name(
             source_project_name
         ).data
-        destination_project_metadata = self.controller.get_project_metadata(
-            destination_project
+        destination_project_metadata = self.controller.projects.get_by_name(
+            destination_project_name
         ).data
 
         if destination_project_metadata.type.value in [
@@ -481,32 +479,56 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.copy_image(
             from_project_name=source_project_name,
             from_folder_name=source_folder_name,
-            to_project_name=destination_project,
-            to_folder_name=destination_folder,
+            to_project_name=destination_project_name,
+            to_folder_name=destination_folder_name,
             image_name=image_name,
             copy_annotation_status=copy_annotation_status,
         )
         if response.errors:
             raise AppException(response.errors)
-
-        if include_annotations:
-            self.controller.copy_image_annotation_classes(
-                from_project_name=source_project_name,
-                from_folder_name=source_folder_name,
-                to_folder_name=destination_folder,
-                to_project_name=destination_project,
-                image_name=image_name,
-            )
         if copy_pin:
-            self.controller.update_image(
-                project_name=destination_project,
-                folder_name=destination_folder,
+            _folder = (
+                self.controller.folders.get_by_name(
+                    destination_project_metadata, destination_folder_name
+                ).data,
+            )
+            item = self.controller.items.get_by_name(
+                destination_project_metadata, _folder, image_name
+            ).data
+            item.is_pinned = 1
+            self.controller.items.update(
+                project=destination_project_metadata,
+                folder=_folder,
                 image_name=image_name,
                 is_pinned=1,
             )
+        if include_annotations:
+            source_project = self.controller.get_project(source_project_name)
+            source_folder = self.controller.folders.get_by_name(
+                source_project, source_folder_name
+            ).data
+            source_image = self.controller.items.get_by_name(
+                source_project, source_folder, image_name
+            ).data
+            destination_project = self.controller.get_project(destination_project)
+            destination_folder = self.controller.folders.get_by_name(
+                destination_project_name, destination_folder_name
+            )
+            destination_image = self.controller.items.get_by_name(
+                destination_project, destination_folder, image_name
+            ).data
+            self.controller.annotation_classes.copy_multiple(
+                source_project=source_project,
+                source_folder=source_folder,
+                source_item=source_image,
+                destination_project=destination_project,
+                destination_folder=destination_folder,
+                destination_item=destination_image,
+            )
+
         logger.info(
             f"Copied image {source_project}/{image_name}"
-            f" to {destination_project}/{destination_folder}."
+            f" to {destination_project_name}/{destination_folder_name}."
         )
 
     def get_project_metadata(
@@ -543,8 +565,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: dict
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.get_project_metadata(
-            project_name,
+        project = self.controller.get_project(project_name)
+        response = self.controller.projects.get_metadata(
+            project,
             include_annotation_classes,
             include_settings,
             include_workflow,
@@ -553,7 +576,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-
         return ProjectSerializer(response.data).serialize()
 
     def get_project_settings(self, project: Union[NotEmptyStr, dict]):
@@ -567,11 +589,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project settings
         :rtype: list of dicts
         """
-        project_name, folder_name = extract_project_folder(project)
-        settings = self.controller.get_project_settings(project_name=project_name)
+        project_name, _ = extract_project_folder(project)
+        project = self.controller.projects.get_by_name(project_name).data
+        settings = self.controller.projects.list_settings(project).data
         settings = [
-            SettingsSerializer(attribute.dict()).serialize()
-            for attribute in settings.data
+            SettingsSerializer(attribute.dict()).serialize() for attribute in settings
         ]
         return settings
 
@@ -660,12 +682,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param pin: sets to pin if True, else unpins image
         :type pin: bool
         """
-        project_name, folder_name = extract_project_folder(project)
-        self.controller.update_image(
-            project_name=project_name,
-            image_name=image_name,
-            folder_name=folder_name,
-            is_pinned=int(pin),
+        project, folder = self.controller.get_project_folder_by_path(project)
+        item = self.controller.items.get_by_name(project, folder, image_name).data
+        item.is_pinned = pin
+        self.controller.items.update(
+            project=project,
+            item=item,
         )
 
     def delete_items(self, project: str, items: Optional[List[str]] = None):
@@ -676,10 +698,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param items: to be deleted items' names. If None, all the items will be deleted
         :type items: list of str
         """
-        project_name, folder_name = extract_project_folder(project)
-
-        response = self.controller.delete_items(
-            project_name=project_name, folder_name=folder_name, items=items
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.items.delete(
+            project=project, folder=folder, item_names=items
         )
         if response.errors:
             raise AppException(response.errors)
@@ -702,9 +723,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type user: str
         """
 
-        project_name, folder_name = extract_project_folder(project)
-
-        response = self.controller.assign_items(project_name, folder_name, items, user)
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.projects.assign_items(
+            project, folder, item_names=items, user=user
+        )
 
         if response.errors:
             raise AppException(response.errors)
@@ -721,10 +743,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param items: list of items to unassign
         :type items: list of str
         """
-        project_name, folder_name = extract_project_folder(project)
-
-        response = self.controller.un_assign_items(
-            project_name=project_name, folder_name=folder_name, item_names=items
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.projects.un_assign_items(
+            project, folder, item_names=items
         )
         if response.errors:
             raise AppException(response.errors)
@@ -763,7 +784,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         contributors = (
-            self.controller.get_project_metadata(
+            self.controller.projects.get_by_name(
                 project_name=project_name, include_contributors=True
             )
             .data["project"]
@@ -780,10 +801,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if not verified_users:
             return
-
-        response = self.controller.assign_folder(
-            project_name=project_name,
-            folder_name=folder_name,
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.folders.assign_users(
+            project=project,
+            folder=folder,
             users=list(verified_users),
         )
 
@@ -951,10 +972,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: paths of downloaded annotations
         :rtype: tuple
         """
-        project_name, folder_name = extract_project_folder(project)
-        res = self.controller.download_image_annotations(
-            project_name=project_name,
-            folder_name=folder_name,
+
+        project, folder = self.controller.get_project_folder_by_path(project)
+        res = self.controller.annotations.download_image_annotations(
+            project=project,
+            folder=folder,
             image_name=image_name,
             destination=local_dir_path,
         )
@@ -1263,9 +1285,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         except ValidationError as e:
             raise AppException(wrap_error(e))
-
-        response = self.controller.create_annotation_class(
-            project_name=project, annotation_class=annotation_class
+        project = self.controller.projects.get_by_name(project).data
+        response = self.controller.annotation_classes.create(
+            project=project, annotation_class=annotation_class
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1281,8 +1303,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param annotation_class: annotation class name or  metadata
         :type annotation_class: str or dict
         """
-        self.controller.delete_annotation_class(
-            project_name=project, annotation_class_name=annotation_class
+        project = self.controller.projects.get_by_name(project).data
+        self.controller.annotation_classes.delete(
+            project=project, name=annotation_class["name"]
         )
 
     def download_annotation_classes_json(
@@ -1298,8 +1321,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: path of the download file
         :rtype: str
         """
-        response = self.controller.download_annotation_classes(
-            project_name=project, download_path=folder
+
+        project = self.controller.projects.get_by_name(project).data
+        response = self.controller.annotation_classes.download(
+            project=project, download_path=folder
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1340,8 +1365,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
         except ValidationError as _:
             raise AppException("Couldn't validate annotation classes.")
-        response = self.controller.create_annotation_classes(
-            project_name=project,
+        project = self.controller.projects.get_by_name(project).data
+        response = self.controller.annotation_classes.create_multiple(
+            project=project,
             annotation_classes=annotation_classes,
         )
         if response.errors:
@@ -1505,9 +1531,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
         )
-        response = self.controller.upload_annotations_from_folder(
-            project_name=project_name,
-            folder_name=folder_name,
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.annotations.upload_from_folder(
+            project=project,
+            folder=folder,
+            team=self.controller.team,
             annotation_paths=annotation_paths,  # noqa: E203
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
@@ -1548,7 +1576,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-        project = self.controller.get_project_metadata(project_name).data
+        project = self.controller.get_project(project_name)
         if project.type in [
             constants.ProjectType.VIDEO,
             constants.ProjectType.DOCUMENT,
@@ -1569,9 +1597,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
         )
-        response = self.controller.upload_annotations_from_folder(
-            project_name=project_name,
-            folder_name=folder_name,
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.annotations.upload_from_folder(
+            project=project,
+            folder=folder,
+            team=self.controller.team,
             annotation_paths=annotation_paths,  # noqa: E203
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
@@ -1611,7 +1641,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         project_name, folder_name = extract_project_folder(project)
 
-        project = self.controller.get_project_metadata(project_name).data
+        project = self.controller.projects.get_by_name(project_name).data
         if project.type in [
             constants.ProjectType.VIDEO,
             constants.ProjectType.DOCUMENT,
@@ -1633,11 +1663,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if verbose:
                 logger.info("Uploading annotations from %s.", annotation_json)
             annotation_json = json.load(open(annotation_json))
-        response = self.controller.upload_image_annotations(
-            project_name=project_name,
-            folder_name=folder_name,
-            image_name=image_name,
+        folder = self.controller.folders.get_by_name(project, folder_name).data
+        response = self.controller.annotations.upload_image_annotations(
+            project=project,
+            folder=folder,
+            image=self.controller.items.get_by_name(project, folder, image_name).data,
             annotations=annotation_json,
+            team=self.controller.team,
             mask=mask,
             verbose=verbose,
         )
@@ -1655,7 +1687,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: the metadata of the model
         :rtype: dict
         """
-        res = self.controller.download_ml_model(
+        res = self.controller.models.download(
             model_data=model.dict(), download_path=output_dir
         )
         if res.errors:
@@ -1697,7 +1729,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if isinstance(project, dict):
             project_name = project["name"]
 
-        project = self.controller.get_project_metadata(project_name).data
+        project = self.controller.projects.get_by_name(project_name).data
         if project.type in [
             constants.ProjectType.VIDEO,
             constants.ProjectType.DOCUMENT,
@@ -1810,12 +1842,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         model_name = model
         if isinstance(model, dict):
             model_name = model["name"]
-
-        response = self.controller.run_prediction(
-            project_name=project_name,
-            images_list=images_list,
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.models.run_prediction(
+            project=project,
+            folder=folder,
+            items_list=images_list,
             model_name=model_name,
-            folder_name=folder_name,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1849,17 +1881,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type error: bool
         """
         project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project_metadata(project_name).data
+        project = self.controller.projects.get_by_name(project_name).data
+
         if project.type in [
             constants.ProjectType.VIDEO,
             constants.ProjectType.DOCUMENT,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project.type])
-        response = self.controller.get_annotations(
-            project_name=project_name,
-            folder_name=folder_name,
+        folder = self.controller.folders.get_by_name(project, folder_name).data
+        response = self.controller.annotations.list(
+            project=project,
+            folder=folder,
             item_names=[image_name],
-            logging=False,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1875,9 +1908,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             error,
             image_name,
         )
-
-        self.controller.upload_image_annotations(
-            project_name, folder_name, image_name, annotations
+        self.controller.annotations.upload_image_annotations(
+            project=project,
+            folder=folder,
+            image=entities.ImageEntity(
+                **self.controller.items.get_by_name(
+                    project, folder, image_name
+                ).data.dict()
+            ),
+            annotations=annotations,
+            team=self.controller.team,
         )
 
     def add_annotation_point_to_image(
@@ -1906,18 +1946,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param error: if not None, marks annotation as error (True) or no-error (False)
         :type error: bool
         """
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project_metadata(project_name).data
+        project, folder = self.controller.get_project_folder_by_path(project)
         if project.type in [
             constants.ProjectType.VIDEO,
             constants.ProjectType.DOCUMENT,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project.type])
-        response = self.controller.get_annotations(
-            project_name=project_name,
-            folder_name=folder_name,
+        response = self.controller.annotations.list(
+            project=project,
+            folder=folder,
             item_names=[image_name],
-            logging=False,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1932,8 +1970,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotation_class_attributes,
             error,
         )
-        response = self.controller.upload_image_annotations(
-            project_name, folder_name, image_name, annotations
+        response = self.controller.annotations.upload_image_annotations(
+            project=project,
+            folder=folder,
+            image=self.controller.items.get_by_name(project, folder, image_name).data,
+            annotations=annotations,
+            team=self.controller.team,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1963,17 +2005,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type resolved: bool
         """
         project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project_metadata(project_name).data
+        project = self.controller.projects.get_by_name(project_name).data
         if project.type in [
             constants.ProjectType.VIDEO,
             constants.ProjectType.DOCUMENT,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project.type])
-        response = self.controller.get_annotations(
-            project_name=project_name,
-            folder_name=folder_name,
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.annotations.list(
+            project=project,
+            folder=folder,
             item_names=[image_name],
-            logging=False,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1989,8 +2031,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             resolved=resolved,
             image_name=image_name,
         )
-        self.controller.upload_image_annotations(
-            project_name, folder_name, image_name, annotations
+
+        self.controller.annotations.upload_image_annotations(
+            project=project,
+            folder=folder,
+            image=self.controller.items.get_by_name(project, folder, image_name).data,
+            annotations=annotations,
+            team=self.controller.team,
         )
 
     def upload_image_to_project(
@@ -2062,13 +2109,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: ml model metadata
         :rtype: list of dicts
         """
-        res = self.controller.search_models(
-            name=name,
-            model_type=type_,
-            project_id=project_id,
-            task=task,
-            include_global=include_global,
-        )
+        condition = EmptyCondition()
+        if name:
+            condition &= Condition("name", name, EQ)
+        if type_:
+            condition &= Condition("type", type_, EQ)
+        if project_id:
+            condition &= Condition("project_id", project_id, EQ)
+        if task:
+            condition &= Condition("task", task, EQ)
+        if include_global:
+            condition &= Condition("include_global", include_global, EQ)
+
+        res = self.controller.models.list(condition)
         return res.data
 
     def upload_images_to_project(
@@ -2194,10 +2247,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type item_names: list of strs
         """
 
-        project_name, folder_name = extract_project_folder(project)
-
-        response = self.controller.delete_annotations(
-            project_name=project_name, folder_name=folder_name, item_names=item_names
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.annotations.delete(
+            project=project, folder=folder, item_names=item_names
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2251,8 +2303,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of added,  skipped contributors of the project
         :rtype: tuple (2 members) of lists of strs
         """
-        response = self.controller.add_contributors_to_project(
-            project_name=project, emails=emails, role=role
+        project = self.controller.projects.get_by_name(project).data
+        response = self.controller.projects.add_contributors(
+            project=project, team=self.controller.team, emails=emails, role=role
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2293,8 +2346,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: list of annotations
         :rtype: list of strs
         """
-        project_name, folder_name = extract_project_folder(project)
-        response = self.controller.get_annotations(project_name, folder_name, items)
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.annotations.list(project, folder, items)
         if response.errors:
             raise AppException(response.errors)
         return response.data
@@ -2340,8 +2393,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         project_folder_name = project
-        response = self.controller.upload_priority_scores(
-            project_name, folder_name, scores, project_folder_name
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.projects.upload_priority_scores(
+            project, folder, scores, project_folder_name
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2353,7 +2407,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata objects of all integrations of the team.
         :rtype: list of dicts
         """
-        response = self.controller.get_integrations()
+        response = self.controller.integrations.list()
         if response.errors:
             raise AppException(response.errors)
         integrations = response.data
@@ -2378,11 +2432,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
          If None, items     are fetched from the root directory.
         :type folder_path: str
         """
-        project_name, folder_name = extract_project_folder(project)
-        if isinstance(integration, str):
-            integration = IntegrationEntity(name=integration)
-        response = self.controller.attach_integrations(
-            project_name, folder_name, integration, folder_path
+        project, folder = self.controller.get_project_folder_by_path(project)
+        _integration = None
+        for i in self.controller.integrations.list().data:
+            if integration == i.name:
+                _integration = i
+                break
+        else:
+            raise AppException("Integration not found.")
+        response = self.controller.integrations.attach_items(
+            project, folder, _integration, folder_path
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2466,9 +2525,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             }
         """
-        project_name, folder_name = extract_project_folder(project)
-        response = self.controller.get_item(
-            project_name, folder_name, item_name, include_custom_metadata
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.items.get_by_name(
+            project=project,
+            folder=folder,
+            name=item_name,
+            include_custom_metadata=include_custom_metadata,
         )
         exclude = {"custom_metadata"} if not include_custom_metadata else {}
         if response.errors:
@@ -2554,9 +2616,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             ]
         """
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project(project_name)
-        folder = self.controller.folders.get_by_name(project_name, folder_name)
+        project, folder = self.controller.get_project_folder_by_path(project)
         search_condition = Condition.get_empty_condition()
         if name_contains:
             search_condition &= Condition("name", name_contains, EQ)
@@ -2574,10 +2634,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.items.list(
             project=project,
             folder=folder,
-            name_contains=name_contains,
-            annotation_status=annotation_status,
-            annotator_email=annotator_email,
-            qa_email=qa_email,
+            condition=search_condition,
             recursive=recursive,
             include_custom_metadata=include_custom_metadata,
         )
@@ -2631,8 +2688,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             logger.info(
                 f"Attaching {len(unique_attachments)} file(s) to project {project}."
             )
-            project = self.controller.get_project(project_name)
-            folder = self.controller.folders.get_by_name(project, folder_name).data
+            project, folder = self.controller.get_project_folder(
+                project_name, folder_name
+            )
             response = self.controller.items.attach(
                 project=project,
                 folder=folder,
@@ -2680,12 +2738,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         to_project_name, destination_folder = extract_project_folder(destination)
         if project_name != to_project_name:
             raise AppException("Source and destination projects should be the same")
-
-        response = self.controller.copy_items(
-            project_name=project_name,
-            from_folder=source_folder,
-            to_folder=destination_folder,
-            items=items,
+        project, from_folder = self.controller.get_project_folder(
+            project_name, source_folder
+        )
+        to_folder = self.controller.folders.get_by_name(
+            project, destination_folder
+        ).data
+        response = self.controller.items.copy_multiple(
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            item_names=items,
             include_annotations=include_annotations,
         )
         if response.errors:
@@ -2718,11 +2781,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         to_project_name, destination_folder = extract_project_folder(destination)
         if project_name != to_project_name:
             raise AppException("Source and destination projects should be the same")
-        response = self.controller.move_items(
-            project_name=project_name,
+
+        project = self.controller.get_project(project_name)
+        source_folder = self.controller.folders.get_by_name(project, source_folder).data
+        destination_folder = self.controller.folders.get_by_name(
+            project, destination_folder
+        ).data
+        response = self.controller.items.move_multiple(
+            project=project,
             from_folder=source_folder,
             to_folder=destination_folder,
-            items=items,
+            item_names=items,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2752,10 +2821,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type items: list of strs
         """
 
-        project_name, folder_name = extract_project_folder(project)
-        response = self.controller.set_annotation_statuses(
-            project_name=project_name,
-            folder_name=folder_name,
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.items.set_annotation_statuses(
+            project=project,
+            folder=folder,
             annotation_status=annotation_status,
             item_names=items,
         )
@@ -2797,9 +2866,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: str
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.download_annotations(
-            project_name=project_name,
-            folder_name=folder_name,
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.annotations.download(
+            project=project,
+            folder=folder,
             destination=path,
             recursive=recursive,
             item_names=items,
@@ -2819,8 +2889,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of dicts
         """
         project_name, _ = extract_project_folder(project)
-
-        response = self.controller.list_subsets(project_name)
+        project = self.controller.projects.get_by_name(project_name).data
+        response = self.controller.subsets.list(project)
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data, ["name"])
@@ -2898,8 +2968,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         """
         project_name, _ = extract_project_folder(project)
-        response = self.controller.create_custom_schema(
-            project_name=project_name, schema=fields
+        project = self.controller.projects.get_by_name(project_name).data
+        response = self.controller.custom_fields.create_schema(
+            project=project, schema=fields
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2944,7 +3015,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
         project_name, _ = extract_project_folder(project)
-        response = self.controller.get_custom_schema(project_name=project_name)
+        project = self.controller.projects.get_by_name(project_name).data
+        response = self.controller.custom_fields.get_schema(project=project)
         if response.errors:
             raise AppException(response.errors)
         return response.data
@@ -2995,8 +3067,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         """
         project_name, _ = extract_project_folder(project)
-        response = self.controller.delete_custom_schema(
-            project_name=project_name, fields=fields
+        project = self.controller.projects.get_by_name(project_name).data
+        response = self.controller.custom_fields.delete_schema(
+            project=project, fields=fields
         )
         if response.errors:
             raise AppException(response.errors)
@@ -3065,8 +3138,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.upload_custom_values(
-            project_name=project_name, folder_name=folder_name, items=items
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.custom_fields.upload_values(
+            project=project, folder=folder, items=items
         )
         if response.errors:
             raise AppException(response.errors)
@@ -3100,8 +3174,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.delete_custom_values(
-            project_name=project_name, folder_name=folder_name, items=items
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        response = self.controller.custom_fields.delete_values(
+            project=project, folder=folder, items=items
         )
         if response.errors:
             raise AppException(response.errors)
@@ -3175,9 +3250,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, _ = extract_project_folder(project)
-
-        response = self.controller.add_items_to_subset(project_name, subset, items)
-
+        project = self.controller.projects.get_by_name(project_name).data
+        response = self.controller.subsets.add_items(project, subset, items)
         if response.errors:
             raise AppException(response.errors)
 

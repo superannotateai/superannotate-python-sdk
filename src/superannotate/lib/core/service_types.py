@@ -71,7 +71,7 @@ class DownloadMLModelAuthData(BaseModel):
         super().__init__(**data)
 
 
-class UploadAnnotationsResponse(BaseModel):
+class UploadAnnotations(BaseModel):
     class Resource(BaseModel):
         classes: List[str] = Field([], alias="class")
         templates: List[str] = Field([], alias="template")
@@ -116,7 +116,6 @@ class ServiceResponse(BaseModel):
             response_json = dict()
         if not response.ok:
             data["_error"] = response_json.get("error", "Unknown Error")
-            data["data"] = response_json
             super().__init__(**data)
             return
         if dispatcher:
@@ -124,6 +123,9 @@ class ServiceResponse(BaseModel):
             response_json = dispatcher(_data)
             data.update(_data)
         try:
+            if isinstance(response_json, dict):
+                data["count"] = response_json.get("count", None)
+
             if content_type and content_type is not self.__class__:
                 data["data"] = parse_obj_as(content_type, response_json)
             else:
@@ -154,29 +156,69 @@ class ServiceResponse(BaseModel):
             return getattr(self.data, "error", default_message)
 
 
+class TeamResponse(ServiceResponse):
+    data: entities.TeamEntity = None
+
+
+class ModelListResponse(ServiceResponse):
+    data: List[entities.AnnotationClassEntity] = None
+
+
+class IntegrationResponse(ServiceResponse):
+    data: List[entities.IntegrationEntity] = None
+
+
+class AnnotationClassListResponse(ServiceResponse):
+    data: List[entities.AnnotationClassEntity] = None
+
+
+class SubsetListResponse(ServiceResponse):
+    data: List[entities.SubSetEntity] = None
+
+
+class SubsetResponse(ServiceResponse):
+    data: entities.SubSetEntity = None
+
+
+class DownloadMLModelAuthDataResponse(ServiceResponse):
+    data: DownloadMLModelAuthData = None
+
+
+class UploadAnnotationsResponse(ServiceResponse):
+    data: Optional[UploadAnnotations] = None
+
+
+class UploadAnnotationAuthDataResponse(ServiceResponse):
+    data: UploadAnnotationAuthData = None
+
+
+class UploadCustomFieldValuesResponse(ServiceResponse):
+    data: UploadCustomFieldValues = None
+
+
 class UserLimitsResponse(ServiceResponse):
-    data: UserLimits
+    data: UserLimits = None
 
 
 class ItemListResponse(ServiceResponse):
-    data: List[entities.BaseItemEntity]
+    data: List[entities.BaseItemEntity] = None
 
 
 class FolderResponse(ServiceResponse):
-    data: entities.FolderEntity
+    data: entities.FolderEntity = None
 
 
 class FolderListResponse(ServiceResponse):
-    data: List[entities.FolderEntity]
+    data: List[entities.FolderEntity] = None
 
 
 class ProjectResponse(ServiceResponse):
-    data: entities.ProjectEntity
+    data: entities.ProjectEntity = None
 
 
 class ProjectListResponse(ServiceResponse):
-    data: List[entities.ProjectEntity]
+    data: List[entities.ProjectEntity] = None
 
 
 class SettingsListResponse(ServiceResponse):
-    data: List[entities.SettingEntity]
+    data: List[entities.SettingEntity] = None

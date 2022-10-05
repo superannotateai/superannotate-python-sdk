@@ -100,3 +100,49 @@ class ProjectEntity(TimedBaseModel):
             users=self.users,
             upload_state=self.upload_state,
         )
+
+
+class MLModelEntity(TimedBaseModel):
+    id: Optional[int]
+    team_id: Optional[int]
+    name: Optional[str]
+    createdAt: Optional[str]
+    updatedAt: Optional[str]
+    path: Optional[str]
+    config_path: Optional[str]
+    model_type: Optional[int]
+    description: Optional[str]
+    output_path: Optional[str]
+    task: Optional[str]
+    base_model_id: Optional[int]
+    image_count: Optional[int]
+    training_status: Optional[int]
+    test_folder_ids: Optional[List[int]]
+    train_folder_ids: Optional[List[int]]
+    is_trainable: Optional[bool]
+    is_global: Optional[bool]
+    hyper_parameters: Optional[dict]
+
+    class Config:
+        extra = Extra.ignore
+
+
+class UserEntity(BaseModel):
+    id: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: Optional[str]
+    picture: Optional[str]
+    user_role: Optional[int]
+
+
+class TeamEntity(BaseModel):
+    id: Optional[str]
+    name: Optional[str]
+    description: Optional[str]
+    type: Optional[str]
+    user_role: Optional[str]
+    is_default: Optional[bool]
+    users: Optional[List[UserEntity]]
+    pending_invitations: Optional[List]
+    creator_id: Optional[str]

@@ -2,13 +2,13 @@ import json
 from typing import List
 
 from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.serviceproviders import BaseServiceProvider
-from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 
@@ -36,18 +36,18 @@ class CreateAnnotationClassUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         annotation_class: AnnotationClassEntity,
         project: ProjectEntity,
     ):
         super().__init__(reporter)
-        self._backend_client = backend_client
+        self._service_provider = service_provider
         self._annotation_class = annotation_class
         self._project = project
 
     def _is_unique(self):
-        annotation_classes = self._backend_client.list_annotation_classes(
-            project_id=self._project.id, team_id=self._project.team_id
+        annotation_classes = self._service_provider.annotation_classes.list(
+            Condition("project_id", self._project.id, EQ)
         ).data
         return not any(
             [
@@ -79,10 +79,9 @@ class CreateAnnotationClassUseCase(BaseReportableUseCase):
     def execute(self):
         if self.is_valid():
             if self._is_unique():
-                response = self._backend_client.create_annotation_classes(
-                    project_id=self._project.id,
-                    team_id=self._project.team_id,
-                    data=[self._annotation_class],
+                response = self._service_provider.annotation_classes.create_multiple(
+                    project=self._project,
+                    classes=[self._annotation_class],
                 )
                 if response.ok:
                     self._response.data = response.data[0]
@@ -101,13 +100,13 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         annotation_classes: List[AnnotationClassEntity],
         project: ProjectEntity,
     ):
         super().__init__(reporter)
         self._project = project
-        self._backend_client = backend_client
+        self._service_provider = service_provider
         self._annotation_classes = annotation_classes
 
     def validate_project_type(self):
@@ -133,9 +132,11 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            existing_annotation_classes = self._backend_client.list_annotation_classes(
-                project_id=self._project.id, team_id=self._project.team_id
-            ).data
+            existing_annotation_classes = (
+                self._service_provider.annotation_classes.list(
+                    Condition("project_id", self._project.id, EQ)
+                ).data
+            )
             existing_classes_name = [i.name for i in existing_annotation_classes]
             unique_annotation_classes = []
             for annotation_class in self._annotation_classes:
@@ -153,10 +154,13 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
             with self.reporter.spinner:
                 # this is in reverse order because of the front-end
                 for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
-                    response = self._backend_client.create_annotation_classes(
-                        project_id=self._project.id,
-                        team_id=self._project.team_id,
-                        data=unique_annotation_classes[i - self.CHUNK_SIZE : i],  # noqa
+                    response = (
+                        self._service_provider.annotation_classes.create_multiple(
+                            project=self._project,
+                            classes=unique_annotation_classes[
+                                i - self.CHUNK_SIZE : i
+                            ],  # noqa
+                        )
                     )
                     if response.ok:
                         created.extend(response.data)
@@ -180,19 +184,19 @@ class DownloadAnnotationClassesUseCase(BaseReportableUseCase):
         reporter: Reporter,
         download_path: str,
         project: ProjectEntity,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._download_path = download_path
         self._project = project
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def execute(self):
         self.reporter.log_info(
             f"Downloading classes.json from project {self._project.name} to folder {str(self._download_path)}."
         )
-        response = self._backend_client.list_annotation_classes(
-            project_id=self._project.id, team_id=self._project.team_id
+        response = self._service_provider.annotation_classes.list(
+            Condition("project_id", self._project.id, EQ)
         )
         if response.ok:
             classes = [

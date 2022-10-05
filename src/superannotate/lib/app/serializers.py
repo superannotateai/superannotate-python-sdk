@@ -40,15 +40,6 @@ class BaseSerializer(ABC):
             )
         )
 
-    def serialize_item(
-        self,
-        data: Any,
-        fields: Union[List[str], Set[str]] = None,
-        by_alias: bool = False,
-        flat: bool = False,
-    ):
-        return self._fill_enum_values(self._serialize(data, fields, by_alias, flat))
-
     @staticmethod
     def _serialize(
         entity: Any,
