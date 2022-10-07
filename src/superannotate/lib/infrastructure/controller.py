@@ -668,10 +668,10 @@ class ModelManager(BaseManager):
 
 class IntegrationManager(BaseManager):
     def list(self):
-        use_cae = usecases.GetIntegrations(
+        use_case = usecases.GetIntegrations(
             reporter=Reporter(), service_provider=self.service_provider
         )
-        return use_cae.execute()
+        return use_case.execute()
 
     def attach_items(
         self,

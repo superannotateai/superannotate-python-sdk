@@ -8,9 +8,12 @@ class IntegrationService(BaseIntegrationService):
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
 
     def list(self):
-        return self.client.request(
-            self.URL_LIST, "get", content_type=IntegrationResponse
+
+        res = self.client.request(
+            self.URL_LIST, "get", content_type=IntegrationResponse, dispatcher = lambda x: x['integrations']
         )
+
+        return res
 
     def attach_items(
         self,

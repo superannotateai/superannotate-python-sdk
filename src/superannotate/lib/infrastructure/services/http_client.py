@@ -127,7 +127,7 @@ class HttpClient(BaseClient):
         response = self._request(_url, method, session=session, retried=0, **kwargs)
         if files:
             session.headers.update(self.default_headers)
-        return content_type(response)
+        return content_type(response, dispatcher=dispatcher)
 
     def paginate(
         self,
