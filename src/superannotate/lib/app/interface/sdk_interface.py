@@ -1675,10 +1675,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 logger.info("Uploading annotations from %s.", annotation_json)
             annotation_json = json.load(open(annotation_json))
         folder = self.controller.folders.get_by_name(project, folder_name).data
+        if not folder:
+            raise AppException("Folder not found.")
+
+        image = self.controller.items.get_by_name(project, folder, image_name).data
+        if not image:
+            raise AppException("Image not found.")
         response = self.controller.annotations.upload_image_annotations(
             project=project,
             folder=folder,
-            image=self.controller.items.get_by_name(project, folder, image_name).data,
+            image=image,
             annotations=annotation_json,
             team=self.controller.team,
             mask=mask,
