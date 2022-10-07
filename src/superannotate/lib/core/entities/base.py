@@ -235,7 +235,8 @@ class StringDate(datetime):
 
     @classmethod
     def validate(cls, v: datetime):
-        return v.isoformat()
+        v = v.isoformat().split('+')[0]+'.000Z'
+        return v
 
 
 class SubSetEntity(BaseModel):
