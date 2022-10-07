@@ -25,6 +25,7 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import S3FileEntity
 from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
@@ -1761,11 +1762,11 @@ class UnAssignFolderUseCase(BaseUseCase):
 
 class DeleteAnnotationClassUseCase(BaseUseCase):
     def __init__(
-        self, name: str, project: ProjectEntity, service_provider: BaseServiceProvider
+        self, annotation_class: AnnotationClassEntity, project: ProjectEntity, service_provider: BaseServiceProvider
     ):
         super().__init__()
         self._service_provider = service_provider
-        self._name = name
+        self._name = annotation_class.name
         self._project = project
 
     def execute(self):

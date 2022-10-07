@@ -1303,9 +1303,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param annotation_class: annotation class name or  metadata
         :type annotation_class: str or dict
         """
+
+        if isinstance(annotation_class, str):
+            try:
+                annotation_class = AnnotationClassEntity(
+                    name=annotation_class,
+                    color="#ffffff", #Random, just need to serialize
+                )
+            except ValidationError as e:
+                raise AppException(wrap_error(e))
+
         project = self.controller.projects.get_by_name(project).data
+
         self.controller.annotation_classes.delete(
-            project=project, name=annotation_class["name"]
+            project=project, annotation_class=annotation_class
         )
 
     def download_annotation_classes_json(

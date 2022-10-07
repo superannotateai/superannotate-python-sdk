@@ -251,9 +251,9 @@ class AnnotationClassManager(BaseManager):
         )
         return use_case.execute()
 
-    def delete(self, project: ProjectEntity, name: str):
+    def delete(self, project: ProjectEntity, annotation_class: AnnotationClassEntity):
         use_case = usecases.DeleteAnnotationClassUseCase(
-            name=name,
+            annotation_class=annotation_class,
             project=project,
             service_provider=self.service_provider,
         )
