@@ -948,9 +948,10 @@ class AddItemsToSubsetUseCase(BaseUseCase):
 
             subsets = self._service_provider.subsets.list(self.project).data
             subset = None
-            for subset in subsets:
-                if subset.name == self.subset_name:
-                    return subset
+            for s in subsets:
+                if s.name == self.subset_name:
+                    subset = s
+                    break
 
             if not subset:
                 subset = self._service_provider.subsets.create(
@@ -971,7 +972,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     subset=subset,
                 )
 
-                if not response.ok:
+                if not response:
                     response = tmp_response
                 else:
                     response.data["failed"] = response.data["failed"].union(
@@ -983,6 +984,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     response.data["success"] = response.data["success"].union(
                         tmp_response.data["success"]
                     )
+
 
             # Iterating over all path_separated (that now have ids in them and sorting them into
             # "success", "failed" and "skipped")
