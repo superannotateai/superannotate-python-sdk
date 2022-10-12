@@ -3,12 +3,10 @@ from os.path import expanduser
 from superannotate.lib.core.config import Config
 from superannotate.lib.core.enums import AnnotationStatus
 from superannotate.lib.core.enums import ImageQuality
-from superannotate.lib.core.enums import ProjectState
 from superannotate.lib.core.enums import ProjectStatus
 from superannotate.lib.core.enums import ProjectType
 from superannotate.lib.core.enums import SegmentationStatus
 from superannotate.lib.core.enums import TrainingStatus
-from superannotate.lib.core.enums import TrainingTask
 from superannotate.lib.core.enums import UploadState
 from superannotate.lib.core.enums import UserRole
 
@@ -22,37 +20,11 @@ BACKEND_URL = "https://api.annotate.online"
 DEFAULT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
 DEFAULT_FILE_EXCLUDE_PATTERNS = ["___save.png", "___fuse.png"]
 DEFAULT_VIDEO_EXTENSIONS = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
-DEFAULT_HYPER_PARAMETERS = {
-    "instance_type": "1 x T4 16 GB",
-    "num_epochs": 12,
-    "dataset_split_ratio": 80,
-    "base_lr": 0.02,
-    "gamma": 0.5,
-    "images_per_batch": 4,
-    "batch_per_image": 512,
-    "steps": [5],
-    "evaluation_period": 12,
-    "runtime_seconds": 600,
-    "estimated_remaining_time": 600,
-    "template_id": None,
-}
-
-MODEL_TRAINING_TASKS = {
-    "Instance Segmentation for Pixel Projects": "instance_segmentation_pixel",
-    "Instance Segmentation for Vector Projects": "instance_segmentation_vector",
-    "Keypoint Detection for Vector Projects": "keypoint_detection_vector",
-    "Object Detection for Vector Projects": "object_detection_vector",
-    "Semantic Segmentation for Pixel Projects": "semantic_segmentation_pixel",
-}
-
-AVAILABLE_SEGMENTATION_MODELS = ["autonomous", "generic"]
 
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
 PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
 ANNOTATION_MASK_POSTFIX = "___save.png"
 ATTACHED_VIDEO_ANNOTATION_POSTFIX = ".json"
-
-NON_PLOTABLE_KEYS = ["eta_seconds", "iteration", "data_time", "time", "model"]
 
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|“')
 MAX_PIXEL_RESOLUTION = 4_000_000
@@ -133,14 +105,12 @@ USE_VALIDATE_MESSAGE = (
 INVALID_JSON_MESSAGE = "Invalid json"
 
 __alL__ = (
-    ProjectState,
     ProjectStatus,
     ProjectType,
     UserRole,
     UploadState,
     TrainingStatus,
     SegmentationStatus,
-    TrainingTask,
     ImageQuality,
     AnnotationStatus,
     CONFIG_FILE_LOCATION,

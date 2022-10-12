@@ -7,7 +7,7 @@ from pydantic import Extra
 from pydantic import Field
 
 
-class TmpImageEntity(BaseItemEntity):
+class ImageEntity(BaseItemEntity):
     prediction_status: Optional[SegmentationStatus] = Field(
         SegmentationStatus.NOT_STARTED
     )
@@ -16,6 +16,7 @@ class TmpImageEntity(BaseItemEntity):
     )
     approval_status: Optional[ApprovalStatus] = Field(None)
     is_pinned: Optional[bool]
+    # meta: Optional[dict]
 
     class Config:
         extra = Extra.ignore

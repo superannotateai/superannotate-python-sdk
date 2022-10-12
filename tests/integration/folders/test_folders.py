@@ -80,7 +80,6 @@ class TestFolders(BaseTestCase):
         folder = sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         self.assertIsInstance(folder, dict)
         self.assertEqual(folder["name"], self.TEST_FOLDER_NAME_1)
-
         with self.assertRaisesRegexp(Exception, "Folder not found"):
             sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
 

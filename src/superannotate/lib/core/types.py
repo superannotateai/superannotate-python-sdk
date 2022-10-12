@@ -28,3 +28,13 @@ class MLModel(BaseModel):
 class PriorityScore(BaseModel):
     name: NotEmptyStr
     priority: float
+
+
+class Attachment(BaseModel):
+    name: str
+    path: str
+
+
+class AttachmentMeta(BaseModel):
+    width: Optional[float] = None
+    height: Optional[float] = None

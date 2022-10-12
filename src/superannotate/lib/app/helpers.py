@@ -2,40 +2,15 @@ import os
 import uuid
 from pathlib import Path
 from typing import List
-from typing import Optional
 from typing import Tuple
 from typing import Union
 
 import boto3
 import pandas as pd
 from superannotate.lib.app.exceptions import AppException
-from superannotate.lib.app.exceptions import PathError
 from superannotate.lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from superannotate.lib.core import PIXEL_ANNOTATION_POSTFIX
 from superannotate.lib.core import VECTOR_ANNOTATION_POSTFIX
-
-
-def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:
-    path = Path(project_path)
-    if len(path.parts) > 3:
-        raise PathError("There can be no sub folders in the project")
-    elif len(path.parts) == 2:
-        project_name, folder_name = path.parts
-    else:
-        project_name, folder_name = path.name, ""
-
-    return project_name, folder_name
-
-
-def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[str]]:
-    if isinstance(user_input, str):
-        return split_project_path(user_input)
-    elif isinstance(user_input, dict):
-        project_path = user_input.get("name")
-        if not project_path:
-            raise PathError("Invalid project path")
-        return split_project_path(user_input["name"])
-    raise PathError("Invalid project path")
 
 
 def get_annotation_paths(folder_path, s3_bucket=None, recursive=False):
