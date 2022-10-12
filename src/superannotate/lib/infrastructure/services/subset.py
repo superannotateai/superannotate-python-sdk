@@ -2,7 +2,7 @@ from typing import List
 
 from lib.core import entities
 from lib.core.conditions import Condition
-from lib.core.service_types import SubsetResponse
+from lib.core.service_types import SubsetListResponse
 from lib.core.serviceproviders import BaseSubsetService
 
 
@@ -18,12 +18,12 @@ class SubsetService(BaseSubsetService):
             item_type=entities.SubSetEntity,
         )
 
-    def create(self, project: entities.ProjectEntity, name: str):
+    def create_multiple(self, project: entities.ProjectEntity, name: List[str]):
         return self.client.request(
-            "POST",
-            self.URL_CREATE.format(project_id=project.id),
+            method = "POST",
+            url =self.URL_CREATE.format(project_id=project.id),
             data={"names": [name]},
-            content_type=SubsetResponse,
+            content_type=SubsetListResponse
         )
 
     def add_items(
@@ -38,7 +38,7 @@ class SubsetService(BaseSubsetService):
                 project_id=project.id, subset_id=subset.id
             ),
             method="POST",
-            data=data,
+            data=data
         )
         if not response.ok:
             response.data["skipped"] = set()

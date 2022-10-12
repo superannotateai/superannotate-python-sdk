@@ -655,7 +655,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                             chunk_size=5 * 1024 * 1024,
                         )
                     )
-                    if not uploaded.ok:
+                    if not uploaded:
                         self._response.errors = constants.INVALID_JSON_MESSAGE
                 else:
                     response = asyncio.run(
@@ -697,6 +697,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                     self._image.annotation_status = (
                         constants.AnnotationStatus.IN_PROGRESS.value
                     )
+                    self._image.is_pinned = int(self._image.is_pinned)
                     self._service_provider.items.update(self._project, self._image)
                     if self._verbose:
                         self.reporter.log_info(
