@@ -829,7 +829,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             if not folder:
                 value["folder"] = self.root_folder
                 continue
-            condition = Condition("name", self.root_folder, EQ)
+            condition = Condition("name", folder, EQ)
             folder_found = False
             try:
                 folder_candidates = SearchFoldersUseCase(
@@ -923,7 +923,6 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self.items = self.__filter_invalid_items()
         self.__separate_to_paths()
 
-
     def validate_project(self):
         response = self._service_provider.validate_saqul_query(self.project, "_")
         if not response.ok:
@@ -956,11 +955,9 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     subset = s
                     break
 
-
             if not subset:
                 subset = self._service_provider.subsets.create_multiple(
-                    self.project,
-                    [self.subset_name]
+                    self.project, [self.subset_name]
                 ).data[0]
 
                 self.reporter.log_info(
@@ -973,7 +970,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                 tmp_response = self._service_provider.subsets.add_items(
                     project=self.project,
                     item_ids=self.item_ids[i : i + self.CHUNK_SIZE],  # noqa
-                    subset=subset
+                    subset=subset,
                 )
 
                 if not response:
@@ -988,7 +985,6 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     response.data["success"] = response.data["success"].union(
                         tmp_response.data["success"]
                     )
-
 
             # Iterating over all path_separated (that now have ids in them and sorting them into
             # "success", "failed" and "skipped")
