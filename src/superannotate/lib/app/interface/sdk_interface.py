@@ -1679,6 +1679,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException("Folder not found.")
 
         image = self.controller.items.get_by_name(project, folder, image_name).data
+
         if not image:
             raise AppException("Image not found.")
         response = self.controller.annotations.upload_image_annotations(
@@ -2491,7 +2492,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data)
+        return BaseSerializer.serialize_iterable(response.data, exclude = set(["meta"]))
 
     def get_item_metadata(
         self,
@@ -2550,6 +2551,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_custom_metadata=include_custom_metadata,
         )
         exclude = {"custom_metadata"} if not include_custom_metadata else {}
+        exclude.add("meta")
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer(response.data).serialize(exclude=exclude)
@@ -2656,6 +2658,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_custom_metadata=include_custom_metadata,
         )
         exclude = {"custom_metadata"} if not include_custom_metadata else {}
+        exclude.add("meta")
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data, exclude=exclude)
