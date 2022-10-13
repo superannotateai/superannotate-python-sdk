@@ -829,7 +829,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             if not folder:
                 value["folder"] = self.root_folder
                 continue
-            condition = Condition("name", self.root_folder, EQ)
+            condition = Condition("name", folder, EQ)
             folder_found = False
             try:
                 folder_candidates = SearchFoldersUseCase(
@@ -968,6 +968,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                 )
 
             response = None
+
 
             for i in range(0, len(self.item_ids), self.CHUNK_SIZE):
                 tmp_response = self._service_provider.subsets.add_items(

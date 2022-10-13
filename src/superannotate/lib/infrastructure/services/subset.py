@@ -43,6 +43,7 @@ class SubsetService(BaseSubsetService):
             data=data
         )
         if not response.ok:
+            response.data = {}
             response.data["skipped"] = set()
             response.data["failed"] = set(item_ids)
             response.data["success"] = set()

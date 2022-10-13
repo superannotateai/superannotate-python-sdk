@@ -1911,9 +1911,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project=project,
             folder=folder,
             item_names=[image_name],
+            verbose=False
         )
         if response.errors:
-            raise AppException(response.errors)
+            raise AppException("Image not found.")
         if response.data:
             annotations = response.data[0]
         else:
