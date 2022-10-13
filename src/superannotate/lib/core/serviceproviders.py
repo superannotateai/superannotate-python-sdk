@@ -428,7 +428,7 @@ class BaseSubsetService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def create(self, project: entities.ProjectEntity, name: str) -> SubsetResponse:
+    def create_multiple(self, project: entities.ProjectEntity, names: List[str]) -> SubsetListResponse:
         raise NotImplementedError
 
     @abstractmethod

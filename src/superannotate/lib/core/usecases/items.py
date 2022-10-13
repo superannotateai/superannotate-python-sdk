@@ -913,6 +913,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
     def validate_items(
         self,
     ):
+
         filtered_items = self.__filter_duplicates()
         if len(filtered_items) != len(self.items):
             self.reporter.log_info(
@@ -921,6 +922,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self.items = filtered_items
         self.items = self.__filter_invalid_items()
         self.__separate_to_paths()
+
 
     def validate_project(self):
         response = self._service_provider.validate_saqul_query(self.project, "_")
@@ -946,6 +948,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
 
                 self.item_ids.extend(ids)
 
+            futures = []
             subsets = self._service_provider.subsets.list(self.project).data
             subset = None
             for s in subsets:
@@ -953,11 +956,12 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     subset = s
                     break
 
+
             if not subset:
-                subset = self._service_provider.subsets.create(
+                subset = self._service_provider.subsets.create_multiple(
                     self.project,
-                    self.subset_name,
-                ).data
+                    [self.subset_name]
+                ).data[0]
 
                 self.reporter.log_info(
                     f"You've successfully created a new subset - {self.subset_name}."
@@ -969,7 +973,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                 tmp_response = self._service_provider.subsets.add_items(
                     project=self.project,
                     item_ids=self.item_ids[i : i + self.CHUNK_SIZE],  # noqa
-                    subset=subset,
+                    subset=subset
                 )
 
                 if not response:

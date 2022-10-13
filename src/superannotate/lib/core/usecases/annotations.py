@@ -910,7 +910,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                             chunk_size=5 * 1024 * 1024,
                         )
                     )
-                    if not uploaded.ok:
+                    if not uploaded:
                         self._response.errors = constants.INVALID_JSON_MESSAGE
                 else:
                     response = asyncio.run(
