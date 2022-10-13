@@ -1308,7 +1308,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             try:
                 annotation_class = AnnotationClassEntity(
                     name=annotation_class,
-                    color="#ffffff", #Random, just need to serialize
+                    color="#ffffff",  # Random, just need to serialize
                 )
             except ValidationError as e:
                 raise AppException(wrap_error(e))
@@ -1908,10 +1908,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(LIMITED_FUNCTIONS[project.type])
         folder = self.controller.folders.get_by_name(project, folder_name).data
         response = self.controller.annotations.list(
-            project=project,
-            folder=folder,
-            item_names=[image_name],
-            verbose=False
+            project=project, folder=folder, item_names=[image_name], verbose=False
         )
         if response.errors:
             raise AppException("Image not found.")
@@ -2493,7 +2490,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data, exclude = set(["meta"]))
+        return BaseSerializer.serialize_iterable(response.data, exclude={"meta"})
 
     def get_item_metadata(
         self,

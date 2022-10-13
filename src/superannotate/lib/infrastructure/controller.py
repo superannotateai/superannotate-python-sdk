@@ -465,9 +465,15 @@ class ItemManager(BaseManager):
 
 
 class AnnotationManager(BaseManager):
-    def list(self, project: ProjectEntity, folder: FolderEntity, item_names: List[str], verbose = True):
+    def list(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item_names: List[str],
+        verbose=True,
+    ):
         use_case = usecases.GetAnnotations(
-            reporter=Reporter(log_info = verbose, log_warning = verbose),
+            reporter=Reporter(log_info=verbose, log_warning=verbose),
             project=project,
             folder=folder,
             item_names=item_names,

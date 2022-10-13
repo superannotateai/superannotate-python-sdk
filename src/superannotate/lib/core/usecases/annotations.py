@@ -721,7 +721,6 @@ class GetAnnotations(BaseReportableUseCase):
         item_names: Optional[List[str]],
         service_provider: BaseServiceProvider,
         show_process: bool = True,
-        log = True
     ):
         super().__init__(reporter)
         self._project = project

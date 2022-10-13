@@ -21,7 +21,6 @@ from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import SettingsListResponse
 from lib.core.service_types import SubsetListResponse
-from lib.core.service_types import SubsetResponse
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
@@ -428,7 +427,9 @@ class BaseSubsetService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def create_multiple(self, project: entities.ProjectEntity, names: List[str]) -> SubsetListResponse:
+    def create_multiple(
+        self, project: entities.ProjectEntity, names: List[str]
+    ) -> SubsetListResponse:
         raise NotImplementedError
 
     @abstractmethod

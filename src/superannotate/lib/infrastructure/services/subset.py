@@ -20,12 +20,11 @@ class SubsetService(BaseSubsetService):
 
     def create_multiple(self, project: entities.ProjectEntity, name: List[str]):
         res = self.client.request(
-            method = "POST",
-            url =self.URL_CREATE.format(project_id=project.id),
+            method="POST",
+            url=self.URL_CREATE.format(project_id=project.id),
             data={"names": name},
-            content_type=SubsetListResponse
+            content_type=SubsetListResponse,
         )
-        print(res)
         return res
 
     def add_items(
@@ -40,7 +39,7 @@ class SubsetService(BaseSubsetService):
                 project_id=project.id, subset_id=subset.id
             ),
             method="POST",
-            data=data
+            data=data,
         )
         if not response.ok:
             response.data = {}
