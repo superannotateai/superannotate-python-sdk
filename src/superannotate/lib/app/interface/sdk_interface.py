@@ -1312,7 +1312,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             except ValidationError as e:
                 raise AppException(wrap_error(e))
-
+        else:
+            annotation_class = AnnotationClassEntity(**annotation_class)
         project = self.controller.projects.get_by_name(project).data
 
         self.controller.annotation_classes.delete(
@@ -1491,12 +1492,52 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(f"Downloaded image {image_name} to {local_dir_path} ")
         return response.data
 
+    def upload_annotations(
+        self, project: NotEmptyStr, annotations: List[dict], keep_status: bool = False
+    ):
+        """Uploads a list of annotation dicts as annotations to the SuperAnnotate directory.
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str or dict
+
+        :param annotations:  list of annotation dictionaries corresponding to SuperAnnotate format
+        :type annotations: list of dicts
+
+        :param keep_status:   If False, the annotation status will be automatically
+         updated to "InProgress," otherwise the current status will be kept.
+        :type keep_status: bool
+
+
+        :return: a dictionary containing lists of successfully uploaded, failed and skipped name
+        :rtype: dict
+
+        Response Example:
+        ::
+            {
+               "succeeded": [""],
+               "failed":[""],
+               "skipped": [""]
+            }
+
+        """
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.annotations.upload_multiple(
+            project=project,
+            folder=folder,
+            annotations=annotations,
+            keep_status=keep_status,
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
     def upload_annotations_from_folder_to_project(
         self,
         project: Union[NotEmptyStr, dict],
         folder_path: Union[str, Path],
         from_s3_bucket=None,
         recursive_subfolders: Optional[StrictBool] = False,
+        keep_status=False,
     ):
         """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -1511,12 +1552,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str or dict
+
         :param folder_path: from which folder to upload annotations
         :type folder_path: str or dict
+
         :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
         :type from_s3_bucket: str
+
         :param recursive_subfolders: enable recursive subfolder parsing
         :type recursive_subfolders: bool
+
+        :param keep_status:   If False, the annotation status will be automatically
+         updated to "InProgress," otherwise the current status will be kept.
+        :type keep_status: bool
 
         :return: paths to annotations uploaded, could-not-upload, missing-images
         :rtype: tuple of list of strs
@@ -1550,6 +1598,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotation_paths=annotation_paths,  # noqa: E203
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
+            keep_status=keep_status,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1585,6 +1634,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: paths to pre-annotations uploaded and could-not-upload
         :rtype: tuple of list of strs
         """
+        warning_msg = (
+            "The SAClient.upload_preannotations_from_folder_to_project"
+            " method will be deprecated with the Superannotate Python SDK 4.4.6 release"
+        )
+        warnings.warn(warning_msg, DeprecationWarning)
+        logger.warning(warning_msg)
         project_name, folder_name = extract_project_folder(project)
         project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
         project = self.controller.get_project(project_name)
@@ -1629,6 +1684,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_json: Union[str, Path, dict],
         mask: Optional[Union[str, Path, bytes]] = None,
         verbose: Optional[StrictBool] = True,
+        keep_status: bool = False,
     ):
         """Upload annotations from JSON (also mask for pixel annotations)
         to the image.
@@ -1647,6 +1703,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param verbose: Turns on verbose output logging during the proces.
         :type verbose: bool
+
+        :param keep_status:   If False, the annotation status will be automatically
+         updated to "InProgress," otherwise the current status will be kept.
+        :type keep_status: bool
 
         """
 
@@ -1690,6 +1750,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             team=self.controller.team,
             mask=mask,
             verbose=verbose,
+            keep_status=keep_status,
         )
         if response.errors and not response.errors == constants.INVALID_JSON_MESSAGE:
             raise AppException(response.errors)

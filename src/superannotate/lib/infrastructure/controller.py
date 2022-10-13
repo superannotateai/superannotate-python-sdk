@@ -532,17 +532,35 @@ class AnnotationManager(BaseManager):
         )
         return use_case.execute()
 
+    def upload_multiple(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        annotations: List[dict],
+        keep_status: bool,
+    ):
+        use_case = usecases.UploadAnnotationsUseCase(
+            reporter=Reporter(),
+            project=project,
+            folder=folder,
+            annotations=annotations,
+            service_provider=self.service_provider,
+            keep_status=keep_status,
+        )
+        return use_case.execute()
+
     def upload_from_folder(
         self,
         project: ProjectEntity,
         folder: FolderEntity,
         annotation_paths: List[str],
         team: TeamEntity,
+        keep_status: bool = False,
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
         folder_path: str = None,
     ):
-        use_case = usecases.UploadAnnotationsUseCase(
+        use_case = usecases.UploadAnnotationsFromFolderUseCase(
             project=project,
             folder=folder,
             team=team,
@@ -552,6 +570,7 @@ class AnnotationManager(BaseManager):
             client_s3_bucket=client_s3_bucket,
             reporter=Reporter(),
             folder_path=folder_path,
+            keep_status=keep_status,
         )
         return use_case.execute()
 
@@ -564,6 +583,7 @@ class AnnotationManager(BaseManager):
         annotations: dict,
         mask: io.BytesIO = None,
         verbose: bool = True,
+        keep_status: bool = False,
     ):
         use_case = usecases.UploadAnnotationUseCase(
             project=project,
@@ -575,6 +595,7 @@ class AnnotationManager(BaseManager):
             mask=mask,
             verbose=verbose,
             reporter=Reporter(),
+            keep_status=keep_status,
         )
         return use_case.execute()
 
