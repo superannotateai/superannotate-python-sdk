@@ -1005,7 +1005,7 @@ class GetAnnotations(BaseReportableUseCase):
                     f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
                 )
                 self._item_names = item_names
-        else:
+        elif self._item_names is None:
             self._item_names_provided = False
             condition = Condition("project_id", self._project.id, EQ) & Condition(
                 "folder_id", self._folder.id, EQ
@@ -1014,6 +1014,8 @@ class GetAnnotations(BaseReportableUseCase):
             self._item_names = [
                 item.name for item in self._service_provider.items.list(condition).data
             ]
+        else:
+            self._item_names = []
 
     def _prettify_annotations(self, annotations: List[dict]):
         re_struct = {}

@@ -170,3 +170,13 @@ class TestGetAnnotationsVideo(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(path, self.annotations_path)
         annotations = sa.get_annotations(path)
         self.assertEqual(len(annotations), 2)
+
+    def test_empty_list_get(self):
+        _, _, _ = sa.attach_items(
+            self.PROJECT_NAME,
+            self.csv_path,
+        )
+        annotations = sa.get_annotations(self.PROJECT_NAME, items=[])
+        assert len(annotations) == 0
+        annotations = sa.get_annotations(self.PROJECT_NAME, items=None)
+        assert len(annotations) == 2
