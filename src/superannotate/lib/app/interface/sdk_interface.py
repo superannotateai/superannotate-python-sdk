@@ -2609,7 +2609,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             name=item_name,
             include_custom_metadata=include_custom_metadata,
         )
-        exclude = {"custom_metadata"} if not include_custom_metadata else {}
+        exclude = {"custom_metadata"} if not include_custom_metadata else set()
         exclude.add("meta")
         if response.errors:
             raise AppException(response.errors)
@@ -2716,7 +2716,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             recursive=recursive,
             include_custom_metadata=include_custom_metadata,
         )
-        exclude = {"custom_metadata"} if not include_custom_metadata else {}
+        exclude = {"custom_metadata"} if not include_custom_metadata else set()
         exclude.add("meta")
         if response.errors:
             raise AppException(response.errors)
