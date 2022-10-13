@@ -985,7 +985,6 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                         tmp_response.data["success"]
                     )
 
-
             # Iterating over all path_separated (that now have ids in them and sorting them into
             # "success", "failed" and "skipped")
 

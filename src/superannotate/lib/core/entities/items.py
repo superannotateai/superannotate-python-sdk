@@ -16,7 +16,7 @@ class ImageEntity(BaseItemEntity):
     )
     approval_status: Optional[ApprovalStatus] = Field(None)
     is_pinned: Optional[bool]
-    # meta: Optional[dict]
+    meta: Optional[dict]
 
     class Config:
         extra = Extra.ignore

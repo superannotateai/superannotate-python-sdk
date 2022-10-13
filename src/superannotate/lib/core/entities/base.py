@@ -235,7 +235,7 @@ class StringDate(datetime):
 
     @classmethod
     def validate(cls, v: datetime):
-        v = v.isoformat().split('+')[0]+'.000Z'
+        v = v.isoformat().split("+")[0] + ".000Z"
         return v
 
 

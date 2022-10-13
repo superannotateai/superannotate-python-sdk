@@ -10,7 +10,10 @@ class IntegrationService(BaseIntegrationService):
     def list(self):
 
         res = self.client.request(
-            self.URL_LIST, "get", content_type=IntegrationResponse, dispatcher = lambda x: x['integrations']
+            self.URL_LIST,
+            "get",
+            content_type=IntegrationResponse,
+            dispatcher=lambda x: x["integrations"],
         )
 
         return res

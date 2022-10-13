@@ -82,7 +82,7 @@ class VideoFrameGenerator:
                 type=annotation_type,
                 className=class_name,
                 classId=class_id,
-                attributes=data["attributes"],
+                attributes=data.get("attributes"),
                 keyframe=False,
                 **tmp_data
             )
@@ -224,7 +224,7 @@ class VideoFrameGenerator:
                             x=frame.get("x"),
                             y=frame.get("y"),
                             points=frame.get("points"),
-                            attributes=frame["attributes"],
+                            attributes=frame.get("attributes"),
                             keyframe=True,
                         )
                 if frames_mapping and not interpolated_frames:

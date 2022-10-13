@@ -167,6 +167,7 @@ class ModelListResponse(ServiceResponse):
 class IntegrationResponse(ServiceResponse):
     data: List[entities.IntegrationEntity] = None
 
+
 class AnnotationClassListResponse(ServiceResponse):
     data: List[entities.AnnotationClassEntity] = None
 
