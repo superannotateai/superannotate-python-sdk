@@ -372,7 +372,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project, folder = self.controller.get_project_folder(project, folder_name)
         if not folder:
             raise AppException("Folder not found.")
-        return FolderSerializer(folder).serialize()
+        return BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
 
     def delete_folders(self, project: NotEmptyStr, folder_names: List[NotEmptyStr]):
         """Delete folder in project.

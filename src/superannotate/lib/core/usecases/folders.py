@@ -47,6 +47,8 @@ class CreateFolderUseCase(BaseUseCase):
             logger.warning(
                 "New folder name has special characters. Special characters will be replaced by underscores."
             )
+        if len(self._folder.name) > 80:
+            raise AppValidationException('The length of the name is too long. The maximum length is 80.')
 
     def execute(self):
         if self.is_valid():
