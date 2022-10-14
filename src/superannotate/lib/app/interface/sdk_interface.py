@@ -2812,16 +2812,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, source_folder = extract_project_folder(source)
-
         to_project_name, destination_folder = extract_project_folder(destination)
         if project_name != to_project_name:
             raise AppException("Source and destination projects should be the same")
-        project, from_folder = self.controller.get_project_folder(
-            project_name, source_folder
-        )
-        to_folder = self.controller.folders.get_by_name(
-            project, destination_folder
-        ).data
+        project = self.controller.get_project(project_name)
+        from_folder = self.controller.get_folder(project, source_folder)
+        to_folder = self.controller.get_folder(project, destination_folder)
         response = self.controller.items.copy_multiple(
             project=project,
             from_folder=from_folder,

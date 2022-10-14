@@ -2,16 +2,18 @@ import os
 from collections import Counter
 from pathlib import Path
 
+from src.superannotate import AppException
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestCopyItems(BaseTestCase):
     PROJECT_NAME = "TestCopyItemsVector"
     PROJECT_DESCRIPTION = "TestCopyItemsVector"
     PROJECT_TYPE = "Vector"
-    IMAGE_NAME ="test_image"
+    IMAGE_NAME = "test_image"
     FOLDER_1 = "folder_1"
     FOLDER_2 = "folder_2"
     CSV_PATH = "data_set/attach_urls.csv"
@@ -36,6 +38,13 @@ class TestCopyItems(BaseTestCase):
         skipped_items = sa.copy_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}", f"{self.PROJECT_NAME}/{self.FOLDER_2}")
         assert len(skipped_items) == 0
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")) == 7
+
+    def test_copy_items_to_not_existing_folder(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
+        uploaded, _, _ = sa.attach_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}", self.scv_path)
+        assert len(uploaded) == 7
+        with self.assertRaisesRegexp(AppException, 'Folder not found.'):
+            sa.copy_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}", f"{self.PROJECT_NAME}/{self.FOLDER_2}")
 
     def test_skipped_count(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
