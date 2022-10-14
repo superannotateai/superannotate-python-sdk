@@ -254,7 +254,7 @@ class CreateProjectUseCase(BaseUseCase):
                     ] = self._service_provider.annotation_classes.create_multiple(
                         entity, [annotation_class]
                     )
-                self._response.data.classes = self._project.classes
+                data["classes"] = self._project.classes
             if self._project.workflows:
                 set_workflow_use_case = SetWorkflowUseCase(
                     service_provider=self._service_provider,

@@ -1443,8 +1443,6 @@ class DownloadAnnotations(BaseReportableUseCase):
                 folders = self._service_provider.folders.list(
                     Condition("project_id", self._project.id, EQ)
                 ).data
-                folders.append(self._folder)
-
             if not folders:
                 folders.append(self._folder)
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
