@@ -423,7 +423,7 @@ class AttachItems(BaseReportableUseCase):
                     if not backend_response.ok:
                         self._response.errors = AppException(backend_response.error)
                     else:
-                        attached.extend(backend_response.data)
+                        attached.extend([i.name for i in to_upload])
                 self.reporter.update_progress(len(attachments))
             self.reporter.finish_progress()
             self._response.data = attached, duplications

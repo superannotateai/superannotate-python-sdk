@@ -155,6 +155,11 @@ class ServiceResponse(BaseModel):
         else:
             return getattr(self.data, "error", default_message)
 
+    def set_error(self, value: Union[dict, str]):
+        if isinstance(value, dict) and "error" in value:
+            self._error = value["error"]
+        self._error = value
+
 
 class TeamResponse(ServiceResponse):
     data: entities.TeamEntity = None
