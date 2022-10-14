@@ -43,7 +43,9 @@ class TestFolders(BaseTestCase):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
         folders = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
+        folders = sa.search_folders(self.PROJECT_NAME)
         assert all(["is_root" not in folder for folder in folders])
+
 
     def test_basic_folders(self):
         sa.upload_images_from_folder_to_project(

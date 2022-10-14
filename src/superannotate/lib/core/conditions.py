@@ -52,7 +52,7 @@ class Condition:
 
         self._condition_set.append(
             QueryCondition(
-                CONDITION_AND, other.build_query(), {other._key: other._value}
+                CONDITION_AND, other.build_query(), {} if isinstance(other, Condition) else {other._key: other._value}
             )
         )
         return self
@@ -63,7 +63,7 @@ class Condition:
         )
 
     def get_as_params_dict(self) -> dict:
-        params = {self._key: self._value}
+        params = None if isinstance(self, EmptyCondition) else {self._key: self._value}
         for condition in self._condition_set:
             params.update(condition.pair)  # noqa
         return params
