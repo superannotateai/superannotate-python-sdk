@@ -498,10 +498,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         if copy_pin:
-            _folder = (
-                self.controller.folders.get_by_name(
-                    destination_project_metadata, destination_folder_name
-                ).data,
+            destination_project = self.controller.get_project(
+                destination_project_metadata
+            )
+            _folder = self.controller.get_folder(
+                destination_project, destination_folder_name
             )
             item = self.controller.items.get_by_name(
                 destination_project_metadata, _folder, image_name
@@ -515,15 +516,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         if include_annotations:
             source_project = self.controller.get_project(source_project_name)
-            source_folder = self.controller.folders.get_by_name(
+            source_folder = self.controller.get_folder(
                 source_project, source_folder_name
-            ).data
+            )
             source_image = self.controller.items.get_by_name(
                 source_project, source_folder, image_name
             ).data
             destination_project = self.controller.get_project(destination_project)
-            destination_folder = self.controller.folders.get_by_name(
-                destination_project_name, destination_folder_name
+            destination_folder = self.controller.get_folder(
+                destination_project, destination_folder_name
             )
             destination_image = self.controller.items.get_by_name(
                 destination_project, destination_folder, image_name
@@ -1747,7 +1748,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if verbose:
                 logger.info("Uploading annotations from %s.", annotation_json)
             annotation_json = json.load(open(annotation_json))
-        folder = self.controller.folders.get_by_name(project, folder_name).data
+        folder = self.controller.get_folder(project, folder_name)
         if not folder:
             raise AppException("Folder not found.")
 
@@ -1973,14 +1974,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type error: bool
         """
         project_name, folder_name = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project_name)
 
         if project.type in [
             constants.ProjectType.VIDEO,
             constants.ProjectType.DOCUMENT,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project.type])
-        folder = self.controller.folders.get_by_name(project, folder_name).data
+        folder = self.controller.get_folder(project, folder_name)
         response = self.controller.annotations.list(
             project=project, folder=folder, item_names=[image_name], verbose=False
         )
@@ -2866,10 +2867,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException("Source and destination projects should be the same")
 
         project = self.controller.get_project(project_name)
-        source_folder = self.controller.folders.get_by_name(project, source_folder).data
-        destination_folder = self.controller.folders.get_by_name(
-            project, destination_folder
-        ).data
+        source_folder = self.controller.get_folder(project, source_folder)
+        destination_folder = self.controller.get_folder(project, destination_folder)
         response = self.controller.items.move_multiple(
             project=project,
             from_folder=source_folder,
