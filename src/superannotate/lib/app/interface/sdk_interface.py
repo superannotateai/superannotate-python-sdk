@@ -1971,7 +1971,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.annotations.list(
             project=project, folder=folder, item_names=[image_name], verbose=False
         )
-        if response.errors:
+        if not response.data:
             raise AppException("Image not found.")
         if response.data:
             annotations = response.data[0]
@@ -2030,12 +2030,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ]:
             raise AppException(LIMITED_FUNCTIONS[project.type])
         response = self.controller.annotations.list(
-            project=project,
-            folder=folder,
-            item_names=[image_name],
+            project=project, folder=folder, item_names=[image_name], verbose=False
         )
-        if response.errors:
-            raise AppException(response.errors)
+        if not response.data:
+            raise AppException("Image not found.")
         if response.data:
             annotations = response.data[0]
         else:
@@ -2090,12 +2088,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(LIMITED_FUNCTIONS[project.type])
         project, folder = self.controller.get_project_folder(project_name, folder_name)
         response = self.controller.annotations.list(
-            project=project,
-            folder=folder,
-            item_names=[image_name],
+            project=project, folder=folder, item_names=[image_name], verbose=False
         )
-        if response.errors:
-            raise AppException(response.errors)
+        if not response.data:
+            raise AppException("Image not found.")
         if response.data:
             annotations = response.data[0]
         else:
