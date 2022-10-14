@@ -342,7 +342,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type new_name: str
         """
         old_name = project
-        project = self.controller._get_project(old_name)  # noqa
+        project = self.controller.get_project(old_name)  # noqa
         project.name = new_name
         response = self.controller.projects.update(project)
         if response.errors:
