@@ -240,6 +240,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: dict
         """
         project_metadata = project_metadata.dict()
+        try:
+            ProjectTypes.validate(project_metadata["type"])
+        except TypeError:
+            raise AppException(
+                "Please provide a valid project type: Vector, Pixel, Document, or Video."
+            )
         response = self.controller.projects.create(
             entities.ProjectEntity(
                 name=project_metadata["name"],
@@ -728,7 +734,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type user: str
         """
 
-        project, folder = self.controller.get_project_folder(project)
+        project, folder = self.controller.get_project_folder(
+            extract_project_folder(project)
+        )
         response = self.controller.projects.assign_items(
             project, folder, item_names=items, user=user
         )

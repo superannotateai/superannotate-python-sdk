@@ -35,6 +35,11 @@ class TestSearchProjectVector(BaseTestCase):
     def projects(self):
         return self.PROJECT_2, self.PROJECT_1
 
+    def test_project_metadata(self):
+        project = sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE)
+        pr = sa.get_project_metadata(project['name'])
+        assert 'Z' not in pr["createdAt"]
+
     def test_create_project_without_settings(self):
         project = sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE)
         assert project["name"] == self.PROJECT_1

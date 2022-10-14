@@ -6,7 +6,6 @@ from typing import Optional
 from typing import Union
 
 from lib.core.entities.base import BaseModel
-from lib.core.entities.base import TimedBaseModel
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
@@ -17,6 +16,28 @@ from pydantic import StrictBool
 from pydantic import StrictFloat
 from pydantic import StrictInt
 from pydantic import StrictStr
+from pydantic.datetime_parse import parse_datetime
+
+
+class StringDate(datetime.datetime):
+    @classmethod
+    def __get_validators__(cls):
+        yield parse_datetime
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: datetime):
+        v = v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        return v
+
+
+class TimedBaseModel(BaseModel):
+    createdAt: Optional[StringDate] = Field(
+        None, alias="createdAt", description="Date of creation"
+    )
+    updatedAt: Optional[StringDate] = Field(
+        None, alias="updatedAt", description="Update date"
+    )
 
 
 class AttachmentEntity(BaseModel):
@@ -31,6 +52,7 @@ class WorkflowEntity(BaseModel):
     id: Optional[int]
     project_id: Optional[int]
     class_id: Optional[int]
+    className: Optional[str]
     step: Optional[int]
     tool: Optional[int]
     attribute: List = (tuple(),)
@@ -106,8 +128,6 @@ class MLModelEntity(TimedBaseModel):
     id: Optional[int]
     team_id: Optional[int]
     name: Optional[str]
-    createdAt: Optional[str]
-    updatedAt: Optional[str]
     path: Optional[str]
     config_path: Optional[str]
     model_type: Optional[int]

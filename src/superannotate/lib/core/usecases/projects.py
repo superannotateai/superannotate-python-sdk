@@ -129,9 +129,14 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
             ).data
 
         if self._include_workflow:
-            project.workflows = self._service_provider.projects.list_workflows(
-                self._project
-            ).data
+
+            project.workflows = (
+                GetWorkflowsUseCase(
+                    project=self._project, service_provider=self._service_provider
+                )
+                .execute()
+                .data
+            )
 
         if self._include_contributors:
             project.contributors = project.users
