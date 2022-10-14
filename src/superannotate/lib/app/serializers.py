@@ -141,13 +141,6 @@ class ProjectSerializer(BaseSerializer):
         return data
 
 
-class FolderSerializer(BaseSerializer):
-    def serialize(self):
-        data = super().serialize()
-        del data["is_root"]
-        return data
-
-
 class SettingsSerializer:
     def __init__(self, data: dict):
         self.data = data

@@ -37,7 +37,6 @@ from lib.app.interface.types import ProjectStatusEnum
 from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import Setting
 from lib.app.serializers import BaseSerializer
-from lib.app.serializers import FolderSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
@@ -426,7 +425,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         data = response.data
         if return_metadata:
             return [
-                FolderSerializer(folder).serialize()
+                BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
                 for folder in data
                 if not folder.is_root
             ]
