@@ -914,7 +914,7 @@ class AddContributorsToProject(BaseUserBasedUseCase):
         emails = list(set(self._emails))
         len_unique, len_provided = len(emails), len(self._emails)
         if len_unique < len_provided:
-            f"Dropping duplicates. Found {len_unique}/{len_provided} unique users."
+            logger.info(f"Dropping duplicates. Found {len_unique}/{len_provided} unique users.")
         self._emails = emails
 
     def execute(self):
