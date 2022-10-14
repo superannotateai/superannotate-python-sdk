@@ -841,43 +841,21 @@ class Controller(BaseController):
     def get_project_folder(
         self, project_name: str, folder_name: str = None
     ) -> Tuple[ProjectEntity, FolderEntity]:
-        project = self.projects.get_by_name(project_name).data
-        if not project:
-            raise AppException("Project not found.")
-        folder = self.folders.get_by_name(project, folder_name).data
-        if not folder:
-            raise AppException("Folder not found.")
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
         return project, folder
 
-    def _get_project(self, name: str) -> ProjectEntity:
-        use_case = usecases.GetProjectByNameUseCase(
-            name=name, service_provider=self.service_provider
-        )
-        response = use_case.execute()
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
-
     def get_project(self, name: str) -> ProjectEntity:
-        use_case = usecases.GetProjectByNameUseCase(
-            name=name, service_provider=self.service_provider
-        )
-        response = use_case.execute()
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        project = self.projects.get_by_name(name).data
+        if not project:
+            raise AppException("Project not found.")
+        return project
 
-    def _get_folder(self, project: ProjectEntity, name: str = None) -> FolderEntity:
-        name = self.get_folder_name(name)
-        use_case = usecases.GetFolderUseCase(
-            project=project,
-            service_provider=self.service_provider,
-            folder_name=name,
-        )
-        response = use_case.execute()
-        if not response.data or response.errors:
+    def get_folder(self, project: ProjectEntity, name: str = None) -> FolderEntity:
+        folder = self.folders.get_by_name(project, name).data
+        if not folder:
             raise AppException("Folder not found.")
-        return response.data
+        return folder
 
     @staticmethod
     def get_folder_name(name: str = None):
@@ -895,8 +873,8 @@ class Controller(BaseController):
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
         image_bytes = None
         image_path = None
         if isinstance(image, (str, Path)):
@@ -926,8 +904,8 @@ class Controller(BaseController):
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
 
         return usecases.UploadImagesToProject(
             project=project,
@@ -952,8 +930,8 @@ class Controller(BaseController):
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
 
         return usecases.UploadImagesFromFolderToProject(
             project=project,
@@ -977,7 +955,7 @@ class Controller(BaseController):
         only_pinned: bool,
         annotation_statuses: List[str] = None,
     ):
-        project = self._get_project(project_name)
+        project = self.get_project(project_name)
         use_case = usecases.PrepareExportUseCase(
             project=project,
             folder_names=folder_names,
@@ -1029,12 +1007,12 @@ class Controller(BaseController):
         copy_annotation_status: bool = False,
         move: bool = False,
     ):
-        from_project = self._get_project(from_project_name)
-        to_project = self._get_project(to_project_name)
-        to_folder = self._get_folder(to_project, to_folder_name)
+        from_project = self.get_project(from_project_name)
+        to_project = self.get_project(to_project_name)
+        to_folder = self.get_folder(to_project, to_folder_name)
         use_case = usecases.CopyImageUseCase(
             from_project=from_project,
-            from_folder=self._get_folder(from_project, from_folder_name),
+            from_folder=self.get_folder(from_project, from_folder_name),
             to_project=to_project,
             to_folder=to_folder,
             service_provider=self.service_provider,
@@ -1046,8 +1024,8 @@ class Controller(BaseController):
         return use_case.execute()
 
     def un_assign_folder(self, project_name: str, folder_name: str):
-        project_entity = self._get_project(project_name)
-        folder = self._get_folder(project_entity, folder_name)
+        project_entity = self.get_project(project_name)
+        folder = self.get_folder(project_entity, folder_name)
         use_case = usecases.UnAssignFolderUseCase(
             service_provider=self.service_provider,
             project=project_entity,
@@ -1056,7 +1034,7 @@ class Controller(BaseController):
         return use_case.execute()
 
     def get_exports(self, project_name: str, return_metadata: bool):
-        project = self._get_project(project_name)
+        project = self.get_project(project_name)
 
         use_case = usecases.GetExportsUseCase(
             service_provider=self.service_provider,
@@ -1069,8 +1047,8 @@ class Controller(BaseController):
         self, project_name: str, folder_name: str, with_all_subfolders: bool
     ):
 
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project=project, name=folder_name)
 
         use_case = usecases.GetProjectImageCountUseCase(
             service_provider=self.service_provider,
@@ -1092,8 +1070,8 @@ class Controller(BaseController):
         include_fuse: bool = None,
         include_overlay: bool = None,
     ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
         image = self._get_image(project, image_name, folder)
 
         use_case = usecases.DownloadImageUseCase(
@@ -1118,7 +1096,7 @@ class Controller(BaseController):
         extract_zip_contents: bool,
         to_s3_bucket: bool,
     ):
-        project = self._get_project(project_name)
+        project = self.get_project(project_name)
         use_case = usecases.DownloadExportUseCase(
             service_provider=self.service_provider,
             project=project,
@@ -1140,7 +1118,7 @@ class Controller(BaseController):
         annot_type: str,
         show_plots: bool,
     ):
-        project = self._get_project(project_name)
+        project = self.get_project(project_name)
         export_response = self.prepare_export(
             project.name,
             folder_names=folder_names,
@@ -1181,7 +1159,7 @@ class Controller(BaseController):
         annot_type: str,
         show_plots: bool,
     ):
-        project = self._get_project(project_name)
+        project = self.get_project(project_name)
 
         export_response = self.prepare_export(
             project.name,
@@ -1244,8 +1222,8 @@ class Controller(BaseController):
         annotation_status: Optional[str] = None,
         image_quality_in_editor: Optional[str] = None,
     ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
 
         use_case = usecases.UploadVideosAsImages(
             reporter=self.get_default_reporter(),
@@ -1267,8 +1245,8 @@ class Controller(BaseController):
     def get_annotations_per_frame(
         self, project_name: str, folder_name: str, video_name: str, fps: int
     ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
 
         use_case = usecases.GetVideoAnnotationsPerFrame(
             reporter=self.get_default_reporter(),
@@ -1283,8 +1261,8 @@ class Controller(BaseController):
     def query_entities(
         self, project_name: str, folder_name: str, query: str = None, subset: str = None
     ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
+        project = self.get_project(project_name)
+        folder = self.get_folder(project, folder_name)
 
         use_case = usecases.QueryEntitiesUseCase(
             reporter=self.get_default_reporter(),

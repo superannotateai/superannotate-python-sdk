@@ -1971,7 +1971,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.annotations.list(
             project=project, folder=folder, item_names=[image_name], verbose=False
         )
-        if response.errors:
+        if not response.data:
             raise AppException("Image not found.")
         if response.data:
             annotations = response.data[0]
@@ -2030,12 +2030,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ]:
             raise AppException(LIMITED_FUNCTIONS[project.type])
         response = self.controller.annotations.list(
-            project=project,
-            folder=folder,
-            item_names=[image_name],
+            project=project, folder=folder, item_names=[image_name], verbose=False
         )
-        if response.errors:
-            raise AppException(response.errors)
+        if not response.data:
+            raise AppException("Image not found.")
         if response.data:
             annotations = response.data[0]
         else:
@@ -2090,12 +2088,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(LIMITED_FUNCTIONS[project.type])
         project, folder = self.controller.get_project_folder(project_name, folder_name)
         response = self.controller.annotations.list(
-            project=project,
-            folder=folder,
-            item_names=[image_name],
+            project=project, folder=folder, item_names=[image_name], verbose=False
         )
-        if response.errors:
-            raise AppException(response.errors)
+        if not response.data:
+            raise AppException("Image not found.")
         if response.data:
             annotations = response.data[0]
         else:
@@ -2779,7 +2775,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if response.errors:
                 raise AppException(response.errors)
             uploaded, duplicated = response.data
-            uploaded = [i["name"] for i in uploaded]
             fails = [
                 attachment.name
                 for attachment in unique_attachments
@@ -2813,17 +2808,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, source_folder = extract_project_folder(source)
-
         to_project_name, destination_folder = extract_project_folder(destination)
         if project_name != to_project_name:
             raise AppException("Source and destination projects should be the same")
         project = self.controller.get_project(project_name)
-        project, from_folder = self.controller.get_project_folder(
-            project_name, source_folder
-        )
-        to_folder = self.controller.folders.get_by_name(
-            project, destination_folder
-        ).data
+        from_folder = self.controller.get_folder(project, source_folder)
+        to_folder = self.controller.get_folder(project, destination_folder)
         response = self.controller.items.copy_multiple(
             project=project,
             from_folder=from_folder,

@@ -115,7 +115,10 @@ class ServiceResponse(BaseModel):
         except Exception:
             response_json = dict()
         if not response.ok:
-            data["_error"] = response_json.get("error", "Unknown Error")
+            error = response_json.get("error")
+            if not error:
+                error = response_json.get("errors", "Unknown Error")
+            data["_error"] = error
             super().__init__(**data)
             return
         if dispatcher:
@@ -154,6 +157,11 @@ class ServiceResponse(BaseModel):
             return self.data.get("error", default_message)
         else:
             return getattr(self.data, "error", default_message)
+
+    def set_error(self, value: Union[dict, str]):
+        if isinstance(value, dict) and "error" in value:
+            self._error = value["error"]
+        self._error = value
 
 
 class TeamResponse(ServiceResponse):

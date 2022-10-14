@@ -143,24 +143,24 @@ class HttpClient(BaseClient):
 
         while True:
             _url = f"{url}{splitter}offset={offset}"
-            response = self.request(
+            _response = self.request(
                 _url,
                 method="get",
                 item_type=List[item_type],
                 params=query_params,
             )
-            if response.ok:
-                if isinstance(response.data, dict):
-                    data = response.data.get(dispatcher)
+            if _response.ok:
+                if isinstance(_response.data, dict):
+                    data = _response.data.get(dispatcher)
                 else:
-                    data = response.data
+                    data = _response.data
                 if data:
                     total.extend(data)
                 else:
                     break
                 data_len = len(data)
                 offset += data_len
-                if data_len < chunk_size or response.count - offset < 0:
+                if data_len < chunk_size or _response.count - offset < 0:
                     break
             else:
                 break
@@ -170,4 +170,7 @@ class HttpClient(BaseClient):
             )
         else:
             response = ServiceResponse(data=total)
+        if not _response.ok:
+            response.set_error(_response.error)
+            response.status = _response.status
         return response
