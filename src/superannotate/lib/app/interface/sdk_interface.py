@@ -213,6 +213,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             settings = parse_obj_as(List[SettingEntity], settings)
         else:
             settings = []
+        try:
+            ProjectTypes.validate(project_type)
+        except TypeError:
+            raise AppException(
+                "Please provide a valid project type: Vector, Pixel, Document, or Video."
+            )
         response = self.controller.projects.create(
             entities.ProjectEntity(
                 name=project_name,
@@ -386,7 +392,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if res.errors:
             raise AppException(res.errors)
-        logger.info(f"Folders {folder_names} deleted in project {project}")
+        logger.info(f"Folders {folder_names} deleted in project {project.name}")
 
     def search_folders(
         self,
