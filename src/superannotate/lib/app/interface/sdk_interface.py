@@ -2779,7 +2779,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if response.errors:
                 raise AppException(response.errors)
             uploaded, duplicated = response.data
-            uploaded = [i["name"] for i in uploaded]
             fails = [
                 attachment.name
                 for attachment in unique_attachments
