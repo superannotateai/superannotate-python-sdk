@@ -2817,6 +2817,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         to_project_name, destination_folder = extract_project_folder(destination)
         if project_name != to_project_name:
             raise AppException("Source and destination projects should be the same")
+        project = self.controller.get_project(project_name)
         project, from_folder = self.controller.get_project_folder(
             project_name, source_folder
         )
