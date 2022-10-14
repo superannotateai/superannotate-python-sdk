@@ -220,7 +220,7 @@ class ServiceProvider(BaseServiceProvider):
             self.URL_INVITE_CONTRIBUTORS.format(team_id),
             "post",
             data=dict(emails=emails, team_role=team_role),
-        ).json()
+        )
 
     def validate_saqul_query(self, project: entities.ProjectEntity, query: str):
         params = {
