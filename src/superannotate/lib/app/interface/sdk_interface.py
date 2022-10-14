@@ -735,9 +735,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type user: str
         """
 
-        project, folder = self.controller.get_project_folder(
-            extract_project_folder(project)
-        )
+        project, folder = self.controller.get_project_folder_by_path(project)
         response = self.controller.projects.assign_items(
             project, folder, item_names=items, user=user
         )
