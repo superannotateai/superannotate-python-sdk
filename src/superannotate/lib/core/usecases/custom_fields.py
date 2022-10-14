@@ -30,13 +30,10 @@ class CreateCustomSchemaUseCase(BaseReportableUseCase):
         if response.ok:
             self._response.data = response.data
         else:
-            errors = [response.error]
-            if errors:
-                separator = "\n- "
-                report = separator + separator.join(errors)
-            else:
-                report = response.error
-            self._response.errors = report
+            error = response.error
+            if isinstance(error, list):
+                error = "-" + "\n-".join(error)
+            self._response.errors = error
         return self._response
 
 
