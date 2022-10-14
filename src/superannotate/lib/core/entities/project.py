@@ -137,7 +137,7 @@ class UserEntity(BaseModel):
 
 
 class TeamEntity(BaseModel):
-    id: Optional[str]
+    id: Optional[int]
     name: Optional[str]
     description: Optional[str]
     type: Optional[str]

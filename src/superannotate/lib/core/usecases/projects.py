@@ -988,7 +988,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                 )
             if to_add:
                 response = self._service_provider.invite_contributors(
-                    team_id=self._team.uuid,
+                    team_id=self._team.id,
                     # REMINDER UserRole.VIEWER is the contributor for the teams
                     team_role=constances.UserRole.ADMIN.value
                     if self._set_admin
