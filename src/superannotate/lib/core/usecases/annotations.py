@@ -1364,7 +1364,9 @@ class DownloadAnnotations(BaseReportableUseCase):
                 cur_queue.put_nowait(None)
                 break
 
-    async def download_small_annotations(self, queue_idx, export_path, folder_id):
+    async def download_small_annotations(
+        self, queue_idx, export_path, folder: FolderEntity
+    ):
         cur_queue = self._small_file_queues[queue_idx]
         items = []
         item = ""
@@ -1375,7 +1377,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                 items.append(item)
         await self._service_provider.annotations.download_small_annotations(
             project=self._project,
-            folder=self._folder,
+            folder=folder,
             items=items,
             reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
@@ -1400,7 +1402,7 @@ class DownloadAnnotations(BaseReportableUseCase):
             await self._big_file_queues[l_queue_id].put(None)
             await self._small_file_queues[sm_queue_id].put(None)
 
-    async def run_workers(self, item_names, folder_id, export_path):
+    async def run_workers(self, item_names, folder: FolderEntity, export_path):
         try:
             self._big_file_queues.append(asyncio.Queue())
             self._small_file_queues.append(asyncio.Queue())
@@ -1408,13 +1410,13 @@ class DownloadAnnotations(BaseReportableUseCase):
             big_file_queue_idx = len(self._big_file_queues) - 1
             res = await asyncio.gather(
                 self.distribute_to_queues(
-                    item_names, small_file_queue_idx, big_file_queue_idx, folder_id
+                    item_names, small_file_queue_idx, big_file_queue_idx, folder.id
                 ),
                 self.download_big_annotations(big_file_queue_idx, export_path),
                 self.download_big_annotations(big_file_queue_idx, export_path),
                 self.download_big_annotations(big_file_queue_idx, export_path),
                 self.download_small_annotations(
-                    small_file_queue_idx, export_path, folder_id
+                    small_file_queue_idx, export_path, folder
                 ),
                 return_exceptions=True,
             )
@@ -1468,7 +1470,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                     futures.append(
                         executor.submit(
                             asyncio.run,
-                            self.run_workers(item_names, folder.id, new_export_path),
+                            self.run_workers(item_names, folder, new_export_path),
                         )
                     )
 

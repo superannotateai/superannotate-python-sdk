@@ -129,7 +129,6 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
             ).data
 
         if self._include_workflow:
-
             project.workflows = (
                 GetWorkflowsUseCase(
                     project=self._project, service_provider=self._service_provider
@@ -259,13 +258,19 @@ class CreateProjectUseCase(BaseUseCase):
             if self._project.workflows:
                 set_workflow_use_case = SetWorkflowUseCase(
                     service_provider=self._service_provider,
-                    steps=self._workflows,
+                    steps=[i.dict() for i in self._project.workflows],
                     project=entity,
                 )
                 set_workflow_response = set_workflow_use_case.execute()
+                data["workflows"] = (
+                    GetWorkflowsUseCase(
+                        project=self._project, service_provider=self._service_provider
+                    )
+                    .execute()
+                    .data
+                )
                 if set_workflow_response.errors:
                     self._response.errors = set_workflow_response.errors
-                data["workflows"] = self._workflows
 
             logger.info(
                 "Created project %s (ID %s) with type %s",

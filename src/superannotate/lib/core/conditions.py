@@ -11,6 +11,8 @@ CONDITION_GE = ">="
 CONDITION_LT = "<"
 CONDITION_LE = "<="
 
+QueryCondition = namedtuple("QueryCondition", ("condition", "query", "pair"))
+
 
 class Condition:
     def __init__(self, key: str, value: Any, condition_type: str):
@@ -29,8 +31,12 @@ class Condition:
     def __or__(self, other):
         if not isinstance(other, Condition):
             raise Exception("Support the only Condition types")
-        QueryCondition = namedtuple("QueryCondition", ("condition", "query"))
-        self._condition_set.append(QueryCondition(CONDITION_OR, other.build_query()))
+
+        self._condition_set.append(
+            QueryCondition(
+                CONDITION_OR, other.build_query(), {other._key: other._value}
+            )
+        )
         return self
 
     def __and__(self, other):
@@ -43,14 +49,24 @@ class Condition:
                 return self.__and__(elem)
         elif not isinstance(other, (Condition, EmptyCondition)):
             raise Exception("Support the only Condition types")
-        QueryCondition = namedtuple("QueryCondition", ("condition", "query"))
-        self._condition_set.append(QueryCondition(CONDITION_AND, other.build_query()))
+
+        self._condition_set.append(
+            QueryCondition(
+                CONDITION_AND, other.build_query(), {other._key: other._value}
+            )
+        )
         return self
 
     def build_query(self):
         return str(self) + "".join(
             [f"{condition[0]}{condition[1]}" for condition in self._condition_set]
         )
+
+    def get_as_params_dict(self) -> dict:
+        params = {self._key: self._value}
+        for condition in self._condition_set:
+            params.update(condition.pair)  # noqa
+        return params
 
 
 class EmptyCondition(Condition):
