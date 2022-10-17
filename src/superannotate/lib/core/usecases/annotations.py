@@ -362,7 +362,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             len_existing, len_provided = len(existing_items), len(annotation_names_set)
             if len_existing < len_provided:
                 logger.warning(
-                    f"Couldn't find {len_existing}/{len_provided} "
+                    f"Couldn't find {len_provided - len_existing}/{len_provided} "
                     "items in the given directory that match the annotations."
                 )
             items_to_upload: List[ItemToUpload] = []

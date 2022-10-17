@@ -131,8 +131,8 @@ class CreateProjectFromMetadata(TestCase):
         pr_1_metadata = sa.get_project_metadata(self.PROJECT_1, include_annotation_classes=True, include_workflow=True)
         pr_1_metadata["name"] = self.PROJECT_2
         sa.create_project_from_metadata(pr_1_metadata)
-        pr_2_metadata = sa.get_project_metadata(self.PROJECT_2, include_workflow=True)
+        pr_2_metadata = sa.get_project_metadata(self.PROJECT_2, include_workflow=True, include_annotation_classes=True)
         assert pr_2_metadata["workflows"][0]["className"] == "class1"
         assert pr_2_metadata["workflows"][1]["className"] == "class2"
-        self.assertEqual(pr_2_metadata["classes"][0]['className'], "class1")
-        self.assertEqual(pr_2_metadata["classes"][1]['className'], "class2")
+        self.assertEqual(pr_2_metadata["classes"][0]['name'], "class1")
+        self.assertEqual(pr_2_metadata["classes"][1]['name'], "class2")

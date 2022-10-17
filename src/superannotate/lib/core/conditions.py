@@ -36,7 +36,7 @@ class Condition:
             QueryCondition(
                 CONDITION_OR,
                 other.build_query(),
-                {other._key: other._value} if isinstance(other, Condition) else {},
+                {other._key: other._value} if type(other) == Condition else {},
             )
         )
         return self
@@ -56,7 +56,7 @@ class Condition:
             QueryCondition(
                 CONDITION_AND,
                 other.build_query(),
-                {other._key: other._value} if isinstance(other, Condition) else {},
+                {other._key: other._value} if type(other) == Condition else {},
             )
         )
         return self
