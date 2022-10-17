@@ -6,12 +6,13 @@ from pathlib import Path
 import pytest
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
+sa = SAClient()
 
-class TestWorkflowGet(BaseTestCase):
+
+class TestProjectBasic(BaseTestCase):
     PROJECT_NAME = "TestWorkflowGet"
     PROJECT_TYPE = "Vector"
     PROJECT_DESCRIPTION = "DESCRIPTION"
@@ -100,6 +101,12 @@ class TestWorkflowGet(BaseTestCase):
         assert metadata["workflows"][1]["className"] == "class2"
         self.assertEqual(workflows[0]['className'], "class1")
         self.assertEqual(workflows[1]['className'], "class2")
+
+    def test_include_complete_image_count(self):
+        self._attach_items()  # will attach 4 items
+        sa.set_annotation_statuses(self.PROJECT_NAME, annotation_status="Completed")
+        metadata = sa.get_project_metadata(self.PROJECT_NAME, include_complete_image_count=True)
+        assert metadata["completed_images_count"] == 4
 
 
 class TestProject(BaseTestCase):

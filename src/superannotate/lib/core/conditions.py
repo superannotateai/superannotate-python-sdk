@@ -34,7 +34,9 @@ class Condition:
 
         self._condition_set.append(
             QueryCondition(
-                CONDITION_OR, other.build_query(), {other._key: other._value}
+                CONDITION_OR,
+                other.build_query(),
+                {other._key: other._value} if isinstance(other, Condition) else {},
             )
         )
         return self
@@ -52,7 +54,9 @@ class Condition:
 
         self._condition_set.append(
             QueryCondition(
-                CONDITION_AND, other.build_query(), {} if isinstance(other, Condition) else {other._key: other._value}
+                CONDITION_AND,
+                other.build_query(),
+                {other._key: other._value} if isinstance(other, Condition) else {},
             )
         )
         return self

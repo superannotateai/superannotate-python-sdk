@@ -46,7 +46,6 @@ class TestFolders(BaseTestCase):
         folders = sa.search_folders(self.PROJECT_NAME)
         assert all(["is_root" not in folder for folder in folders])
 
-
     def test_basic_folders(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
@@ -265,3 +264,10 @@ class TestFolders(BaseTestCase):
                 'A while back I needed to count the amount of letters that '
                 'a piece of text in an email template had (to avoid passing any)'
             )
+
+    def test_search_folder(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        folders = sa.search_folders(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        assert len(folders) == 1
+        assert folders[0] == self.TEST_FOLDER_NAME_1
