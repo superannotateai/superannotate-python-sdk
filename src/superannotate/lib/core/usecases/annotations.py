@@ -386,7 +386,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             self.reporter.finish_progress()
 
             log_report(self._report)
-            failed = self._report.failed_annotations
+            failed.extend(self._report.failed_annotations)
             uploaded_annotations = list(
                 {i.item.name for i in items_to_upload}
                 - set(self._report.failed_annotations).union(set(skipped))
