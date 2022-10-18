@@ -38,6 +38,10 @@ class BaseClient(ABC):
         self._token = token
 
     @property
+    def api_url(self):
+        return self._api_url
+
+    @property
     @abstractmethod
     def default_headers(self):
         raise NotImplementedError

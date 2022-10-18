@@ -45,7 +45,7 @@ class AnnotationService(BaseAnnotationService):
 
     @property
     def assets_provider_url(self):
-        if self.client._api_url != constants.BACKEND_URL:
+        if self.client.api_url != constants.BACKEND_URL:
             return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
         return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
 
@@ -176,13 +176,13 @@ class AnnotationService(BaseAnnotationService):
                 "folder_id": folder.id,
             }  # noqa
             response = self.client.request(
-                urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE),
+                url=urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE),
                 method="POST",
                 params=query_params,
                 data=body,
             )
             if not response.ok:
-                raise AppException(response.data.get("errors", "Undefined"))
+                raise AppException(response.data.error)
             response_data["small"].extend(response.data.get("small", []))
             response_data["large"].extend(response.data.get("large", []))
         return response_data
