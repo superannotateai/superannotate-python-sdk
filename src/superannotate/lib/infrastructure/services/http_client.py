@@ -16,6 +16,8 @@ import requests
 from lib.core.exceptions import AppException
 from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseClient
+from requests.adapters import HTTPAdapter
+from requests.adapters import Retry
 from superannotate import __version__
 
 logger = logging.getLogger("sa")
@@ -39,7 +41,11 @@ class HttpClient(BaseClient):
     def _get_session(self, thread_id, ttl=None):  # noqa
         del ttl
         del thread_id
+        retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[502, 503, 504])
+
         session = requests.Session()
+        session.mount("http://", HTTPAdapter(max_retries=retries))  # noqa
+        session.mount("https://", HTTPAdapter(max_retries=retries))
         session.headers.update(self.default_headers)
         return session
 

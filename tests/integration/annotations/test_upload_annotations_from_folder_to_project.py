@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 from src.superannotate import SAClient
-from tests.integration.base import BaseTestCase
 from tests import DATA_SET_PATH
+from tests.integration.base import BaseTestCase
 
 sa = SAClient()
 
@@ -33,7 +33,7 @@ class TestAnnotationUploadVector(BaseTestCase):
     @property
     def large_annotations_folder_path(self):
         return os.path.join(DATA_SET_PATH, self.TEST_LARGE_FOLDER_PATH)
-    
+
     def test_annotation_folder_upload_download(self):
         self._attach_items()
         sa.create_annotation_classes_from_classes_json(

@@ -1386,11 +1386,11 @@ class DownloadAnnotations(BaseReportableUseCase):
         )
 
     async def distribute_to_queues(
-        self, item_names, sm_queue_id, l_queue_id, folder_id
+        self, item_names, sm_queue_id, l_queue_id, folder: FolderEntity
     ):
         try:
             resp = self._service_provider.annotations.sort_items_by_size(
-                project=self._project, folder=self._folder, item_names=item_names
+                project=self._project, folder=folder, item_names=item_names
             )
 
             for item in resp["large"]:
@@ -1410,7 +1410,7 @@ class DownloadAnnotations(BaseReportableUseCase):
             big_file_queue_idx = len(self._big_file_queues) - 1
             res = await asyncio.gather(
                 self.distribute_to_queues(
-                    item_names, small_file_queue_idx, big_file_queue_idx, folder.id
+                    item_names, small_file_queue_idx, big_file_queue_idx, folder
                 ),
                 self.download_big_annotations(big_file_queue_idx, export_path),
                 self.download_big_annotations(big_file_queue_idx, export_path),
