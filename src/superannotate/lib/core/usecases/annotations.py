@@ -343,30 +343,27 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
     def execute(self):
         if self.is_valid():
             failed, skipped = [], []
-            unique_annotations = []
-            annotation_names_set = set()
+            name_annotation_map = {}
             for annotation in self._annotations:
                 try:
                     name = annotation["metadata"]["name"]
-                    if name not in annotation_names_set:
-                        annotation_names_set.add(name)
-                        unique_annotations.append(annotation)
+                    name_annotation_map[name] = annotation
                 except KeyError:
                     failed.append(annotation)
             logger.info(
-                f"Uploading {len(unique_annotations)}/{len(self._annotations)} "
+                f"Uploading {len(name_annotation_map)}/{len(self._annotations)} "
                 f"annotations to the project {self._project.name}."
             )
-            existing_items = self.list_existing_items(list(annotation_names_set))
+            existing_items = self.list_existing_items(list(name_annotation_map.keys()))
             name_item_map = {i.name: i for i in existing_items}
-            len_existing, len_provided = len(existing_items), len(annotation_names_set)
+            len_existing, len_provided = len(existing_items), len(name_annotation_map)
             if len_existing < len_provided:
                 logger.warning(
                     f"Couldn't find {len_provided - len_existing}/{len_provided} "
                     "items in the given directory that match the annotations."
                 )
             items_to_upload: List[ItemToUpload] = []
-            for annotation in unique_annotations:
+            for annotation in name_annotation_map.values():
                 annotation_name = annotation["metadata"]["name"]
                 item = name_item_map.get(annotation_name)
                 if item:
