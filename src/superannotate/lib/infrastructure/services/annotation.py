@@ -182,7 +182,7 @@ class AnnotationService(BaseAnnotationService):
                 data=body,
             )
             if not response.ok:
-                raise AppException(response.data.error)
+                raise AppException(response.error)
             response_data["small"].extend(response.data.get("small", []))
             response_data["large"].extend(response.data.get("large", []))
         return response_data

@@ -1,5 +1,4 @@
 import json
-import logging
 import platform
 import threading
 import time
@@ -19,8 +18,10 @@ from lib.core.serviceproviders import BaseClient
 from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
 from superannotate import __version__
+from superannotate.logger import get_default_logger
 
-logger = logging.getLogger("sa")
+
+logger = get_default_logger()
 
 
 class PydanticEncoder(json.JSONEncoder):

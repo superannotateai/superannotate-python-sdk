@@ -6,7 +6,6 @@ from os.path import expanduser
 
 import superannotate.lib.core as constances
 
-default_logger = None
 
 logging.config.dictConfig(
     {
@@ -30,10 +29,16 @@ logging.config.dictConfig(
 )
 
 
+loggers = {}
+
+
 def get_default_logger():
-    global default_logger
-    if not default_logger:
-        default_logger = logging.getLogger("sa")
+    global loggers
+    if loggers.get("sa"):
+        return loggers.get("sa")
+    else:
+
+        logger = logging.getLogger("sa")
         try:
             log_file_path = expanduser(constances.LOG_FILE_LOCATION)
             open(log_file_path, "w").close()
@@ -52,8 +57,9 @@ def get_default_logger():
                 stream_handler.setLevel("DEBUG")
                 file_handler.setFormatter(formatter)
                 file_handler.setLevel("DEBUG")
-                default_logger.addHandler(stream_handler)
-                default_logger.addHandler(file_handler)
+                logger.addHandler(stream_handler)
+                logger.addHandler(file_handler)
+                loggers["sa"] = logger
+                return logger
         except OSError:
             pass
-    return default_logger
