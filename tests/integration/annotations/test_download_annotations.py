@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 import tempfile
 from pathlib import Path
 
@@ -71,3 +72,27 @@ class TestDownloadAnnotations(BaseTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             annotations_path = sa.download_annotations(f"{self.PROJECT_NAME}", temp_dir)
             self.assertEqual(len(os.listdir(annotations_path)), 1)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_download_annotations_from_folders(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        sa.attach_items(
+            f'{self.PROJECT_NAME}/{self.FOLDER_NAME}',
+            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 5)]  # noqa
+        )
+        sa.attach_items(
+            self.PROJECT_NAME,
+            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 19)]  # noqa
+        )
+        sa.attach_items(
+            f'{self.PROJECT_NAME}/{self.FOLDER_NAME_2}',
+            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 10)]  # noqa
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            annotations_path = sa.download_annotations(self.PROJECT_NAME, temp_dir, recursive=True)
+            count = len([i for i in glob.iglob(annotations_path + '**/**', recursive=True)])
+            assert count == 31 + 5  # folder names and classes

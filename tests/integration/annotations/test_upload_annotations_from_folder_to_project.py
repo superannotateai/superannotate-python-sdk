@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 from src.superannotate import SAClient
-from tests.integration.base import BaseTestCase
 from tests import DATA_SET_PATH
+from tests.integration.base import BaseTestCase
 
 sa = SAClient()
 
@@ -33,7 +33,7 @@ class TestAnnotationUploadVector(BaseTestCase):
     @property
     def large_annotations_folder_path(self):
         return os.path.join(DATA_SET_PATH, self.TEST_LARGE_FOLDER_PATH)
-    
+
     def test_annotation_folder_upload_download(self):
         self._attach_items()
         sa.create_annotation_classes_from_classes_json(
@@ -50,6 +50,21 @@ class TestAnnotationUploadVector(BaseTestCase):
         assert annotation["instances"][-2]["type"] == "tag"
         # assert annotation["instances"][-1]["attributes"] == []
         # assert annotation["instances"][-2]["attributes"] == []
+
+    def test_upload_keep_true(self):
+        self._attach_items()
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        sa.set_annotation_statuses(self.PROJECT_NAME, "Completed", items=["example_image_1.jpg"])
+        uploaded, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, keep_status=True
+        )
+        assert len(uploaded) == 1
+        items = sa.search_items(self.PROJECT_NAME)
+        for i in items:
+            if i["name"] == "example_image_1.jpg":
+                assert i["annotation_status"] == "Completed"
 
     def test_4_annotation_folder_upload_download(self):
         self._attach_items()

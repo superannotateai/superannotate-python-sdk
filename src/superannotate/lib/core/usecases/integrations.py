@@ -3,29 +3,21 @@ from typing import List
 from lib.core.entities import FolderEntity
 from lib.core.entities import IntegrationEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import TeamEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
-from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
-from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases import BaseReportableUseCase
 
 
 class GetIntegrations(BaseReportableUseCase):
-    def __init__(
-        self,
-        reporter: Reporter,
-        team: TeamEntity,
-        integrations: BaseReadOnlyRepository,
-    ):
+    def __init__(self, reporter: Reporter, service_provider: BaseServiceProvider):
 
         super().__init__(reporter)
-        self._team = team
-        self._integrations = integrations
+        self._service_provider = service_provider
 
     def execute(self) -> Response:
-        integrations = self._integrations.get_all()
+        integrations = self._service_provider.integrations.list().data
         integrations = list(sorted(integrations, key=lambda x: x.createdAt))
         integrations.reverse()
         self._response.data = integrations
@@ -36,11 +28,9 @@ class AttachIntegrations(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
-        team: TeamEntity,
         project: ProjectEntity,
         folder: FolderEntity,
-        integrations: BaseReadOnlyRepository,
-        backend_service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         integration: IntegrationEntity,
         folder_path: str = None,
     ):
@@ -48,18 +38,18 @@ class AttachIntegrations(BaseReportableUseCase):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
-        self._team = team
         self._integration = integration
-        self._client = backend_service
+        self._service_provider = service_provider
         self._folder_path = folder_path
-        self._integrations = integrations
 
     @property
     def _upload_path(self):
         return f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}"
 
     def execute(self) -> Response:
-        integrations: List[IntegrationEntity] = self._integrations.get_all()
+        integrations: List[
+            IntegrationEntity
+        ] = self._service_provider.integrations.list().data
         integration_name_lower = self._integration.name.lower()
         integration = next(
             (i for i in integrations if i.name.lower() == integration_name_lower), None
@@ -70,12 +60,11 @@ class AttachIntegrations(BaseReportableUseCase):
                 f"{integration.root}{f'/{self._folder_path}' if self._folder_path else ''} "
                 f"to {self._upload_path}. This may take some time."
             )
-            attached = self._client.attach_integrations(
-                self._team.uuid,
-                self._project.id,
-                integration.id,
-                self._folder.uuid,
-                self._folder_path,
+            attached = self._service_provider.integrations.attach_items(
+                project=self._project,
+                folder=self._folder,
+                integration=integration,
+                folder_name=self._folder_path,
             )
             if not attached:
                 self._response.errors = AppException(

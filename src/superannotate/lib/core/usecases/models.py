@@ -24,11 +24,9 @@ from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
-from lib.core.repositories import BaseManageableRepository
-from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.usecases.images import GetBulkImages
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
@@ -39,8 +37,7 @@ class PrepareExportUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder_names: List[str],
-        backend_service_provider: SuperannotateServiceProvider,
-        folders: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
@@ -48,11 +45,10 @@ class PrepareExportUseCase(BaseUseCase):
         super().__init__(),
         self._project = project
         self._folder_names = list(folder_names) if folder_names else None
-        self._backend_service = backend_service_provider
+        self._service_provider = service_provider
         self._annotation_statuses = annotation_statuses
         self._include_fuse = include_fuse
         self._only_pinned = only_pinned
-        self._folders = folders
 
     def validate_only_pinned(self):
         if (
@@ -75,11 +71,10 @@ class PrepareExportUseCase(BaseUseCase):
 
     def validate_folder_names(self):
         if self._folder_names:
-            condition = Condition("team_id", self._project.team_id, EQ) & Condition(
-                "project_id", self._project.id, EQ
-            )
+            condition = Condition("project_id", self._project.id, EQ)
             existing_folders = {
-                folder.name for folder in self._folders.get_all(condition)
+                folder.name
+                for folder in self._service_provider.folders.list(condition).data
             }
             folder_names_set = set(self._folder_names)
             if not folder_names_set.issubset(existing_folders):
@@ -93,96 +88,61 @@ class PrepareExportUseCase(BaseUseCase):
                 self._include_fuse = False
 
             if not self._annotation_statuses:
-                self._annotation_statuses = (
+                self._annotation_statuses = [
                     constances.AnnotationStatus.IN_PROGRESS.name,
                     constances.AnnotationStatus.COMPLETED.name,
                     constances.AnnotationStatus.QUALITY_CHECK.name,
                     constances.AnnotationStatus.RETURNED.name,
                     constances.AnnotationStatus.NOT_STARTED.name,
                     constances.AnnotationStatus.SKIPPED.name,
-                )
+                ]
 
-            response = self._backend_service.prepare_export(
-                project_id=self._project.id,
-                team_id=self._project.team_id,
+            response = self._service_provider.prepare_export(
+                project=self._project,
                 folders=self._folder_names,
                 annotation_statuses=self._annotation_statuses,
                 include_fuse=self._include_fuse,
                 only_pinned=self._only_pinned,
             )
-            if "error" in response:
-                raise AppException(response["error"])
+            if not response.ok:
+                raise AppException(response.error)
 
             report_message = ""
             if self._folder_names:
                 report_message = f"[{', '.join(self._folder_names)}] "
             logger.info(
-                f"Prepared export {response['name']} for project {self._project.name} "
+                f"Prepared export {response.data['name']} for project {self._project.name} "
                 f"{report_message}(project ID {self._project.id})."
             )
-            self._response.data = response
-
+            self._response.data = response.data
         return self._response
 
 
 class GetExportsUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         project: ProjectEntity,
         return_metadata: bool = False,
     ):
         super().__init__()
-        self._service = service
+        self._service_provider = service_provider
         self._project = project
         self._return_metadata = return_metadata
 
     def execute(self):
         if self.is_valid():
-            data = self._service.get_exports(
-                team_id=self._project.team_id, project_id=self._project.id
-            )
+            data = self._service_provider.get_exports(self._project).data
             self._response.data = data
             if not self._return_metadata:
                 self._response.data = [i["name"] for i in data]
         return self._response
 
 
-class GetModelMetricsUseCase(BaseUseCase):
-    def __init__(
-        self,
-        model_id: int,
-        team_id: int,
-        backend_service_provider: SuperannotateServiceProvider,
-    ):
-        super().__init__()
-        self._model_id = model_id
-        self._team_id = team_id
-        self._backend_service = backend_service_provider
-
-    def execute(self):
-        metrics = self._backend_service.get_model_metrics(
-            team_id=self._team_id, model_id=self._model_id
-        )
-        self._response.data = metrics
-        return self._response
-
-
-class DeleteMLModel(BaseUseCase):
-    def __init__(self, model_id: int, models: BaseManageableRepository):
-        super().__init__()
-        self._model_id = model_id
-        self._models = models
-
-    def execute(self):
-        self._response.data = self._models.delete(self._model_id)
-        return self._response
-
-
 class DownloadExportUseCase(BaseReportableUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         project: ProjectEntity,
         export_name: str,
         folder_path: str,
@@ -191,7 +151,7 @@ class DownloadExportUseCase(BaseReportableUseCase):
         reporter: Reporter,
     ):
         super().__init__(reporter)
-        self._service = service
+        self._service_provider = service_provider
         self._project = project
         self._export_name = export_name
         self._folder_path = folder_path if folder_path else ""
@@ -216,15 +176,11 @@ class DownloadExportUseCase(BaseReportableUseCase):
             self.reporter.stop_spinner()
 
     def download_to_local_storage(self, destination: str, extract_zip=False):
-        exports = self._service.get_exports(
-            team_id=self._project.team_id, project_id=self._project.id
-        )
+        exports = self._service_provider.get_exports(project=self._project).data
         export = next(filter(lambda i: i["name"] == self._export_name, exports), None)
-        export = self._service.get_export(
-            team_id=self._project.team_id,
-            project_id=self._project.id,
-            export_id=export["id"],
-        )
+        export = self._service_provider.get_export(
+            project=self._project, export_id=export["id"]
+        ).data
         if not export:
             raise AppException("Export not found.")
         export_status = export["status"]
@@ -232,13 +188,12 @@ class DownloadExportUseCase(BaseReportableUseCase):
             logger.info("Waiting for export to finish on server.")
             self.reporter.start_spinner()
             while export_status != ExportStatus.COMPLETE.value:
-                export = self._service.get_export(
-                    team_id=self._project.team_id,
-                    project_id=self._project.id,
+                response = self._service_provider.get_export(
+                    project=self._project,
                     export_id=export["id"],
                 )
-                if "error" in export:
-                    raise AppException(export["error"])
+                if not response.ok:
+                    raise AppException(response.error)
                 export_status = export["status"]
                 if export_status in (
                     ExportStatus.ERROR.value,
@@ -291,14 +246,12 @@ class DownloadMLModelUseCase(BaseUseCase):
         self,
         model: MLModelEntity,
         download_path: str,
-        backend_service_provider: SuperannotateServiceProvider,
-        team_id: int,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._model = model
         self._download_path = download_path
-        self._backend_service = backend_service_provider
-        self._team_id = team_id
+        self._service_provider = service_provider
 
     def validate_training_status(self):
         if self._model.training_status not in [
@@ -317,8 +270,8 @@ class DownloadMLModelUseCase(BaseUseCase):
                 os.path.basename(self._model.config_path), metrics_name
             )
 
-            auth_response = self._backend_service.get_ml_model_download_tokens(
-                self._team_id, self._model.uuid
+            auth_response = self._service_provider.get_ml_model_download_tokens(
+                self._model.id
             )
             if not auth_response.ok:
                 raise AppException(auth_response.error)
@@ -533,18 +486,16 @@ class RunPredictionUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        ml_model_repo: BaseManageableRepository,
         ml_model_name: str,
         images_list: list,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         folder: FolderEntity,
     ):
         super().__init__()
         self._project = project
-        self._ml_model_repo = ml_model_repo
         self._ml_model_name = ml_model_name
         self._images_list = images_list
-        self._service = service
+        self._service_provider = service_provider
         self._folder = folder
 
     def validate_project_type(self):
@@ -555,18 +506,9 @@ class RunPredictionUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            images = (
-                GetBulkImages(
-                    service=self._service,
-                    project_id=self._project.id,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=self._images_list,
-                )
-                .execute()
-                .data
-            )
-
+            images = self._service_provider.items.list_by_names(
+                project=self._project, folder=self._folder, names=self._images_list
+            ).data
             image_ids = [image.uuid for image in images]
             image_names = [image.name for image in images]
 
@@ -576,39 +518,29 @@ class RunPredictionUseCase(BaseUseCase):
                 )
                 return self._response
 
-            ml_models = self._ml_model_repo.get_all(
+            ml_models = self._service_provider.models.list(
                 condition=Condition("name", self._ml_model_name, EQ)
                 & Condition("include_global", True, EQ)
-                & Condition("team_id", self._project.team_id, EQ)
-            )
+            ).data
             ml_model = None
             for model in ml_models:
                 if model.name == self._ml_model_name:
                     ml_model = model
 
-            res = self._service.run_prediction(
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                ml_model_id=ml_model.uuid,
+            res = self._service_provider.run_prediction(
+                project=self._project,
+                ml_model_id=ml_model.id,
                 image_ids=image_ids,
             )
             if not res.ok:
-                return self._response
+                return self._response.data
 
             success_images = []
             failed_images = []
             while len(success_images) + len(failed_images) != len(image_ids):
-                images_metadata = (
-                    GetBulkImages(
-                        service=self._service,
-                        project_id=self._project.id,
-                        team_id=self._project.team_id,
-                        folder_id=self._folder.uuid,
-                        images=self._images_list,
-                    )
-                    .execute()
-                    .data
-                )
+                images_metadata = self._service_provider.items.list_by_names(
+                    project=self._project, folder=self._folder, names=self._images_list
+                ).data
 
                 success_images = [
                     img.name
@@ -634,17 +566,13 @@ class RunPredictionUseCase(BaseUseCase):
 
 
 class SearchMLModels(BaseUseCase):
-    def __init__(
-        self,
-        ml_models_repo: BaseManageableRepository,
-        condition: Condition,
-    ):
+    def __init__(self, condition: Condition, service_provider: BaseServiceProvider):
         super().__init__()
-        self._ml_models = ml_models_repo
         self._condition = condition
+        self._service_provider = service_provider
 
     def execute(self):
-        ml_models = self._ml_models.get_all(condition=self._condition)
-        ml_models = [ml_model.to_dict() for ml_model in ml_models]
+        ml_models = self._service_provider.models.list(self._condition).data
+        ml_models = [ml_model.dict() for ml_model in ml_models]
         self._response.data = ml_models
         return self._response

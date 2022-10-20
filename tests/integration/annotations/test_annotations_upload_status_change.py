@@ -8,6 +8,7 @@ import pytest
 
 import src.superannotate.lib.core as constances
 from src.superannotate import SAClient
+from src.superannotate import AppException
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -73,6 +74,11 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
             constances.AnnotationStatus.IN_PROGRESS.name,
             sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
         )
+
+    def test_add_annotation_bbox_to_image_not_existing_image(self):
+        reporter_mock = MagicMock()
+        with self.assertRaisesRegexp(AppException, "Image not found."):
+            sa.add_annotation_bbox_to_image(self.PROJECT_NAME, "self.IMAGE_NAME", [1, 2, 3, 4], "bbox")
 
     @pytest.mark.flaky(reruns=2)
     @patch("lib.infrastructure.controller.Reporter")

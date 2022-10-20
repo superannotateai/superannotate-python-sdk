@@ -73,9 +73,6 @@ class Reporter:
         if self._spinner:
             self._spinner.stop()
 
-    def disable_warnings(self):
-        self._log_warning = False
-
     def disable_info(self):
         self._log_info = False
 
@@ -126,11 +123,6 @@ class Reporter:
 
     def store_message(self, key: str, value: str):
         self.custom_messages[key].add(value)
-
-    @property
-    def messages(self):
-        for key, values in self.custom_messages.items():
-            yield f"{key} [{', '.join(values)}]"
 
     def track(self, key, value):
         if self.session:

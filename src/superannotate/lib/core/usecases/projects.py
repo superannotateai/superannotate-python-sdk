@@ -1,9 +1,7 @@
 import copy
 import decimal
 from collections import defaultdict
-from typing import Iterable
 from typing import List
-from typing import Type
 
 import lib.core as constances
 from lib.core.conditions import Condition
@@ -13,18 +11,14 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
-from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
-from lib.core.repositories import BaseManageableRepository
-from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
-from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
-from lib.core.usecases.classes import GetAnnotationClassesUseCase
 from requests.exceptions import RequestException
 from superannotate.logger import get_default_logger
 
@@ -35,18 +29,19 @@ class GetProjectsUseCase(BaseUseCase):
     def __init__(
         self,
         condition: Condition,
-        team_id: int,
-        projects: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._condition = condition
-        self._projects = projects
-        self._team_id = team_id
+        self._service_provider = service_provider
 
     def execute(self):
         if self.is_valid():
-            condition = self._condition & Condition("team_id", self._team_id, EQ)
-            self._response.data = self._projects.get_all(condition)
+            response = self._service_provider.projects.list(self._condition)
+            if response.ok:
+                self._response.data = response.data
+            else:
+                self._response.errors = response.errors
         return self._response
 
 
@@ -54,30 +49,32 @@ class GetProjectByNameUseCase(BaseUseCase):
     def __init__(
         self,
         name: str,
-        team_id: int,
-        projects: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._name = name
-        self._projects = projects
-        self._team_id = team_id
+        self._service_provider = service_provider
 
     def execute(self):
         if self.is_valid():
-            condition = Condition("name", self._name, EQ) & Condition(
-                "team_id", self._team_id, EQ
-            )
-            projects = self._projects.get_all(condition)
-            if not projects:
-                self._response.errors = AppException("Project not found.")
-            else:
-                project = next(
-                    (project for project in projects if project.name == self._name),
-                    None,
-                )
-                if not project:
-                    self._response.errors = AppException("Project not found")
-                self._response.data = project
+            condition = Condition("name", self._name, EQ)
+            response = self._service_provider.projects.list(condition)
+            if response.ok:
+                if not response.data:
+                    self._response.errors = AppException("Project not found.")
+                else:
+                    project = next(
+                        (
+                            project
+                            for project in response.data
+                            if project.name == self._name
+                        ),
+                        None,
+                    )
+                    if not project:
+                        self._response.errors = AppException("Project not found")
+                    self._response.data = project
+
         return self._response
 
 
@@ -86,11 +83,7 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
-        service: SuperannotateServiceProvider,
-        annotation_classes: BaseManageableRepository,
-        settings: BaseManageableRepository,
-        workflows: BaseManageableRepository,
-        projects: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
         include_annotation_classes: bool,
         include_settings: bool,
         include_workflow: bool,
@@ -99,12 +92,7 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
     ):
         super().__init__(reporter)
         self._project = project
-        self._service = service
-
-        self._annotation_classes = annotation_classes
-        self._settings = settings
-        self._workflows = workflows
-        self._projects = projects
+        self._service_provider = service_provider
 
         self._include_annotation_classes = include_annotation_classes
         self._include_settings = include_settings
@@ -112,56 +100,47 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
         self._include_contributors = include_contributors
         self._include_complete_image_count = include_complete_image_count
 
-    @property
-    def annotation_classes_use_case(self):
-        return GetAnnotationClassesUseCase(
-            reporter=self.reporter, project=self._project, backend_client=self._service
-        )
-
-    @property
-    def settings_use_case(self):
-        return GetSettingsUseCase(settings=self._settings)
-
-    @property
-    def work_flow_use_case(self):
-        return GetWorkflowsUseCase(
-            project=self._project,
-            workflows=self._workflows,
-            annotation_classes=self._annotation_classes,
-        )
-
     def execute(self):
-        project = self._projects.get_one(
-            uuid=self._project.id, team_id=self._project.team_id
-        )
+        project = self._service_provider.projects.get(self._project.id).data
         if self._include_complete_image_count:
-            completed_images_data = self._service.bulk_get_folders(
-                self._project.team_id, [project.id]
-            )
+            folders = self._service_provider.folders.list(
+                Condition("project_id", self._project.id, EQ)
+                & Condition("completedImagesCount", True, EQ)
+            ).data
             root_completed_count = 0
             total_completed_count = 0
-            for i in completed_images_data["data"]:
-                total_completed_count += i["completedCount"]
-                if i["is_root"]:
-                    root_completed_count = i["completedCount"]
-
+            for folder in folders:
+                try:
+                    total_completed_count += folder.completedCount  # noqa
+                    if folder.is_root:
+                        root_completed_count = folder.completedCount  # noqa
+                except AttributeError:
+                    pass
             project.root_folder_completed_images_count = root_completed_count
             project.completed_images_count = total_completed_count
-
         if self._include_annotation_classes:
-            project.classes = self.annotation_classes_use_case.execute().data
+            project.classes = self._service_provider.annotation_classes.list(
+                Condition("project_id", self._project.id, EQ)
+            ).data
 
         if self._include_settings:
-            project.settings = self.settings_use_case.execute().data
+            project.settings = self._service_provider.projects.list_settings(
+                self._project
+            ).data
 
         if self._include_workflow:
-            project.workflows = self.work_flow_use_case.execute().data
+            project.workflows = (
+                GetWorkflowsUseCase(
+                    project=self._project, service_provider=self._service_provider
+                )
+                .execute()
+                .data
+            )
 
         if self._include_contributors:
             project.contributors = project.users
         else:
             project.users = []
-
         self._response.data = project
         return self._response
 
@@ -170,22 +149,12 @@ class CreateProjectUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        projects: BaseManageableRepository,
-        backend_service_provider: SuperannotateServiceProvider,
-        annotation_classes_repo: Type[BaseManageableRepository],
-        workflows_repo: Type[BaseManageableRepository],
-        workflows: Iterable[WorkflowEntity] = None,
-        classes: List[AnnotationClassEntity] = None,
+        service_provider: BaseServiceProvider,
     ):
 
         super().__init__()
         self._project = project
-        self._projects = projects
-        self._annotation_classes_repo = annotation_classes_repo
-        self._workflows_repo = workflows_repo
-        self._workflows = workflows
-        self._classes = classes
-        self._backend_service = backend_service_provider
+        self._service_provider = service_provider
 
     def validate_settings(self):
         for setting in self._project.settings[:]:
@@ -239,27 +208,30 @@ class CreateProjectUseCase(BaseUseCase):
             logger.warning(
                 "New folder name has special characters. Special characters will be replaced by underscores."
             )
-        condition = Condition("name", self._project.name, EQ) & Condition(
-            "team_id", self._project.team_id, EQ
-        )
-        for project in self._projects.get_all(condition):
-            if project.name == self._project.name:
-                logger.error("There are duplicated names.")
-                raise AppValidationException(
-                    f"Project name {self._project.name} is not unique. "
-                    f"To use SDK please make project names unique."
-                )
+        condition = Condition("name", self._project.name, EQ)
+        response = self._service_provider.projects.list(condition)
+        if response.ok:
+            for project in response.data:
+                if project.name == self._project.name:
+                    logger.error("There are duplicated names.")
+                    raise AppValidationException(
+                        f"Project name {self._project.name} is not unique. "
+                        f"To use SDK please make project names unique."
+                    )
 
     def execute(self):
         if self.is_valid():
             # new projects can only have the status of NotStarted
             self._project.status = constances.ProjectStatus.NotStarted.value
-            entity = self._projects.insert(self._project)
+            response = self._service_provider.projects.create(self._project)
+            if not response.ok:
+                self._response.errors = response.error
+            entity = response.data
             # create project doesn't store attachment data so need to update
             instructions_link = self._project.instructions_link
             if instructions_link:
                 entity.instructions_link = instructions_link
-                self._projects.update(entity)
+                self._service_provider.projects.update(entity)
             self._response.data = entity
             data = {}
             # TODO delete
@@ -274,29 +246,31 @@ class CreateProjectUseCase(BaseUseCase):
             #                 settings_repo.update(setting_copy)
             #     data["settings"] = self._settings
             annotation_classes_mapping = {}
-            if self._classes:
-                annotation_repo = self._annotation_classes_repo(
-                    self._backend_service, entity
-                )
-                for annotation_class in self._classes:
+            if self._service_provider.annotation_classes:
+
+                for annotation_class in self._project.classes:
                     annotation_classes_mapping[
                         annotation_class.id
-                    ] = annotation_repo.insert(annotation_class)
-                self._response.data.classes = self._classes
-            if self._workflows:
+                    ] = self._service_provider.annotation_classes.create_multiple(
+                        entity, [annotation_class]
+                    )
+                data["classes"] = self._project.classes
+            if self._project.workflows:
                 set_workflow_use_case = SetWorkflowUseCase(
-                    service=self._backend_service,
-                    annotation_classes_repo=self._annotation_classes_repo(
-                        self._backend_service, entity
-                    ),
-                    workflow_repo=self._workflows_repo(self._backend_service, entity),
-                    steps=self._workflows,
+                    service_provider=self._service_provider,
+                    steps=[i.dict() for i in self._project.workflows],
                     project=entity,
                 )
                 set_workflow_response = set_workflow_use_case.execute()
+                data["workflows"] = (
+                    GetWorkflowsUseCase(
+                        project=self._project, service_provider=self._service_provider
+                    )
+                    .execute()
+                    .data
+                )
                 if set_workflow_response.errors:
                     self._response.errors = set_workflow_response.errors
-                data["workflows"] = self._workflows
 
             logger.info(
                 "Created project %s (ID %s) with type %s",
@@ -311,25 +285,21 @@ class DeleteProjectUseCase(BaseUseCase):
     def __init__(
         self,
         project_name: str,
-        team_id: int,
-        projects: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
     ):
 
         super().__init__()
         self._project_name = project_name
-        self._team_id = team_id
-        self._projects = projects
+        self._service_provider = service_provider
 
     def execute(self):
         use_case = GetProjectByNameUseCase(
-            name=self._project_name,
-            team_id=self._team_id,
-            projects=self._projects,
+            name=self._project_name, service_provider=self._service_provider
         )
         project_response = use_case.execute()
         if project_response.data:
-            is_deleted = self._projects.delete(project_response.data)
-            if is_deleted:
+            response = self._service_provider.projects.delete(project_response.data)
+            if response.ok:
                 logger.info("Successfully deleted project ")
             else:
                 raise AppException("Couldn't delete project")
@@ -339,94 +309,74 @@ class UpdateProjectUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        project_data: dict,
-        projects: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
     ):
 
         super().__init__()
         self._project = project
-        self._project_data = project_data
-        self._projects = projects
+        self._service_provider = service_provider
 
     def validate_project_name(self):
-        if self._project_data.get("name"):
+        if self._project.name:
             if (
                 len(
-                    set(self._project_data["name"]).intersection(
+                    set(self._project.name).intersection(
                         constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                     )
                 )
                 > 0
             ):
-                self._project_data["name"] = "".join(
+                self._project.name = "".join(
                     "_"
                     if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                     else char
-                    for char in self._project_data["name"]
+                    for char in self._project.name
                 )
                 logger.warning(
                     "New folder name has special characters. Special characters will be replaced by underscores."
                 )
-            condition = Condition("name", self._project_data["name"], EQ) & Condition(
-                "team_id", self._project.team_id, EQ
-            )
-            for project in self._projects.get_all(condition):
-                if project.name == self._project_data["name"]:
-                    logger.error("There are duplicated names.")
-                    raise AppValidationException(
-                        f"Project name {self._project_data['name']} is not unique. "
-                        f"To use SDK please make project names unique."
-                    )
+            condition = Condition("name", self._project.name, EQ)
+            response = self._service_provider.projects.list(condition)
+            if response.ok:
+                for project in response.data:
+                    if project.name == self._project.name:
+                        logger.error("There are duplicated names.")
+                        raise AppValidationException(
+                            f"Project name {self._project.name} is not unique. "
+                            f"To use SDK please make project names unique."
+                        )
+            else:
+                raise AppException(response.error)
 
     def execute(self):
         if self.is_valid():
-            for field, value in self._project_data.items():
-                setattr(self._project, field, value)
-            new_project = self._projects.update(self._project)
-            self._response.data = new_project
+            response = self._service_provider.projects.update(self._project)
+            if not response.ok:
+                self._response.errors = response.errors
+            else:
+                self._response.data = response.data
         return self._response
 
 
-class CloneProjectUseCase(BaseReportableUseCase):
+class CloneProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        reporter: Reporter,
         project: ProjectEntity,
         project_to_create: ProjectEntity,
-        projects: BaseManageableRepository,
-        settings_repo: Type[BaseManageableRepository],
-        workflows_repo: Type[BaseManageableRepository],
-        annotation_classes_repo: Type[BaseManageableRepository],
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         include_annotation_classes: bool = True,
         include_settings: bool = True,
         include_workflow: bool = True,
         include_contributors: bool = False,
     ):
-        super().__init__(reporter)
+        super().__init__()
         self._project = project
         self._project_to_create = project_to_create
-        self._projects = projects
-        self._settings_repo = settings_repo
-        self._workflows_repo = workflows_repo
-        self._annotation_classes_repo = annotation_classes_repo
-        self._backend_service = backend_service_provider
+        self._service_provider = service_provider
         self._include_annotation_classes = include_annotation_classes
         self._include_settings = include_settings
         self._include_workflow = include_workflow
         self._include_contributors = include_contributors
-
-    @property
-    def annotation_classes(self):
-        return self._annotation_classes_repo(self._backend_service, self._project)
-
-    @property
-    def settings(self):
-        return self._settings_repo(self._backend_service, self._project)
-
-    @property
-    def workflows(self):
-        return self._workflows_repo(self._backend_service, self._project)
 
     def validate_project_name(self):
         if self._project_to_create.name:
@@ -447,10 +397,8 @@ class CloneProjectUseCase(BaseReportableUseCase):
                 logger.warning(
                     "New folder name has special characters. Special characters will be replaced by underscores."
                 )
-            condition = Condition("name", self._project_to_create.name, EQ) & Condition(
-                "team_id", self._project.team_id, EQ
-            )
-            for project in self._projects.get_all(condition):
+            condition = Condition("name", self._project_to_create.name, EQ)
+            for project in self._service_provider.projects.list(condition).data:
                 if project.name == self._project_to_create.name:
                     logger.error("There are duplicated names.")
                     raise AppValidationException(
@@ -458,23 +406,22 @@ class CloneProjectUseCase(BaseReportableUseCase):
                         f"To use SDK please make project names unique."
                     )
 
-    def get_annotation_classes_repo(self, project: ProjectEntity):
-        return self._annotation_classes_repo(self._backend_service, project)
-
     def _copy_annotation_classes(
         self, annotation_classes_entity_mapping: dict, project: ProjectEntity
     ):
-        annotation_classes = self.annotation_classes.get_all()
+        annotation_classes = self._service_provider.annotation_classes.list(
+            Condition("project_id", self._project.id, EQ)
+        ).data
         for annotation_class in annotation_classes:
             annotation_class_copy = copy.copy(annotation_class)
             annotation_classes_entity_mapping[
                 annotation_class.id
-            ] = self.get_annotation_classes_repo(project).insert(annotation_class_copy)
+            ] = self._service_provider.annotation_classes.create(
+                project.id, annotation_class_copy
+            ).data
 
     def _copy_include_contributors(self, to_project: ProjectEntity):
-        from_project = self._projects.get_one(
-            uuid=self._project.id, team_id=self._project.team_id
-        )
+        from_project = self._service_provider.projects.get(uuid=self._project.id).data
         users = []
         for user in from_project.users:
             users.append(
@@ -486,40 +433,52 @@ class CloneProjectUseCase(BaseReportableUseCase):
                 {"user_id": user.get("email"), "user_role": user.get("user_role")}
             )
         if users:
-            self._backend_service.share_project_bulk(
-                to_project.id, to_project.team_id, users
-            )
+            self._service_provider.projects.share(to_project, users)
 
     def _copy_settings(self, to_project: ProjectEntity):
-        new_settings = self._settings_repo(self._backend_service, to_project)
-        for setting in self.settings.get_all():
+        new_settings = []
+        for setting in self._service_provider.projects.list_settings(
+            self._project
+        ).data:
             if setting.attribute == "WorkflowType" and not self._include_workflow:
                 continue
-            for new_setting in new_settings.get_all():
+            for new_setting in self._service_provider.projects.list_settings(
+                to_project
+            ).data:
                 if new_setting.attribute == setting.attribute:
                     setting_copy = copy.copy(setting)
                     setting_copy.id = new_setting.id
                     setting_copy.project_id = to_project.id
-                    new_settings.update(setting_copy)
+                    new_settings.append(setting_copy)
+
+        self._service_provider.projects.set_settings(to_project, new_settings)
 
     def _copy_workflow(
         self, annotation_classes_entity_mapping: dict, to_project: ProjectEntity
     ):
-        new_workflows = self._workflows_repo(self._backend_service, to_project)
-        for workflow in self.workflows.get_all():
-            existing_workflow_ids = list(map(lambda i: i.uuid, new_workflows.get_all()))
+        existing_workflow_ids = list(
+            map(
+                lambda i: i.id,
+                self._service_provider.projects.list_workflows(to_project).data,
+            )
+        )
+        for workflow in self._service_provider.projects.list_workflows(
+            self._project
+        ).data:
             workflow_data = copy.copy(workflow)
             workflow_data.project_id = to_project.id
+            if workflow.class_id not in annotation_classes_entity_mapping:
+                continue
             workflow_data.class_id = annotation_classes_entity_mapping[
                 workflow.class_id
-            ].id
-            new_workflows.insert(workflow_data)
-            workflows = new_workflows.get_all()
+            ]["id"]
+            self._service_provider.projects.set_workflow(to_project, workflow_data)
+            workflows = self._service_provider.projects.list_workflows(to_project).data
             new_workflow = next(
                 (
                     work_flow
                     for work_flow in workflows
-                    if work_flow.uuid not in existing_workflow_ids
+                    if work_flow.id not in existing_workflow_ids
                 ),
                 None,
             )
@@ -527,29 +486,30 @@ class CloneProjectUseCase(BaseReportableUseCase):
             for attribute in workflow_data.attribute:
                 for annotation_attribute in annotation_classes_entity_mapping[
                     workflow.class_id
-                ].attribute_groups:
+                ]["attribute_groups"]:
                     if (
                         attribute["attribute"]["attribute_group"]["name"]
-                        == annotation_attribute.name
+                        == annotation_attribute["name"]
                     ):
-                        for (
-                            annotation_attribute_value
-                        ) in annotation_attribute.attributes:
+                        for annotation_attribute_value in annotation_attribute[
+                            "attributes"
+                        ]:
                             if (
-                                annotation_attribute_value.name
+                                annotation_attribute_value.get("name")
                                 == attribute["attribute"]["name"]
                             ):
                                 workflow_attributes.append(
                                     {
-                                        "workflow_id": new_workflow.uuid,
-                                        "attribute_id": annotation_attribute_value.id,
+                                        "workflow_id": new_workflow.id,
+                                        "attribute_id": annotation_attribute_value[
+                                            "id"
+                                        ],
                                     }
                                 )
                                 break
             if workflow_attributes:
-                self._backend_service.set_project_workflow_attributes_bulk(
-                    project_id=to_project.id,
-                    team_id=to_project.team_id,
+                self._service_provider.projects.set_project_workflow_attributes(
+                    project=to_project,
                     attributes=workflow_attributes,
                 )
 
@@ -565,39 +525,42 @@ class CloneProjectUseCase(BaseReportableUseCase):
 
             self._project_to_create.status = constances.ProjectStatus.NotStarted.value
 
-            project = self._projects.insert(self._project_to_create)
-            self.reporter.log_info(
+            project = self._service_provider.projects.create(
+                self._project_to_create
+            ).data
+            logger.info(
                 f"Created project {self._project_to_create.name} with type"
                 f" {constances.ProjectType.get_name(self._project_to_create.type)}."
             )
+            # annotation_classes_entity_mapping = defaultdict(dict)
             annotation_classes_entity_mapping = defaultdict(AnnotationClassEntity)
             annotation_classes_created = False
             if self._include_settings:
-                self.reporter.log_info(
+                logger.info(
                     f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
                 )
                 try:
                     self._copy_settings(project)
                 except (AppException, RequestException) as e:
-                    self.reporter.log_warning(
+                    logger.info(
                         f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
                     )
-                    self.reporter.log_debug(str(e), exc_info=True)
+                    logger.debug(str(e), exc_info=True)
 
             if self._include_contributors:
-                self.reporter.log_info(
+                logger.info(
                     f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
                 )
                 try:
                     self._copy_include_contributors(project)
                 except (AppException, RequestException) as e:
-                    self.reporter.log_warning(
+                    logger.warning(
                         f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
                     )
-                    self.reporter.log_debug(str(e), exc_info=True)
+                    logger.debug(str(e), exc_info=True)
 
             if self._include_annotation_classes:
-                self.reporter.log_info(
+                logger.info(
                     f"Cloning annotation classes from {self._project.name} to {self._project_to_create.name}."
                 )
                 try:
@@ -606,90 +569,81 @@ class CloneProjectUseCase(BaseReportableUseCase):
                     )
                     annotation_classes_created = True
                 except (AppException, RequestException) as e:
-                    self.reporter.log_warning(
+                    logger.warning(
                         f"Failed to clone annotation classes from {self._project.name} to {self._project_to_create.name}."
                     )
-                    self.reporter.log_debug(str(e), exc_info=True)
+                    logger.debug(str(e), exc_info=True)
 
             if self._include_workflow:
                 if self._project.type in (
                     constances.ProjectType.DOCUMENT.value,
                     constances.ProjectType.VIDEO.value,
                 ):
-                    self.reporter.log_warning(
+                    logger.warning(
                         "Workflow copy is deprecated for "
                         f"{constances.ProjectType.get_name(self._project_to_create.type)} projects."
                     )
                 elif not annotation_classes_created:
-                    self.reporter.log_info(
+                    logger.info(
                         f"Skipping the workflow clone from {self._project.name} to {self._project_to_create.name}."
                     )
                 else:
-                    self.reporter.log_info(
+                    logger.info(
                         f"Cloning workflow from {self._project.name} to {self._project_to_create.name}."
                     )
                     try:
                         self._copy_workflow(annotation_classes_entity_mapping, project)
                     except (AppException, RequestException) as e:
-                        self.reporter.log_warning(
+                        logger.warning(
                             f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
                         )
-                        self.reporter.log_debug(str(e), exc_info=True)
+                        logger.debug(str(e), exc_info=True)
 
-            self._response.data = self._projects.get_one(
-                uuid=project.id, team_id=project.team_id
-            )
-
+            self._response.data = self._service_provider.projects.get(project.id).data
         return self._response
 
 
 class UnShareProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
-        project_entity: ProjectEntity,
+        service_provider: BaseServiceProvider,
+        project: ProjectEntity,
         user_id: str,
     ):
         super().__init__()
-        self._service = service
-        self._project_entity = project_entity
+        self._service_provider = service_provider
+        self._project = project
         self._user_id = user_id
 
     def execute(self):
-        self._response.data = self._service.un_share_project(
-            team_id=self._project_entity.team_id,
-            project_id=self._project_entity.id,
+        self._response.data = self._service_provider.projects.un_share(
+            project=self._project,
             user_id=self._user_id,
-        )
+        ).data
         logger.info(
-            f"Unshared project {self._project_entity.name} from user ID {self._user_id}"
+            f"Unshared project {self._project.name} from user ID {self._user_id}"
         )
         return self._response
 
 
 class GetSettingsUseCase(BaseUseCase):
-    def __init__(self, settings: BaseManageableRepository):
+    def __init__(self, project: ProjectEntity, service_provider: BaseServiceProvider):
         super().__init__()
-        self._settings = settings
+        self._project = project
+        self._service_provider = service_provider
 
     def execute(self):
-        self._response.data = self._settings.get_all()
+        self._response.data = self._service_provider.projects.list_settings(
+            self._project
+        ).data
         return self._response
 
 
 class GetWorkflowsUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        annotation_classes: BaseReadOnlyRepository,
-        workflows: BaseManageableRepository,
-        fill_classes=True,
-    ):
+    def __init__(self, project: ProjectEntity, service_provider: BaseServiceProvider):
         super().__init__()
         self._project = project
-        self._workflows = workflows
-        self._annotation_classes = annotation_classes
-        self._fill_classes = fill_classes
+        self._service_provider = service_provider
 
     def validate_project_type(self):
         if self._project.type in constances.LIMITED_FUNCTIONS:
@@ -700,15 +654,18 @@ class GetWorkflowsUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             data = []
-            workflows = self._workflows.get_all()
+            workflows = self._service_provider.projects.list_workflows(
+                self._project
+            ).data
             for workflow in workflows:
-                workflow_data = workflow.to_dict()
-                if self._fill_classes:
-                    annotation_classes = self._annotation_classes.get_all()
-                    for annotation_class in annotation_classes:
-                        if annotation_class.id == workflow.class_id:
-                            workflow_data["className"] = annotation_class.name
-                            break
+                workflow_data = workflow.dict()
+                annotation_classes = self._service_provider.annotation_classes.list(
+                    Condition("project_id", self._project.id, EQ)
+                ).data
+                for annotation_class in annotation_classes:
+                    if annotation_class.id == workflow.class_id:
+                        workflow_data["className"] = annotation_class.name
+                        break
                 data.append(workflow_data)
             self._response.data = data
         return self._response
@@ -717,20 +674,14 @@ class GetWorkflowsUseCase(BaseUseCase):
 class UpdateSettingsUseCase(BaseUseCase):
     def __init__(
         self,
-        projects: BaseReadOnlyRepository,
-        settings: BaseManageableRepository,
         to_update: List,
-        backend_service_provider: SuperannotateServiceProvider,
-        project_id: int,
-        team_id: int,
+        service_provider: BaseServiceProvider,
+        project: ProjectEntity,
     ):
         super().__init__()
-        self._projects = projects
-        self._settings = settings
+        self._service_provider = service_provider
         self._to_update = to_update
-        self._backend_service_provider = backend_service_provider
-        self._project_id = project_id
-        self._team_id = team_id
+        self._project = project
 
     def validate_image_quality(self):
         for setting in self._to_update:
@@ -741,9 +692,10 @@ class UpdateSettingsUseCase(BaseUseCase):
                 return
 
     def validate_project_type(self):
-        project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         for attribute in self._to_update:
-            if attribute.get("attribute", "") == "ImageQuality" and project.type in [
+            if attribute.get(
+                "attribute", ""
+            ) == "ImageQuality" and self._project.type in [
                 constances.ProjectType.VIDEO.value,
                 constances.ProjectType.DOCUMENT.value,
             ]:
@@ -753,7 +705,9 @@ class UpdateSettingsUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            old_settings = self._settings.get_all()
+            old_settings = self._service_provider.projects.list_settings(
+                self._project
+            ).data
             attr_id_mapping = {}
             for setting in old_settings:
                 attr_id_mapping[setting.attribute] = setting.id
@@ -761,31 +715,34 @@ class UpdateSettingsUseCase(BaseUseCase):
             new_settings_to_update = []
             for new_setting in self._to_update:
                 new_settings_to_update.append(
-                    {
-                        "id": attr_id_mapping[new_setting["attribute"]],
-                        "attribute": new_setting["attribute"],
-                        "value": new_setting["value"],
-                    }
+                    SettingEntity(
+                        id=attr_id_mapping[new_setting["attribute"]],
+                        attribute=new_setting["attribute"],
+                        value=new_setting["value"],
+                    )
                 )
 
-            self._response.data = self._backend_service_provider.set_project_settings(
-                project_id=self._project_id,
-                team_id=self._team_id,
+            response = self._service_provider.projects.set_settings(
+                project=self._project,
                 data=new_settings_to_update,
             )
+            if response.ok:
+                self._response.data = response.data
+            else:
+                self._response.errors = response.error
         return self._response
 
 
 class GetProjectImageCountUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         with_all_sub_folders: bool = False,
     ):
         super().__init__()
-        self._service = service
+        self._service_provider = service_provider
         self._project = project
         self._folder = folder
         self._with_all_sub_folders = with_all_sub_folders
@@ -802,9 +759,7 @@ class GetProjectImageCountUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            data = self._service.get_project_images_count(
-                project_id=self._project.id, team_id=self._project.team_id
-            )
+            data = self._service_provider.get_project_images_count(self._project).data
             count = 0
             if self._folder.name == "root":
                 count += data["images"]["count"]
@@ -813,7 +768,7 @@ class GetProjectImageCountUseCase(BaseUseCase):
                         count += i["imagesCount"]
             else:
                 for i in data["folders"]["data"]:
-                    if i["id"] == self._folder.uuid:
+                    if i["id"] == self._folder.id:
                         count = i["imagesCount"]
 
             self._response.data = count
@@ -823,16 +778,12 @@ class GetProjectImageCountUseCase(BaseUseCase):
 class SetWorkflowUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuperannotateServiceProvider,
-        annotation_classes_repo: BaseManageableRepository,
-        workflow_repo: BaseManageableRepository,
+        service_provider: BaseServiceProvider,
         steps: list,
         project: ProjectEntity,
     ):
         super().__init__()
-        self._service = service
-        self._annotation_classes_repo = annotation_classes_repo
-        self._workflow_repo = workflow_repo
+        self._service_provider = service_provider
         self._steps = steps
         self._project = project
 
@@ -844,7 +795,9 @@ class SetWorkflowUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            annotation_classes = self._annotation_classes_repo.get_all()
+            annotation_classes = self._service_provider.annotation_classes.list(
+                Condition("project_id", self._project.id, EQ)
+            ).data
             annotation_classes_map = {}
             annotations_classes_attributes_map = {}
             for annotation_class in annotation_classes:
@@ -864,15 +817,16 @@ class SetWorkflowUseCase(BaseUseCase):
                         "Annotation class not found in set_project_workflow."
                     )
 
-            self._service.set_project_workflow_bulk(
-                team_id=self._project.team_id,
-                project_id=self._project.id,
+            self._service_provider.projects.set_workflows(
+                project=self._project,
                 steps=self._steps,
             )
-            existing_workflows = self._workflow_repo.get_all()
+            existing_workflows = self._service_provider.projects.list_workflows(
+                self._project
+            ).data
             existing_workflows_map = {}
             for workflow in existing_workflows:
-                existing_workflows_map[workflow.step] = workflow.uuid
+                existing_workflows_map[workflow.step] = workflow.id
 
             req_data = []
             for step in self._steps:
@@ -892,7 +846,6 @@ class SetWorkflowUseCase(BaseUseCase):
 
                     if not existing_workflows_map.get(step["step"], None):
                         raise AppException("Couldn't find step in workflow")
-
                     req_data.append(
                         {
                             "workflow_id": existing_workflows_map[step["step"]],
@@ -901,24 +854,25 @@ class SetWorkflowUseCase(BaseUseCase):
                             ],
                         }
                     )
-
-            self._service.set_project_workflow_attributes_bulk(
-                project_id=self._project.id,
-                team_id=self._project.team_id,
+            self._service_provider.projects.set_project_workflow_attributes(
+                project=self._project,
                 attributes=req_data,
             )
         return self._response
 
 
 class GetTeamUseCase(BaseUseCase):
-    def __init__(self, teams: BaseReadOnlyRepository, team_id: int):
+    def __init__(self, service_provider: BaseServiceProvider, team_id: int):
         super().__init__()
-        self._teams = teams
+        self._service_provider = service_provider
         self._team_id = team_id
 
     def execute(self):
         try:
-            self._response.data = self._teams.get_one(self._team_id)
+            response = self._service_provider.get_team(self._team_id)
+            if not response.ok:
+                raise AppException(response.error)
+            self._response.data = response.data
         except Exception:
             raise AppException("Can't get team data.") from None
         return self._response
@@ -927,25 +881,18 @@ class GetTeamUseCase(BaseUseCase):
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
         self,
-        backend_service_provider: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
         team_id: int,
         condition: Condition = None,
     ):
         super().__init__()
-        self._backend_service = backend_service_provider
+        self._service_provider = service_provider
         self._team_id = team_id
         self._condition = condition
 
-    @property
-    def condition(self):
-        if self._condition:
-            return self._condition.build_query()
-
     def execute(self):
-        res = self._backend_service.search_team_contributors(
-            self._team_id, self.condition
-        )
-        self._response.data = res
+        res = self._service_provider.search_team_contributors(self._condition)
+        self._response.data = res.data
         return self._response
 
 
@@ -961,17 +908,26 @@ class AddContributorsToProject(BaseUserBasedUseCase):
         project: ProjectEntity,
         emails: list,
         role: str,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team
         self._project = project
         self._role = role
-        self._service = service
+        self._service_provider = service_provider
 
     @property
     def user_role(self):
         return constances.UserRole.get_value(self._role)
+
+    def validate_emails(self):
+        emails = list(set(self._emails))
+        len_unique, len_provided = len(emails), len(self._emails)
+        if len_unique < len_provided:
+            logger.info(
+                f"Dropping duplicates. Found {len_unique}/{len_provided} unique users."
+            )
+        self._emails = emails
 
     def execute(self):
         if self.is_valid():
@@ -998,15 +954,14 @@ class AddContributorsToProject(BaseUserBasedUseCase):
                     "contributors that are out of the team scope or already have access to the project."
                 )
             if to_add:
-                response = self._service.share_project_bulk(
-                    team_id=self._team.uuid,
-                    project_id=self._project.id,
+                response = self._service_provider.projects.share(
+                    project=self._project,
                     users=[
                         dict(user_id=user_id, user_role=self.user_role)
                         for user_id in to_add
                     ],
                 )
-                if response and not response.get("invalidUsers"):
+                if response and not response.data.get("invalidUsers"):
                     self.reporter.log_info(
                         f"Added {len(to_add)}/{len(self._emails)} "
                         f"contributors to the project {self._project.name} with the {self._role} role."
@@ -1026,12 +981,12 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
         team: TeamEntity,
         emails: list,
         set_admin: bool,
-        service: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team
         self._set_admin = set_admin
-        self._service = service
+        self._service_provider = service_provider
 
     def execute(self):
         if self.is_valid():
@@ -1051,13 +1006,17 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
                 )
             if to_add:
-                invited, failed = self._service.invite_contributors(
-                    team_id=self._team.uuid,
+                response = self._service_provider.invite_contributors(
+                    team_id=self._team.id,
                     # REMINDER UserRole.VIEWER is the contributor for the teams
                     team_role=constances.UserRole.ADMIN.value
                     if self._set_admin
                     else constances.UserRole.VIEWER.value,
                     emails=to_add,
+                )
+                invited, failed = (
+                    response.data["success"]["emails"],
+                    response.data["failed"]["emails"],
                 )
                 if invited:
                     self.reporter.log_info(
@@ -1080,24 +1039,21 @@ class ListSubsetsUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def validate_arguments(self):
-        response = self._backend_client.validate_saqul_query(
-            self._project.team_id, self._project.id, "_"
-        )
-        error = response.get("error")
-        if error:
-            raise AppException(response["error"])
+        response = self._service_provider.validate_saqul_query(self._project, "_")
+        if not response.ok:
+            raise AppException(response.error)
 
     def execute(self) -> Response:
         if self.is_valid():
-            sub_sets_response = self._backend_client.list_sub_sets(
-                team_id=self._project.team_id, project_id=self._project.id
+            sub_sets_response = self._service_provider.subsets.list(
+                project=self._project
             )
             if sub_sets_response.ok:
                 self._response.data = sub_sets_response.data

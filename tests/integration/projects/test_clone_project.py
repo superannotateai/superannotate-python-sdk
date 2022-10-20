@@ -75,7 +75,7 @@ class TestCloneProject(TestCase):
             ],
         )
         new_project = sa.clone_project(
-            self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
+            self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True, copy_annotation_classes=True
         )
         self.assertEqual(new_project['upload_state'], constances.UploadState.INITIAL.name)
 

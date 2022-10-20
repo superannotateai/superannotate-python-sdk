@@ -72,16 +72,3 @@ class BaseUserBasedUseCase(BaseReportableUseCase, metaclass=ABCMeta):
     def __init__(self, reporter: Reporter, emails: List[str]):
         super().__init__(reporter)
         self._emails = emails
-
-    def validate_emails(self):
-        emails_to_add = set()
-        unique_emails = [
-            email
-            for email in self._emails
-            if email not in emails_to_add and not emails_to_add.add(email)
-        ]
-        if unique_emails:
-            self.reporter.log_info(
-                f"Dropping duplicates. Found {len(unique_emails)}/{len(self._emails)} unique users."
-            )
-        self._emails = emails_to_add

@@ -1,12 +1,14 @@
 import os
-import time
 import tempfile
+import time
 from os.path import dirname
 
 import pytest
+
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestMlFuncs(BaseTestCase):
@@ -45,7 +47,6 @@ class TestMlFuncs(BaseTestCase):
             ml_model = sa.search_models(include_global=True)[0]
             model = sa.download_model(ml_model, tmp_dir)
             self.assertIsNotNone(model["name"])
-
 
 # def test_download_model(tmpdir):
 #     tmpdir = Path(tmpdir)

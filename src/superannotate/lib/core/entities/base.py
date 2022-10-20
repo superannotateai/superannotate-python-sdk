@@ -235,7 +235,8 @@ class StringDate(datetime):
 
     @classmethod
     def validate(cls, v: datetime):
-        return v.isoformat()
+        v = v.isoformat().split("+")[0] + ".000Z"
+        return v
 
 
 class SubSetEntity(BaseModel):
@@ -247,24 +248,28 @@ class SubSetEntity(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    createdAt: StringDate = Field(None, alias="createdAt")
-    updatedAt: StringDate = Field(None, alias="updatedAt")
+    createdAt: Optional[StringDate] = Field(
+        None, alias="createdAt", description="Date of creation"
+    )
+    updatedAt: Optional[StringDate] = Field(
+        None, alias="updatedAt", description="Update date"
+    )
 
 
 class BaseItemEntity(TimedBaseModel):
-    name: str
+    id: Optional[int]
+    name: Optional[str]
     path: Optional[str] = Field(
         None, description="Item’s path in SuperAnnotate project"
     )
     url: Optional[str] = Field(description="Publicly available HTTP address")
     annotator_email: Optional[str] = Field(description="Annotator email")
     qa_email: Optional[str] = Field(description="QA email")
-    annotation_status: AnnotationStatus = Field(description="Item annotation status")
+    annotation_status: Optional[AnnotationStatus] = Field(
+        None, description="Item annotation status"
+    )
     entropy_value: Optional[float] = Field(description="Priority score of given item")
-    createdAt: str = Field(description="Date of creation")
-    updatedAt: str = Field(description="Update date")
     custom_metadata: Optional[dict]
-    id: Optional[int]
 
     class Config:
         extra = Extra.allow

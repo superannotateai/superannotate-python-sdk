@@ -1,6 +1,8 @@
 from unittest import TestCase
 
+from src.superannotate import AppException
 from src.superannotate import SAClient
+
 sa = SAClient()
 
 
@@ -33,9 +35,19 @@ class TestSearchProjectVector(BaseTestCase):
     def projects(self):
         return self.PROJECT_2, self.PROJECT_1
 
+    def test_project_metadata(self):
+        project = sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE)
+        pr = sa.get_project_metadata(project['name'])
+        assert 'Z' not in pr["createdAt"]
+
     def test_create_project_without_settings(self):
         project = sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE)
         assert project["name"] == self.PROJECT_1
+
+    def test_create_project_wrong_type(self):
+        with self.assertRaisesRegexp(AppException,
+                                     "Please provide a valid project type: Vector, Pixel, Document, or Video."):
+            sa.create_project(self.PROJECT_1, "desc", "wrong_type")
 
     def test_create_project_with_settings(self):
         sa.create_project(
