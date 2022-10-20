@@ -1515,7 +1515,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param annotations:  list of annotation dictionaries corresponding to SuperAnnotate format
         :type annotations: list of dicts
 
-        :param keep_status:   If False, the annotation status will be automatically
+        :param keep_status: If False, the annotation status will be automatically
          updated to "InProgress," otherwise the current status will be kept.
         :type keep_status: bool
 
@@ -1526,9 +1526,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Response Example:
         ::
             {
-               "succeeded": [""],
-               "failed":[""],
-               "skipped": [""]
+               "succeeded": [],
+               "failed":[],
+               "skipped": []
             }
 
         """
@@ -3274,8 +3274,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param subset: a name of an existing/new subset to associate items with. New subsets will be automatically created.
         :type subset: str
 
-        :param items: – list of items metadata. Required keys are 'name' and 'path' if the 'id' key is not provided in the dict.
+        :param items: list of items metadata. Required keys are 'name' and 'path' if the 'id' key is not provided in the dict.
         :type items: list of dicts
+
+        :return: dictionary with succeeded, skipped and failed items lists.
+        :rtype: dict
 
         Request Example:
         ::
@@ -3292,7 +3295,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 subset="Brain Study - Disapproved",
                 items=queried_items
             )
-
+            # option 2
             items_list = [
                 {
                     'name': 'image_1.jpeg',
