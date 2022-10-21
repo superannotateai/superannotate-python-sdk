@@ -194,6 +194,7 @@ class DownloadExportUseCase(BaseReportableUseCase):
                 )
                 if not response.ok:
                     raise AppException(response.error)
+                export = response.data
                 export_status = export["status"]
                 if export_status in (
                     ExportStatus.ERROR.value,
@@ -201,6 +202,7 @@ class DownloadExportUseCase(BaseReportableUseCase):
                 ):
                     self.reporter.stop_spinner()
                     raise AppException("Couldn't download export.")
+                time.sleep(1)
             self.reporter.stop_spinner()
         filename = Path(export["path"]).name
         filepath = Path(destination) / filename

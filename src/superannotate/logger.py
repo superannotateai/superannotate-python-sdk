@@ -19,9 +19,7 @@ def get_default_logger():
         logger.propagate = False
         logger.setLevel(logging.INFO)
         stream_handler = logging.StreamHandler()
-        formatter = Formatter(
-            "SA-PYTHON-SDK - %(levelname)s - %(message)s"
-        )
+        formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(message)s")
         stream_handler.setFormatter(formatter)
         # logger.handlers[0] = stream_handler
         logger.addHandler(stream_handler)
@@ -35,7 +33,9 @@ def get_default_logger():
                     backupCount=5,
                     mode="a",
                 )
-                file_formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s")
+                file_formatter = Formatter(
+                    "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
+                )
                 file_handler.setFormatter(file_formatter)
                 logger.addHandler(file_handler)
         except OSError:
