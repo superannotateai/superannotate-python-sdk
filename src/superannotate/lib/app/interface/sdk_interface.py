@@ -696,7 +696,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project, folder = self.controller.get_project_folder_by_path(project)
         item = self.controller.items.get_by_name(project, folder, image_name).data
-        item.is_pinned = pin
+        item.is_pinned = int(pin)
         self.controller.items.update(
             project=project,
             item=item,

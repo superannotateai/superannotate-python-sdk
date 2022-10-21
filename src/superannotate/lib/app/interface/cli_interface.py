@@ -176,9 +176,7 @@ class CLIFacade:
     ):
         project_folder_name = project
         project_name, folder_name = split_project_path(project)
-        project = (
-            SAClient().controller.get_project_metadata(project_name=project_name).data
-        )
+        project = SAClient().controller.get_project(project_name)
         if not format:
             format = "SuperAnnotate"
         if not dataset_name and format == "COCO":
