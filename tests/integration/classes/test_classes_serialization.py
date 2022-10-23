@@ -9,7 +9,7 @@ from pydantic import parse_obj_as
 from superannotate.lib.app.serializers import BaseSerializer
 from superannotate.lib.core.entities.classes import AnnotationClassEntity
 from superannotate.lib.core.entities.classes import AttributeGroup
-from superannotate.lib.infrastructure.services import PydanticEncoder
+from superannotate.lib.infrastructure.services.http_client import PydanticEncoder
 from superannotate.lib.infrastructure.validators import wrap_error
 from tests import DATA_SET_PATH
 
@@ -53,7 +53,7 @@ class TestClassesSerializers(TestCase):
         try:
             AnnotationClassEntity(
                 name="asd", color="blue",
-                attribute_groups=[AttributeGroup(name="sad", is_multiselect="True", group_type="asd")]
+                attribute_groups=[AttributeGroup(name="sad", is_multiselect=True, group_type="asd")]
             )
         except ValidationError as e:
             assert ['group_type', 'Available', 'values', 'are:', "'radio',", "'checklist',", "'numeric',",

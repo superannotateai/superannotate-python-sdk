@@ -1,5 +1,4 @@
 from abc import ABC
-from abc import ABCMeta
 from abc import abstractmethod
 from typing import Any
 from typing import List
@@ -9,8 +8,6 @@ from typing import Union
 import boto3
 from lib.core.conditions import Condition
 from lib.core.entities import BaseEntity
-from lib.core.entities import ProjectEntity
-from lib.core.serviceproviders import SuperannotateServiceProvider
 from pydantic import BaseModel
 
 
@@ -21,10 +18,6 @@ class BaseReadOnlyRepository(ABC):
 
     @abstractmethod
     def get_all(self, condition: Optional[Condition] = None) -> List[Union[BaseModel]]:
-        raise NotImplementedError
-
-    @staticmethod
-    def dict2entity(data: dict) -> BaseModel:
         raise NotImplementedError
 
 
@@ -39,24 +32,6 @@ class BaseManageableRepository(BaseReadOnlyRepository):
     @abstractmethod
     def delete(self, uuid: Any):
         raise NotImplementedError
-
-    def bulk_delete(self, entities: List[BaseEntity]) -> bool:
-        raise NotImplementedError
-
-    @staticmethod
-    def _drop_nones(data: dict):
-        for k, v in list(data.items()):
-            if v is None:
-                del data[k]
-        return data
-
-
-class BaseProjectRelatedManageableRepository(
-    BaseManageableRepository, metaclass=ABCMeta
-):
-    def __init__(self, service: SuperannotateServiceProvider, project: ProjectEntity):
-        self._service = service
-        self._project = project
 
 
 class BaseS3Repository(BaseManageableRepository):

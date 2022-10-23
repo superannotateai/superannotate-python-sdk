@@ -5,7 +5,7 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.reporter import Reporter
 from lib.core.response import Response
-from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases import BaseReportableUseCase
 
 
@@ -15,29 +15,25 @@ class CreateCustomSchemaUseCase(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         schema: dict,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
         self._schema = schema
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def execute(self) -> Response:
-        response = self._backend_client.create_custom_schema(
-            team_id=self._project.team_id,
-            project_id=self._project.id,
+        response = self._service_provider.custom_fields.create_schema(
+            project=self._project,
             schema=self._schema,
         )
         if response.ok:
             self._response.data = response.data
         else:
-            errors = response.data.get("errors")
-            if errors:
-                separator = "\n- "
-                report = separator + separator.join(errors)
-            else:
-                report = response.error
-            self._response.errors = report
+            error = response.error
+            if isinstance(error, list):
+                error = "-" + "\n-".join(error)
+            self._response.errors = error
         return self._response
 
 
@@ -46,16 +42,15 @@ class GetCustomSchemaUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def execute(self) -> Response:
-        response = self._backend_client.get_custom_schema(
-            team_id=self._project.team_id,
-            project_id=self._project.id,
+        response = self._service_provider.custom_fields.get_schema(
+            project=self._project
         )
         if response.ok:
             self._response.data = response.data
@@ -70,26 +65,25 @@ class DeleteCustomSchemaUseCase(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         fields: List[str],
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
         self._fields = fields
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def execute(self) -> Response:
         if self._fields:
             self.reporter.log_info("Matched fields deleted from schema.")
-        response = self._backend_client.delete_custom_schema(
-            team_id=self._project.team_id,
-            project_id=self._project.id,
+        response = self._service_provider.custom_fields.delete_fields(
+            project=self._project,
             fields=self._fields,
         )
         if response.ok:
             use_case_response = GetCustomSchemaUseCase(
                 reporter=self.reporter,
                 project=self._project,
-                backend_client=self._backend_client,
+                service_provider=self._service_provider,
             ).execute()
             if use_case_response.errors:
                 self._response.errors = use_case_response.errors
@@ -109,13 +103,13 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         items: List[Dict[str, str]],
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._items = items
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def execute(self) -> Response:
         uploaded_items, failed_items = [], []
@@ -125,10 +119,9 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
         )
         with self.reporter.spinner:
             for idx in range(0, len(self._items), self.CHUNK_SIZE):
-                response = self._backend_client.upload_custom_fields(
-                    project_id=self._project.id,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
+                response = self._service_provider.custom_fields.upload_fields(
+                    project=self._project,
+                    folder=self._folder,
                     items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203
                 )
                 if not response.ok:
@@ -159,20 +152,19 @@ class DeleteCustomValuesUseCase(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         items: List[Dict[str, List[str]]],
-        backend_client: SuperannotateServiceProvider,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._items = items
-        self._backend_client = backend_client
+        self._service_provider = service_provider
 
     def execute(self) -> Response:
         for idx in range(0, len(self._items), self.CHUNK_SIZE):
-            response = self._backend_client.delete_custom_fields(
-                project_id=self._project.id,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
+            response = self._service_provider.custom_fields.delete_values(
+                project=self._project,
+                folder=self._folder,
                 items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203
             )
             if not response.ok:

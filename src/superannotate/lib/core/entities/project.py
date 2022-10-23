@@ -1,13 +1,11 @@
 import datetime
 import uuid
 from typing import Any
-from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Union
 
 from lib.core.entities.base import BaseModel
-from lib.core.entities.base import TimedBaseModel
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
@@ -18,6 +16,28 @@ from pydantic import StrictBool
 from pydantic import StrictFloat
 from pydantic import StrictInt
 from pydantic import StrictStr
+from pydantic.datetime_parse import parse_datetime
+
+
+class StringDate(datetime.datetime):
+    @classmethod
+    def __get_validators__(cls):
+        yield parse_datetime
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: datetime):
+        v = v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        return v
+
+
+class TimedBaseModel(BaseModel):
+    createdAt: Optional[StringDate] = Field(
+        None, alias="createdAt", description="Date of creation"
+    )
+    updatedAt: Optional[StringDate] = Field(
+        None, alias="updatedAt", description="Update date"
+    )
 
 
 class AttachmentEntity(BaseModel):
@@ -29,12 +49,13 @@ class AttachmentEntity(BaseModel):
 
 
 class WorkflowEntity(BaseModel):
-    uuid: Optional[int]
+    id: Optional[int]
     project_id: Optional[int]
     class_id: Optional[int]
+    className: Optional[str]
     step: Optional[int]
     tool: Optional[int]
-    attribute: Iterable = (tuple(),)
+    attribute: List = (tuple(),)
 
     def __copy__(self):
         return WorkflowEntity(step=self.step, tool=self.tool, attribute=self.attribute)
@@ -101,3 +122,47 @@ class ProjectEntity(TimedBaseModel):
             users=self.users,
             upload_state=self.upload_state,
         )
+
+
+class MLModelEntity(TimedBaseModel):
+    id: Optional[int]
+    team_id: Optional[int]
+    name: Optional[str]
+    path: Optional[str]
+    config_path: Optional[str]
+    model_type: Optional[int]
+    description: Optional[str]
+    output_path: Optional[str]
+    task: Optional[str]
+    base_model_id: Optional[int]
+    image_count: Optional[int]
+    training_status: Optional[int]
+    test_folder_ids: Optional[List[int]]
+    train_folder_ids: Optional[List[int]]
+    is_trainable: Optional[bool]
+    is_global: Optional[bool]
+    hyper_parameters: Optional[dict]
+
+    class Config:
+        extra = Extra.ignore
+
+
+class UserEntity(BaseModel):
+    id: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: Optional[str]
+    picture: Optional[str]
+    user_role: Optional[int]
+
+
+class TeamEntity(BaseModel):
+    id: Optional[int]
+    name: Optional[str]
+    description: Optional[str]
+    type: Optional[str]
+    user_role: Optional[str]
+    is_default: Optional[bool]
+    users: Optional[List[UserEntity]]
+    pending_invitations: Optional[List]
+    creator_id: Optional[str]

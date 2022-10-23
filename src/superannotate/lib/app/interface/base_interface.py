@@ -9,12 +9,12 @@ from typing import Sized
 from typing import Tuple
 
 import lib.core as constants
-from lib.app.helpers import extract_project_folder
 from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
 from lib.core.exceptions import AppException
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
+from lib.infrastructure.utils import extract_project_folder
 from mixpanel import Mixpanel
 from superannotate import __version__
 

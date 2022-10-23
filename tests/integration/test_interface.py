@@ -195,6 +195,7 @@ class TestPixelInterface(BaseTestCase):
                 )
                 pass
 
+    @pytest.mark.skip(reason="Need to adjust")
     def test_create_folder_with_special_character(self):
         with self.assertLogs() as logs:
             folder_1 = sa.create_folder(self.PROJECT_NAME, "**abc")

@@ -58,7 +58,7 @@ class Attribute(TimedBaseModel):
     id: Optional[StrictInt]
     group_id: Optional[StrictInt]
     project_id: Optional[StrictInt]
-    name: StrictStr
+    name: Optional[StrictStr]
 
     class Config:
         extra = Extra.allow
@@ -71,7 +71,7 @@ class AttributeGroup(TimedBaseModel):
     id: Optional[StrictInt]
     group_type: Optional[GroupTypeEnum]
     class_id: Optional[StrictInt]
-    name: StrictStr
+    name: Optional[StrictStr]
     is_multiselect: Optional[bool]
     attributes: Optional[List[Attribute]]
     default_value: Any

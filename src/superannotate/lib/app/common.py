@@ -71,14 +71,3 @@ def tqdm_converter(total_num, images_converted, images_not_converted, finish_eve
             else:
                 pbar.update(total_num - pbar.n)
                 break
-
-
-def get_annotation_json_name(image_name, project_type):
-    if project_type == "Vector":
-        return image_name + "___objects.json"
-    else:
-        return image_name + "___pixel.json"
-
-
-def get_annotation_png_name(image_name):
-    return image_name + "___save.png"

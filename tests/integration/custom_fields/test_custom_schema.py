@@ -1,5 +1,6 @@
 import copy
 
+from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -106,3 +107,34 @@ class TestCustomSchema(BaseTestCase):
         sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
         item = sa.get_item_metadata(self.PROJECT_NAME, item_name)
         assert "custom_metadata" not in item
+
+    def test_create_invalid(self):
+        INVALID_SCHEMA = {
+            "date": {"type": "sring", "format": "date"},
+            "date1": {"type": "string", "format": "dat"},
+            "patient_sex": {"type": "string", "enum": [2, "female"]},
+            "date_enum": {"type": "string", "format": "date", "enum": ["2022-03-29", "2022-03-29", "2022-05-29"]},
+            "date_enum1": {"type": "string", "format": "date", "enum": "2022-03-29"},
+            "date_enum2": {"type": "string", "format": "date", "enu": ["2022-03-29"]},
+            "medical_specialist": {"type": "string", "format": "email"},
+            "medical_specialist1": {"type": "string", "format": "email", "enum": ["email1@gmail.com", "2022-03-29"]},
+            "counts": {"type": "numbe"},
+            "age_min": {"type": "number", "minimum": "min"},
+            "age_range": {"type": "number", "minimum": 30, "maximum": 20, "enum": [20, 23, 120, 12.5, 0.5, -12.3]},
+            "age_enum": {"type": "number", "enum": ["string", "string1", "string2"]}
+        }
+        error_msg = (
+            "-Not supported field type for date.\n"
+            "-Spec value type of date1 is not valid.\n"
+            "-Spec value type of patient_sex is not valid.\n"
+            "-Spec values of date_enum should be unique.\n"
+            "-Spec value type of date_enum1 is not valid.\n"
+            "-Spec value type of medical_specialist1 is not valid.\n"
+            "-Not supported field type for counts.\n"
+            "-Spec value type of age_min is not valid.\n"
+            "-Maximum spec value of age_range can not be less than minimum value.\n"
+            "-Minimum spec value of age_range can not be higher than maximum value.\n"
+            "-Spec value type of age_enum is not valid."
+        )
+        with self.assertRaisesRegexp(AppException, error_msg):
+            sa.create_custom_fields(self.PROJECT_NAME, INVALID_SCHEMA)

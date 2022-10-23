@@ -40,15 +40,6 @@ class BaseSerializer(ABC):
             )
         )
 
-    def serialize_item(
-        self,
-        data: Any,
-        fields: Union[List[str], Set[str]] = None,
-        by_alias: bool = False,
-        flat: bool = False,
-    ):
-        return self._fill_enum_values(self._serialize(data, fields, by_alias, flat))
-
     @staticmethod
     def _serialize(
         entity: Any,
@@ -147,13 +138,6 @@ class ProjectSerializer(BaseSerializer):
                 contributor["user_role"] = constance.UserRole.get_name(
                     contributor["user_role"]
                 )
-        return data
-
-
-class FolderSerializer(BaseSerializer):
-    def serialize(self):
-        data = super().serialize()
-        del data["is_root"]
         return data
 
 

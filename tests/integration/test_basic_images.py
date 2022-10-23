@@ -42,6 +42,9 @@ class TestVectorAnnotationsWithTag(BaseTestCase):
         self.assertEqual(annotations['instances'][0]['type'], 'tag')
         self.assertEqual(annotations['instances'][0]['attributes'][0]['name'], '1')
         self.assertEqual(annotations['instances'][0]['attributes'][0]['groupName'], 'g1')
+        sa.pin_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, pin=True)
+        metadata = sa.get_item_metadata(self.PROJECT_NAME, item_name=self.EXAMPLE_IMAGE_1)
+        assert metadata['is_pinned'] == True
 
 
 class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):
