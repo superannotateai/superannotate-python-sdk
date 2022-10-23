@@ -1,5 +1,15 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
+## 4.4.4 - September 11, 2022
+### Updated
+- Improvements on working with large files.
+### Fixed
+- `SAClient.upload_annotations_from_folder_to_project()` _method_ to address the issue of the dissaperaing progress bar.
+- `SAClient.run_prediction()` _method_ to address the issue of the OCR model.
+- `SAClient.validate_annotations()` _method_ to address the issue of missing log messages.
+- `SAClient.create_project_from_metadata()` _method_ to address the issue of returning deprecated `is_multiselect` key.
+- `SAClient.get_annotations()` _method_ to address the issue of returning error messages as annotation dicts.
+###
 ## 4.4.2, 4.4.3 - August 21, 2022
 ### Updated
 - the **schema** of `classes JSON` to support new values for the `"group_type"` key for a given attribute group. `"group_type": "radio" | "checklist" | "text" | "numeric"`.
