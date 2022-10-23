@@ -1,5 +1,19 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
+## 4.4.5 - October 23, 2022
+### Added
+- `SAClient.add_items_to_subset` _method_ to associate given items with a Subset.
+- `SAClient.upload_annotations` _method_ to upload annotations in SA format from the system memory.
+### Updated
+- `SAClient.upload_annotations_from_folder_to_project` & `SAClient.upload_image_annotations` _methods_ to add `keep_status` argument to prevent the annotation status from changing to **In Progress** after the annotation upload.
+- Item metadata to add a new key for holding the id of an item.
+-`SAClient.upload_preannotations_from_folder_to_project` to add a deprecation warning message.
+-`SAClient.copy_image` to add a deprecation warning message.
+### Fixed
+- `SAClient.validate_annotations` _method_.
+- `SAClient.search_items`, `SAClient.get_item_metadata` _methods_ to address defects related to pydantic 1.8.2.
+- A defect related to editor to address the issue of uploading a tag instance without attributes.
+###
 ## 4.4.4 - September 11, 2022
 ### Updated
 - Improvements on working with large files.

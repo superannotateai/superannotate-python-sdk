@@ -5,7 +5,7 @@ sa = SAClient()
 
 
 class TestCreateAnnotationClass(BaseTestCase):
-    PROJECT_NAME = "TestCreateAnnotationClass"
+    PROJECT_NAME = "TestCreateAnnotationClassBED"
     PROJECT_TYPE = "Vector"
     PROJECT_DESCRIPTION = "Example "
     TEST_LARGE_CLASSES_JSON = "large_classes_json.json"

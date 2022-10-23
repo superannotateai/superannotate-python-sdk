@@ -9,7 +9,7 @@ sa = SAClient()
 
 
 class TestAnnotationUploadVector(BaseTestCase):
-    PROJECT_NAME = "Test-upload_annotations_from_folder_to_project"
+    PROJECT_NAME = "Test-Upload_annotations_from_folder_to_project"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_vector_annotations_with_tag_classes"

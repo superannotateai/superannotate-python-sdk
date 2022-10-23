@@ -2,12 +2,14 @@ import filecmp
 import os
 import tempfile
 from os.path import dirname
+
 import pytest
 
-from src.superannotate import SAClient
-sa = SAClient()
-from tests.integration.base import BaseTestCase
 from src.superannotate import AppException
+from src.superannotate import SAClient
+from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestImageQuality(BaseTestCase):
@@ -64,7 +66,6 @@ class TestImageQuality(BaseTestCase):
             )
 
 
-
 class TestPixelImageQuality(BaseTestCase):
     PROJECT_NAME = "pixel image q"
     PROJECT_DESCRIPTION = "Desc"
@@ -83,7 +84,6 @@ class TestPixelImageQuality(BaseTestCase):
             sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.BIG_IMAGE}")
         except AppException as e:
             self.assertEqual(str(e), self.MESSAGE)
-
 
 
 class TestImageQualitySetting(BaseTestCase):

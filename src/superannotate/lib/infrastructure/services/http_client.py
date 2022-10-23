@@ -78,7 +78,7 @@ class HttpClient(BaseClient):
             """
             try:
                 yield None
-            except (requests.HTTPError, ConnectionError) as exc:
+            except (requests.RequestException, ConnectionError) as exc:
                 raise AppException(f"Unknown exception: {exc}.")
 
         return safe_api
@@ -94,6 +94,7 @@ class HttpClient(BaseClient):
             response = session.send(request=prepared, verify=self._verify_ssl)
 
         if response.status_code == 404 and retried < 3:
+            time.sleep(retried * 0.1)
             return self._request(
                 url, method=method, session=session, retried=retried + 1, **kwargs
             )
