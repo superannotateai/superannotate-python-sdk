@@ -849,6 +849,7 @@ class UploadImageToProject(BaseUseCase):
 
 class UploadImagesToProject(BaseInteractiveUseCase):
     MAX_WORKERS = 10
+    LIST_NAME_CHUNK_SIZE = 500
 
     def __init__(
         self,
@@ -1023,6 +1024,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         for path in paths:
             name_path_map[Path(path).name].append(path)
 
+        CHUNK_SIZE = UploadImagesFromFolderToProject.LIST_NAME_CHUNK_SIZE
         filtered_paths = []
         duplicated_paths = []
         for file_name in name_path_map:
@@ -1030,17 +1032,22 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 duplicated_paths.append(name_path_map[file_name][1:])
             filtered_paths.append(name_path_map[file_name][0])
 
-        response = self._service_provider.items.list_by_names(
-            project=self._project,
-            folder=self._folder,
-            names=[image.split("/")[-1] for image in filtered_paths],
-        )
-        if not response.ok:
-            self._response.errors = AppException(response.error)
-            return self._response
+        image_list = []
+        for i in range(0, len(filtered_paths), CHUNK_SIZE):
+            response = self._service_provider.items.list_by_names(
+                project=self._project,
+                folder=self._folder,
+                names=[
+                    image.split("/")[-1] for image in filtered_paths[i : i + CHUNK_SIZE]
+                ],
+            )
 
+            if not response.ok:
+                raise AppException(response.error)
+            image_list.extend([image.name for image in response.data])
+
+        image_list=set(image_list)
         images_to_upload = []
-        image_list = [image.name for image in response.data]
 
         for path in filtered_paths:
             if Path(path).name not in image_list:
