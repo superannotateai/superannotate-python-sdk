@@ -1024,7 +1024,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         for path in paths:
             name_path_map[Path(path).name].append(path)
 
-        CHUNK_SIZE = UploadImagesFromFolderToProject.LIST_NAME_CHUNK_SIZE
+        CHUNK_SIZE = UploadImagesToProject.LIST_NAME_CHUNK_SIZE
         filtered_paths = []
         duplicated_paths = []
         for file_name in name_path_map:
