@@ -795,13 +795,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type users: list of str
         """
 
-        contributors = (
-            self.controller.projects.get_by_name(
-                project_name=project_name, include_contributors=True
-            )
-            .data["project"]
-            .users
+        response = self.controller.projects.get_by_name(name=project_name)
+        if response.errors:
+            raise AppException(response.errors)
+        project = response.data
+        response = self.controller.projects.get_metadata(
+            project=project, include_contributors=True
         )
+
+        if response.errors:
+            raise AppException(response.errors)
+
+        contributors = response.data.users
         verified_users = [i["user_id"] for i in contributors]
         verified_users = set(users).intersection(set(verified_users))
         unverified_contributor = set(users) - verified_users
