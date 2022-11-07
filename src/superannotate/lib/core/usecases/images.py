@@ -1593,15 +1593,14 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 attribute["groupName"] = annotation_class["attribute_groups"][
                     attribute["groupId"]
                 ]["name"]
-                if attribute["id"] not in list(
+                if attribute.get("id") in list(
                     annotation_class["attribute_groups"][attribute["groupId"]][
                         "attributes"
                     ].keys()
                 ):
-                    continue
-                attribute["name"] = annotation_class["attribute_groups"][
-                    attribute["groupId"]
-                ]["attributes"][attribute["id"]]
+                    attribute["name"] = annotation_class["attribute_groups"][
+                        attribute["groupId"]
+                    ]["attributes"][attribute["id"]]
 
     def execute(self):
         if self.is_valid():
