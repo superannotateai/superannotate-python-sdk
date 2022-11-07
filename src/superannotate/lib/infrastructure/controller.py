@@ -761,7 +761,7 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
-        http_client = HttpClient(api_url=host, token=token)
+        http_client = HttpClient(api_url=host, token=token, verify_ssl=ssl_verify)
 
         self.service_provider = ServiceProvider(http_client)
         self._team = self.get_team().data
