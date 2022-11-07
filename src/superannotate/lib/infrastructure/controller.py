@@ -997,32 +997,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def copy_image(
-        self,
-        from_project_name: str,
-        from_folder_name: str,
-        to_project_name: str,
-        to_folder_name: str,
-        image_name: str,
-        copy_annotation_status: bool = False,
-        move: bool = False,
-    ):
-        from_project = self.get_project(from_project_name)
-        to_project = self.get_project(to_project_name)
-        to_folder = self.get_folder(to_project, to_folder_name)
-        use_case = usecases.CopyImageUseCase(
-            from_project=from_project,
-            from_folder=self.get_folder(from_project, from_folder_name),
-            to_project=to_project,
-            to_folder=to_folder,
-            service_provider=self.service_provider,
-            image_name=image_name,
-            s3_repo=self.s3_repo,
-            copy_annotation_status=copy_annotation_status,
-            move=move,
-        )
-        return use_case.execute()
-
     def un_assign_folder(self, project_name: str, folder_name: str):
         project_entity = self.get_project(project_name)
         folder = self.get_folder(project_entity, folder_name)
