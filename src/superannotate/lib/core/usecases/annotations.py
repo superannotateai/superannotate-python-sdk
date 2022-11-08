@@ -409,6 +409,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
     MAX_WORKERS = 16
     CHUNK_SIZE = 100
+    CHUNK_SIZE_PATHS = 500
     CHUNK_SIZE_MB = 10 * 1024 * 1024
     STATUS_CHANGE_CHUNK_SIZE = 100
     AUTH_DATA_CHUNK_SIZE = 500
@@ -579,14 +580,27 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     @property
     def annotation_upload_data(self) -> UploadAnnotationAuthData:
-        if not self._annotation_upload_data:
-            response = self._service_provider.get_annotation_upload_data(
+        CHUNK_SIZE=UploadAnnotationsFromFolderUseCase.CHUNK_SIZE_PATHS
+
+        if self._annotation_upload_data:
+            return self._annotation_upload_data
+
+        images={}
+        for i in range(0, len(self._item_ids), CHUNK_SIZE):
+            tmp = self._service_provider.get_annotation_upload_data(
                 project=self._project,
                 folder=self._folder,
-                item_ids=self._item_ids,
+                item_ids=self._item_ids[i:i+CHUNK_SIZE],
+
             )
-            if response.ok:
-                self._annotation_upload_data = response.data
+            if not tmp.ok:
+                raise AppException(tmp.errors)
+            else:
+                images.update(tmp.data.images)
+
+        self._annotation_upload_data=tmp.data
+        self._annotation_upload_data.images=images
+
         return self._annotation_upload_data
 
     @property
