@@ -129,27 +129,6 @@ class CLIFacade:
         )
         sys.exit(0)
 
-    def upload_preannotations(
-        self, project, folder, dataset_name=None, task=None, format=None
-    ):
-        """
-        To upload preannotations from folder to project use
-        Optional argument format accepts input annotation format. It can have COCO or SuperAnnotate values.
-         If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
-        Only when COCO format is specified dataset-name and task arguments are required.
-        dataset-name specifies JSON filename (without extension) in <folder_path>.
-        task specifies the COCO task for conversion. Please see import_annotation_format for more details.
-        """
-        self._upload_annotations(
-            project=project,
-            folder=folder,
-            format=format,
-            dataset_name=dataset_name,
-            task=task,
-            pre=True,
-        )
-        sys.exit(0)
-
     def upload_annotations(
         self, project, folder, dataset_name=None, task=None, format=None
     ):
@@ -167,13 +146,10 @@ class CLIFacade:
             format=format,
             dataset_name=dataset_name,
             task=task,
-            pre=False,
         )
         sys.exit(0)
 
-    def _upload_annotations(
-        self, project, folder, format, dataset_name, task, pre=True
-    ):
+    def _upload_annotations(self, project, folder, format, dataset_name, task):
         project_folder_name = project
         project_name, folder_name = split_project_path(project)
         project = SAClient().controller.get_project(project_name)
@@ -197,14 +173,10 @@ class CLIFacade:
                     task=task,
                 )
                 annotations_path = temp_dir
-            if pre:
-                SAClient().upload_preannotations_from_folder_to_project(
-                    project_folder_name, annotations_path
-                )
-            else:
-                SAClient().upload_annotations_from_folder_to_project(
-                    project_folder_name, annotations_path
-                )
+
+            SAClient().upload_annotations_from_folder_to_project(
+                project_folder_name, annotations_path
+            )
         sys.exit(0)
 
     def attach_image_urls(
