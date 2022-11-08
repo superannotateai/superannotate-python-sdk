@@ -1282,7 +1282,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 file.seek(0)
                 data = file
             else:
-                data = open(classes_json)
+                data = open(classes_json, encoding="utf-8")
             classes_json = json.load(data)
         try:
             annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
