@@ -94,18 +94,6 @@ class TestVectorAnnotationsWithTagFolderUploadPreannotation(BaseTestCase):
     def classes_json_path(self):
         return f"{self.folder_path}/classes/classes.json"
 
-    def test_vector_annotations_with_tag_folder_upload_preannotation(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, self.classes_json_path
-        )
-        uploaded_annotations, _, _ = sa.upload_preannotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path
-        )
-        self.assertEqual(len(uploaded_annotations), 1)
-
 
 class TestPixelImages(BaseTestCase):
     PROJECT_NAME = "sample_project_pixel"

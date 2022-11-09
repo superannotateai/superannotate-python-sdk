@@ -1046,7 +1046,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 raise AppException(response.error)
             image_list.extend([image.name for image in response.data])
 
-        image_list=set(image_list)
+        image_list = set(image_list)
         images_to_upload = []
 
         for path in filtered_paths:
