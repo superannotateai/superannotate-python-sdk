@@ -20,7 +20,7 @@ SuperAnnotate Python SDK
     :target: https://github.com/superannotateai/superannotate-python-sdk/blob/master/CHANGELOG.md
     :alt: Changelog
 
-Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enables Python programmers to create software that incorporates services of the platform and effortlessly integrates SuperAnnotate into their AI process. (check out the :ref:`supported features` below).
+Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enables Python programmers to create software that incorporates services of the platform and effortlessly integrates SuperAnnotate into their AI process.
 
 Resources
 ---------------
@@ -99,8 +99,7 @@ Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_
 ) platforms.
 
 For more detailed installation steps and package usage please have a look at the `tutorial <https://superannotate.readthedocs.io/en/stable/tutorial.sdk.html>`_
-.
-.. _supported features:
+
 
 Supported Features
 ------------------
