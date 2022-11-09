@@ -1,4 +1,10 @@
-===============================
+.. image:: https://raw.githubusercontent.com/superannotateai/superannotate-python-sdk/master/docs/source/sa_logo.png
+  :width: 200
+  :alt: SuperAnnotate AI
+  :target: https://app.superannotate.com
+
+----------
+
 SuperAnnotate Python SDK
 ===============================
 
@@ -26,7 +32,7 @@ Authentication
 ---------------
 
 .. code-block:: python
-   
+
     from superannotate import SAClient
     # by environment variable SA_TOKEN
     sa_client = SAClient()
@@ -39,8 +45,9 @@ Authentication
 Using superannotate
 -------------------
 
-.. code-block:: python
+.. code-block::  python
 
+   :linenos:
     from superannotate import SAClient
     sa_client =SAClient()
     project = “Dogs”
