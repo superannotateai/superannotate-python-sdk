@@ -27,8 +27,9 @@ Resources
 
 - API Reference and User Guide available on `Read the Docs <https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html>`_
 - `Platform documentation <https://doc.superannotate.com/>`_
-Authentication
 
+
+Authentication
 ---------------
 
 .. code-block:: python
@@ -37,37 +38,36 @@ Authentication
     # by environment variable SA_TOKEN
     sa_client = SAClient()
     # by token
-    sa_client = SAClient(token=’<team token>’)
+    sa_client = SAClient(token='<team token>')
     # by config file
     # default path is ~/.superannotate/config.json
-    sa_client = SAClient(config_path=“~/.superannotate/dev_config.json”)
+    sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
 
 Using superannotate
 -------------------
 
 .. code-block::  python
 
-   :linenos:
     from superannotate import SAClient
     sa_client =SAClient()
-    project = “Dogs”
+    project = 'Dogs'
     sa_client.create_project(
         project_name=project,
-        project_description=“Test project generated via SDK”,
-        project_type=“Vector”
+        project_description='Test project generated via SDK',
+        project_type='Vector'
     )
     sa_client.create_annotation_class(
         project=project,
-        name=“dog”,
-        color=“#F9E0FA”,
-        class_type=“tag”
+        name='dog',
+        color='#F9E0FA',
+        class_type='tag'
     )
     sa_client.attach_items(
         project=project,
         attachments=[
             {
-                “url”: “https://drive.google.com/uc?export=download&id=1ipOrZNSTlPUkI_hnrW9aUD5yULqqq5Vl”,
-                “name”: “dog.jpeg”
+                'url': 'https://drive.google.com/uc?export=download&id=1ipOrZNSTlPUkI_hnrW9aUD5yULqqq5Vl',
+                'name': 'dog.jpeg'
             }
         ]
     )
@@ -75,14 +75,14 @@ Using superannotate
         project=project,
         annotations=[
             {
-                “metadata”: {“name”: “dog.jpeg”},
-                “instances”: [
-                    {“type”: “tag”, “className”: “dog”}
+                'metadata': {'name': 'dog.jpeg'},
+                'instances': [
+                    {'type': 'tag', 'className': 'dog'}
                 ]
             }
         ]
     )
-    sa_client.get_annotations(project=project, items=[“dog.jpeg”])
+    sa_client.get_annotations(project=project, items=['dog.jpeg'])
 
 Installation
 ------------
