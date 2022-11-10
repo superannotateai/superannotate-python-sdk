@@ -1,14 +1,10 @@
-.. image:: https://raw.githubusercontent.com/superannotateai/superannotate-python-sdk/master/docs/source/sa_logo.png
-  :width: 200
-  :alt: SuperAnnotate AI
-  :target: https://app.superannotate.com
-
-----------
-
+===============================
 SuperAnnotate Python SDK
 ===============================
 
 |Python| |License| |Changelog|
+
+Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enables Python programmers to create software that incorporates services of the platform and effortlessly integrates SuperAnnotate into their AI process.
 
 .. |Python| image:: https://img.shields.io/static/v1?label=python&message=3.7/3.8/3.9/3.10/3.11&color=blue&style=flat-square
     :target: https://pypi.org/project/superannotate/
@@ -20,13 +16,11 @@ SuperAnnotate Python SDK
     :target: https://github.com/superannotateai/superannotate-python-sdk/blob/master/CHANGELOG.md
     :alt: Changelog
 
-Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enables Python programmers to create software that incorporates services of the platform and effortlessly integrates SuperAnnotate into their AI process.
-
 Resources
 ---------------
 
-- API Reference and User Guide available on `Read the Docs <https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html>`_
-- `Platform documentation <https://doc.superannotate.com/>`_
+- API Reference and User Guide available on `Read the Docs <https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html>`__
+- `Platform documentation <https://doc.superannotate.com/>`__
 
 
 Authentication
@@ -34,55 +28,55 @@ Authentication
 
 .. code-block:: python
 
-    from superannotate import SAClient
-    # by environment variable SA_TOKEN
-    sa_client = SAClient()
-    # by token
-    sa_client = SAClient(token='<team token>')
-    # by config file
-    # default path is ~/.superannotate/config.json
-    sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
+    >>> from superannotate import SAClient
+        # by environment variable SA_TOKEN
+    >>> sa_client = SAClient()
+        # by token
+    >>> sa_client = SAClient(token='<team token>')
+        # by config file
+        # default path is ~/.superannotate/config.json
+    >>> sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
 
 Using superannotate
 -------------------
 
-.. code-block::  python
+.. code-block:: python
 
-    from superannotate import SAClient
-    sa_client =SAClient()
-    project = 'Dogs'
-    sa_client.create_project(
-        project_name=project,
-        project_description='Test project generated via SDK',
-        project_type='Vector'
-    )
-    sa_client.create_annotation_class(
-        project=project,
-        name='dog',
-        color='#F9E0FA',
-        class_type='tag'
-    )
-    sa_client.attach_items(
-        project=project,
-        attachments=[
-            {
-                'url': 'https://drive.google.com/uc?export=download&id=1ipOrZNSTlPUkI_hnrW9aUD5yULqqq5Vl',
-                'name': 'dog.jpeg'
-            }
-        ]
-    )
-    sa_client.upload_annotations(
-        project=project,
-        annotations=[
-            {
-                'metadata': {'name': 'dog.jpeg'},
-                'instances': [
-                    {'type': 'tag', 'className': 'dog'}
-                ]
-            }
-        ]
-    )
-    sa_client.get_annotations(project=project, items=['dog.jpeg'])
+    >>> from superannotate import SAClient
+    >>> sa_client =SAClient()
+    >>> project = 'Dogs'
+    >>> sa_client.create_project(
+            project_name=project,
+            project_description='Test project generated via SDK',
+            project_type='Vector'
+        )
+        >>> sa_client.create_annotation_class(
+            project=project,
+            name='dog',
+            color='#F9E0FA',
+            class_type='tag'
+        )
+    >>> sa_client.attach_items(
+            project=project,
+            attachments=[
+                {
+                    'url': 'https://drive.google.com/uc?export=download&id=1ipOrZNSTlPUkI_hnrW9aUD5yULqqq5Vl',
+                    'name': 'dog.jpeg'
+                }
+            ]
+        )
+    >>> sa_client.upload_annotations(
+            project=project,
+            annotations=[
+                {
+                    'metadata': {'name': 'dog.jpeg'},
+                    'instances': [
+                        {'type': 'tag', 'className': 'dog'}
+                    ]
+                }
+            ]
+        )
+    >>> sa_client.get_annotations(project=project, items=['dog.jpeg'])
 
 Installation
 ------------
@@ -95,10 +89,10 @@ SuperAnnotate python SDK is available on PyPI:
 
 
 The package officially supports Python 3.7+ and was tested under Linux and
-Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_
+Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`__
 ) platforms.
 
-For more detailed installation steps and package usage please have a look at the `tutorial <https://superannotate.readthedocs.io/en/stable/tutorial.sdk.html>`_
+For more detailed installation steps and package usage please have a look at the `tutorial <https://superannotate.readthedocs.io/en/stable/tutorial.sdk.html>`__
 
 
 Supported Features
