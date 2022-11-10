@@ -27,12 +27,12 @@ setup(
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='SuperAnnotate AI',
+    author_email='suppoort@superannotate.com',
     url='https://github.com/superannotateai/superannotate-python-sdk',
     long_description=open('README.rst').read(),
     long_description_content_type='text/markdown',
     install_requires=requirements,
     setup_requires=['wheel'],
-    description_file="README.md",
     entry_points={
         'console_scripts': ['superannotatecli = superannotate.lib.app.bin.superannotate:main']
     },
