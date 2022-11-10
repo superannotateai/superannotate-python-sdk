@@ -91,6 +91,7 @@ class DataAggregator:
         "polygon": lambda annotation: annotation["points"],
         "polyline": lambda annotation: annotation["points"],
         "cuboid": lambda annotation: annotation["points"],
+        "comment": lambda annotation: annotation["points"],
         "point": lambda annotation: {"x": annotation["x"], "y": annotation["y"]},
         "annotation_type": lambda annotation: dict(
             cx=annotation["cx"],
@@ -123,7 +124,7 @@ class DataAggregator:
                 self._annotation_suffix = PIXEL_ANNOTATION_POSTFIX
             else:
                 self._annotation_suffix = ATTACHED_VIDEO_ANNOTATION_POSTFIX
-        return self._annotation_suffix
+        return ATTACHED_VIDEO_ANNOTATION_POSTFIX
 
     def get_annotation_paths(self):
         annotations_paths = []
@@ -378,7 +379,7 @@ class DataAggregator:
 
         for annotation_path in annotations_paths:
             annotation_json = json.load(open(annotation_path))
-            parts = annotation_path.name.split(self.annotation_suffix)
+            parts = Path(annotation_path).name.split(self.annotation_suffix)
             if len(parts) != 2:
                 continue
             image_name = parts[0]
@@ -449,8 +450,8 @@ class DataAggregator:
                 attributes = annotation.get("attributes")
                 user_metadata = self.__get_user_metadata(annotation)
                 folder_name = None
-                if annotation_path.parent != Path(self.project_root):
-                    folder_name = annotation_path.parent.name
+                if Path(annotation_path).parent != Path(self.project_root):
+                    folder_name = Path(annotation_path).parent.name
                 num_added = 0
                 if not attributes:
                     annotation_dict = {
