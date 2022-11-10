@@ -40,7 +40,7 @@ Authentication
     sa_client = SAClient(token=’<team token>’)
     # by config file
     # default path is ~/.superannotate/config.json
-    sa_client = SAClient(config_path=“~/.superannotate/dev_config.json”)
+    sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
 
 Using superannotate
 -------------------
