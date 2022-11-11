@@ -42,7 +42,6 @@ ________
 .. automethod:: superannotate.SAClient.upload_videos_from_folder_to_project
 .. _ref_upload_annotations_from_folder_to_project:
 .. automethod:: superannotate.SAClient.upload_annotations_from_folder_to_project
-.. automethod:: superannotate.SAClient.upload_preannotations_from_folder_to_project
 .. automethod:: superannotate.SAClient.add_contributors_to_project
 .. automethod:: superannotate.SAClient.get_project_settings
 .. automethod:: superannotate.SAClient.set_project_default_image_quality_in_editor
@@ -107,7 +106,6 @@ ______
 .. automethod:: superannotate.SAClient.download_image
 .. automethod:: superannotate.SAClient.download_image_annotations
 .. automethod:: superannotate.SAClient.upload_image_annotations
-.. automethod:: superannotate.SAClient.copy_image
 .. automethod:: superannotate.SAClient.pin_image
 .. automethod:: superannotate.SAClient.add_annotation_bbox_to_image
 .. automethod:: superannotate.SAClient.add_annotation_point_to_image

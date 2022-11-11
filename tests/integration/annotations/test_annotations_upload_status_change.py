@@ -40,18 +40,6 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
 
     @pytest.mark.flaky(reruns=2)
     @patch("lib.infrastructure.controller.Reporter")
-    def test_upload_preannotations_from_folder_to_project__upload_status(self, reporter):
-        reporter_mock = MagicMock()
-        reporter.return_value = reporter_mock
-        sa.upload_image_to_project(self.PROJECT_NAME, join(self.folder_path, self.IMAGE_NAME))
-        sa.upload_preannotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        self.assertEqual(
-            constances.AnnotationStatus.IN_PROGRESS.name,
-            sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
-        )
-
-    @pytest.mark.flaky(reruns=2)
-    @patch("lib.infrastructure.controller.Reporter")
     def test_upload_image_annotations__upload_status(self, reporter):
         reporter_mock = MagicMock()
         reporter.return_value = reporter_mock

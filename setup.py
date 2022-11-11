@@ -17,10 +17,6 @@ requirements = []
 with open("requirements.txt") as f:
     requirements.extend(f.read().splitlines())
 
-with open('README.md') as f:
-    readme = f.read()
-
-readme = "\n".join(readme.split('\n')[2:])
 
 setup(
     name='superannotate',
@@ -31,12 +27,12 @@ setup(
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='SuperAnnotate AI',
+    author_email='suppoort@superannotate.com',
     url='https://github.com/superannotateai/superannotate-python-sdk',
-    long_description=readme,
-    long_description_content_type='text/markdown',
+    long_description=open('README.rst').read(),
+    long_description_content_type='text/x-rst',
     install_requires=requirements,
     setup_requires=['wheel'],
-    description_file="README.md",
     entry_points={
         'console_scripts': ['superannotatecli = superannotate.lib.app.bin.superannotate:main']
     },

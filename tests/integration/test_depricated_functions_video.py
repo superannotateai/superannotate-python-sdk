@@ -77,10 +77,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.upload_images_to_project(self.PROJECT_NAME, [self.image_path, ])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -94,10 +90,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.set_project_workflow(self.PROJECT_NAME, [{}])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.upload_preannotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:

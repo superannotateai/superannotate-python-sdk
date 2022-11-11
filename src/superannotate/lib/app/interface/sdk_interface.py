@@ -437,112 +437,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ]
         return [folder.name for folder in data if not folder.is_root]
 
-    def copy_image(
-        self,
-        source_project: Union[NotEmptyStr, dict],
-        image_name: NotEmptyStr,
-        destination_project: Union[NotEmptyStr, dict],
-        include_annotations: Optional[StrictBool] = False,
-        copy_annotation_status: Optional[StrictBool] = False,
-        copy_pin: Optional[StrictBool] = False,
-    ):
-        """Copy image to a project. The image's project is the same as destination
-        project then the name will be changed to <image_name>_(<num>).<image_ext>,
-        where <num> is the next available number deducted from project image list.
-
-        :param source_project: project name plus optional subfolder in the project (e.g., "project1/folder1") or
-                               metadata of the project of source project
-        :type source_project: str or dict
-        :param image_name: image name
-        :type image_name: str
-        :param destination_project: project name or metadata of the project of destination project
-        :type destination_project: str or dict
-        :param include_annotations: enables annotations copy
-        :type include_annotations: bool
-        :param copy_annotation_status: enables annotations status copy
-        :type copy_annotation_status: bool
-        :param copy_pin: enables image pin status copy
-        :type copy_pin: bool
-        """
-        warning_msg = "The SAClient.copy_image method will be deprecated with the Superannotate Python SDK 4.4.6 release"
-        warnings.warn(warning_msg, DeprecationWarning)
-        logger.warning(warning_msg)
-        source_project_name, source_folder_name = extract_project_folder(source_project)
-        destination_project_name, destination_folder_name = extract_project_folder(
-            destination_project
-        )
-        source_project_metadata = self.controller.projects.get_by_name(
-            source_project_name
-        ).data
-        destination_project_metadata = self.controller.projects.get_by_name(
-            destination_project_name
-        ).data
-
-        if destination_project_metadata.type.value in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
-        ] or source_project_metadata.type.value in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[source_project_metadata.type])
-
-        response = self.controller.copy_image(
-            from_project_name=source_project_name,
-            from_folder_name=source_folder_name,
-            to_project_name=destination_project_name,
-            to_folder_name=destination_folder_name,
-            image_name=image_name,
-            copy_annotation_status=copy_annotation_status,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        if copy_pin:
-            destination_project = self.controller.get_project(
-                destination_project_metadata
-            )
-            _folder = self.controller.get_folder(
-                destination_project, destination_folder_name
-            )
-            item = self.controller.items.get_by_name(
-                destination_project_metadata, _folder, image_name
-            ).data
-            item.is_pinned = 1
-            self.controller.items.update(
-                project=destination_project_metadata,
-                folder=_folder,
-                image_name=image_name,
-                is_pinned=1,
-            )
-        if include_annotations:
-            source_project = self.controller.get_project(source_project_name)
-            source_folder = self.controller.get_folder(
-                source_project, source_folder_name
-            )
-            source_image = self.controller.items.get_by_name(
-                source_project, source_folder, image_name
-            ).data
-            destination_project = self.controller.get_project(destination_project)
-            destination_folder = self.controller.get_folder(
-                destination_project, destination_folder_name
-            )
-            destination_image = self.controller.items.get_by_name(
-                destination_project, destination_folder, image_name
-            ).data
-            self.controller.annotation_classes.copy_multiple(
-                source_project=source_project,
-                source_folder=source_folder,
-                source_item=source_image,
-                destination_project=destination_project,
-                destination_folder=destination_folder,
-                destination_item=destination_image,
-            )
-
-        logger.info(
-            f"Copied image {source_project}/{image_name}"
-            f" to {destination_project_name}/{destination_folder_name}."
-        )
-
     def get_project_metadata(
         self,
         project: Union[NotEmptyStr, dict],
@@ -795,13 +689,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type users: list of str
         """
 
-        contributors = (
-            self.controller.projects.get_by_name(
-                project_name=project_name, include_contributors=True
-            )
-            .data["project"]
-            .users
+        response = self.controller.projects.get_by_name(name=project_name)
+        if response.errors:
+            raise AppException(response.errors)
+        project = response.data
+        response = self.controller.projects.get_metadata(
+            project=project, include_contributors=True
         )
+
+        if response.errors:
+            raise AppException(response.errors)
+
+        contributors = response.data.users
         verified_users = [i["user_id"] for i in contributors]
         verified_users = set(users).intersection(set(verified_users))
         unverified_contributor = set(users) - verified_users
@@ -1383,7 +1282,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 file.seek(0)
                 data = file
             else:
-                data = open(classes_json)
+                data = open(classes_json, encoding="utf-8")
             classes_json = json.load(data)
         try:
             annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
@@ -1611,79 +1510,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
             keep_status=keep_status,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
-
-    def upload_preannotations_from_folder_to_project(
-        self,
-        project: Union[NotEmptyStr, dict],
-        folder_path: Union[str, Path],
-        from_s3_bucket=None,
-        recursive_subfolders: Optional[StrictBool] = False,
-    ):
-        """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
-
-        The JSON files should follow specific naming convention. For Vector
-        projects they should be named "<image_filename>___objects.json" (e.g., if
-        image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
-        JSON file should be named "<image_filename>___pixel.json" and also second mask
-        image file should be present with the name "<image_name>___save.png". In both cases
-        image with <image_name> should be already present on the platform.
-
-        Existing pre-annotations will be overwritten.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param folder_path: from which folder to upload the pre-annotations
-        :type folder_path: Path-like (str or Path)
-        :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
-        :type from_s3_bucket: str
-        :param recursive_subfolders: enable recursive subfolder parsing
-        :type recursive_subfolders: bool
-
-        :return: paths to pre-annotations uploaded and could-not-upload
-        :rtype: tuple of list of strs
-        """
-        warning_msg = (
-            "The SAClient.upload_preannotations_from_folder_to_project"
-            " method will be deprecated with the Superannotate Python SDK 4.4.6 release"
-        )
-        warnings.warn(warning_msg, DeprecationWarning)
-        logger.warning(warning_msg)
-        project_name, folder_name = extract_project_folder(project)
-        project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-        project = self.controller.get_project(project_name)
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[project.type])
-        if recursive_subfolders:
-            logger.info(
-                "When using recursive subfolder parsing same name annotations in different "
-                "subfolders will overwrite each other.",
-            )
-        logger.info(
-            "The JSON files should follow a specific naming convention, matching file names already present "
-            "on the platform. Existing annotations will be overwritten"
-        )
-        annotation_paths = get_annotation_paths(
-            folder_path, from_s3_bucket, recursive_subfolders
-        )
-        logger.info(
-            f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
-        )
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
-        response = self.controller.annotations.upload_from_folder(
-            project=project,
-            folder=folder,
-            team=self.controller.team,
-            annotation_paths=annotation_paths,  # noqa: E203
-            client_s3_bucket=from_s3_bucket,
-            folder_path=folder_path,
-            is_pre_annotations=True,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -1971,6 +1797,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param error: if not None, marks annotation as error (True) or no-error (False)
         :type error: bool
         """
+        warning_msg = (
+            "The SAClient.add_annotation_bbox_to_image method will "
+            "be deprecated with the Superannotate Python SDK 4.4.7 release"
+        )
+        warnings.warn(warning_msg, DeprecationWarning)
+        logger.warning(warning_msg)
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project(project_name)
 
@@ -2035,6 +1867,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param error: if not None, marks annotation as error (True) or no-error (False)
         :type error: bool
         """
+        warning_msg = (
+            "The SAClient.add_annotation_point_to_image method will "
+            "be deprecated with the Superannotate Python SDK 4.4.7 release"
+        )
+        warnings.warn(warning_msg, DeprecationWarning)
+        logger.warning(warning_msg)
         project, folder = self.controller.get_project_folder_by_path(project)
         if project.type in [
             constants.ProjectType.VIDEO,
@@ -2091,6 +1929,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param resolved: comment resolve status
         :type resolved: bool
         """
+        warning_msg = (
+            "The SAClient.add_annotation_comment_to_image method will "
+            "be deprecated with the Superannotate Python SDK 4.4.7 release"
+        )
+        warnings.warn(warning_msg, DeprecationWarning)
+        logger.warning(warning_msg)
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.projects.get_by_name(project_name).data
         if project.type in [

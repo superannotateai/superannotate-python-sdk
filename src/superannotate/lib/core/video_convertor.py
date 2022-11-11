@@ -178,6 +178,8 @@ class VideoFrameGenerator:
         for instance in self._annotation_data["instances"]:
             instance_id = next(self.id_generator)
             annotation_type = instance["meta"]["type"]
+            if annotation_type == "comment":
+                continue
             class_name = instance["meta"].get("className")
             class_id = instance["meta"].get("classId", -1)
             for parameter in instance.get("parameters", []):
@@ -185,7 +187,7 @@ class VideoFrameGenerator:
                 interpolated_frames = {}
                 for timestamp in parameter["timestamps"]:
                     frames_mapping[
-                        int(math.ceil(timestamp["timestamp"] / self.ratio))
+                        int(math.ceil(timesstamp["timestamp"] / self.ratio))
                     ].append(timestamp)
                 frames_mapping = self.merge_first_frame(frames_mapping)
 
