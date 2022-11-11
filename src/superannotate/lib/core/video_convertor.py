@@ -187,7 +187,7 @@ class VideoFrameGenerator:
                 interpolated_frames = {}
                 for timestamp in parameter["timestamps"]:
                     frames_mapping[
-                        int(math.ceil(timestamp["timestamp"] / self.ratio))
+                        int(math.ceil(timesstamp["timestamp"] / self.ratio))
                     ].append(timestamp)
                 frames_mapping = self.merge_first_frame(frames_mapping)
 

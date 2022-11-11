@@ -30,7 +30,7 @@ setup(
     author_email='suppoort@superannotate.com',
     url='https://github.com/superannotateai/superannotate-python-sdk',
     long_description=open('README.rst').read(),
-    long_description_content_type='text/markdown',
+    long_description_content_type='text/x-rst',
     install_requires=requirements,
     setup_requires=['wheel'],
     entry_points={
