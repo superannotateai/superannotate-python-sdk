@@ -127,19 +127,6 @@ class CLITest(TestCase):
             self.assertEqual(len(list(test_dir.glob("*.jpg"))), 0)
             self.assertEqual(len(list(test_dir.glob("*.png"))), 0)
 
-    def test_vector_pre_annotation_folder_upload_download_cli(self):
-        self._create_project()
-
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
-        )
-        self.safe_run(self._cli.upload_images, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
-                      extensions="jpg",
-                      set_annotation_status="QualityCheck")
-        self.safe_run(self._cli.upload_preannotations, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
-                      format="COCO",
-                      dataset_name="instances_test")
-
     def test_vector_annotation_folder_upload_download_cli(self):
         self._create_project()
         sa.create_annotation_classes_from_classes_json(

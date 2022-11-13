@@ -1,5 +1,20 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
+
+## 4.4.6 - November 23, 2022
+### Updated
+- `SAClient.aggregate_annotations_as_df` method to aggregate "comment" type instances.
+- `SAClient.add_annotation_bbox_to_image`, `SAClient.add_annotation_point_to_image`, `SAClient.add_annotation_comment_to_image` _methods_ to add deprecation warnings.
+### Fixed
+- Special characters are being encoded after annotation upload (Windows)
+- `SAClient.assign_folder` _method_ to address the invalid argument name.
+- `SAClient.upload_images_from_folder_to_project` _method_ to address uploading of more than 500 items.
+- `SAClient.upload_annotations_from_folder_to_project` _method_ to address the issue of a folder size being more than 25,5 MB.
+- `SAClient.download_image` _method_ to address the KeyError 'id' when `include_annotations` is set to `True`.
+### Removed
+`SAClient.upload_preannotations_from_folder_to_project` _method_
+`SAClient.copy_image` _method_
+###
 ## 4.4.5 - October 23, 2022
 ### Added
 - `SAClient.add_items_to_subset` _method_ to associate given items with a Subset.

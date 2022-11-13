@@ -178,6 +178,8 @@ class VideoFrameGenerator:
         for instance in self._annotation_data["instances"]:
             instance_id = next(self.id_generator)
             annotation_type = instance["meta"]["type"]
+            if annotation_type == "comment":
+                continue
             class_name = instance["meta"].get("className")
             class_id = instance["meta"].get("classId", -1)
             for parameter in instance.get("parameters", []):

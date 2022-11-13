@@ -45,23 +45,3 @@ class TestAnnotationUpload(BaseTestCase):
                 ]
             )
         )
-
-    def test_missing_pre_annotation_upload(self):
-
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="NotStarted"
-        )
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
-        )
-        (
-            uploaded,
-            could_not_upload,
-            missing_images,
-        ) = sa.upload_preannotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path
-        )
-        self.assertEqual(len(uploaded), 3)
-        self.assertEqual(len(could_not_upload), 0)
-        self.assertEqual(len(missing_images), 1)
-
