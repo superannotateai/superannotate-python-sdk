@@ -268,6 +268,7 @@ class TestFolders(BaseTestCase):
     def test_search_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
-        folders = sa.search_folders(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        folders = sa.search_folders(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1, return_metadata=True)
         assert len(folders) == 1
         assert folders[0] == self.TEST_FOLDER_NAME_1
+        assert folders[0]['status'] == 'NotStarted'

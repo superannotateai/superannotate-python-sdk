@@ -1,0 +1,308 @@
+[
+    {
+        "createdAt": "2022-08-16T06:36:40.000Z",
+        "updatedAt": "2022-11-23T07:43:46.000Z",
+        "id": 2012407,
+        "project_id": 214122,
+        "type": "tag",
+        "name": "class_tag",
+        "color": "#68527D",
+        "attribute_groups": [
+            {
+                "createdAt": "2022-08-16T06:36:40.000Z",
+                "updatedAt": "2022-08-16T06:36:40.000Z",
+                "id": 2086145,
+                "group_type": "checklist",
+                "class_id": 2012407,
+                "name": "tag_group",
+                "attributes": [
+                    {
+                        "createdAt": "2022-08-16T06:36:40.000Z",
+                        "updatedAt": "2022-08-16T06:36:40.000Z",
+                        "id": 4690051,
+                        "group_id": 2086145,
+                        "project_id": 214122,
+                        "name": "atr_group1",
+                        "default": 1,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-08-16T06:36:40.000Z",
+                        "updatedAt": "2022-08-16T06:36:40.000Z",
+                        "id": 4690052,
+                        "group_id": 2086145,
+                        "project_id": 214122,
+                        "name": "atr_group2",
+                        "default": 0,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-08-16T06:36:40.000Z",
+                        "updatedAt": "2022-08-16T06:36:40.000Z",
+                        "id": 4690053,
+                        "group_id": 2086145,
+                        "project_id": 214122,
+                        "name": "atr_group3",
+                        "default": 1,
+                        "count": 0
+                    }
+                ],
+                "default_value": [
+                    "atr_group1",
+                    "atr_group3"
+                ]
+            },
+            {
+                "createdAt": "2022-11-23T07:43:46.000Z",
+                "updatedAt": "2022-11-23T07:43:46.000Z",
+                "id": 3077617,
+                "group_type": "text",
+                "class_id": 2012407,
+                "name": "text_group_tag",
+                "attributes": []
+            },
+            {
+                "createdAt": "2022-11-23T07:43:46.000Z",
+                "updatedAt": "2022-11-23T07:43:46.000Z",
+                "id": 3077618,
+                "group_type": "numeric",
+                "class_id": 2012407,
+                "name": "numeric_group_tag",
+                "attributes": []
+            }
+        ],
+        "count": 0
+    },
+    {
+        "createdAt": "2022-06-29T12:12:17.000Z",
+        "updatedAt": "2022-11-23T07:43:07.000Z",
+        "id": 1820068,
+        "project_id": 214122,
+        "type": "object",
+        "name": "car",
+        "color": "#99C73D",
+        "attribute_groups": [
+            {
+                "createdAt": "2022-06-29T12:12:17.000Z",
+                "updatedAt": "2022-06-29T12:12:17.000Z",
+                "id": 1752336,
+                "group_type": "checklist",
+                "class_id": 1820068,
+                "name": "movement",
+                "attributes": [
+                    {
+                        "createdAt": "2022-06-29T12:12:17.000Z",
+                        "updatedAt": "2022-06-29T12:12:17.000Z",
+                        "id": 4014861,
+                        "group_id": 1752336,
+                        "project_id": 214122,
+                        "name": "goes",
+                        "default": 0,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-06-29T12:12:17.000Z",
+                        "updatedAt": "2022-06-29T12:12:17.000Z",
+                        "id": 4014862,
+                        "group_id": 1752336,
+                        "project_id": 214122,
+                        "name": "stops",
+                        "default": 0,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-08-16T07:22:59.000Z",
+                        "updatedAt": "2022-08-16T07:22:59.000Z",
+                        "id": 4690070,
+                        "group_id": 1752336,
+                        "project_id": 214122,
+                        "name": "off",
+                        "default": 0,
+                        "count": 0
+                    }
+                ],
+                "default_value": []
+            },
+            {
+                "createdAt": "2022-06-29T12:12:17.000Z",
+                "updatedAt": "2022-06-29T12:12:17.000Z",
+                "id": 1752337,
+                "group_type": "radio",
+                "class_id": 1820068,
+                "name": "lights",
+                "attributes": [
+                    {
+                        "createdAt": "2022-06-29T12:12:17.000Z",
+                        "updatedAt": "2022-06-29T12:12:17.000Z",
+                        "id": 4014863,
+                        "group_id": 1752337,
+                        "project_id": 214122,
+                        "name": "lights_on",
+                        "default": 0,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-06-29T12:12:17.000Z",
+                        "updatedAt": "2022-06-29T12:12:17.000Z",
+                        "id": 4014864,
+                        "group_id": 1752337,
+                        "project_id": 214122,
+                        "name": "lights_off",
+                        "default": 0,
+                        "count": 0
+                    }
+                ],
+                "default_value": null
+            },
+            {
+                "createdAt": "2022-11-23T07:43:07.000Z",
+                "updatedAt": "2022-11-23T07:43:07.000Z",
+                "id": 3077615,
+                "group_type": "text",
+                "class_id": 1820068,
+                "name": "text_group",
+                "attributes": []
+            },
+            {
+                "createdAt": "2022-11-23T07:43:07.000Z",
+                "updatedAt": "2022-11-23T07:43:07.000Z",
+                "id": 3077616,
+                "group_type": "numeric",
+                "class_id": 1820068,
+                "name": "numeric group",
+                "attributes": []
+            }
+        ],
+        "count": 0
+    },
+    {
+        "createdAt": "2022-06-29T12:12:17.000Z",
+        "updatedAt": "2022-08-16T07:24:29.000Z",
+        "id": 1820067,
+        "project_id": 214122,
+        "type": "object",
+        "name": "tree",
+        "color": "#DB5FA6",
+        "attribute_groups": [
+            {
+                "createdAt": "2022-06-29T12:12:17.000Z",
+                "updatedAt": "2022-06-29T12:12:17.000Z",
+                "id": 1752335,
+                "group_type": "checklist",
+                "class_id": 1820067,
+                "name": "state",
+                "attributes": [
+                    {
+                        "createdAt": "2022-06-29T12:12:17.000Z",
+                        "updatedAt": "2022-06-29T12:12:17.000Z",
+                        "id": 4014859,
+                        "group_id": 1752335,
+                        "project_id": 214122,
+                        "name": "standing",
+                        "default": 0,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-06-29T12:12:17.000Z",
+                        "updatedAt": "2022-06-29T12:12:17.000Z",
+                        "id": 4014860,
+                        "group_id": 1752335,
+                        "project_id": 214122,
+                        "name": "falling",
+                        "default": 0,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-08-16T07:24:30.000Z",
+                        "updatedAt": "2022-08-16T07:24:30.000Z",
+                        "id": 4690075,
+                        "group_id": 1752335,
+                        "project_id": 214122,
+                        "name": "down",
+                        "default": 0,
+                        "count": 0
+                    }
+                ],
+                "default_value": []
+            }
+        ],
+        "count": 0
+    },
+    {
+        "createdAt": "2022-03-31T13:06:42.000Z",
+        "updatedAt": "2022-03-31T13:06:42.000Z",
+        "id": 1645591,
+        "project_id": 214122,
+        "type": "object",
+        "name": "class3",
+        "color": "#AF0FF1",
+        "attribute_groups": [],
+        "count": 0
+    },
+    {
+        "createdAt": "2022-03-31T13:06:34.000Z",
+        "updatedAt": "2022-03-31T13:06:34.000Z",
+        "id": 1645590,
+        "project_id": 214122,
+        "type": "object",
+        "name": "class2",
+        "color": "#F37A77",
+        "attribute_groups": [],
+        "count": 0
+    },
+    {
+        "createdAt": "2022-03-31T13:06:29.000Z",
+        "updatedAt": "2022-08-10T11:53:48.000Z",
+        "id": 1645589,
+        "project_id": 214122,
+        "type": "tag",
+        "name": "class1",
+        "color": "#FDDC1C",
+        "attribute_groups": [
+            {
+                "createdAt": "2022-08-10T11:53:48.000Z",
+                "updatedAt": "2022-08-10T11:53:48.000Z",
+                "id": 1941208,
+                "group_type": "checklist",
+                "class_id": 1645589,
+                "name": "atr_group_tag",
+                "attributes": [
+                    {
+                        "createdAt": "2022-08-10T11:53:48.000Z",
+                        "updatedAt": "2022-08-10T11:53:48.000Z",
+                        "id": 4396132,
+                        "group_id": 1941208,
+                        "project_id": 214122,
+                        "name": "atr1",
+                        "default": 1,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-08-10T11:53:48.000Z",
+                        "updatedAt": "2022-08-10T11:53:48.000Z",
+                        "id": 4396133,
+                        "group_id": 1941208,
+                        "project_id": 214122,
+                        "name": "atr2",
+                        "default": 0,
+                        "count": 0
+                    },
+                    {
+                        "createdAt": "2022-08-10T11:53:48.000Z",
+                        "updatedAt": "2022-08-10T11:53:48.000Z",
+                        "id": 4396134,
+                        "group_id": 1941208,
+                        "project_id": 214122,
+                        "name": "atr3",
+                        "default": 0,
+                        "count": 0
+                    }
+                ],
+                "default_value": [
+                    "atr1"
+                ]
+            }
+        ],
+        "count": 0
+    }
+]

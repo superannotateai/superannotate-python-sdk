@@ -62,59 +62,6 @@ class TestFolders(TestCase):
     def pixel_classes_json(self):
         return f"{self.pixel_folder_path}/classes/classes.json"
 
-    @pytest.mark.flaky(reruns=3)
-    def test_fuse_image_create_vector(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir = pathlib.Path(temp_dir)
-
-            sa.upload_image_to_project(
-                self.VECTOR_PROJECT_NAME,
-                f"{self.vector_folder_path}/{self.EXAMPLE_IMAGE_1}",
-                annotation_status="QualityCheck",
-            )
-
-            sa.create_annotation_classes_from_classes_json(
-                self.VECTOR_PROJECT_NAME, self.vector_classes_json
-            )
-            sa.upload_image_annotations(
-                project=self.VECTOR_PROJECT_NAME,
-                image_name=self.EXAMPLE_IMAGE_1,
-                annotation_json=f"{self.vector_folder_path}/{self.EXAMPLE_IMAGE_1}___objects.json",
-            )
-
-            sa.add_annotation_bbox_to_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                [20, 20, 40, 40],
-                "Human",
-            )
-            sa.add_annotation_point_to_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                [400, 400],
-                "Personal vehicle",
-            )
-            export = sa.prepare_export(self.VECTOR_PROJECT_NAME, include_fuse=True)
-            (temp_dir / "export").mkdir()
-            sa.download_export(self.VECTOR_PROJECT_NAME, export, (temp_dir / "export"))
-
-            paths = sa.download_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                temp_dir,
-                include_annotations=True,
-                include_fuse=True,
-                include_overlay=True,
-            )
-            im1 = Image.open(temp_dir / "export" / f"{self.EXAMPLE_IMAGE_1}___fuse.png")
-            im1_array = np.array(im1)
-
-            im2 = Image.open(paths[2][0])
-            im2_array = np.array(im2)
-
-            self.assertEqual(im1_array.shape, im2_array.shape)
-            self.assertEqual(im1_array.dtype, im2_array.dtype)
-
     def test_fuse_image_create_pixel(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir = pathlib.Path(temp_dir)

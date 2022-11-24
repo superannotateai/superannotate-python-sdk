@@ -513,6 +513,8 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 service_provider=self._service_provider,
             )
             errors = use_case.execute().data
+            logger.debug("Invalid json data")
+            logger.debug("\n".join(["-".join(i) for i in use_case.execute().data if i]))
         if errors:
             raise AppException(errors)
 

@@ -108,6 +108,14 @@ class ProjectStatus(BaseTitledEnum):
     OnHold = "OnHold", 4
 
 
+class FolderStatus(BaseTitledEnum):
+    Undefined = "Undefined", 0
+    NotStarted = "NotStarted", 1
+    InProgress = "InProgress", 2
+    Completed = "Completed", 3
+    OnHold = "OnHold", 4
+
+
 class ExportStatus(BaseTitledEnum):
     IN_PROGRESS = "inProgress", 1
     COMPLETE = "complete", 2

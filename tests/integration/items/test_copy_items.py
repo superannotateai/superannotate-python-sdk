@@ -54,25 +54,6 @@ class TestCopyItems(BaseTestCase):
         skipped_items = sa.copy_items(f"{self.PROJECT_NAME}", f"{self.PROJECT_NAME}/{self.FOLDER_1}")
         assert len(skipped_items) == 7
 
-    def test_copy_item_with_annotations(self):
-        uploaded, _, _ = sa.attach_items(
-            self.PROJECT_NAME, [
-                {"url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-                 "name": self.IMAGE_NAME}
-            ]
-        )
-        assert len(uploaded) == 1
-        sa.create_annotation_class(self.PROJECT_NAME, "test_class", "#FF0000")
-        sa.add_annotation_bbox_to_image(self.PROJECT_NAME, self.IMAGE_NAME, [1, 2, 3, 4], "test_class")
-        sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
-        skipped_items = sa.copy_items(
-            self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}", include_annotations=True
-        )
-        annotations = sa.get_annotations(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
-        assert len(annotations) == 1
-        assert len(skipped_items) == 0
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 1
-
     def test_copy_items_wrong_items_list(self):
         uploaded, _, _ = sa.attach_items(
             self.PROJECT_NAME, [
