@@ -1,3 +1,4 @@
+import json
 import os
 
 from tests import DATA_SET_PATH
@@ -27,6 +28,9 @@ class TestUploadVideoFreNumAnnotation(BaseTestCase):
         )
         (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path)
-        self.assertEqual(len(uploaded_annotations), 0)
-        self.assertEqual(len(failed_annotations), 1)
+        self.assertEqual(len(uploaded_annotations), 1)
+        self.assertEqual(len(failed_annotations), 0)
         self.assertEqual(len(missing_annotations), 0)
+        annotation = sa.get_annotations(self.PROJECT_NAME)[0]
+        local_annotation = json.load(open(os.path.join(self.folder_path, (self.ITEM_NAME + ".json"))))
+        assert len(annotation['instances']) == len(local_annotation['instances'])

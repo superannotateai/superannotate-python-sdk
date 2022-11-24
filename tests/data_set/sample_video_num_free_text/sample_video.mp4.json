@@ -1,26 +1,25 @@
 {
   "metadata": {
     "name": "Go_out_avi.avi",
-    "duration": 160440000,
-    "annotatorEmail": "automation_sa@mailinator.com",
-    "error": false,
+    "width": 480,
     "height": 360,
+    "status": "InProgress",
+    "url": "videos/videos/Go_out_avi.avi",
+    "duration": 160440000,
+    "projectId": 214122,
+    "error": false,
+    "annotatorEmail": "automation_sa@mailinator.com",
+    "qaEmail": "test_automation1@mailinator.com",
     "lastAction": {
       "timestamp": 1669189913059,
       "email": "arturn@superannotate.com"
-    },
-    "projectId": 214122,
-    "qaEmail": "test_automation1@mailinator.com",
-    "status": "InProgress",
-    "url": "videos/videos/Go_out_avi.avi",
-    "width": 480
+    }
   },
   "instances": [
     {
       "meta": {
         "type": "bbox",
-        "classId": 1820068,
-        "className": "car",
+        "pointLabels": {},
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -31,9 +30,10 @@
           "role": "Admin"
         },
         "updatedAt": "2022-11-23T07:51:12.500Z",
+        "classId": 1820068,
+        "className": "car",
         "start": 72377,
-        "end": 2270513,
-        "pointLabels": {}
+        "end": 2270513
       },
       "parameters": [
         {
@@ -167,8 +167,10 @@
     {
       "meta": {
         "type": "bbox",
-        "classId": 1820068,
-        "className": "car",
+        "pointLabels": {
+          "0": "testlabel",
+          "2": "label2"
+        },
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -179,12 +181,10 @@
           "role": "Admin"
         },
         "updatedAt": "2022-11-23T07:48:01.953Z",
+        "classId": 1820068,
+        "className": "car",
         "start": 15967742,
-        "end": 26167742,
-        "pointLabels": {
-          "0": "testlabel",
-          "2": "label2"
-        }
+        "end": 26167742
       },
       "parameters": [
         {
@@ -228,8 +228,6 @@
     {
       "meta": {
         "type": "point",
-        "classId": 1645591,
-        "className": "class3",
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -240,6 +238,8 @@
           "role": "Admin"
         },
         "updatedAt": "2022-07-04T10:49:10.454Z",
+        "classId": 1645591,
+        "className": "class3",
         "start": 2154547,
         "end": 3836690
       },
@@ -273,8 +273,6 @@
     {
       "meta": {
         "type": "event",
-        "classId": 1645591,
-        "className": "class3",
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -285,6 +283,8 @@
           "role": "Admin"
         },
         "updatedAt": "2022-07-04T10:49:10.455Z",
+        "classId": 1645591,
+        "className": "class3",
         "start": 5131014,
         "end": 6517905
       },
@@ -308,8 +308,6 @@
     {
       "meta": {
         "type": "polygon",
-        "classId": 1820067,
-        "className": "tree",
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -320,6 +318,8 @@
           "role": "Admin"
         },
         "updatedAt": "2022-10-18T11:21:20.267Z",
+        "classId": 1820067,
+        "className": "tree",
         "start": 11704101,
         "end": 19463671
       },
@@ -404,8 +404,6 @@
     {
       "meta": {
         "type": "polyline",
-        "classId": 1820067,
-        "className": "tree",
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -416,6 +414,8 @@
           "role": "Admin"
         },
         "updatedAt": "2022-10-18T11:23:40.500Z",
+        "classId": 1820067,
+        "className": "tree",
         "start": 8616210,
         "end": 12391405
       },
@@ -500,8 +500,6 @@
     {
       "meta": {
         "type": "point",
-        "classId": 1820067,
-        "className": "tree",
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -512,6 +510,8 @@
           "role": "Admin"
         },
         "updatedAt": "2022-11-09T14:55:50.645Z",
+        "classId": 1820067,
+        "className": "tree",
         "start": 28737304,
         "end": 45725853
       },
@@ -630,8 +630,6 @@
     {
       "meta": {
         "type": "tag",
-        "classId": 1645589,
-        "className": "class1",
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -642,6 +640,8 @@
           "role": "Admin"
         },
         "updatedAt": "2022-08-10T11:54:37.707Z",
+        "classId": 1645589,
+        "className": "class1",
         "attributes": [
           {
             "id": 4396132,
@@ -655,8 +655,6 @@
     {
       "meta": {
         "type": "tag",
-        "classId": 2012407,
-        "className": "class_tag",
         "createdBy": {
           "email": "arturn@superannotate.com",
           "role": "Admin"
@@ -667,15 +665,17 @@
           "role": "Admin"
         },
         "updatedAt": "2022-11-23T07:51:53.052Z",
+        "classId": 2012407,
+        "className": "class_tag",
         "attributes": [
           {
+            "name": 3,
             "groupId": 3077618,
-            "name": "",
             "groupName": "numeric_group_tag"
           },
           {
+            "name": "text_tag",
             "groupId": 3077617,
-            "name": "",
             "groupName": "text_group_tag"
           },
           {
@@ -706,8 +706,7 @@
           "role": "Admin"
         },
         "updatedAt": "2022-11-09T14:26:35.123Z",
-        "start": 9801951,
-        "end": 12240000,
+        "resolved": true,
         "correspondence": [
           {
             "email": "arturn@superannotate.com",
@@ -722,7 +721,8 @@
             "createdAt": "2022-11-09T14:26:32.861Z"
           }
         ],
-        "resolved": true
+        "start": 9801951,
+        "end": 12240000
       },
       "parameters": [
         {
@@ -773,8 +773,7 @@
           "role": "Admin"
         },
         "updatedAt": "2022-11-09T13:30:49.326Z",
-        "start": 24231219,
-        "end": 30152195,
+        "resolved": false,
         "correspondence": [
           {
             "email": "arturn@superannotate.com",
@@ -783,7 +782,8 @@
             "createdAt": "2022-11-09T13:30:26.194Z"
           }
         ],
-        "resolved": true
+        "start": 24231219,
+        "end": 30152195
       },
       "parameters": [
         {

@@ -150,7 +150,7 @@ async def upload_small_annotations(
                 for i in chunk:
                     callback(i)
         except Exception:
-            logger.debug(traceback.format_exc())
+            logger.debug(traceback.print_exc())
             failed_annotations.extend([i.item.name for i in chunk])
         finally:
             report.failed_annotations.extend(failed_annotations)
@@ -513,9 +513,10 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 service_provider=self._service_provider,
             )
             errors = use_case.execute().data
-            logger.debug("Invalid json data")
-            logger.debug("\n".join(["-".join(i) for i in use_case.execute().data if i]))
+
         if errors:
+            logger.debug("Invalid json data")
+            logger.debug("\n".join(["-".join(i) for i in errors]))
             raise AppException(errors)
 
         annotation = UploadAnnotationUseCase.set_defaults(

@@ -1,61 +1,52 @@
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 
 from src.superannotate import SAClient
+from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
-
 
 sa = SAClient()
 
 
 class TestUploadVideoAnnotation(BaseTestCase):
     PROJECT_NAME = "video annotation upload"
-    PATH_TO_URLS = "data_set/attach_video_for_annotation.csv"
+    PATH_TO_URLS = "attach_video_for_annotation.csv"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Video"
-    ANNOTATIONS_PATH = "data_set/video_annotation"
-    ANNOTATIONS_WITHOUT_CLASSES_PATH = "data_set/annotations"
-    CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
-    ANNOTATIONS_PATH_INVALID_JSON = "data_set/video_annotation_invalid_json"
-    MINIMAL_ANNOTATION_PATH = "data_set/video_annotation_minimal_fields"
-    MINIMAL_ANNOTATION_TRUTH_PATH = "data_set/minimal_video_annotation_truth"
+    ANNOTATIONS_PATH = "video_annotation"
+    ANNOTATIONS_WITHOUT_CLASSES_PATH = "annotations"
+    CLASSES_PATH = "video_annotation/classes/classes.json"
+    ANNOTATIONS_PATH_INVALID_JSON = "video_annotation_invalid_json"
+    MINIMAL_ANNOTATION_PATH = "video_annotation_minimal_fields"
+    MINIMAL_ANNOTATION_TRUTH_PATH = "minimal_video_annotation_truth"
 
     maxDiff = None
 
     @property
     def minimal_annotation_truth_path(self):
-        return os.path.join(self.folder_path, self.MINIMAL_ANNOTATION_TRUTH_PATH)
-
-    @property
-    def folder_path(self):
-        return Path(__file__).parent.parent.parent
+        return os.path.join(DATA_SET_PATH, self.MINIMAL_ANNOTATION_TRUTH_PATH)
 
     @property
     def csv_path(self):
-        return os.path.join(self.folder_path, self.PATH_TO_URLS)
+        return os.path.join(DATA_SET_PATH, self.PATH_TO_URLS)
 
     @property
     def annotations_path(self):
-        return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
-
-    @property
-    def minimal_annotations_path(self):
-        return os.path.join(self.folder_path, self.MINIMAL_ANNOTATION_PATH)
+        return os.path.join(DATA_SET_PATH, self.ANNOTATIONS_PATH)
 
     @property
     def annotations_without_classes(self):
-        return os.path.join(self.folder_path, self.ANNOTATIONS_WITHOUT_CLASSES_PATH)
+        return os.path.join(DATA_SET_PATH, self.ANNOTATIONS_WITHOUT_CLASSES_PATH)
 
     @property
     def invalid_annotations_path(self):
-        return os.path.join(self.folder_path, self.ANNOTATIONS_PATH_INVALID_JSON)
+        return os.path.join(DATA_SET_PATH, self.ANNOTATIONS_PATH_INVALID_JSON)
 
     @property
     def classes_path(self):
-        return os.path.join(self.folder_path, self.CLASSES_PATH)
+        return os.path.join(DATA_SET_PATH, self.CLASSES_PATH)
 
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
