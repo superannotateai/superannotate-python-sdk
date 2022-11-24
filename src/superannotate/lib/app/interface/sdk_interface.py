@@ -327,7 +327,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if res.data:
             folder = res.data
             logger.info(f"Folder {folder.name} created in project {project.name}")
-            return folder.dict()
+            return FolderSerializer(folder).serialize(
+                    exclude={"completedCount", "is_root"}
+                )
         if res.errors:
             raise AppException(res.errors)
 
