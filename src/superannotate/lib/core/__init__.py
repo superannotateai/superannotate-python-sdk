@@ -2,6 +2,7 @@ from os.path import expanduser
 
 from superannotate.lib.core.config import Config
 from superannotate.lib.core.enums import AnnotationStatus
+from superannotate.lib.core.enums import FolderStatus
 from superannotate.lib.core.enums import ImageQuality
 from superannotate.lib.core.enums import ProjectStatus
 from superannotate.lib.core.enums import ProjectType
@@ -105,6 +106,7 @@ USE_VALIDATE_MESSAGE = (
 INVALID_JSON_MESSAGE = "Invalid json"
 
 __alL__ = (
+    FolderStatus,
     ProjectStatus,
     ProjectType,
     UserRole,

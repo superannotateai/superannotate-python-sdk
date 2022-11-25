@@ -267,8 +267,12 @@ class TestFolders(BaseTestCase):
 
     def test_search_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        time.sleep(1)
         folders = sa.search_folders(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1, return_metadata=True)
         assert len(folders) == 1
         assert folders[0]['name'] == self.TEST_FOLDER_NAME_1
         assert folders[0]['status'] == 'NotStarted'
+        folders = sa.search_folders(self.PROJECT_NAME, status='Completed', return_metadata=True)
+        assert len(folders) == 0
+        folders = sa.search_folders(self.PROJECT_NAME, status='Undefined', return_metadata=True)
+        assert len(folders) == 0

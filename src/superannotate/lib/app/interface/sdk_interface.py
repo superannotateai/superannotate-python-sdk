@@ -328,8 +328,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder = res.data
             logger.info(f"Folder {folder.name} created in project {project.name}")
             return FolderSerializer(folder).serialize(
-                    exclude={"completedCount", "is_root"}
-                )
+                exclude={"completedCount", "is_root"}
+            )
         if res.errors:
             raise AppException(res.errors)
 
@@ -432,7 +432,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             condition &= Condition("includeUsers", return_metadata, EQ)
         if status:
             condition &= Condition(
-                "status", constants.ProjectStatus.get_value(status), EQ
+                "status", constants.FolderStatus.get_value(status), EQ
             )
         response = self.controller.folders.list(project, condition)
         if response.errors:
@@ -539,6 +539,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param name_contains:  search string. Returns those classes,
          where the given string is found anywhere within its name. If None, all annotation classes will be returned.
         :type name_contains: str

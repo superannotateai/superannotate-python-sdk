@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from src.superannotate.lib.core.conditions import Condition
+import src.superannotate.lib.core as constants
 from src.superannotate.lib.core.conditions import CONDITION_EQ
 from src.superannotate.lib.core.conditions import CONDITION_GE
 
@@ -18,3 +19,16 @@ class TestCondition(TestCase):
         condition = Condition("id", 1, CONDITION_EQ) | Condition("id", 2, CONDITION_GE)
         condition &= (Condition("id", 5, CONDITION_EQ) & Condition("id", 7, CONDITION_EQ))
         self.assertEquals(condition.build_query(), "id=1|id>=2&id=5&id=7")
+
+    def test_(self):
+        folder_name = "name"
+        status = "NotStarted"
+        return_metadata = True
+        condition = Condition("name", folder_name, CONDITION_EQ)
+        condition &= Condition("includeUsers", return_metadata, CONDITION_EQ)
+        _condition = Condition(
+            "status", constants.ProjectStatus.get_value(status), CONDITION_EQ
+        )
+        _condition &= condition
+        assert _condition.get_as_params_dict() == {'status': 1, 'name': 'name', 'includeUsers': True}
+

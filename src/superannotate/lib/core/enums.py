@@ -41,6 +41,9 @@ class BaseTitledEnum(int, Enum):
     def get_value(cls, name):
         for enum in list(cls):
             if enum.__doc__.lower() == name.lower():
+                if isinstance(enum.value, int):
+                    if enum.value < 0:
+                        return ""
                 return enum.value
 
     @classmethod
@@ -101,7 +104,7 @@ class ImageQuality(BaseTitledEnum):
 
 
 class ProjectStatus(BaseTitledEnum):
-    Undefined = "Undefined", 0
+    Undefined = "Undefined", -1
     NotStarted = "NotStarted", 1
     InProgress = "InProgress", 2
     Completed = "Completed", 3
@@ -109,7 +112,7 @@ class ProjectStatus(BaseTitledEnum):
 
 
 class FolderStatus(BaseTitledEnum):
-    Undefined = "Undefined", 0
+    Undefined = "Undefined", -1
     NotStarted = "NotStarted", 1
     InProgress = "InProgress", 2
     Completed = "Completed", 3
