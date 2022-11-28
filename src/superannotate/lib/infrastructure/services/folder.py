@@ -8,7 +8,7 @@ from lib.core.serviceproviders import BaseFolderService
 
 class FolderService(BaseFolderService):
     URL_BASE = "folder"
-    URL_LIST = "folders"
+    URL_LIST = "/folders"
     URL_UPDATE = "folder/{}"
     URL_GET_BY_NAME = "folder/getFolderByName"
     URL_DELETE_MULTIPLE = "image/delete/images"
@@ -32,6 +32,12 @@ class FolderService(BaseFolderService):
             url=self.URL_LIST,
             item_type=entities.FolderEntity,
             query_params=condition.get_as_params_dict() if condition else None,
+        )
+
+    def update(self, project: entities.ProjectEntity, folder: entities.FolderEntity):
+        params = {"project_id": project.id}
+        return self.client.request(
+            self.URL_UPDATE.format(folder.id), "put", data=folder.dict(), params=params
         )
 
     def delete_multiple(
@@ -68,10 +74,4 @@ class FolderService(BaseFolderService):
             "post",
             params={"project_id": project.id},
             data={"folder_name": folder.name, "assign_user_ids": users},
-        )
-
-    def update(self, project: entities.ProjectEntity, folder: entities.FolderEntity):
-        params = {"project_id": project.id}
-        return self.client.request(
-            self.URL_UPDATE.format(folder.id), "put", data=folder.dict(), params=params
         )

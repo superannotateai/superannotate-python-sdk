@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "width": "1920",
+    "height": 10.80,
+    "status": "InProgress",
+    "url": "https://drive.google.com/uc?export=download&id=1wTd4NeE3Jt39k9DL_5GIqrO6R_hucsps",
+    "duration": 30571000,
+    "projectId": 165611,
+    "error": false,
+    "annotatorEmail": "A34@3.4@htfd.cm",
+    "qaEmail": "43@fd.dcs",
+    "lastAction": {
+      "timestamp": 1635510590705,
+      "email": "varduhi@superannotate.com"
+    }
+  },
+  "instances": [
+    {
+      "meta": {
+        "type": "bbox",
+        "classId": 879460,
+        "pointLabels": {
+          "ds": "s"
+        },
+        "createdBy": {
+          "email": "varduhi@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2021-10-29T12.29.45.668Z",
+        "updatedBy": {
+          "email": "varduhi@superannotate.com",
+          "role": "qwert"
+        },
+        "updatedAt": "2021-10-29T12:29:50.696Z",
+        "start": 0,
+        "end": 30571000
+      },
+      "parameters": [
+        {
+          "start": 0,
+          "end": 30571000,
+          "timestamps": [
+            {
+              "points": {
+                "x": 595.85,
+                "y1": 223.82,
+                "x2": 1278.92,
+                "y2": 874.41
+              },
+              "timestamp": 0,
+              "attributes": [
+                {
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 595.85,
+                "y1": 223.82,
+                "x2": 1278.92,
+                "y2": 874.41
+              },
+              "timestamp": 30571000,
+              "attributes": [
+                {
+                },
+                {
+                  "groupName": "numeric group"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "bbox",
+        "start": 0,
+        "end": 30571000
+      },
+      "parameters": [
+        {
+          "start": 0,
+          "end": 3057.1000,
+          "timestamps": [
+            {
+              "points": {
+                "x": 595.85,
+                "y1": 223.82,
+                "x2": 1278.92,
+                "y2": 874.41
+              },
+              "timestamp": 0,
+              "attributes": [
+                {
+                },
+                {
+                  "groupName": "numeric group"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tags": [
+    6,
+    null
+  ]
+}

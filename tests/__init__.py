@@ -1,7 +1,6 @@
-import sys
 import os
+import sys
 from pathlib import Path
-
 
 os.environ.update({"SA_VERSION_CHECK": "False"})
 
@@ -12,3 +11,8 @@ sys.path.insert(0, str(LIB_PATH))
 __all__ = [
     "DATA_SET_PATH"
 ]
+
+from src.superannotate import get_default_logger
+
+logger = get_default_logger()
+logger.setLevel("DEBUG")

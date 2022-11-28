@@ -100,10 +100,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.add_annotation_point_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, [1, 2], "some class")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.get_project_workflow(self.PROJECT_NAME)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

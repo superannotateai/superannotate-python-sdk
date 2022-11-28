@@ -95,7 +95,7 @@ class TestAnnotationUploadVector(BaseTestCase):
     def test_upload_big_annotations(self):
         sa.attach_items(
             self.PROJECT_NAME,
-            [{"name": f" rst-lintaearth_mov_00{i}.jpg", "url": f"url_{i}"} for i in range(1, 6)]  # noqa
+            [{"name": f"aearth_mov_00{i}.jpg", "url": f"url_{i}"} for i in range(1, 6)]  # noqa
         )
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.big_annotations_folder_path}/classes/classes.json"

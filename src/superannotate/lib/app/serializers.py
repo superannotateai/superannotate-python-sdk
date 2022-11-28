@@ -141,6 +141,21 @@ class ProjectSerializer(BaseSerializer):
         return data
 
 
+class FolderSerializer(BaseSerializer):
+    def serialize(
+        self,
+        fields: List[str] = None,
+        by_alias: bool = False,
+        flat: bool = False,
+        exclude: Set[str] = None,
+    ):
+        data = super().serialize(fields, by_alias, flat, exclude)
+        if not data.get("status"):
+            data["status"] = "Undefined"
+
+        return data
+
+
 class SettingsSerializer:
     def __init__(self, data: dict):
         self.data = data

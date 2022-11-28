@@ -28,6 +28,8 @@ ________
 .. automethod:: superannotate.SAClient.get_project_metadata
 .. automethod:: superannotate.SAClient.get_project_image_count
 .. automethod:: superannotate.SAClient.search_folders
+.. automethod:: superannotate.SAClient.assign_folder
+.. automethod:: superannotate.SAClient.unassign_folder
 .. automethod:: superannotate.SAClient.get_folder_metadata
 .. automethod:: superannotate.SAClient.create_folder
 .. automethod:: superannotate.SAClient.delete_folders
@@ -107,9 +109,6 @@ ______
 .. automethod:: superannotate.SAClient.download_image_annotations
 .. automethod:: superannotate.SAClient.upload_image_annotations
 .. automethod:: superannotate.SAClient.pin_image
-.. automethod:: superannotate.SAClient.add_annotation_bbox_to_image
-.. automethod:: superannotate.SAClient.add_annotation_point_to_image
-.. automethod:: superannotate.SAClient.add_annotation_comment_to_image
 .. automethod:: superannotate.SAClient.upload_priority_scores
 
 ----------

@@ -4,7 +4,6 @@ import io
 import json
 import os
 import tempfile
-import warnings
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -16,9 +15,6 @@ from typing import Union
 
 import boto3
 import lib.core as constants
-from lib.app.annotation_helpers import add_annotation_bbox_to_json
-from lib.app.annotation_helpers import add_annotation_comment_to_json
-from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
 from lib.app.helpers import wrap_error as wrap_validation_errors
@@ -31,12 +27,14 @@ from lib.app.interface.types import AttachmentArg
 from lib.app.interface.types import AttachmentDict
 from lib.app.interface.types import ClassType
 from lib.app.interface.types import EmailStr
+from lib.app.interface.types import FolderStatusEnum
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import ProjectStatusEnum
 from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import Setting
 from lib.app.serializers import BaseSerializer
+from lib.app.serializers import FolderSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
@@ -329,7 +327,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if res.data:
             folder = res.data
             logger.info(f"Folder {folder.name} created in project {project.name}")
-            return folder.dict()
+            return FolderSerializer(folder).serialize(
+                exclude={"completedCount", "is_root"}
+            )
         if res.errors:
             raise AppException(res.errors)
 
@@ -403,14 +403,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         folder_name: Optional[NotEmptyStr] = None,
+        status: Optional[Union[FolderStatusEnum, List[FolderStatusEnum]]] = None,
         return_metadata: Optional[StrictBool] = False,
     ):
         """Folder name based case-insensitive search for folders in project.
 
         :param project: project name
         :type project: str
+
         :param folder_name: the new folder's name
         :type folder_name: str. If  None, all the folders in the project will be returned.
+
+        :param status:  search folders via status. If None, all folders will be returned. Available statuses are:
+        :type status:
+
         :param return_metadata: return metadata of folders instead of names
         :type return_metadata: bool
 
@@ -424,14 +430,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             condition &= Condition("name", folder_name, EQ)
         if return_metadata:
             condition &= Condition("includeUsers", return_metadata, EQ)
-
+        if status:
+            condition &= Condition(
+                "status", constants.FolderStatus.get_value(status), EQ
+            )
         response = self.controller.folders.list(project, condition)
         if response.errors:
             raise AppException(response.errors)
         data = response.data
         if return_metadata:
             return [
-                BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
+                FolderSerializer(folder).serialize(
+                    exclude={"completedCount", "is_root"}
+                )
                 for folder in data
                 if not folder.is_root
             ]
@@ -528,6 +539,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param name_contains:  search string. Returns those classes,
          where the given string is found anywhere within its name. If None, all annotation classes will be returned.
         :type name_contains: str
@@ -1769,205 +1781,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         return response.data
-
-    def add_annotation_bbox_to_image(
-        self,
-        project: NotEmptyStr,
-        image_name: NotEmptyStr,
-        bbox: List[float],
-        annotation_class_name: NotEmptyStr,
-        annotation_class_attributes: Optional[List[dict]] = None,
-        error: Optional[StrictBool] = None,
-    ):
-        """Add a bounding box annotation to image annotations
-
-        annotation_class_attributes has the form
-        [ {"name" : "<attribute_value>" }, "groupName" : "<attribute_group>"} ], ... ]
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_name: image name
-        :type image_name: str
-        :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
-        :type bbox: list of floats
-        :param annotation_class_name: annotation class name
-        :type annotation_class_name: str
-        :param annotation_class_attributes: list of annotation class attributes
-        :type annotation_class_attributes: list of 2 element dicts
-        :param error: if not None, marks annotation as error (True) or no-error (False)
-        :type error: bool
-        """
-        warning_msg = (
-            "The SAClient.add_annotation_bbox_to_image method will "
-            "be deprecated with the Superannotate Python SDK 4.4.7 release"
-        )
-        warnings.warn(warning_msg, DeprecationWarning)
-        logger.warning(warning_msg)
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project(project_name)
-
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[project.type])
-        folder = self.controller.get_folder(project, folder_name)
-        response = self.controller.annotations.list(
-            project=project, folder=folder, item_names=[image_name], verbose=False
-        )
-        if not response.data:
-            raise AppException("Image not found.")
-        if response.data:
-            annotations = response.data[0]
-        else:
-            annotations = {}
-        annotations = add_annotation_bbox_to_json(
-            annotations,
-            bbox,
-            annotation_class_name,
-            annotation_class_attributes,
-            error,
-            image_name,
-        )
-        self.controller.annotations.upload_image_annotations(
-            project=project,
-            folder=folder,
-            image=entities.ImageEntity(
-                **self.controller.items.get_by_name(
-                    project, folder, image_name
-                ).data.dict()
-            ),
-            annotations=annotations,
-            team=self.controller.team,
-        )
-
-    def add_annotation_point_to_image(
-        self,
-        project: NotEmptyStr,
-        image_name: NotEmptyStr,
-        point: List[float],
-        annotation_class_name: NotEmptyStr,
-        annotation_class_attributes: Optional[List[dict]] = None,
-        error: Optional[StrictBool] = None,
-    ):
-        """Add a point annotation to image annotations
-
-        annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_name: image name
-        :type image_name: str
-        :param point: [x,y] list of coordinates
-        :type point: list of floats
-        :param annotation_class_name: annotation class name
-        :type annotation_class_name: str
-        :param annotation_class_attributes: list of annotation class attributes
-        :type annotation_class_attributes: list of 2 element dicts
-        :param error: if not None, marks annotation as error (True) or no-error (False)
-        :type error: bool
-        """
-        warning_msg = (
-            "The SAClient.add_annotation_point_to_image method will "
-            "be deprecated with the Superannotate Python SDK 4.4.7 release"
-        )
-        warnings.warn(warning_msg, DeprecationWarning)
-        logger.warning(warning_msg)
-        project, folder = self.controller.get_project_folder_by_path(project)
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[project.type])
-        response = self.controller.annotations.list(
-            project=project, folder=folder, item_names=[image_name], verbose=False
-        )
-        if not response.data:
-            raise AppException("Image not found.")
-        if response.data:
-            annotations = response.data[0]
-        else:
-            annotations = {}
-        annotations = add_annotation_point_to_json(
-            annotations,
-            point,
-            annotation_class_name,
-            annotation_class_attributes,
-            error,
-        )
-        response = self.controller.annotations.upload_image_annotations(
-            project=project,
-            folder=folder,
-            image=self.controller.items.get_by_name(project, folder, image_name).data,
-            annotations=annotations,
-            team=self.controller.team,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-
-    def add_annotation_comment_to_image(
-        self,
-        project: NotEmptyStr,
-        image_name: NotEmptyStr,
-        comment_text: NotEmptyStr,
-        comment_coords: List[float],
-        comment_author: EmailStr,
-        resolved: Optional[StrictBool] = False,
-    ):
-        """Add a comment to SuperAnnotate format annotation JSON
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_name: image name
-        :type image_name: str
-        :param comment_text: comment text
-        :type comment_text: str
-        :param comment_coords: [x, y] coords
-        :type comment_coords: list
-        :param comment_author: comment author email
-        :type comment_author: str
-        :param resolved: comment resolve status
-        :type resolved: bool
-        """
-        warning_msg = (
-            "The SAClient.add_annotation_comment_to_image method will "
-            "be deprecated with the Superannotate Python SDK 4.4.7 release"
-        )
-        warnings.warn(warning_msg, DeprecationWarning)
-        logger.warning(warning_msg)
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[project.type])
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
-        response = self.controller.annotations.list(
-            project=project, folder=folder, item_names=[image_name], verbose=False
-        )
-        if not response.data:
-            raise AppException("Image not found.")
-        if response.data:
-            annotations = response.data[0]
-        else:
-            annotations = {}
-        annotations = add_annotation_comment_to_json(
-            annotations,
-            comment_text,
-            comment_coords,
-            comment_author,
-            resolved=resolved,
-            image_name=image_name,
-        )
-
-        self.controller.annotations.upload_image_annotations(
-            project=project,
-            folder=folder,
-            image=self.controller.items.get_by_name(project, folder, image_name).data,
-            annotations=annotations,
-            team=self.controller.team,
-        )
 
     def upload_image_to_project(
         self,
