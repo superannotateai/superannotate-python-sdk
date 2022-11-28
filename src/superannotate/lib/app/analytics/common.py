@@ -383,9 +383,9 @@ def instance_consensus(inst_1, inst_2):
 
     :param inst_1: First instance for consensus score.
     :type inst_1: shapely object
+
     :param inst_2: Second instance for consensus score.
     :type inst_2: shapely object
-
     """
     if inst_1.type == inst_2.type == "Polygon":
         intersect = inst_1.intersection(inst_2)
@@ -404,19 +404,19 @@ def image_consensus(df, image_name, annot_type):
 
     :param df: Annotation data of all images
     :type df: pandas.DataFrame
+
     :param image_name: The image name for which the consensus score will be computed
     :type image_name: str
+
     :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
     :type dataset_format: str
-
     """
 
     try:
         from shapely.geometry import Point, Polygon, box
     except ImportError:
         raise ImportError(
-            "To use superannotate.benchmark or superannotate.consensus functions please install "
-            "shapely package in Anaconda enviornment with # conda install shapely"
+            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package."
         )
 
     image_df = df[df["imageName"] == image_name]

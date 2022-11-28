@@ -2176,6 +2176,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project, folder = self.controller.get_project_folder_by_path(project)
         _integration = None
+        if isinstance(integration, str):
+            integration = IntegrationEntity(name=integration)
         for i in self.controller.integrations.list().data:
             if integration == i.name:
                 _integration = i
