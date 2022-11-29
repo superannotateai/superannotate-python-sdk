@@ -99,7 +99,8 @@ def aggregate_image_annotations_as_df(
         class_name_to_color[name] = color
         class_group_name_to_values[name] = {}
         for attribute_group in annotation_class["attribute_groups"]:
-            if attribute_group["group_type"] in ["text", "numeric"]:
+            group_type = attribute_group.get("group_type")
+            if group_type and group_type in ["text", "numeric"]:
                 freestyle_attributes.add(attribute_group["name"])
             class_group_name_to_values[name][attribute_group["name"]] = []
             for attribute in attribute_group["attributes"]:
