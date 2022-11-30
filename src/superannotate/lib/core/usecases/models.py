@@ -140,6 +140,7 @@ class GetExportsUseCase(BaseUseCase):
 
 
 class DownloadExportUseCase(BaseReportableUseCase):
+    FORBIDDEN_CHARS = "*./\[]:;|,\"\'"
     def __init__(
         self,
         service_provider: BaseServiceProvider,
@@ -205,6 +206,8 @@ class DownloadExportUseCase(BaseReportableUseCase):
                 time.sleep(1)
             self.reporter.stop_spinner()
         filename = Path(export["path"]).name
+        for char in DownloadExportUseCase.FORBIDDEN_CHARS:
+            filename.replace(char, "_")
         filepath = Path(destination) / filename
         with requests.get(export["download"], stream=True) as response:
             response.raise_for_status()
