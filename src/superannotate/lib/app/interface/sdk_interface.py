@@ -2179,7 +2179,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if isinstance(integration, str):
             integration = IntegrationEntity(name=integration)
         for i in self.controller.integrations.list().data:
-            if integration == i.name:
+            if integration.name == i.name:
                 _integration = i
                 break
         else:
