@@ -207,7 +207,7 @@ class DownloadExportUseCase(BaseReportableUseCase):
             self.reporter.stop_spinner()
         filename = Path(export["path"]).name
         for char in DownloadExportUseCase.FORBIDDEN_CHARS:
-            filename.replace(char, "_")
+            filename=filename.replace(char, "_")
         filepath = Path(destination) / filename
         with requests.get(export["download"], stream=True) as response:
             response.raise_for_status()
