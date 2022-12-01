@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 from lib.app.exceptions import AppException
-from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from superannotate.logger import get_default_logger
 
 
@@ -43,14 +42,6 @@ def aggregate_image_annotations_as_df(
                                         "updatorRole", "updatorEmail", "tag", "folderName"
     :rtype: pandas DataFrame
     """
-
-    json_paths = list(Path(str(project_root)).glob("*.json"))
-    if (
-        json_paths
-        and "___pixel.json" not in json_paths[0].name
-        and "___objects.json" not in json_paths[0].name
-    ):
-        raise AppException(DEPRICATED_DOCUMENT_VIDEO_MESSAGE)
 
     logger.info("Aggregating annotations from %s as pandas DataFrame", project_root)
 
@@ -101,12 +92,16 @@ def aggregate_image_annotations_as_df(
     classes_json = json.load(open(classes_path))
     class_name_to_color = {}
     class_group_name_to_values = {}
+    freestyle_attributes = set()
     for annotation_class in classes_json:
         name = annotation_class["name"]
         color = annotation_class["color"]
         class_name_to_color[name] = color
         class_group_name_to_values[name] = {}
         for attribute_group in annotation_class["attribute_groups"]:
+            group_type = attribute_group.get("group_type")
+            if group_type and group_type in ["text", "numeric"]:
+                freestyle_attributes.add(attribute_group["name"])
             class_group_name_to_values[name][attribute_group["name"]] = []
             for attribute in attribute_group["attributes"]:
                 class_group_name_to_values[name][attribute_group["name"]].append(
@@ -175,10 +170,14 @@ def aggregate_image_annotations_as_df(
 
     if not annotations_paths:
         logger.warning(f"Could not find annotations in {project_root}.")
-    if len(list(Path(project_root).rglob("*___objects.json"))) > 0:
+
+    if "___objects.json" in annotations_paths[0].name:
         type_postfix = "___objects.json"
-    else:
+    elif "___pixel.json" in annotations_paths[0].name:
         type_postfix = "___pixel.json"
+    else:
+        type_postfix = ".json"
+
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
         parts = annotation_path.name.split(type_postfix)
@@ -294,6 +293,7 @@ def aggregate_image_annotations_as_df(
                         not in class_group_name_to_values[annotation_class_name][
                             attribute_group
                         ]
+                        and attribute_group not in freestyle_attributes
                     ):
                         logger.warning(
                             "Annotation class group value %s not in classes json. Skipping.",
@@ -383,9 +383,9 @@ def instance_consensus(inst_1, inst_2):
 
     :param inst_1: First instance for consensus score.
     :type inst_1: shapely object
+
     :param inst_2: Second instance for consensus score.
     :type inst_2: shapely object
-
     """
     if inst_1.type == inst_2.type == "Polygon":
         intersect = inst_1.intersection(inst_2)
@@ -404,19 +404,19 @@ def image_consensus(df, image_name, annot_type):
 
     :param df: Annotation data of all images
     :type df: pandas.DataFrame
+
     :param image_name: The image name for which the consensus score will be computed
     :type image_name: str
+
     :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
     :type dataset_format: str
-
     """
 
     try:
         from shapely.geometry import Point, Polygon, box
     except ImportError:
         raise ImportError(
-            "To use superannotate.benchmark or superannotate.consensus functions please install "
-            "shapely package in Anaconda enviornment with # conda install shapely"
+            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package."
         )
 
     image_df = df[df["imageName"] == image_name]

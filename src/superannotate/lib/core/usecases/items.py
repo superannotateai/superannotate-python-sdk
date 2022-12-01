@@ -1,4 +1,5 @@
 import copy
+import traceback
 from collections import defaultdict
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
@@ -942,12 +943,10 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             for future in as_completed(futures):
                 try:
                     ids = future.result()
-                except Exception as e:
-                    continue
+                    self.item_ids.extend(ids)
+                except Exception:
+                    logger.debug(traceback.format_exc())
 
-                self.item_ids.extend(ids)
-
-            futures = []
             subsets = self._service_provider.subsets.list(self.project).data
             subset = None
             for s in subsets:

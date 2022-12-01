@@ -2,7 +2,6 @@ import json
 import math
 import os
 from os.path import dirname
-from pathlib import Path
 
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
@@ -24,7 +23,7 @@ class TestGetAnnotations(BaseTestCase):
 
     @property
     def csv_path(self):
-        return os.path.join(dirname(dirname(dirname(__file__))), self.PATH_TO_URLS)
+        return os.path.join(DATA_SET_PATH, self.PATH_TO_URLS)
 
     @property
     def classes_path(self):

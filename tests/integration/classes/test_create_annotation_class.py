@@ -146,21 +146,6 @@ class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
             msg = str(e)
         self.assertEqual(msg, "Predefined tagging functionality is not supported for projects of type Video.")
 
-    def test_create_supported_annotation_class(self):
-        msg = ""
-        try:
-            sa.create_annotation_class(
-                self.PROJECT_NAME, "test_add", "#FF0000",
-                attribute_groups=[
-                    {
-                        "group_type": "text",
-                        "name": "name",
-                    }
-                ]
-            )
-        except Exception as e:
-            msg = str(e)
-        self.assertEqual(msg, "This project type doesn't support the attribute group types 'text' and 'numeric'.")
 
     def test_create_radio_annotation_class_attr_required(self):
         msg = ""
