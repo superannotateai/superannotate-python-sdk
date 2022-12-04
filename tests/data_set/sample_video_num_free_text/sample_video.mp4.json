@@ -1,0 +1,837 @@
+{
+  "metadata": {
+    "name": "Go_out_avi.avi",
+    "width": 480,
+    "height": 360,
+    "status": "InProgress",
+    "url": "videos/videos/Go_out_avi.avi",
+    "duration": 160440000,
+    "projectId": 214122,
+    "error": false,
+    "annotatorEmail": "automation_sa@mailinator.com",
+    "qaEmail": "test_automation1@mailinator.com",
+    "lastAction": {
+      "timestamp": 1669189913059,
+      "email": "arturn@superannotate.com"
+    }
+  },
+  "instances": [
+    {
+      "meta": {
+        "type": "bbox",
+        "pointLabels": {},
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-07-04T10:49:10.450Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-11-23T07:51:12.500Z",
+        "classId": 1820068,
+        "className": "car",
+        "start": 72377,
+        "end": 2270513
+      },
+      "parameters": [
+        {
+          "start": 72377,
+          "end": 2270513,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "groupId": 3077615,
+                  "name": "car movement",
+                  "groupName": "text_group"
+                },
+                {
+                  "groupId": 3077616,
+                  "name": 3,
+                  "groupName": "numeric group"
+                }
+              ],
+              "points": {
+                "x1": 47.91,
+                "x2": 152.14,
+                "y1": 96.44,
+                "y2": 208.38
+              },
+              "timestamp": 72377
+            },
+            {
+              "attributes": [
+                {
+                  "groupId": 3077615,
+                  "name": "car movement",
+                  "groupName": "text_group"
+                },
+                {
+                  "groupId": 3077616,
+                  "name": 3,
+                  "groupName": "numeric group"
+                },
+                {
+                  "id": 4014861,
+                  "groupId": 1752336,
+                  "name": "goes",
+                  "groupName": "movement"
+                },
+                {
+                  "id": 4014863,
+                  "groupId": 1752337,
+                  "name": "lights_on",
+                  "groupName": "lights"
+                }
+              ],
+              "points": {
+                "x1": 47.91,
+                "x2": 152.14,
+                "y1": 96.44,
+                "y2": 208.38
+              },
+              "timestamp": 444935
+            },
+            {
+              "attributes": [
+                {
+                  "groupId": 3077615,
+                  "name": "car movement",
+                  "groupName": "text_group"
+                },
+                {
+                  "groupId": 3077616,
+                  "name": 3,
+                  "groupName": "numeric group"
+                },
+                {
+                  "id": 4014863,
+                  "groupId": 1752337,
+                  "name": "lights_on",
+                  "groupName": "lights"
+                },
+                {
+                  "id": 4014862,
+                  "groupId": 1752336,
+                  "name": "stops",
+                  "groupName": "movement"
+                }
+              ],
+              "points": {
+                "x1": 47.91,
+                "x2": 152.14,
+                "y1": 96.44,
+                "y2": 208.38
+              },
+              "timestamp": 1413905
+            },
+            {
+              "attributes": [
+                {
+                  "groupId": 3077615,
+                  "name": "car movement",
+                  "groupName": "text_group"
+                },
+                {
+                  "groupId": 3077616,
+                  "name": 3,
+                  "groupName": "numeric group"
+                },
+                {
+                  "id": 4014862,
+                  "groupId": 1752336,
+                  "name": "stops",
+                  "groupName": "movement"
+                },
+                {
+                  "id": 4014864,
+                  "groupId": 1752337,
+                  "name": "lights_off",
+                  "groupName": "lights"
+                }
+              ],
+              "points": {
+                "x1": 47.91,
+                "x2": 152.14,
+                "y1": 96.44,
+                "y2": 208.38
+              },
+              "timestamp": 2270513
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "bbox",
+        "pointLabels": {
+          "0": "testlabel",
+          "2": "label2"
+        },
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-07-04T10:49:10.453Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-11-23T07:48:01.953Z",
+        "classId": 1820068,
+        "className": "car",
+        "start": 15967742,
+        "end": 26167742
+      },
+      "parameters": [
+        {
+          "start": 15967742,
+          "end": 26167742,
+          "timestamps": [
+            {
+              "attributes": [],
+              "points": {
+                "x1": 150.3,
+                "x2": 271.83,
+                "y1": 61.21,
+                "y2": 302.07
+              },
+              "timestamp": 15967742
+            },
+            {
+              "attributes": [],
+              "points": {
+                "x1": 159.87,
+                "x2": 281.4,
+                "y1": 58.12,
+                "y2": 298.98
+              },
+              "timestamp": 23059570
+            },
+            {
+              "attributes": [],
+              "points": {
+                "x1": 159.87,
+                "x2": 281.4,
+                "y1": 58.12,
+                "y2": 298.98
+              },
+              "timestamp": 26167742
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "point",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-07-04T10:49:10.454Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-07-04T10:49:10.454Z",
+        "classId": 1645591,
+        "className": "class3",
+        "start": 2154547,
+        "end": 3836690
+      },
+      "parameters": [
+        {
+          "start": 2154547,
+          "end": 3836690,
+          "timestamps": [
+            {
+              "attributes": [],
+              "x": 125.23,
+              "y": 234.45,
+              "timestamp": 2154547
+            },
+            {
+              "attributes": [],
+              "x": 130.07000000000002,
+              "y": 237.95,
+              "timestamp": 2593436
+            },
+            {
+              "attributes": [],
+              "x": 130.07000000000002,
+              "y": 237.95,
+              "timestamp": 3836690
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "event",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-07-04T10:49:10.455Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-07-04T10:49:10.455Z",
+        "classId": 1645591,
+        "className": "class3",
+        "start": 5131014,
+        "end": 6517905
+      },
+      "parameters": [
+        {
+          "start": 5131014,
+          "end": 6517905,
+          "timestamps": [
+            {
+              "attributes": [],
+              "timestamp": 5131014
+            },
+            {
+              "attributes": [],
+              "timestamp": 6517905
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "polygon",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-07-04T10:49:10.455Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-10-18T11:21:20.267Z",
+        "classId": 1820067,
+        "className": "tree",
+        "start": 11704101,
+        "end": 19463671
+      },
+      "parameters": [
+        {
+          "start": 11704101,
+          "end": 19463671,
+          "timestamps": [
+            {
+              "attributes": [],
+              "points": [
+                72.93,
+                82.17,
+                170.77,
+                89.95,
+                131.95,
+                220.25
+              ],
+              "timestamp": 11704101
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014859,
+                  "groupId": 1752335,
+                  "name": "standing",
+                  "groupName": "state"
+                }
+              ],
+              "points": [
+                72.93,
+                82.17,
+                170.77,
+                89.95,
+                131.95,
+                220.25
+              ],
+              "timestamp": 14244140
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014859,
+                  "groupId": 1752335,
+                  "name": "standing",
+                  "groupName": "state"
+                }
+              ],
+              "points": [
+                33.59,
+                65.03,
+                131.43,
+                72.81,
+                92.61,
+                203.11
+              ],
+              "timestamp": 16335937
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014859,
+                  "groupId": 1752335,
+                  "name": "standing",
+                  "groupName": "state"
+                }
+              ],
+              "points": [
+                33.59,
+                65.03,
+                131.43,
+                72.81,
+                92.61,
+                203.11
+              ],
+              "timestamp": 19463671
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "polyline",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-07-04T10:49:10.457Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-10-18T11:23:40.500Z",
+        "classId": 1820067,
+        "className": "tree",
+        "start": 8616210,
+        "end": 12391405
+      },
+      "parameters": [
+        {
+          "start": 8616210,
+          "end": 12391405,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "id": 4014860,
+                  "groupId": 1752335,
+                  "name": "falling",
+                  "groupName": "state"
+                },
+                {
+                  "id": 4690075,
+                  "groupId": 1752335,
+                  "name": "down",
+                  "groupName": "state"
+                }
+              ],
+              "points": [
+                147.08,
+                160.03,
+                223.49,
+                196.65
+              ],
+              "timestamp": 8616210
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014860,
+                  "groupId": 1752335,
+                  "name": "falling",
+                  "groupName": "state"
+                },
+                {
+                  "id": 4690075,
+                  "groupId": 1752335,
+                  "name": "down",
+                  "groupName": "state"
+                }
+              ],
+              "points": [
+                197.68,
+                116.66,
+                274.09,
+                153.28
+              ],
+              "timestamp": 11156249
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014860,
+                  "groupId": 1752335,
+                  "name": "falling",
+                  "groupName": "state"
+                },
+                {
+                  "id": 4690075,
+                  "groupId": 1752335,
+                  "name": "down",
+                  "groupName": "state"
+                }
+              ],
+              "points": [
+                197.68,
+                116.66,
+                274.09,
+                153.28
+              ],
+              "timestamp": 12391405
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "point",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-07-04T11:17:54.078Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-11-09T14:55:50.645Z",
+        "classId": 1820067,
+        "className": "tree",
+        "start": 28737304,
+        "end": 45725853
+      },
+      "parameters": [
+        {
+          "start": 28737304,
+          "end": 34006640,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "id": 4014859,
+                  "groupId": 1752335,
+                  "name": "standing",
+                  "groupName": "state"
+                }
+              ],
+              "x": 235.82,
+              "y": 108.88,
+              "timestamp": 28737304
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014860,
+                  "groupId": 1752335,
+                  "name": "falling",
+                  "groupName": "state"
+                }
+              ],
+              "x": 238.91,
+              "y": 118.14,
+              "timestamp": 30779297
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014860,
+                  "groupId": 1752335,
+                  "name": "falling",
+                  "groupName": "state"
+                }
+              ],
+              "x": 238.91,
+              "y": 118.14,
+              "timestamp": 34006640
+            }
+          ]
+        },
+        {
+          "start": 35525853,
+          "end": 45725853,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "id": 4014860,
+                  "groupId": 1752335,
+                  "name": "falling",
+                  "groupName": "state"
+                }
+              ],
+              "x": 238.91,
+              "y": 118.14,
+              "timestamp": 35525853
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014860,
+                  "groupId": 1752335,
+                  "name": "falling",
+                  "groupName": "state"
+                },
+                {
+                  "id": 4690075,
+                  "groupId": 1752335,
+                  "name": "down",
+                  "groupName": "state"
+                }
+              ],
+              "x": 238.91,
+              "y": 118.14,
+              "timestamp": 38162926
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014859,
+                  "groupId": 1752335,
+                  "name": "standing",
+                  "groupName": "state"
+                }
+              ],
+              "x": 238.91,
+              "y": 118.14,
+              "timestamp": 40949268
+            },
+            {
+              "attributes": [
+                {
+                  "id": 4014859,
+                  "groupId": 1752335,
+                  "name": "standing",
+                  "groupName": "state"
+                }
+              ],
+              "x": 238.91,
+              "y": 118.14,
+              "timestamp": 45725853
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "tag",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-08-10T11:54:37.707Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-08-10T11:54:37.707Z",
+        "classId": 1645589,
+        "className": "class1",
+        "attributes": [
+          {
+            "id": 4396132,
+            "groupId": 1941208,
+            "name": "atr1",
+            "groupName": "atr_group_tag"
+          }
+        ]
+      }
+    },
+    {
+      "meta": {
+        "type": "tag",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-08-16T07:20:16.315Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-11-23T07:51:53.052Z",
+        "classId": 2012407,
+        "className": "class_tag",
+        "attributes": [
+          {
+            "name": 3,
+            "groupId": 3077618,
+            "groupName": "numeric_group_tag"
+          },
+          {
+            "name": "text_tag",
+            "groupId": 3077617,
+            "groupName": "text_group_tag"
+          },
+          {
+            "id": 4690051,
+            "groupId": 2086145,
+            "name": "atr_group1",
+            "groupName": "tag_group"
+          },
+          {
+            "id": 4690053,
+            "groupId": 2086145,
+            "name": "atr_group3",
+            "groupName": "tag_group"
+          }
+        ]
+      }
+    },
+    {
+      "meta": {
+        "type": "comment",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-11-09T13:27:28.873Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-11-09T14:26:35.123Z",
+        "resolved": true,
+        "correspondence": [
+          {
+            "email": "arturn@superannotate.com",
+            "role": "Admin",
+            "text": "es incha ay axper",
+            "createdAt": "2022-11-09T13:27:39.129Z"
+          },
+          {
+            "email": "arturn@superannotate.com",
+            "role": "Admin",
+            "text": "qez inch ay tgha",
+            "createdAt": "2022-11-09T14:26:32.861Z"
+          }
+        ],
+        "start": 9801951,
+        "end": 12240000
+      },
+      "parameters": [
+        {
+          "start": 9801951,
+          "end": 12240000,
+          "timestamps": [
+            {
+              "points": {
+                "x1": 136.41,
+                "y1": 147.15,
+                "x2": 232.23,
+                "y2": 207.31
+              },
+              "timestamp": 9801951
+            },
+            {
+              "points": {
+                "x1": 184.47,
+                "y1": 106.54,
+                "x2": 280.29,
+                "y2": 166.7
+              },
+              "timestamp": 11156249
+            },
+            {
+              "points": {
+                "x1": 184.47,
+                "y1": 106.54,
+                "x2": 280.29,
+                "y2": 166.7
+              },
+              "timestamp": 12240000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "comment",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2022-11-09T13:30:11.971Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2022-11-09T13:30:49.326Z",
+        "resolved": false,
+        "correspondence": [
+          {
+            "email": "arturn@superannotate.com",
+            "role": "Admin",
+            "text": "sxal tex es drel aperik",
+            "createdAt": "2022-11-09T13:30:26.194Z"
+          }
+        ],
+        "start": 24231219,
+        "end": 30152195
+      },
+      "parameters": [
+        {
+          "start": 24231219,
+          "end": 30152195,
+          "timestamps": [
+            {
+              "points": {
+                "x1": 65.21,
+                "y1": 12.05,
+                "x2": 316.96,
+                "y2": 327.74
+              },
+              "timestamp": 24231219
+            },
+            {
+              "points": {
+                "x1": 59.73,
+                "y1": 0,
+                "x2": 311.48,
+                "y2": 315.69
+              },
+              "timestamp": 25077073
+            },
+            {
+              "points": {
+                "x1": 53.3,
+                "y1": 4.16,
+                "x2": 305.05,
+                "y2": 319.85
+              },
+              "timestamp": 26420487
+            },
+            {
+              "points": {
+                "x1": 53.3,
+                "y1": 4.16,
+                "x2": 305.05,
+                "y2": 319.85
+              },
+              "timestamp": 30152195
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "tags text"
+  ]
+}

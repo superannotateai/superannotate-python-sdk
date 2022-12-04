@@ -1,7 +1,6 @@
 from collections import namedtuple
 from typing import Any
 from typing import List
-from typing import NamedTuple
 
 CONDITION_OR = "|"
 CONDITION_AND = "&"
@@ -11,7 +10,7 @@ CONDITION_GE = ">="
 CONDITION_LT = "<"
 CONDITION_LE = "<="
 
-QueryCondition = namedtuple("QueryCondition", ("condition", "query", "pair"))
+QueryCondition = namedtuple("QueryCondition", ("condition", "pair", "item"))
 
 
 class Condition:
@@ -19,7 +18,9 @@ class Condition:
         self._key = key
         self._value = value
         self._type = condition_type
-        self._condition_set = []  # type: List[NamedTuple]
+        self._condition_set: List[QueryCondition] = [
+            QueryCondition(CONDITION_AND, {key: value}, self)
+        ]
 
     @staticmethod
     def get_empty_condition():
@@ -32,13 +33,10 @@ class Condition:
         if not isinstance(other, Condition):
             raise Exception("Support the only Condition types")
 
-        self._condition_set.append(
-            QueryCondition(
-                CONDITION_OR,
-                other.build_query(),
-                {other._key: other._value} if type(other) == Condition else {},
+        for _condition in other._condition_set:
+            self._condition_set.append(
+                QueryCondition(CONDITION_OR, _condition.pair, _condition.item)
             )
-        )
         return self
 
     def __and__(self, other):
@@ -52,19 +50,23 @@ class Condition:
         elif not isinstance(other, (Condition, EmptyCondition)):
             raise Exception("Support the only Condition types")
 
-        self._condition_set.append(
-            QueryCondition(
-                CONDITION_AND,
-                other.build_query(),
-                {other._key: other._value} if type(other) == Condition else {},
+        for _condition in other._condition_set:
+            self._condition_set.append(
+                QueryCondition(CONDITION_AND, _condition.pair, _condition.item)
             )
-        )
         return self
 
+    def _build(self):
+        return f"{self._key}{self._type}{self._value}"
+
     def build_query(self):
-        return str(self) + "".join(
-            [f"{condition[0]}{condition[1]}" for condition in self._condition_set]
-        )
+        items = []
+        for condition in self._condition_set:
+            if not items:
+                items.append(condition.item._build())
+            else:
+                items.extend([condition.condition, condition.item._build()])
+        return "".join(items)
 
     def get_as_params_dict(self) -> dict:
         params = None if isinstance(self, EmptyCondition) else {self._key: self._value}
@@ -75,7 +77,7 @@ class Condition:
 
 class EmptyCondition(Condition):
     def __init__(self, *args, **kwargs):  # noqa
-        ...
+        self._condition_set = []
 
     def __or__(self, other):
         return other

@@ -46,17 +46,26 @@ class ItemService(BaseItemService):
         folder: entities.FolderEntity,
         names: List[str],
     ):
-        return self.client.request(
-            self.URL_LIST_BY_NAMES,
-            "post",
-            data={
-                "project_id": project.id,
-                "team_id": project.team_id,
-                "folder_id": folder.id,
-                "names": names,
-            },
-            content_type=ItemListResponse,
-        )
+        chunk_size = 200
+        items = []
+        response = None
+        for i in range(0, len(names), chunk_size):
+            response = self.client.request(
+                self.URL_LIST_BY_NAMES,
+                "post",
+                data={
+                    "project_id": project.id,
+                    "team_id": project.team_id,
+                    "folder_id": folder.id,
+                    "names": names[i : i + chunk_size],  # noqa
+                },
+                content_type=ItemListResponse,
+            )
+            if not response.ok:
+                return response
+            items.extend(response.data)
+        response.data = items
+        return response
 
     def attach(
         self,

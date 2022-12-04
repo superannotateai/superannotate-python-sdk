@@ -37,21 +37,3 @@ class TestMoveItems(BaseTestCase):
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")) == 7
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0
 
-    def test_move_item_with_annotations(self):
-        uploaded, _, _ = sa.attach_items(
-            self.PROJECT_NAME, [
-                {"url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-                 "name": self.IMAGE_NAME}
-            ]
-        )
-        assert len(uploaded) == 1
-        sa.create_annotation_class(self.PROJECT_NAME, "test_class", "#FF0000")
-        sa.add_annotation_bbox_to_image(self.PROJECT_NAME, self.IMAGE_NAME, [1, 2, 3, 4], "test_class")
-        sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
-        skipped_items = sa.move_items(
-            self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}"
-        )
-        annotations = sa.get_annotations(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
-        assert len(annotations) == 1
-        assert len(skipped_items) == 0
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 1

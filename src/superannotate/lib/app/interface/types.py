@@ -7,6 +7,7 @@ from typing import Union
 from lib.core.enums import AnnotationStatus
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
+from lib.core.enums import FolderStatus
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
 from lib.core.enums import UserRole
@@ -66,6 +67,18 @@ class ProjectStatusEnum(StrictStr):
         if value.lower() not in ProjectStatus.values():
             raise TypeError(
                 f"Available statuses is {', '.join(ProjectStatus.titles())}. "
+            )
+        return value
+
+
+class FolderStatusEnum(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if cls.curtail_length and len(value) > cls.curtail_length:
+            value = value[: cls.curtail_length]
+        if value.lower() not in FolderStatus.values():
+            raise TypeError(
+                f"Available statuses is {', '.join(FolderStatus.titles())}. "
             )
         return value
 

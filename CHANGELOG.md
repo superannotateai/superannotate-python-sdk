@@ -1,6 +1,19 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
-
+## 4.4.7 - December 04, 2022
+### Updated
+- `SAClient.search_folders` _method_ to add a new `status` argument for searching folders via status.
+- Schemas for `Annotation Classes` and `Video Annotation` to support **text** and **numeric input** attribute group types.
+### Fixed
+- `SAClient.query` _method_ to address invalid exceptions.
+- `SAClient.download_export` _method_ to address the issue with downloading for Windows OS.
+- `SAClient.attach_items_from_integrated_storage` _method_ to address "integration not found" error.
+- `SAClient.aggregate_annotations_as_df` _method_ to support files without "___objects" in their naming.
+### Removed
+- `SAClient.add_annotation_bbox_to_image` _method_, use `SAClient.upload_annotations` instead.
+- `SAClient.add_annotation_point_to_image` _method_, use `SAClient.upload_annotations` instead.
+- `SAClient.add_annotation_comment_to_image` _method_, use `SAClient.upload_annotations` instead.
+###
 ## 4.4.6 - November 23, 2022
 ### Updated
 - `SAClient.aggregate_annotations_as_df` method to aggregate "comment" type instances.

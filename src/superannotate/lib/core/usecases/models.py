@@ -2,6 +2,7 @@ import concurrent.futures
 import os.path
 import tempfile
 import time
+import platform
 import zipfile
 from pathlib import Path
 from typing import List
@@ -140,6 +141,8 @@ class GetExportsUseCase(BaseUseCase):
 
 
 class DownloadExportUseCase(BaseReportableUseCase):
+    FORBIDDEN_CHARS = "*./\\[]:;|,\"'"
+
     def __init__(
         self,
         service_provider: BaseServiceProvider,
@@ -204,8 +207,11 @@ class DownloadExportUseCase(BaseReportableUseCase):
                     raise AppException("Couldn't download export.")
                 time.sleep(1)
             self.reporter.stop_spinner()
-        filename = Path(export["path"]).name
-        filepath = Path(destination) / filename
+        filename = Path(export["path"]).stem
+        if platform.system().lower() == "windows":
+            for char in DownloadExportUseCase.FORBIDDEN_CHARS:
+                filename = filename.replace(char, "_")
+        filepath = Path(destination) / (filename + ".zip")
         with requests.get(export["download"], stream=True) as response:
             response.raise_for_status()
             with open(filepath, "wb") as f:
