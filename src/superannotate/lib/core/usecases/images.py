@@ -237,6 +237,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
             return f"{self._from_image.name}___objects.json"
         elif self._from_project.type == constances.ProjectType.PIXEL.value:
             return f"{self._from_image.name}___pixel.json"
+        return f"{self._from_image.name}.json"
 
     @property
     def download_auth_data(self):

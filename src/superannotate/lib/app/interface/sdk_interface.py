@@ -1563,10 +1563,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
 
         project = self.controller.projects.get_by_name(project_name).data
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
+        if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not mask:
@@ -1659,10 +1656,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name = project["name"]
 
         project = self.controller.projects.get_by_name(project_name).data
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
+        if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not export_root:

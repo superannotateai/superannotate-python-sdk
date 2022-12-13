@@ -50,10 +50,15 @@ DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
 DEPRECATED_DOCUMENT_PROJECTS_MESSAGE = (
     "The function does not support projects containing documents attached with URLs"
 )
+DEPRECATED_PROJECTS_MESSAGE = (
+    "The function does not support projects containing items attached with URLs"
+)
 
 LIMITED_FUNCTIONS = {
     ProjectType.VIDEO: DEPRECATED_VIDEO_PROJECTS_MESSAGE,
     ProjectType.DOCUMENT: DEPRECATED_DOCUMENT_PROJECTS_MESSAGE,
+    ProjectType.OTHER: DEPRECATED_PROJECTS_MESSAGE,
+    ProjectType.POINT_CLOUD: DEPRECATED_PROJECTS_MESSAGE,
 }
 
 METADATA_DEPRICATED_FOR_PIXEL = (

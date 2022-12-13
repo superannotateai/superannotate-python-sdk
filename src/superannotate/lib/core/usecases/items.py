@@ -64,10 +64,7 @@ class GetItem(BaseReportableUseCase):
         entity = BaseItemEntity(**BaseItemEntity.map_fields(entity.dict()))
         if project.upload_state != constants.UploadState.EXTERNAL.value:
             entity.url = None
-        if project.type in (
-            constants.ProjectType.VECTOR.value,
-            constants.ProjectType.PIXEL.value,
-        ):
+        if project.type in constants.ProjectType.images:
             tmp_entity = entity
             if project.type == constants.ProjectType.VECTOR.value:
                 entity.segmentation_status = None
