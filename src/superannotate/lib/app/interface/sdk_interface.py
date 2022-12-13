@@ -214,7 +214,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ProjectTypes.validate(project_type)
         except TypeError:
             raise AppException(
-                "Please provide a valid project type: Vector, Pixel, Document, or Video."
+                f"Please provide a valid project type: {', '.join(constants.ProjectType.titles())}"
             )
         response = self.controller.projects.create(
             entities.ProjectEntity(
