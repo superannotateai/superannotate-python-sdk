@@ -98,7 +98,7 @@ class AnnotatorRole(StrictStr):
 
 
 class AnnotationType(StrictStr):
-    VALID_TYPES = ["bbox", "polygon", "point"]
+    VALID_TYPES = ["bbox", "polygon", "point", "tag"]
 
     @classmethod
     def validate(cls, value: Union[str]) -> Union[str]:
