@@ -1697,7 +1697,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         folder_names: List[NotEmptyStr],
         export_root: Optional[Union[NotEmptyStr, Path]] = None,
         image_list: Optional[List[NotEmptyStr]] = None,
-        annot_type: Optional[AnnotationType] = "bbox",
+        annotation_type: Optional[AnnotationType] = "bbox",
         show_plots: Optional[StrictBool] = False,
     ):
         """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
@@ -1719,29 +1719,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: pandas DataFrame
         """
 
-        if export_root is None:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                export_root = temp_dir
-                response = self.controller.consensus(
-                    project_name=project,
-                    folder_names=folder_names,
-                    export_path=export_root,
-                    image_list=image_list,
-                    annot_type=annot_type,
-                    show_plots=show_plots,
-                )
-
-        else:
-            response = self.controller.consensus(
-                project_name=project,
-                folder_names=folder_names,
-                export_path=export_root,
-                image_list=image_list,
-                annot_type=annot_type,
-                show_plots=show_plots,
-            )
-            if response.errors:
-                raise AppException(response.errors)
+        response = self.controller.consensus(
+            project_name=project,
+            folder_names=folder_names,
+            image_list=image_list,
+            annot_type=annotation_type,
+        )
+        if response.errors:
+            raise AppException(response.errors)
         return response.data
 
     def run_prediction(
