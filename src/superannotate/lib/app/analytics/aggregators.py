@@ -366,13 +366,17 @@ class DataAggregator:
         class_name_to_color = {}
         class_group_name_to_values = {}
         rows = []
-
+        freestyle_attributes = set()
         for annotation_class in classes_json:
             name = annotation_class["name"]
             color = annotation_class["color"]
             class_name_to_color[name] = color
             class_group_name_to_values[name] = {}
             for attribute_group in annotation_class["attribute_groups"]:
+                group_type = attribute_group.get("group_type")
+                group_id = attribute_group.get("id")
+                if group_type and group_type in ["text", "numeric"]:
+                    freestyle_attributes.add(group_id)
                 class_group_name_to_values[name][attribute_group["name"]] = []
                 for attribute in attribute_group["attributes"]:
                     class_group_name_to_values[name][attribute_group["name"]].append(
@@ -443,6 +447,7 @@ class DataAggregator:
                     for attribute in attributes:
                         attribute_row = copy.copy(instance_row)
                         attribute_group = attribute.get("groupName")
+                        group_id = attribute.get("groupId")
                         attribute_name = attribute.get("name")
                         if (
                             attribute_group
@@ -452,20 +457,23 @@ class DataAggregator:
                                 "Annotation class group %s not in classes json. Skipping.",
                                 attribute_group,
                             )
+                            print("asdasdasd")
                             continue
                         if (
                             attribute_name
                             not in class_group_name_to_values[annotation_class_name][
                                 attribute_group
-                            ]
+                            ] and group_id not in freestyle_attributes
                         ):
                             logger.warning(
                                 f"Annotation class group value {attribute_name} not in classes json. Skipping."
                             )
                             continue
 
-                            attribute_row.attributeGroupName = attribute_group,
-                            attribute_row.attributeName = attribute_name,
+                        else:
+                            attribute_row.attributeGroupName = attribute_group
+                            attribute_row.attributeName = attribute_name
+
 
                         rows.append(attribute_row)
                         num_added += 1
