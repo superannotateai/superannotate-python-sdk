@@ -145,6 +145,8 @@ class DataAggregator:
         folder_names: Optional[List[Union[Path, str]]] = None,
     ):
         self.project_type = project_type
+        if isinstance(project_type, str):
+            self.project_type = constances.ProjectType(project_type)
         self.project_root = Path(project_root)
         self.folder_names = folder_names
         self._annotation_suffix = None
@@ -200,6 +202,7 @@ class DataAggregator:
         self.check_classes_path()
         annotation_paths = self.get_annotation_paths()
 
+
         if self.project_type in (
             constances.ProjectType.VECTOR,
             constances.ProjectType.PIXEL
@@ -209,6 +212,7 @@ class DataAggregator:
             return self.aggregate_video_annotations_as_df(annotation_paths)
         elif self.project_type == constances.ProjectType.DOCUMENT.name:
             return self.aggregate_document_annotations_as_df(annotation_paths)
+
 
     def __add_attributes_to_raws(self, raws, attributes, element_raw):
         for attribute_id, attribute in enumerate(attributes):
@@ -400,7 +404,7 @@ class DataAggregator:
                 rows.append(tag_row)
 
             #Instances
-            for annotation in annotation_json["instances"]:
+            for idx, annotation in enumerate(annotation_json["instances"]):
                 instance_row = copy.copy(row_data)
                 annotation_type = annotation.get("type", "mask")
                 annotation_class_name = annotation.get("className")
@@ -423,6 +427,7 @@ class DataAggregator:
                 instance_row.error = annotation.get("error")
                 instance_row.probability = annotation.get("probability")
                 instance_row.pointLabels = annotation.get("pointLabels")
+                instance_row.instanceId = idx
                 attributes = annotation.get("attributes")
                 instance_row = self.__fill_user_metadata(instance_row, annotation)
                 folder_name = None

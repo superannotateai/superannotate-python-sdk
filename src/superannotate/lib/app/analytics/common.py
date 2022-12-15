@@ -472,7 +472,7 @@ def consensus(df, item_name, annot_type):
             projects_shaply_objs[row["folderName"]] = []
         inst_data = row["meta"]
         if annot_type == "bbox":
-            inst_coords = inst_data["points"]
+            inst_coords = inst_data
             x1, x2 = inst_coords["x1"], inst_coords["x2"]
             y1, y2 = inst_coords["y1"], inst_coords["y2"]
             inst = box(min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
@@ -486,7 +486,7 @@ def consensus(df, item_name, annot_type):
             inst = Point(inst_data["x"], inst_data["y"])
         if  annot_type == "tag" and inst.is_valid():
             projects_shaply_objs[row["folderName"]].append(
-                (inst, row["className"], row["creatorEmail"], row["attributes"])
+                (inst, row["classNme"], row["creatorEmail"], row["attributes"])
             )
         else:
             logger.info(
