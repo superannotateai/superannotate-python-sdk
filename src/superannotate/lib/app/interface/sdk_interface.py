@@ -1935,32 +1935,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: DataFrame on annotations
         :rtype: pandas DataFrame
         """
-        if project_type in (
-            constants.ProjectType.VECTOR.name,
-            constants.ProjectType.PIXEL.name,
-        ):
-            from superannotate.lib.app.analytics.common import (
-                aggregate_image_annotations_as_df,
-            )
+        from superannotate.lib.app.analytics.aggregators import DataAggregator
 
-            return aggregate_image_annotations_as_df(
-                project_root=project_root,
-                include_classes_wo_annotations=False,
-                include_comments=True,
-                include_tags=True,
-                folder_names=folder_names,
-            )
-        elif project_type in (
-            constants.ProjectType.VIDEO.name,
-            constants.ProjectType.DOCUMENT.name,
-        ):
-            from superannotate.lib.app.analytics.aggregators import DataAggregator
-
-            return DataAggregator(
-                project_type=project_type,
-                project_root=project_root,
-                folder_names=folder_names,
-            ).aggregate_annotations_as_df()
+        return DataAggregator(
+            project_type=project_type,
+            project_root=project_root,
+            folder_names=folder_names,
+        ).aggregate_annotations_as_df()
 
     def delete_annotations(
         self, project: NotEmptyStr, item_names: Optional[List[NotEmptyStr]] = None
