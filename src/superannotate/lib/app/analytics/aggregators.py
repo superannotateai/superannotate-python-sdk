@@ -124,7 +124,7 @@ class DataAggregator:
         "polygon": lambda annotation: annotation["points"],
         "polyline": lambda annotation: annotation["points"],
         "cuboid": lambda annotation: annotation["points"],
-        "comment": lambda annotation: annotation["points"],
+        "comment": lambda annotation: annotation["correspondence"],
         "point": lambda annotation: {"x": annotation["x"], "y": annotation["y"]},
         "ellipse": lambda annotation: dict(
             cx=annotation["cx"],
@@ -169,7 +169,7 @@ class DataAggregator:
         annotations_paths = []
         if self.folder_names is None:
             self._set_annotation_suffix(self.project_root)
-            for path in self.project_root.glob("*.json"):
+            for path in self.project_root.glob("*"):
                 if path.is_file() and self._annotation_suffix in path.name:
                     annotations_paths.append(path)
                 elif path.is_dir() and path.name != "classes":
@@ -389,14 +389,12 @@ class DataAggregator:
             with open(annotation_path, 'r') as fp:
                 annotation_json = json.load(fp)
             parts = Path(annotation_path).name.split(self._annotation_suffix)
-            if len(parts) != 2:
-                continue
             row_data = self.__fill_image_metadata(row_data, annotation_json['metadata'])
             annotation_instance_id = 0
 
             # include comments
             for annotation in annotation_json["comments"]:
-                comment_row = copy.copy(row)
+                comment_row = copy.copy(row_data)
                 comment_row.comment_resolved = annotation["resolved"]
                 comment_row.comment = DataAggregator.MAPPERS["comment"](annotation)
                 comment_row = self.__fill_user_metadata(row_data, annotation)
@@ -457,7 +455,6 @@ class DataAggregator:
                                 "Annotation class group %s not in classes json. Skipping.",
                                 attribute_group,
                             )
-                            print("asdasdasd")
                             continue
                         if (
                             attribute_name
