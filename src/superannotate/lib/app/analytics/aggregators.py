@@ -209,9 +209,9 @@ class DataAggregator:
             constances.ProjectType.PIXEL
         ):
             return self.aggregate_image_annotations_as_df(annotation_paths)
-        elif self.project_type == constances.ProjectType.VIDEO.name:
+        elif self.project_type is constances.ProjectType.VIDEO:
             return self.aggregate_video_annotations_as_df(annotation_paths)
-        elif self.project_type == constances.ProjectType.DOCUMENT.name:
+        elif self.project_type is constances.ProjectType.DOCUMENT:
             return self.aggregate_document_annotations_as_df(annotation_paths)
 
 
