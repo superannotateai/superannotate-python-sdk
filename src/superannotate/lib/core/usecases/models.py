@@ -494,7 +494,9 @@ class ConsensusUseCase(BaseUseCase):
                 all_projects_df["itemName"].isin(self._image_list)
             ]
 
+
         all_projects_df.query("type == '" + self._instance_type + "'", inplace=True)
+
 
         def aggregate_attributes(instance_df):
             def attribute_to_list(attribute_df):
