@@ -126,7 +126,7 @@ class DataAggregator:
         "cuboid": lambda annotation: annotation["points"],
         "comment": lambda annotation: annotation["points"],
         "point": lambda annotation: {"x": annotation["x"], "y": annotation["y"]},
-        "annotation_type": lambda annotation: dict(
+        "ellipse": lambda annotation: dict(
             cx=annotation["cx"],
             cy=annotation["cy"],
             rx=annotation["rx"],
@@ -135,7 +135,8 @@ class DataAggregator:
         ),
         "tag": lambda annotation: None,
         "mask": lambda annotation: {"parts": annotation["parts"]},
-        "template": lambda annotation : None
+        "template": lambda annotation : None,
+        "rbbox": lambda annotation: annotation["points"]
     }
 
     def __init__(
@@ -169,7 +170,7 @@ class DataAggregator:
         if self.folder_names is None:
             self._set_annotation_suffix(self.project_root)
             for path in self.project_root.glob("*.json"):
-                if path.is_file() and path.suffix == self._annotation_suffix:
+                if path.is_file() and self._annotation_suffix in path.name:
                     annotations_paths.append(path)
                 elif path.is_dir() and path.name != "classes":
                     annotations_paths.extend(
