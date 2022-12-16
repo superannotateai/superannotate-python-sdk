@@ -1937,7 +1937,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         from superannotate.lib.app.analytics.aggregators import DataAggregator
 
-        ProjectTypes.validate(project_type)
+        try:
+            ProjectTypes.validate(project_type)
+        except TypeError as e:
+            raise AppException(e)
         return DataAggregator(
             project_type=project_type,
             project_root=project_root,
