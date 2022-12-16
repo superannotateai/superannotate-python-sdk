@@ -477,16 +477,16 @@ def consensus(df, item_name, annot_type):
             y1, y2 = inst_coords["y1"], inst_coords["y2"]
             inst = box(min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
         elif annot_type == "polygon":
-            inst_coords = inst_data["points"]
+            inst_coords = inst_data
             shapely_format = []
             for i in range(0, len(inst_coords) - 1, 2):
                 shapely_format.append((inst_coords[i], inst_coords[i + 1]))
             inst = Polygon(shapely_format)
         elif annot_type == "point":
             inst = Point(inst_data["x"], inst_data["y"])
-        if  annot_type == "tag" and inst.is_valid():
+        if  annot_type != "tag" and inst.is_valid:
             projects_shaply_objs[row["folderName"]].append(
-                (inst, row["classNme"], row["creatorEmail"], row["attributes"])
+                (inst, row["className"], row["creatorEmail"], row["attributes"])
             )
         else:
             logger.info(
