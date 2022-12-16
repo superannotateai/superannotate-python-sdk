@@ -136,7 +136,8 @@ class DataAggregator:
         "tag": lambda annotation: None,
         "mask": lambda annotation: {"parts": annotation["parts"]},
         "template": lambda annotation : None,
-        "rbbox": lambda annotation: annotation["points"]
+        "rbbox": lambda annotation: annotation["points"],
+        "comment_inst": lambda annotation: annotation["points"]
     }
 
     def __init__(
@@ -224,7 +225,6 @@ class DataAggregator:
             raws.append(attribute_raw)
         if not attributes:
             raws.append(element_raw)
-
         return raws
 
     def aggregate_video_annotations_as_df(self, annotation_paths: List[str]):
@@ -259,6 +259,8 @@ class DataAggregator:
             instances = annotation_data.get("instances", [])
             for idx, instance in enumerate(instances):
                 instance_type = instance["meta"].get("type", "event")
+                if instance_type == "comment":
+                    instance_type = "comment_inst"
                 instance_raw = copy.copy(raw_data)
                 instance_raw.instanceId = int(idx)
                 instance_raw.instanceStart = instance["meta"].get("start")
