@@ -512,11 +512,11 @@ class DataAggregator:
         if annotation_updated_by:
             annotation_updator_email = annotation_updated_by.get("email")
             annotation_updator_role = annotation_updated_by.get("role")
-        row_data.createdAt = annotation_created_at,
-        row_data.creatorRole = annotation_creator_role,
-        row_data.creatorEmail = annotation_creator_email,
-        row_data.creationType = annotation_creation_type,
-        row_data.updatedAt = annotation_updated_at,
-        row_data.updatorRole = annotation_updator_role,
+        row_data.createdAt = annotation_created_at
+        row_data.creatorRole = annotation_creator_role
+        row_data.creatorEmail = annotation_creator_email
+        row_data.creationType = annotation_creation_type
+        row_data.updatedAt = annotation_updated_at
+        row_data.updatorRole = annotation_updator_role
         row_data.updatorEmail = annotation_updator_email
         return row_data
