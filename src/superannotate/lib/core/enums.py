@@ -77,6 +77,11 @@ class ProjectType(BaseTitledEnum):
     PIXEL = "Pixel", 2
     VIDEO = "Video", 3
     DOCUMENT = "Document", 4
+    TILED = "Tiled", 5
+    CLASSIFICATION = "Classification", 6
+    POINT_CLOUD = "Point Cloud", 7
+
+
 
     @classproperty
     def images(self):
