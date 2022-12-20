@@ -655,16 +655,16 @@ class SetAnnotationStatues(BaseReportableUseCase):
         existing_items = []
         for i in range(0, len(self._item_names), self.CHUNK_SIZE):
             search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
-            cand_items = self._service_provider.items.list_by_names(
+            response = self._service_provider.items.list_by_names(
                 project=self._project,
                 folder=self._folder,
                 names=search_names,
-            ).data
+            )
+            if not response.ok:
+                raise AppValidationException(response.error)
 
-            if isinstance(cand_items, dict):
-                continue
+            cand_items = response.data
             existing_items += cand_items
-
         if not existing_items:
             raise AppValidationException(self.ERROR_MESSAGE)
         if existing_items:

@@ -1,7 +1,9 @@
 import os
 import sys
 
-__version__ = "4.4.7dev6"
+
+__version__ = "4.4.7dev7"
+
 
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
