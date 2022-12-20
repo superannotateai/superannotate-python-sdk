@@ -1128,38 +1128,19 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_names: list,
-        export_path: str,
+        # export_path: str,
         image_list: list,
         annot_type: str,
-        show_plots: bool,
+        # show_plots: bool,
     ):
         project = self.get_project(project_name)
 
-        export_response = self.prepare_export(
-            project.name,
-            folder_names=folder_names,
-            include_fuse=False,
-            only_pinned=False,
-        )
-        if export_response.errors:
-            return export_response
-
-        response = self.download_export(
-            project_name=project.name,
-            export_name=export_response.data["name"],
-            folder_path=export_path,
-            extract_zip_contents=True,
-            to_s3_bucket=False,
-        )
-        if response.errors:
-            raise AppException(response.errors)
         use_case = usecases.ConsensusUseCase(
             project=project,
             folder_names=folder_names,
-            export_dir=export_path,
             image_list=image_list,
             annotation_type=annot_type,
-            show_plots=show_plots,
+            service_provider = self.service_provider
         )
         return use_case.execute()
 
