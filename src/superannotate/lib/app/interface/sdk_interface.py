@@ -86,7 +86,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         super().__init__(token, config_path)
 
-    def get_folder_by_id(self, folder_id: int, project_id: int):
+    def get_folder_by_id(self, project_id: int, folder_id: int):
         """Returns the folder
         :param folder_id: the id of the folder
         :param project_id: the id of the project
@@ -99,7 +99,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_id=project_id
         )
 
-        return FolderSerializer(response).serialize()
+        return FolderSerializer(response).serialize(exclude={"completedCount", "is_root"})
 
     def get_project_by_id(self, project_id: int):
         """Returns the project
@@ -113,7 +113,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         return ProjectSerializer(response.data).serialize()
 
-    def get_item_by_id(self, item_id: int, project_id: int):
+    def get_item_by_id(self, project_id: int, item_id: int):
         """Returns the project
         :param item_id: the id of the item
         :param project_id: the id of the project
@@ -126,7 +126,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_id=project_id
         )
 
-        return ItemSerializer(response).serialize()
+        return ItemSerializer(response).serialize(exclude = {"path"})
 
 
     def get_team_metadata(self):
