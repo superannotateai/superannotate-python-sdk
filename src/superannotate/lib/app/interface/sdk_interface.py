@@ -38,6 +38,7 @@ from lib.app.serializers import FolderSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
+from lib.app.serializers import EntitySerializer
 from lib.core import entities
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.conditions import Condition
@@ -131,7 +132,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-        return response.data
+        return EntitySerializer.serialize(response.data)
+
 
     def get_team_metadata(self):
         """Returns team metadata
