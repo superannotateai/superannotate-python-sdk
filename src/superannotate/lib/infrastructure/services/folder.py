@@ -21,11 +21,11 @@ class FolderService(BaseFolderService):
             "folder_id": folder_id,
             "project_id": project_id
         }
-        print(params)
-        return self.client.request(
+        response = self.client.request(
             self.URL_GET_BY_ID, "get", params = params, content_type=FolderResponse
         )
 
+        return response
     def get_by_name(self, project: entities.ProjectEntity, name: str):
         params = {"project_id": project.id, "name": name}
         return self.client.request(

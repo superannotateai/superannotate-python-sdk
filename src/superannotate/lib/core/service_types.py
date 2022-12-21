@@ -165,22 +165,22 @@ class ServiceResponse(BaseModel):
 
 
 class ImageResponse(ServiceResponse):
-    data: entities.ImageEntity
+    data: entities.ImageEntity = None
 
 class VideoResponse(ServiceResponse):
-    data: entities.VideoEntity
+    data: entities.VideoEntity = None
 
 class DocumentResponse(ServiceResponse):
-    data: entities.DocumentEntity
+    data: entities.DocumentEntity = None
 
 class TiledResponse(ServiceResponse):
-    data: entities.TiledEntity
+    data: entities.TiledEntity = None
 
 class ClassificationResponse(ServiceResponse):
-    data: entities.ClassificationEntity
+    data: entities.ClassificationEntity = None
 
 class PointCloudResponse(ServiceResponse):
-    data: entities.PointCloudEntity
+    data: entities.PointCloudEntity = None
 
 class TeamResponse(ServiceResponse):
     data: entities.TeamEntity = None

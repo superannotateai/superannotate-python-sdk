@@ -49,11 +49,13 @@ class ItemService(BaseItemService):
 
         content_type = self.PROJECT_TYPE_RESPOSE_MAP[project_type]
 
-        return self.client.request(
+        response =  self.client.request(
             url=self.URL_GET_BY_ID.format(image_id=item_id),
             params = params,
             content_type=content_type
         )
+
+        return response
 
     def list(self, condition: Condition = None):
         return self.client.paginate(

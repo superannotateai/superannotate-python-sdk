@@ -24,13 +24,18 @@ class GetFolderByIDUseCase(BaseUseCase):
 
     def execute(self):
         try:
-            self._response.data = self._service_provider.folders.get_by_id(
+            response = self._service_provider.folders.get_by_id(
                 folder_id = self._folder_id,
                 project_id = self._project_id,
                 team_id = self._team_id
-            ).data
+            )
         except AppException as e:
             self._response.errors=e
+        else:
+            self._response.data = response.data
+
+        if not response.ok:
+            self._response.errors = AppException(response.error)
 
         return self._response
 

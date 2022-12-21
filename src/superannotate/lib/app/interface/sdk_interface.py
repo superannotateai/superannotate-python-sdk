@@ -99,7 +99,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_id=project_id
         )
 
-        return FolderSerializer(response.data).serialize()
+        return FolderSerializer(response).serialize()
 
     def get_project_by_id(self, project_id: int):
         """Returns the project
@@ -126,7 +126,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_id=project_id
         )
 
-        return EntitySerializer.serialize(response.data)
+        return EntitySerializer.serialize(response)
 
 
     def get_team_metadata(self):

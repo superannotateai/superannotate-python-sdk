@@ -39,6 +39,9 @@ class GetProjectByIDUseCase(BaseUseCase):
 
         except AppException as e:
             self._response.errors = e
+        else:
+            if not self._response.data.data:
+                self._response.errors = AppException("Either the specified project does not exist or you do not have permission to view it")
 
         return self._response
 
