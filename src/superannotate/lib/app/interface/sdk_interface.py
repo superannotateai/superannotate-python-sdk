@@ -85,6 +85,54 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         super().__init__(token, config_path)
 
+    def get_folder_by_id(self, folder_id: int, project_id: int):
+        """Returns the folder
+        :param folder_id: the id of the folder
+        :param project_id: the id of the project
+        :return: folder information
+        :rtype: dict
+        """
+
+        response = self.controller.get_folder_by_id(
+            folder_id=folder_id,
+            project_id=project_id
+        )
+        if response.errors:
+            raise AppException(response.errors)
+
+        return FolderSerializer(response.data).serialize()
+
+    def get_project_by_id(self, project_id: int):
+        """Returns the project
+        :param project_id: the id of the project
+        :return: folder information
+        :rtype: dict
+        """
+        response = self.controller.get_project_by_id(
+            project_id=project_id
+        )
+        if response.errors:
+            raise AppException(response.errors)
+
+        return ProjectSerializer(response.data).serialize()
+
+    def get_item_by_id(self, item_id: int, project_id: int):
+        """Returns the project
+        :param item_id: the id of the item
+        :param project_id: the id of the project
+        :return: folder information
+        :rtype: dict
+        """
+
+        response = self.controller.get_item_by_id(
+            item_id=item_id,
+            project_id=project_id
+        )
+        if response.errors:
+            raise AppException(response.errors)
+
+        return response.data
+
     def get_team_metadata(self):
         """Returns team metadata
 
@@ -455,7 +503,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         include_settings: Optional[StrictBool] = False,
         include_workflow: Optional[StrictBool] = False,
         include_contributors: Optional[StrictBool] = False,
-        include_complete_image_count: Optional[StrictBool] = False,
+        include_complete_image_count: Optional[StrictBool] = False
     ):
         """Returns project metadata
 

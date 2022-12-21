@@ -34,6 +34,26 @@ from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
 
+class GetItemByIDUseCase(BaseUseCase):
+    def __init__(self, item_id, project, service_provider):
+        self._item_id = item_id
+        self._project = project
+        self._service_provider = service_provider
+        super().__init__()
+
+    def execute(self, ):
+
+        try:
+            self._response.data = self._service_provider.items.get_by_id(
+                item_id = self._item_id,
+                project_id = self._project.id,
+                project_type = self._project.type
+
+            ).data
+        except AppException as e:
+            self._response.errors = e
+
+        return self._response
 
 class GetItem(BaseReportableUseCase):
     def __init__(

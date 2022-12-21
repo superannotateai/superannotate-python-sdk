@@ -6,6 +6,9 @@ from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import DocumentEntity
 from lib.core.entities.items import ImageEntity
 from lib.core.entities.items import VideoEntity
+from lib.core.entities.items import ClassificationEntity
+from lib.core.entities.items import TiledEntity
+from lib.core.entities.items import PointCloudEntity
 from lib.core.entities.project import AttachmentEntity
 from lib.core.entities.project import MLModelEntity
 from lib.core.entities.project import ProjectEntity

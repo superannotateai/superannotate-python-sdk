@@ -47,6 +47,14 @@ class BaseManager:
 
 
 class ProjectManager(BaseManager):
+    def get_by_id(self, project_id):
+        use_case = usecases.GetProjectByIDUseCase(
+            project_id=project_id,
+            service_provider=self.service_provider
+        )
+        response = use_case.execute()
+        return response
+
     def get_by_name(self, name: str):
         use_case = usecases.GetProjectByNameUseCase(
             name=name, service_provider=self.service_provider
@@ -302,6 +310,16 @@ class FolderManager(BaseManager):
         )
         return use_case.execute()
 
+    def get_by_id(self, folder_id, project_id, team_id):
+        use_case = usecases.GetFolderByIDUseCase(
+            folder_id=folder_id,
+            project_id=project_id,
+            team_id=team_id,
+            service_provider = self.service_provider
+        )
+        result = use_case.execute()
+        return result
+
     def list(self, project: ProjectEntity, condition: Condition = None):
         use_case = usecases.SearchFoldersUseCase(
             project=project, service_provider=self.service_provider, condition=condition
@@ -354,6 +372,15 @@ class ItemManager(BaseManager):
             include_custom_metadata=include_custom_metadata,
         )
         return use_case.execute()
+
+    def get_by_id(self, item_id: int, project : ProjectEntity):
+        use_case = usecases.GetItemByIDUseCase(
+            item_id = item_id,
+            project = project.data.data,
+            service_provider = self.service_provider
+        )
+        return use_case.execute()
+
 
     def list(
         self,
@@ -831,6 +858,32 @@ class Controller(BaseController):
     def set_default(cls, obj):
         cls.DEFAULT = obj
         return cls.DEFAULT
+
+    def get_folder_by_id(
+        self, folder_id: int, project_id: int
+    ) -> FolderEntity:
+        return self.folders.get_by_id(
+            folder_id = folder_id,
+            project_id = project_id,
+            team_id = self.team_id
+        )
+
+    def get_project_by_id(
+        self, project_id: int
+    )->ProjectEntity:
+        return self.projects.get_by_id(
+            project_id = project_id
+        )
+
+    def get_item_by_id(
+            self, item_id: int, project_id:int
+    ):
+        project=self.get_project_by_id(project_id = project_id)
+        return self.items.get_by_id(
+            item_id = item_id,
+            project = project
+        )
+
 
     def get_project_folder_by_path(
         self, path: Union[str, Path]

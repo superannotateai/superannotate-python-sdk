@@ -19,6 +19,14 @@ class ProjectService(BaseProjectService):
     URL_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
+    URL_GET_BY_ID = "project/{project_id}"
+
+    def get_by_id(self, project_id: int):
+        params = {}
+        return self.client.request(
+
+            self.URL_GET_BY_ID.format(project_id=project_id), "get", params=params, content_type=ProjectResponse
+        )
 
     def get(self, uuid: int):
         return self.client.request(

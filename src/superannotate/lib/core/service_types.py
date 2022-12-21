@@ -164,9 +164,26 @@ class ServiceResponse(BaseModel):
         self._error = value
 
 
+class ImageResponse(ServiceResponse):
+    data: entities.ImageEntity
+
+class VideoResponse(ServiceResponse):
+    data: entities.VideoEntity
+
+class DocumentResponse(ServiceResponse):
+    data: entities.DocumentEntity
+
+class TiledResponse(ServiceResponse):
+    data: entities.TiledEntity
+
+class ClassificationResponse(ServiceResponse):
+    data: entities.ClassificationEntity
+
+class PointCloudResponse(ServiceResponse):
+    data: entities.PointCloudEntity
+
 class TeamResponse(ServiceResponse):
     data: entities.TeamEntity = None
-
 
 class ModelListResponse(ServiceResponse):
     data: List[entities.AnnotationClassEntity] = None
