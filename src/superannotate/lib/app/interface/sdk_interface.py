@@ -126,7 +126,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_id=project_id
         )
 
-        return ItemSerializer(response).serialize(exclude = {"path"})
+        return ItemSerializer(response).serialize(exclude = {"path", "meta"})
 
 
     def get_team_metadata(self):
