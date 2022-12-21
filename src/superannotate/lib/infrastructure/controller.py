@@ -862,27 +862,41 @@ class Controller(BaseController):
     def get_folder_by_id(
         self, folder_id: int, project_id: int
     ) -> FolderEntity:
-        return self.folders.get_by_id(
+        response= self.folders.get_by_id(
             folder_id = folder_id,
             project_id = project_id,
             team_id = self.team_id
         )
 
+        if response.errors:
+            raise AppException(response.errors)
+
+        return response.data
+
     def get_project_by_id(
         self, project_id: int
     )->ProjectEntity:
-        return self.projects.get_by_id(
+        response =  self.projects.get_by_id(
             project_id = project_id
         )
+        if response.errors:
+            raise AppException(response.errors)
+
+        return response.data
 
     def get_item_by_id(
             self, item_id: int, project_id:int
     ):
         project=self.get_project_by_id(project_id = project_id)
-        return self.items.get_by_id(
+        response = self.items.get_by_id(
             item_id = item_id,
             project = project
         )
+
+        if response.errors:
+            raise AppException(response.errors)
+
+        return response.data
 
 
     def get_project_folder_by_path(

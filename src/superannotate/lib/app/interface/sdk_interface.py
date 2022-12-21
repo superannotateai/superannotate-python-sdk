@@ -98,8 +98,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder_id=folder_id,
             project_id=project_id
         )
-        if response.errors:
-            raise AppException(response.errors)
 
         return FolderSerializer(response.data).serialize()
 
@@ -112,8 +110,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.get_project_by_id(
             project_id=project_id
         )
-        if response.errors:
-            raise AppException(response.errors)
 
         return ProjectSerializer(response.data).serialize()
 
@@ -129,8 +125,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             item_id=item_id,
             project_id=project_id
         )
-        if response.errors:
-            raise AppException(response.errors)
 
         return EntitySerializer.serialize(response.data)
 
