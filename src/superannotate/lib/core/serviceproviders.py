@@ -156,6 +156,10 @@ class BaseProjectService(SuperannotateServiceProvider):
 
 class BaseFolderService(SuperannotateServiceProvider):
     @abstractmethod
+    def get_by_id(self, folder_id: int, project_id: int, team_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
     def get_by_name(self, project: entities.ProjectEntity, name: str) -> FolderResponse:
         raise NotImplementedError
 
