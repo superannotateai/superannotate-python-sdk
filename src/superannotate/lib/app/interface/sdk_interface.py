@@ -97,11 +97,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         response = self.controller.get_project_by_id(project_id=project_id)
 
+        return ProjectSerializer(response.data).serialize()
+
     def get_folder_by_id(self, project_id: int, folder_id: int):
-        """Returns the folder
-        :param folder_id: the id of the folder
+        """Returns the folder metadata
+
         :param project_id: the id of the project
-        :return: folder information
+        :type project_id: int
+
+        :param folder_id: the id of the folder
+        :type folder_id: int
+
+        :return: folder metadata
         :rtype: dict
         """
 
@@ -113,21 +120,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             exclude={"completedCount", "is_root"}
         )
 
-    def get_project_by_id(self, project_id: int):
-        """Returns the project
-        :param project_id: the id of the project
-        :return: folder information
-        :rtype: dict
-        """
-        response = self.controller.get_project_by_id(project_id=project_id)
-
-        return ProjectSerializer(response.data).serialize()
-
     def get_item_by_id(self, project_id: int, item_id: int):
-        """Returns the project
-        :param item_id: the id of the item
+        """Returns the item metadata
+
         :param project_id: the id of the project
-        :return: folder information
+        :type project_id: int
+
+        :param item_id: the id of the item
+        :type item_id: int
+
+        :return: item metadata
         :rtype: dict
         """
 
@@ -157,10 +159,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param email: filter by email
         :type email: str
+
         :param first_name: filter by first name
         :type first_name: str
+
         :param last_name: filter by last name
         :type last_name: str
+
         :param return_metadata: return metadata of contributors instead of names
         :type return_metadata: bool
 
