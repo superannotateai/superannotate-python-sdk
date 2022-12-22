@@ -24,26 +24,30 @@ from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
 
+
 class GetProjectByIDUseCase(BaseUseCase):
     def __init__(self, project_id, service_provider):
         self._project_id = project_id
-        self._service_provider=service_provider
+        self._service_provider = service_provider
         super().__init__()
 
     def execute(self):
         try:
 
-            self._response.data= self._service_provider.projects.get_by_id(
-                project_id = self._project_id
+            self._response.data = self._service_provider.projects.get_by_id(
+                project_id=self._project_id
             )
 
         except AppException as e:
             self._response.errors = e
         else:
             if not self._response.data.data:
-                self._response.errors = AppException("Either the specified project does not exist or you do not have permission to view it")
+                self._response.errors = AppException(
+                    "Either the specified project does not exist or you do not have permission to view it"
+                )
 
         return self._response
+
 
 class GetProjectsUseCase(BaseUseCase):
     def __init__(

@@ -1,12 +1,12 @@
 import concurrent.futures
 import os.path
+import platform
 import tempfile
 import time
-import platform
 import zipfile
 from pathlib import Path
-from typing import List
 from tempfile import TemporaryDirectory
+from typing import List
 
 import boto3
 import lib.core as constances
@@ -15,8 +15,8 @@ import requests
 from botocore.exceptions import ClientError
 from lib.app.analytics.aggregators import DataAggregator
 from lib.app.analytics.common import aggregate_image_annotations_as_df
-from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import consensus
+from lib.app.analytics.common import consensus_plot
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import FolderEntity
@@ -28,12 +28,11 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.serviceproviders import BaseServiceProvider
+from lib.core.usecases.annotations import DownloadAnnotations
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.usecases.folders import GetFolderUseCase
-from lib.core.usecases.annotations import GetAnnotations, DownloadAnnotations
 from lib.core.usecases.classes import DownloadAnnotationClassesUseCase
-from lib.core.reporter import Reporter
+from lib.core.usecases.folders import GetFolderUseCase
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
@@ -433,9 +432,9 @@ class ConsensusUseCase(BaseUseCase):
 
         for folder_name in folder_names:
             get_folder_uc = GetFolderUseCase(
-                project = self._project,
-                service_provider = service_provider,
-                folder_name=folder_name
+                project=self._project,
+                service_provider=service_provider,
+                folder_name=folder_name,
             )
             folder = get_folder_uc.execute().data
             if not folder:
@@ -445,45 +444,44 @@ class ConsensusUseCase(BaseUseCase):
 
     def _download_annotations(self, destination):
         reporter = Reporter(
-                log_info=False,
-                log_warning=False,
-                log_debug=False,
-            disable_progress_bar=True
+            log_info=False,
+            log_warning=False,
+            log_debug=False,
+            disable_progress_bar=True,
         )
 
         classes_dir = Path(destination) / "classes"
         classes_dir.mkdir()
 
         DownloadAnnotationClassesUseCase(
-            reporter = reporter,
-            download_path = classes_dir,
-            project = self._project,
-            service_provider = self.service_provider
+            reporter=reporter,
+            download_path=classes_dir,
+            project=self._project,
+            service_provider=self.service_provider,
         ).execute()
 
         for folder in self._folders:
             download_annotations_uc = DownloadAnnotations(
-                    reporter = reporter,
-                    project = self._project,
-                    folder = folder,
-                    item_names = self._image_list,
-                    destination = destination, #Destination unknown known known
-                    service_provider = self.service_provider,
-                    recursive = False
-                )
+                reporter=reporter,
+                project=self._project,
+                folder=folder,
+                item_names=self._image_list,
+                destination=destination,  # Destination unknown known known
+                service_provider=self.service_provider,
+                recursive=False,
+            )
             tmp = download_annotations_uc.execute()
             if tmp.errors:
                 raise AppException(tmp.errors)
         return tmp.data
 
-
     def execute(self):
         with TemporaryDirectory() as temp_dir:
             export_path = self._download_annotations(temp_dir)
             aggregator = DataAggregator(
-                project_type = self._project.type,
-                folder_names = self._folder_names,
-                project_root = export_path,
+                project_type=self._project.type,
+                folder_names=self._folder_names,
+                project_root=export_path,
             )
             project_df = aggregator.aggregate_annotations_as_df()
 
@@ -497,9 +495,7 @@ class ConsensusUseCase(BaseUseCase):
                 all_projects_df["itemName"].isin(self._image_list)
             ]
 
-
         all_projects_df.query("type == '" + self._instance_type + "'", inplace=True)
-
 
         def aggregate_attributes(instance_df):
             def attribute_to_list(attribute_df):
@@ -540,14 +536,12 @@ class ConsensusUseCase(BaseUseCase):
             unique_images = all_projects_df["itemName"].unique()
         all_consensus_data = []
         for image_name in unique_images:
-            image_data = consensus(
-                all_projects_df, image_name, self._instance_type
-            )
+            image_data = consensus(all_projects_df, image_name, self._instance_type)
             all_consensus_data.append(pd.DataFrame(image_data))
 
         consensus_df = pd.concat(all_consensus_data, ignore_index=True)
         if self._instance_type == "tag":
-            consensus_df["score"]/=(len(self._folder_names) - 1)
+            consensus_df["score"] /= len(self._folder_names) - 1
 
         self._response.data = consensus_df
         return self._response

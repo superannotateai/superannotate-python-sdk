@@ -35,10 +35,10 @@ from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import Setting
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import FolderSerializer
+from lib.app.serializers import ItemSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
-from lib.app.serializers import ItemSerializer
 from lib.core import entities
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.conditions import Condition
@@ -95,11 +95,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         response = self.controller.get_folder_by_id(
-            folder_id=folder_id,
-            project_id=project_id
+            folder_id=folder_id, project_id=project_id
         )
 
-        return FolderSerializer(response).serialize(exclude={"completedCount", "is_root"})
+        return FolderSerializer(response).serialize(
+            exclude={"completedCount", "is_root"}
+        )
 
     def get_project_by_id(self, project_id: int):
         """Returns the project
@@ -107,9 +108,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: folder information
         :rtype: dict
         """
-        response = self.controller.get_project_by_id(
-            project_id=project_id
-        )
+        response = self.controller.get_project_by_id(project_id=project_id)
 
         return ProjectSerializer(response.data).serialize()
 
@@ -122,12 +121,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         response = self.controller.get_item_by_id(
-            item_id=item_id,
-            project_id=project_id
+            item_id=item_id, project_id=project_id
         )
 
-        return ItemSerializer(response).serialize(exclude = {"url", "meta"})
-
+        return ItemSerializer(response).serialize(exclude={"url", "meta"})
 
     def get_team_metadata(self):
         """Returns team metadata
@@ -499,7 +496,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         include_settings: Optional[StrictBool] = False,
         include_workflow: Optional[StrictBool] = False,
         include_contributors: Optional[StrictBool] = False,
-        include_complete_image_count: Optional[StrictBool] = False
+        include_complete_image_count: Optional[StrictBool] = False,
     ):
         """Returns project metadata
 

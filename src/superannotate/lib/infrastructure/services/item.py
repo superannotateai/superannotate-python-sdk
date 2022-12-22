@@ -4,19 +4,18 @@ from typing import List
 
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
-from lib.core.service_types import ItemListResponse
-from lib.core.service_types import DocumentResponse
-from lib.core.service_types import ImageResponse
 from lib.core.service_types import ClassificationResponse
-from lib.core.service_types import VideoResponse
+from lib.core.service_types import ImageResponse
+from lib.core.service_types import ItemListResponse
 from lib.core.service_types import PointCloudResponse
 from lib.core.service_types import TiledResponse
+from lib.core.service_types import VideoResponse
 from lib.core.serviceproviders import BaseItemService
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
-from lib.core.enums import ProjectType
 
 
 class ItemService(BaseItemService):
@@ -32,27 +31,24 @@ class ItemService(BaseItemService):
     URL_GET_BY_ID = "image/{image_id}"
 
     PROJECT_TYPE_RESPOSE_MAP = {
-        ProjectType.VECTOR : ImageResponse,
+        ProjectType.VECTOR: ImageResponse,
         ProjectType.OTHER: ClassificationResponse,
         ProjectType.VIDEO: VideoResponse,
         ProjectType.TILED: TiledResponse,
         ProjectType.PIXEL: ImageResponse,
-        ProjectType.POINT_CLOUD: PointCloudResponse
-
+        ProjectType.POINT_CLOUD: PointCloudResponse,
     }
 
     def get_by_id(self, item_id, project_id, project_type):
 
-        params = {
-            "project_id": project_id
-        }
+        params = {"project_id": project_id}
 
         content_type = self.PROJECT_TYPE_RESPOSE_MAP[project_type]
 
-        response =  self.client.request(
+        response = self.client.request(
             url=self.URL_GET_BY_ID.format(image_id=item_id),
-            params = params,
-            content_type=content_type
+            params=params,
+            content_type=content_type,
         )
 
         return response

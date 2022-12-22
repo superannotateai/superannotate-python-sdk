@@ -165,6 +165,7 @@ class SettingsSerializer:
             self.data["value"] = constance.ImageQuality.get_name(self.data["value"])
         return self.data
 
+
 class ItemSerializer(BaseSerializer):
     def serialize(
         self,
@@ -176,6 +177,7 @@ class ItemSerializer(BaseSerializer):
         data = super().serialize(fields, by_alias, flat, exclude)
 
         return data
+
 
 class EntitySerializer:
     @classmethod
