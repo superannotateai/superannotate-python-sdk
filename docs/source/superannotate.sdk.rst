@@ -25,11 +25,13 @@ ________
 .. automethod:: superannotate.SAClient.delete_project
 .. automethod:: superannotate.SAClient.rename_project
 .. _ref_get_project_metadata:
+.. automethod:: superannotate.SAClient.get_project_by_id
 .. automethod:: superannotate.SAClient.get_project_metadata
 .. automethod:: superannotate.SAClient.get_project_image_count
 .. automethod:: superannotate.SAClient.search_folders
 .. automethod:: superannotate.SAClient.assign_folder
 .. automethod:: superannotate.SAClient.unassign_folder
+.. automethod:: superannotate.SAClient.get_folder_by_id
 .. automethod:: superannotate.SAClient.get_folder_metadata
 .. automethod:: superannotate.SAClient.create_folder
 .. automethod:: superannotate.SAClient.delete_folders
@@ -68,6 +70,7 @@ Items
 ______
 
 .. automethod:: superannotate.SAClient.query
+.. automethod:: superannotate.SAClient.get_item_by_id
 .. automethod:: superannotate.SAClient.search_items
 .. automethod:: superannotate.SAClient.download_annotations
 .. automethod:: superannotate.SAClient.attach_items

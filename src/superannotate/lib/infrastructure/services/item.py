@@ -8,6 +8,7 @@ from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.service_types import ClassificationResponse
+from lib.core.service_types import DocumentResponse
 from lib.core.service_types import ImageResponse
 from lib.core.service_types import ItemListResponse
 from lib.core.service_types import PointCloudResponse
@@ -36,6 +37,7 @@ class ItemService(BaseItemService):
         ProjectType.VIDEO: VideoResponse,
         ProjectType.TILED: TiledResponse,
         ProjectType.PIXEL: ImageResponse,
+        ProjectType.DOCUMENT: DocumentResponse,
         ProjectType.POINT_CLOUD: PointCloudResponse,
     }
 
@@ -43,7 +45,7 @@ class ItemService(BaseItemService):
 
         params = {"project_id": project_id}
 
-        content_type = self.PROJECT_TYPE_RESPOSE_MAP[project_type]
+        content_type = self.PROJECT_TYPE_RESPONSE_MAP[project_type]
 
         response = self.client.request(
             url=self.URL_GET_BY_ID.format(image_id=item_id),

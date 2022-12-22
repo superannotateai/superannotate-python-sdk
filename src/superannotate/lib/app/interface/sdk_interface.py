@@ -86,6 +86,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         super().__init__(token, config_path)
 
+    def get_project_by_id(self, project_id: int):
+        """Returns the project metadata
+
+        :param project_id: the id of the project
+        :type project_id: int
+
+        :return: project metadata
+        :rtype: dict
+        """
+        response = self.controller.get_project_by_id(project_id=project_id)
+
     def get_folder_by_id(self, project_id: int, folder_id: int):
         """Returns the folder
         :param folder_id: the id of the folder

@@ -30,6 +30,9 @@ __all__ = [
     "ImageEntity",
     "BaseItemEntity",
     "VideoEntity",
+    "PointCloudEntity",
+    "TiledEntity",
+    "ClassificationEntity",
     "DocumentEntity",
     # Utils
     "AttachmentEntity",
