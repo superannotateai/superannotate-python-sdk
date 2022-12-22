@@ -24,7 +24,10 @@ class ProjectService(BaseProjectService):
     def get_by_id(self, project_id: int):
         params = {}
         result = self.client.request(
-            self.URL_GET_BY_ID.format(project_id=project_id), "get", params=params, content_type=ProjectResponse
+            self.URL_GET_BY_ID.format(project_id=project_id),
+            "get",
+            params=params,
+            content_type=ProjectResponse,
         )
         return result
 

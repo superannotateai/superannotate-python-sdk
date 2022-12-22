@@ -49,8 +49,7 @@ class BaseManager:
 class ProjectManager(BaseManager):
     def get_by_id(self, project_id):
         use_case = usecases.GetProjectByIDUseCase(
-            project_id=project_id,
-            service_provider=self.service_provider
+            project_id=project_id, service_provider=self.service_provider
         )
         response = use_case.execute()
         return response
@@ -315,7 +314,7 @@ class FolderManager(BaseManager):
             folder_id=folder_id,
             project_id=project_id,
             team_id=team_id,
-            service_provider = self.service_provider
+            service_provider=self.service_provider,
         )
         result = use_case.execute()
         return result
@@ -373,14 +372,13 @@ class ItemManager(BaseManager):
         )
         return use_case.execute()
 
-    def get_by_id(self, item_id: int, project : ProjectEntity):
+    def get_by_id(self, item_id: int, project: ProjectEntity):
         use_case = usecases.GetItemByIDUseCase(
-            item_id = item_id,
-            project = project.data,
-            service_provider = self.service_provider
+            item_id=item_id,
+            project=project.data,
+            service_provider=self.service_provider,
         )
         return use_case.execute()
-
 
     def list(
         self,
@@ -859,13 +857,9 @@ class Controller(BaseController):
         cls.DEFAULT = obj
         return cls.DEFAULT
 
-    def get_folder_by_id(
-        self, folder_id: int, project_id: int
-    ) -> FolderEntity:
-        response= self.folders.get_by_id(
-            folder_id = folder_id,
-            project_id = project_id,
-            team_id = self.team_id
+    def get_folder_by_id(self, folder_id: int, project_id: int) -> FolderEntity:
+        response = self.folders.get_by_id(
+            folder_id=folder_id, project_id=project_id, team_id=self.team_id
         )
 
         if response.errors:
@@ -873,31 +867,21 @@ class Controller(BaseController):
 
         return response.data
 
-    def get_project_by_id(
-        self, project_id: int
-    )->ProjectEntity:
-        response =  self.projects.get_by_id(
-            project_id = project_id
-        )
+    def get_project_by_id(self, project_id: int) -> ProjectEntity:
+        response = self.projects.get_by_id(project_id=project_id)
         if response.errors:
             raise AppException(response.errors)
 
         return response.data
 
-    def get_item_by_id(
-            self, item_id: int, project_id:int
-    ):
-        project=self.get_project_by_id(project_id = project_id)
-        response = self.items.get_by_id(
-            item_id = item_id,
-            project = project
-        )
+    def get_item_by_id(self, item_id: int, project_id: int):
+        project = self.get_project_by_id(project_id=project_id)
+        response = self.items.get_by_id(item_id=item_id, project=project)
 
         if response.errors:
             raise AppException(response.errors)
 
         return response.data
-
 
     def get_project_folder_by_path(
         self, path: Union[str, Path]
@@ -1207,7 +1191,7 @@ class Controller(BaseController):
             folder_names=folder_names,
             image_list=image_list,
             annotation_type=annot_type,
-            service_provider = self.service_provider
+            service_provider=self.service_provider,
         )
         return use_case.execute()
 

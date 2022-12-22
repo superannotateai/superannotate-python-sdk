@@ -28,17 +28,21 @@ class VideoEntity(BaseItemEntity):
     class Config:
         extra = Extra.ignore
 
+
 class DocumentEntity(BaseItemEntity):
     class Config:
         extra = Extra.ignore
+
 
 class TiledEntity(BaseItemEntity):
     class Config:
         extra = Extra.ignore
 
+
 class ClassificationEntity(BaseItemEntity):
     class Config:
         extra = Extra.ignore
+
 
 class PointCloudEntity(BaseItemEntity):
     class Config:
