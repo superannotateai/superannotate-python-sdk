@@ -9,12 +9,12 @@ from typing import Union
 import lib.core as constances
 import pandas as pd
 from lib.app.exceptions import AppException
-from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
+
 
 @dataclass
 class ImageRowData:
@@ -49,6 +49,7 @@ class ImageRowData:
     itemQA: str = None
     commentResolved: str = None
     tag: str = None
+
 
 @dataclass
 class VideoRawData:
@@ -135,9 +136,9 @@ class DataAggregator:
         ),
         "tag": lambda annotation: None,
         "mask": lambda annotation: {"parts": annotation["parts"]},
-        "template": lambda annotation : None,
+        "template": lambda annotation: None,
         "rbbox": lambda annotation: annotation["points"],
-        "comment_inst": lambda annotation: annotation["points"]
+        "comment_inst": lambda annotation: annotation["points"],
     }
 
     def __init__(
@@ -204,17 +205,15 @@ class DataAggregator:
         self.check_classes_path()
         annotation_paths = self.get_annotation_paths()
 
-
         if self.project_type in (
             constances.ProjectType.VECTOR,
-            constances.ProjectType.PIXEL
+            constances.ProjectType.PIXEL,
         ):
             return self.aggregate_image_annotations_as_df(annotation_paths)
         elif self.project_type is constances.ProjectType.VIDEO:
             return self.aggregate_video_annotations_as_df(annotation_paths)
         elif self.project_type is constances.ProjectType.DOCUMENT:
             return self.aggregate_document_annotations_as_df(annotation_paths)
-
 
     def __add_attributes_to_raws(self, raws, attributes, element_raw):
         for attribute_id, attribute in enumerate(attributes):
@@ -388,10 +387,10 @@ class DataAggregator:
         for annotation_path in annotations_paths:
             row_data = ImageRowData()
             annotation_json = None
-            with open(annotation_path, 'r') as fp:
+            with open(annotation_path) as fp:
                 annotation_json = json.load(fp)
             parts = Path(annotation_path).name.split(self._annotation_suffix)
-            row_data = self.__fill_image_metadata(row_data, annotation_json['metadata'])
+            row_data = self.__fill_image_metadata(row_data, annotation_json["metadata"])
             annotation_instance_id = 0
 
             # include comments
@@ -408,7 +407,7 @@ class DataAggregator:
                 tag_row.rag = tag
                 rows.append(tag_row)
 
-            #Instances
+            # Instances
             for idx, annotation in enumerate(annotation_json["instances"]):
                 instance_row = copy.copy(row_data)
                 annotation_type = annotation.get("type", "mask")
@@ -462,7 +461,8 @@ class DataAggregator:
                             attribute_name
                             not in class_group_name_to_values[annotation_class_name][
                                 attribute_group
-                            ] and group_id not in freestyle_attributes
+                            ]
+                            and group_id not in freestyle_attributes
                         ):
                             logger.warning(
                                 f"Annotation class group value {attribute_name} not in classes json. Skipping."
@@ -472,7 +472,6 @@ class DataAggregator:
                         else:
                             attribute_row.attributeGroupName = attribute_group
                             attribute_row.attributeName = attribute_name
-
 
                         rows.append(attribute_row)
                         num_added += 1
@@ -486,7 +485,7 @@ class DataAggregator:
 
     @staticmethod
     def __fill_image_metadata(raw_data, metadata):
-        raw_data.itemName = metadata.get('name')
+        raw_data.itemName = metadata.get("name")
         raw_data.itemHeight = metadata.get("height")
         raw_data.itemWidth = metadata.get("width")
         raw_data.itemStatus = metadata.get("status")

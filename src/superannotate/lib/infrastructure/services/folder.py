@@ -13,6 +13,15 @@ class FolderService(BaseFolderService):
     URL_GET_BY_NAME = "folder/getFolderByName"
     URL_DELETE_MULTIPLE = "image/delete/images"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
+    URL_GET_BY_ID = "folder/getFolderById"
+
+    def get_by_id(self, folder_id, project_id, team_id):
+        params = {"team_id": team_id, "folder_id": folder_id, "project_id": project_id}
+        response = self.client.request(
+            self.URL_GET_BY_ID, "get", params=params, content_type=FolderResponse
+        )
+
+        return response
 
     def get_by_name(self, project: entities.ProjectEntity, name: str):
         params = {"project_id": project.id, "name": name}

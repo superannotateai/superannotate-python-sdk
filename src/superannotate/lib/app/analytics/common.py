@@ -398,6 +398,7 @@ def instance_consensus(inst_1, inst_2):
 
     return score
 
+
 def calculate_tag_consensus(image_df):
     column_names = [
         "creatorEmail",
@@ -406,14 +407,14 @@ def calculate_tag_consensus(image_df):
         "className",
         "folderName",
         "attributeGroupName",
-        "attributeName"
+        "attributeName",
     ]
 
     image_data = {}
     for column_name in column_names:
         image_data[column_name] = []
 
-    image_df=image_df.reset_index()
+    image_df = image_df.reset_index()
     image_data["score"] = []
     for i, irow in image_df.iterrows():
         for c in column_names:
@@ -422,9 +423,14 @@ def calculate_tag_consensus(image_df):
         for j, jrow in image_df.iterrows():
             if i == j:
                 continue
-            if (irow["className"] == jrow["className"]) and irow["attributeGroupName"] == jrow["attributeGroupName"] and irow["attributeName"] == jrow["attributeName"]:
-                image_data["score"][i]+=1
+            if (
+                (irow["className"] == jrow["className"])
+                and irow["attributeGroupName"] == jrow["attributeGroupName"]
+                and irow["attributeName"] == jrow["attributeName"]
+            ):
+                image_data["score"][i] += 1
     return image_data
+
 
 def consensus(df, item_name, annot_type):
     """Helper function that computes consensus score for instances of a single image:
@@ -484,7 +490,7 @@ def consensus(df, item_name, annot_type):
             inst = Polygon(shapely_format)
         elif annot_type == "point":
             inst = Point(inst_data["x"], inst_data["y"])
-        if  annot_type != "tag" and inst.is_valid:
+        if annot_type != "tag" and inst.is_valid:
             projects_shaply_objs[row["folderName"]].append(
                 (inst, row["className"], row["creatorEmail"], row["attributes"])
             )

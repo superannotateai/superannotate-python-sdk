@@ -35,6 +35,7 @@ from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import Setting
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import FolderSerializer
+from lib.app.serializers import ItemSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
@@ -84,6 +85,60 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         config_path: str = None,
     ):
         super().__init__(token, config_path)
+
+    def get_project_by_id(self, project_id: int):
+        """Returns the project metadata
+
+        :param project_id: the id of the project
+        :type project_id: int
+
+        :return: project metadata
+        :rtype: dict
+        """
+        response = self.controller.get_project_by_id(project_id=project_id)
+
+        return ProjectSerializer(response.data).serialize()
+
+    def get_folder_by_id(self, project_id: int, folder_id: int):
+        """Returns the folder metadata
+
+        :param project_id: the id of the project
+        :type project_id: int
+
+        :param folder_id: the id of the folder
+        :type folder_id: int
+
+        :return: folder metadata
+        :rtype: dict
+        """
+
+        response = self.controller.get_folder_by_id(
+            folder_id=folder_id, project_id=project_id
+        )
+
+        return FolderSerializer(response).serialize(
+            exclude={"completedCount", "is_root"}
+        )
+
+    def get_item_by_id(self, project_id: int, item_id: int):
+        """Returns the item metadata
+
+        :param project_id: the id of the project
+        :type project_id: int
+
+        :param item_id: the id of the item
+        :type item_id: int
+
+
+        :return: item metadata
+        :rtype: dict
+        """
+
+        response = self.controller.get_item_by_id(
+            item_id=item_id, project_id=project_id
+        )
+
+        return ItemSerializer(response).serialize(exclude={"url", "meta"})
 
     def get_team_metadata(self):
         """Returns team metadata
@@ -214,7 +269,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ProjectTypes.validate(project_type)
         except TypeError:
             raise AppException(
-                "Please provide a valid project type: Vector, Pixel, Document, or Video."
+                f"Please provide a valid project type: {', '.join(constants.ProjectType.titles())}"
             )
         response = self.controller.projects.create(
             entities.ProjectEntity(
@@ -1563,10 +1618,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
 
         project = self.controller.projects.get_by_name(project_name).data
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
+        if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not mask:
@@ -1659,10 +1711,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name = project["name"]
 
         project = self.controller.projects.get_by_name(project_name).data
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
+        if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not export_root:
