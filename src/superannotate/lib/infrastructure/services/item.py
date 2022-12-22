@@ -31,7 +31,7 @@ class ItemService(BaseItemService):
     URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
     URL_GET_BY_ID = "image/{image_id}"
 
-    PROJECT_TYPE_RESPONSE_MAP = {
+    PROJECT_TYPE_RESPOSE_MAP = {
         ProjectType.VECTOR: ImageResponse,
         ProjectType.OTHER: ClassificationResponse,
         ProjectType.VIDEO: VideoResponse,

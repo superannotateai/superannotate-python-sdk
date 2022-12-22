@@ -3,7 +3,6 @@ import os.path
 import platform
 import tempfile
 import time
-import platform
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
