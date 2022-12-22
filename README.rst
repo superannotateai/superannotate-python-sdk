@@ -27,35 +27,41 @@ Authentication
 
 .. code-block:: python
 
-    >>> from superannotate import SAClient
-        # by environment variable SA_TOKEN
-    >>> sa_client = SAClient()
-        # by token
-    >>> sa_client = SAClient(token='<team token>')
-        # by config file
-        # default path is ~/.superannotate/config.json
-    >>> sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
+    from superannotate import SAClient
+    # by environment variable SA_TOKEN
+    sa_client = SAClient()
+    # by token
+    sa_client = SAClient(token='<team token>')
+    # by config file
+    # default path is ~/.superannotate/config.json
+    sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
 
 Using superannotate
 -------------------
 
 .. code-block:: python
 
-    >>> from superannotate import SAClient
-    >>> sa_client =SAClient()
-    >>> project = 'Dogs'
-    >>> sa_client.create_project(
+    from superannotate import SAClient
+
+
+    sa_client =SAClient()
+
+    project = 'Dogs'
+
+    sa_client.create_project(
             project_name=project,
             project_description='Test project generated via SDK',
             project_type='Vector'
         )
-        >>> sa_client.create_annotation_class(
-            project=project,
-            name='dog',
-            color='#F9E0FA',
-            class_type='tag'
-        )
-    >>> sa_client.attach_items(
+
+    sa_client.create_annotation_class(
+        project=project,
+        name='dog',
+        color='#F9E0FA',
+        class_type='tag'
+    )
+
+    sa_client.attach_items(
             project=project,
             attachments=[
                 {
@@ -64,7 +70,8 @@ Using superannotate
                 }
             ]
         )
-    >>> sa_client.upload_annotations(
+
+    sa_client.upload_annotations(
             project=project,
             annotations=[
                 {
@@ -75,7 +82,8 @@ Using superannotate
                 }
             ]
         )
-    >>> sa_client.get_annotations(project=project, items=['dog.jpeg'])
+
+    sa_client.get_annotations(project=project, items=['dog.jpeg'])
 
 Installation
 ------------
