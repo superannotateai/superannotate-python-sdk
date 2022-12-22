@@ -29,13 +29,49 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
 
 .. code-block:: python
 
-   from superannotate import SAClient
+    from superannotate import SAClient
 
-   sa = SAClient()
 
-   sa.create_project("Example Project 1", "example", "Vector")
+    sa_client =SAClient()
 
-   sa.upload_images_from_folder_to_project("Example Project 1", "<path_to_my_images_folder>")
+    project = 'Dogs'
+
+    sa_client.create_project(
+            project_name=project,
+            project_description='Test project generated via SDK',
+            project_type='Vector'
+        )
+
+    sa_client.create_annotation_class(
+        project=project,
+        name='dog',
+        color='#F9E0FA',
+        class_type='tag'
+    )
+
+    sa_client.attach_items(
+            project=project,
+            attachments=[
+                {
+                    'url': 'https://drive.google.com/uc?export=download&id=1ipOrZNSTlPUkI_hnrW9aUD5yULqqq5Vl',
+                    'name': 'dog.jpeg'
+                }
+            ]
+        )
+
+    sa_client.upload_annotations(
+            project=project,
+            annotations=[
+                {
+                    'metadata': {'name': 'dog.jpeg'},
+                    'instances': [
+                        {'type': 'tag', 'className': 'dog'}
+                    ]
+                }
+            ]
+        )
+
+    sa_client.get_annotations(project=project, items=['dog.jpeg'])
 
 ----------
 
@@ -50,7 +86,7 @@ SDK is available on PyPI:
    pip install superannotate
 
 
-The package officially supports Python 3.6+ and was tested under Linux and
+The package officially supports Python 3.7+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
 
 For more detailed installation steps and package usage please have a look at 
