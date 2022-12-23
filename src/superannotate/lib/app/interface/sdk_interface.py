@@ -286,8 +286,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def create_project_from_metadata(self, project_metadata: Project):
         """Create a new project in the team using project metadata object dict.
-        Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
-        Non-mandatory keys: "workflow", "settings" and "annotation_classes".
+
+        | Mandatory keys: “name”, “description” and “type” (Vector or Pixel)
+        | Non-mandatory keys: “workflow”, “settings” and “annotation_classes”
+
+        :param project_metadata: project metadata
+        :type project_metadata: dict
 
         :return: dict object metadata the new project
         :rtype: dict
