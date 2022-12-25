@@ -9,7 +9,6 @@ from typing import Union
 import lib.core as constances
 import pandas as pd
 from lib.app.exceptions import AppException
-from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
 from superannotate.logger import get_default_logger
@@ -18,17 +17,52 @@ logger = get_default_logger()
 
 
 @dataclass
-class VideoRawData:
-    videoName: str = None
+class ImageRowData:
+    itemName: str = None
+    itemHeight: int = None
+    itemWidth: int = None
+    itemStatus: str = None
+    itemPinned: bool = None
+    instanceId: int = None
+    className: str = None
+    attributeGroupName: str = None
+    attributeName: str = None
+    type: str = None
+    error: str = None
+    locked: bool = None
+    visible: bool = None
+    trackingId: int = None
+    probability: int = None
+    pointLabels: str = None
+    meta: str = None
+    classColor: str = None
+    groupId: int = None
+    createdAt: str = None
+    creatorRole: str = None
+    creationType: str = None
+    creatorEmail: str = None
+    updatedAt: str = None
+    updatorRole: str = None
+    updatorEmail: str = None
     folderName: str = None
-    videoHeight: int = None
-    videoWidth: int = None
-    videoStatus: str = None
-    videoUrl: str = None
-    videoDuration: int = None
-    videoError: str = None
-    videoAnnotator: str = None
-    videoQA: str = None
+    itemAnnotator: str = None
+    itemQA: str = None
+    commentResolved: str = None
+    tag: str = None
+
+
+@dataclass
+class VideoRawData:
+    itemName: str = None
+    folderName: str = None
+    itemHeight: int = None
+    itemWidth: int = None
+    itemStatus: str = None
+    itemURL: str = None
+    itemDuration: int = None
+    error: str = None
+    itemAnnotator: str = None
+    itemQA: str = None
     # tag
     tagId: int = None
     tag: str = None
@@ -57,12 +91,12 @@ class VideoRawData:
 
 
 class DocumentRawData:
-    docName: str = None
+    itemName: str = None
     folderName: str = None
-    docStatus: str = None
-    docUrl: str = None
-    docAnnotator: str = None
-    docQA: str = None
+    itemStatus: str = None
+    itemURL: str = None
+    itemAnnotator: str = None
+    itemQA: str = None
     # tag
     tagId: int = None
     tag: str = None
@@ -91,9 +125,9 @@ class DataAggregator:
         "polygon": lambda annotation: annotation["points"],
         "polyline": lambda annotation: annotation["points"],
         "cuboid": lambda annotation: annotation["points"],
-        "comment": lambda annotation: annotation["points"],
+        "comment": lambda annotation: annotation["correspondence"],
         "point": lambda annotation: {"x": annotation["x"], "y": annotation["y"]},
-        "annotation_type": lambda annotation: dict(
+        "ellipse": lambda annotation: dict(
             cx=annotation["cx"],
             cy=annotation["cy"],
             rx=annotation["rx"],
@@ -101,6 +135,10 @@ class DataAggregator:
             angle=annotation["angle"],
         ),
         "tag": lambda annotation: None,
+        "mask": lambda annotation: {"parts": annotation["parts"]},
+        "template": lambda annotation: None,
+        "rbbox": lambda annotation: annotation["points"],
+        "comment_inst": lambda annotation: annotation["points"],
     }
 
     def __init__(
@@ -110,42 +148,46 @@ class DataAggregator:
         folder_names: Optional[List[Union[Path, str]]] = None,
     ):
         self.project_type = project_type
+        if isinstance(project_type, str):
+            self.project_type = constances.ProjectType(project_type)
         self.project_root = Path(project_root)
         self.folder_names = folder_names
         self._annotation_suffix = None
         self.classes_path = self.project_root / "classes" / "classes.json"
 
-    @property
-    def annotation_suffix(self):
-        if not self._annotation_suffix:
-            if self.project_type == constances.ProjectType.VECTOR.name:
-                self._annotation_suffix = VECTOR_ANNOTATION_POSTFIX
-            elif self.project_type == constances.ProjectType.PIXEL.name:
-                self._annotation_suffix = PIXEL_ANNOTATION_POSTFIX
-            else:
-                self._annotation_suffix = ATTACHED_VIDEO_ANNOTATION_POSTFIX
-        return ATTACHED_VIDEO_ANNOTATION_POSTFIX
+    def _set_annotation_suffix(self, path):
+
+        fname = next((x for x in path.glob("*.json")), None)
+        if not fname:
+            self._annotation_suffix = ".json"
+        elif VECTOR_ANNOTATION_POSTFIX in fname.name:
+            self._annotation_suffix = VECTOR_ANNOTATION_POSTFIX
+        elif PIXEL_ANNOTATION_POSTFIX in fname.name:
+            self._annotation_suffix = PIXEL_ANNOTATION_POSTFIX
+        else:
+            self._annotation_suffix = ".json"
 
     def get_annotation_paths(self):
         annotations_paths = []
         if self.folder_names is None:
+            self._set_annotation_suffix(self.project_root)
             for path in self.project_root.glob("*"):
-                if path.is_file() and path.suffix == self.annotation_suffix:
+                if path.is_file() and self._annotation_suffix in path.name:
                     annotations_paths.append(path)
                 elif path.is_dir() and path.name != "classes":
                     annotations_paths.extend(
-                        list(path.rglob(f"*{self.annotation_suffix}"))
+                        list(path.rglob(f"*{self._annotation_suffix}"))
                     )
         else:
             for folder_name in self.folder_names:
+                self._set_annotation_suffix(self.project_root / folder_name)
                 annotations_paths.extend(
                     list(
                         (self.project_root / folder_name).rglob(
-                            f"*{self.annotation_suffix:}"
+                            f"*{self._annotation_suffix}"
                         )
                     )
                 )
-
         if not annotations_paths:
             logger.warning(f"Could not find annotations in {self.project_root}.")
         return annotations_paths
@@ -164,13 +206,13 @@ class DataAggregator:
         annotation_paths = self.get_annotation_paths()
 
         if self.project_type in (
-            constances.ProjectType.VECTOR.name,
-            constances.ProjectType.PIXEL.name,
+            constances.ProjectType.VECTOR,
+            constances.ProjectType.PIXEL,
         ):
             return self.aggregate_image_annotations_as_df(annotation_paths)
-        elif self.project_type == constances.ProjectType.VIDEO.name:
+        elif self.project_type is constances.ProjectType.VIDEO:
             return self.aggregate_video_annotations_as_df(annotation_paths)
-        elif self.project_type == constances.ProjectType.DOCUMENT.name:
+        elif self.project_type is constances.ProjectType.DOCUMENT:
             return self.aggregate_document_annotations_as_df(annotation_paths)
 
     def __add_attributes_to_raws(self, raws, attributes, element_raw):
@@ -182,7 +224,6 @@ class DataAggregator:
             raws.append(attribute_raw)
         if not attributes:
             raws.append(element_raw)
-
         return raws
 
     def aggregate_video_annotations_as_df(self, annotation_paths: List[str]):
@@ -192,21 +233,21 @@ class DataAggregator:
             annotation_data = json.load(open(annotation_path))
             raw_data = VideoRawData()
             # metadata
-            raw_data.videoName = annotation_data["metadata"]["name"]
+            raw_data.itemName = annotation_data["metadata"]["name"]
             raw_data.folderName = (
                 annotation_path.parent.name
                 if annotation_path.parent != self.project_root
                 else None
             )
-            raw_data.videoHeight = annotation_data["metadata"].get("height")
-            raw_data.videoWidth = annotation_data["metadata"].get("width")
-            raw_data.videoStatus = annotation_data["metadata"].get("status")
-            raw_data.videoUrl = annotation_data["metadata"].get("url")
-            raw_data.videoDuration = annotation_data["metadata"].get("duration")
+            raw_data.itemHeight = annotation_data["metadata"].get("height")
+            raw_data.itemWidth = annotation_data["metadata"].get("width")
+            raw_data.itemStatus = annotation_data["metadata"].get("status")
+            raw_data.itemURL = annotation_data["metadata"].get("url")
+            raw_data.itemDuration = annotation_data["metadata"].get("duration")
 
-            raw_data.videoError = annotation_data["metadata"].get("error")
-            raw_data.videoAnnotator = annotation_data["metadata"].get("annotatorEmail")
-            raw_data.videoQA = annotation_data["metadata"].get("qaEmail")
+            raw_data.error = annotation_data["metadata"].get("error")
+            raw_data.itemAnnotator = annotation_data["metadata"].get("annotatorEmail")
+            raw_data.itemQA = annotation_data["metadata"].get("qaEmail")
             # append tags
             for idx, tag in enumerate(annotation_data.get("tags", [])):
                 tag_row = copy.copy(raw_data)
@@ -217,6 +258,8 @@ class DataAggregator:
             instances = annotation_data.get("instances", [])
             for idx, instance in enumerate(instances):
                 instance_type = instance["meta"].get("type", "event")
+                if instance_type == "comment":
+                    instance_type = "comment_inst"
                 instance_raw = copy.copy(raw_data)
                 instance_raw.instanceId = int(idx)
                 instance_raw.instanceStart = instance["meta"].get("start")
@@ -272,16 +315,16 @@ class DataAggregator:
             annotation_data = json.load(open(annotation_path))
             raw_data = DocumentRawData()
             # metadata
-            raw_data.docName = annotation_data["metadata"]["name"]
+            raw_data.itemName = annotation_data["metadata"]["name"]
             raw_data.folderName = (
                 annotation_path.parent.name
                 if annotation_path.parent != self.project_root
                 else None
             )
-            raw_data.docStatus = annotation_data["metadata"].get("status")
-            raw_data.docUrl = annotation_data["metadata"].get("url")
-            raw_data.docAnnotator = annotation_data["metadata"].get("annotatorEmail")
-            raw_data.docQA = annotation_data["metadata"].get("qaEmail")
+            raw_data.itemStatus = annotation_data["metadata"].get("status")
+            raw_data.itemURL = annotation_data["metadata"].get("url")
+            raw_data.itemAnnotator = annotation_data["metadata"].get("annotatorEmail")
+            raw_data.itemQA = annotation_data["metadata"].get("qaEmail")
             # append tags
             for idx, tag in enumerate(annotation_data.get("tags", [])):
                 tag_row = copy.copy(raw_data)
@@ -319,95 +362,54 @@ class DataAggregator:
         return df.where(pd.notnull(df), None)
 
     def aggregate_image_annotations_as_df(self, annotations_paths: List[str]):
-        annotation_data = {
-            "imageName": [],
-            "imageHeight": [],
-            "imageWidth": [],
-            "imageStatus": [],
-            "imagePinned": [],
-            "instanceId": [],
-            "className": [],
-            "attributeGroupName": [],
-            "attributeName": [],
-            "type": [],
-            "error": [],
-            "locked": [],
-            "visible": [],
-            "trackingId": [],
-            "probability": [],
-            "pointLabels": [],
-            "meta": [],
-            "classColor": [],
-            "groupId": [],
-            "createdAt": [],
-            "creatorRole": [],
-            "creationType": [],
-            "creatorEmail": [],
-            "updatedAt": [],
-            "updatorRole": [],
-            "updatorEmail": [],
-            "folderName": [],
-            "imageAnnotator": [],
-            "imageQA": [],
-            "commentResolved": [],
-            "tag": [],
-        }
 
         classes_json = json.load(open(self.classes_path))
         class_name_to_color = {}
         class_group_name_to_values = {}
+        rows = []
+        freestyle_attributes = set()
         for annotation_class in classes_json:
             name = annotation_class["name"]
             color = annotation_class["color"]
             class_name_to_color[name] = color
             class_group_name_to_values[name] = {}
             for attribute_group in annotation_class["attribute_groups"]:
+                group_type = attribute_group.get("group_type")
+                group_id = attribute_group.get("id")
+                if group_type and group_type in ["text", "numeric"]:
+                    freestyle_attributes.add(group_id)
                 class_group_name_to_values[name][attribute_group["name"]] = []
                 for attribute in attribute_group["attributes"]:
                     class_group_name_to_values[name][attribute_group["name"]].append(
                         attribute["name"]
                     )
 
-        def __append_annotation(annotation_dict):
-            for annotation_key in annotation_data:
-                if annotation_key in annotation_dict:
-                    annotation_data[annotation_key].append(
-                        annotation_dict[annotation_key]
-                    )
-                else:
-                    annotation_data[annotation_key].append(None)
-
         for annotation_path in annotations_paths:
-            annotation_json = json.load(open(annotation_path))
-            parts = Path(annotation_path).name.split(self.annotation_suffix)
-            if len(parts) != 2:
-                continue
-            image_name = parts[0]
-            image_metadata = self.__get_image_metadata(image_name, annotation_json)
+            row_data = ImageRowData()
+            annotation_json = None
+            with open(annotation_path) as fp:
+                annotation_json = json.load(fp)
+            parts = Path(annotation_path).name.split(self._annotation_suffix)
+            row_data = self.__fill_image_metadata(row_data, annotation_json["metadata"])
             annotation_instance_id = 0
+
             # include comments
             for annotation in annotation_json["comments"]:
-                comment_resolved = annotation["resolved"]
-                comment_meta = {
-                    "x": annotation["x"],
-                    "y": annotation["y"],
-                    "comments": annotation["correspondence"],
-                }
-                annotation_dict = {
-                    "type": "comment",
-                    "meta": comment_meta,
-                    "commentResolved": comment_resolved,
-                }
-                user_metadata = self.__get_user_metadata(annotation)
-                annotation_dict.update(user_metadata)
-                annotation_dict.update(image_metadata)
-                __append_annotation(annotation_dict)
+                comment_row = copy.copy(row_data)
+                comment_row.comment_resolved = annotation["resolved"]
+                comment_row.comment = DataAggregator.MAPPERS["comment"](annotation)
+                comment_row = self.__fill_user_metadata(row_data, annotation)
+                rows.append(comment_row)
             # include tags
-            for annotation in annotation_json["tags"]:
-                annotation_dict = {"type": "tag", "tag": annotation}
-                annotation_dict.update(image_metadata)
-                __append_annotation(annotation_dict)
-            for annotation in annotation_json["instances"]:
+            for idx, tag in enumerate(annotation_json["tags"]):
+                tag_row = copy.copy(row_data)
+                tag_row.tagId = idx
+                tag_row.rag = tag
+                rows.append(tag_row)
+
+            # Instances
+            for idx, annotation in enumerate(annotation_json["instances"]):
+                instance_row = copy.copy(row_data)
                 annotation_type = annotation.get("type", "mask")
                 annotation_class_name = annotation.get("className")
                 if (
@@ -419,64 +421,32 @@ class DataAggregator:
                         annotation_class_name,
                     )
                     continue
-                annotation_class_color = class_name_to_color[annotation_class_name]
-                annotation_group_id = annotation.get("groupId")
-                annotation_locked = annotation.get("locked")
-                annotation_visible = annotation.get("visible")
-                annotation_tracking_id = annotation.get("trackingId")
-                annotation_meta = None
-                if annotation_type in ["bbox", "polygon", "polyline", "cuboid"]:
-                    annotation_meta = {"points": annotation["points"]}
-                elif annotation_type == "point":
-                    annotation_meta = {"x": annotation["x"], "y": annotation["y"]}
-                elif annotation_type == "ellipse":
-                    annotation_meta = {
-                        "cx": annotation["cx"],
-                        "cy": annotation["cy"],
-                        "rx": annotation["rx"],
-                        "ry": annotation["ry"],
-                        "angle": annotation["angle"],
-                    }
-                elif annotation_type == "mask":
-                    annotation_meta = {"parts": annotation["parts"]}
-                elif annotation_type == "template":
-                    annotation_meta = {
-                        "connections": annotation["connections"],
-                        "points": annotation["points"],
-                    }
-                annotation_error = annotation.get("error")
-                annotation_probability = annotation.get("probability")
-                annotation_point_labels = annotation.get("pointLabels")
+                instance_row.classColor = class_name_to_color[annotation_class_name]
+                instance_row.groupId = annotation.get("groupId")
+                instance_row.locked = annotation.get("locked")
+                instance_row.visible = annotation.get("visible")
+                instance_row.trackingId = annotation.get("trackingId")
+                instance_row.type = annotation.get("type")
+                instance_row.meta = DataAggregator.MAPPERS[annotation_type](annotation)
+                instance_row.error = annotation.get("error")
+                instance_row.probability = annotation.get("probability")
+                instance_row.pointLabels = annotation.get("pointLabels")
+                instance_row.instanceId = idx
                 attributes = annotation.get("attributes")
-                user_metadata = self.__get_user_metadata(annotation)
+                instance_row = self.__fill_user_metadata(instance_row, annotation)
                 folder_name = None
                 if Path(annotation_path).parent != Path(self.project_root):
                     folder_name = Path(annotation_path).parent.name
+                instance_row.folderName = folder_name
                 num_added = 0
                 if not attributes:
-                    annotation_dict = {
-                        "imageName": image_name,
-                        "instanceId": annotation_instance_id,
-                        "className": annotation_class_name,
-                        "type": annotation_type,
-                        "locked": annotation_locked,
-                        "visible": annotation_visible,
-                        "trackingId": annotation_tracking_id,
-                        "meta": annotation_meta,
-                        "error": annotation_error,
-                        "probability": annotation_probability,
-                        "pointLabels": annotation_point_labels,
-                        "classColor": annotation_class_color,
-                        "groupId": annotation_group_id,
-                        "folderName": folder_name,
-                    }
-                    annotation_dict.update(user_metadata)
-                    annotation_dict.update(image_metadata)
-                    __append_annotation(annotation_dict)
+                    rows.append(instance_row)
                     num_added = 1
                 else:
                     for attribute in attributes:
+                        attribute_row = copy.copy(instance_row)
                         attribute_group = attribute.get("groupName")
+                        group_id = attribute.get("groupId")
                         attribute_name = attribute.get("name")
                         if (
                             attribute_group
@@ -492,55 +462,40 @@ class DataAggregator:
                             not in class_group_name_to_values[annotation_class_name][
                                 attribute_group
                             ]
+                            and group_id not in freestyle_attributes
                         ):
                             logger.warning(
                                 f"Annotation class group value {attribute_name} not in classes json. Skipping."
                             )
                             continue
-                        annotation_dict = {
-                            "imageName": image_name,
-                            "instanceId": annotation_instance_id,
-                            "className": annotation_class_name,
-                            "attributeGroupName": attribute_group,
-                            "attributeName": attribute_name,
-                            "type": annotation_type,
-                            "locked": annotation_locked,
-                            "visible": annotation_visible,
-                            "trackingId": annotation_tracking_id,
-                            "meta": annotation_meta,
-                            "error": annotation_error,
-                            "probability": annotation_probability,
-                            "pointLabels": annotation_point_labels,
-                            "classColor": annotation_class_color,
-                            "groupId": annotation_group_id,
-                            "folderName": folder_name,
-                        }
-                        annotation_dict.update(user_metadata)
-                        annotation_dict.update(image_metadata)
-                        __append_annotation(annotation_dict)
+
+                        else:
+                            attribute_row.attributeGroupName = attribute_group
+                            attribute_row.attributeName = attribute_name
+
+                        rows.append(attribute_row)
                         num_added += 1
 
                 if num_added > 0:
                     annotation_instance_id += 1
 
-        df = pd.DataFrame(annotation_data)
+        df = pd.DataFrame([row.__dict__ for row in rows], dtype=object)
         df = df.astype({"probability": float})
         return df
 
     @staticmethod
-    def __get_image_metadata(image_name, annotations):
-        image_metadata = {"imageName": image_name}
-
-        image_metadata["imageHeight"] = annotations["metadata"].get("height")
-        image_metadata["imageWidth"] = annotations["metadata"].get("width")
-        image_metadata["imageStatus"] = annotations["metadata"].get("status")
-        image_metadata["imagePinned"] = annotations["metadata"].get("pinned")
-        image_metadata["imageAnnotator"] = annotations["metadata"].get("annotatorEmail")
-        image_metadata["imageQA"] = annotations["metadata"].get("qaEmail")
-        return image_metadata
+    def __fill_image_metadata(raw_data, metadata):
+        raw_data.itemName = metadata.get("name")
+        raw_data.itemHeight = metadata.get("height")
+        raw_data.itemWidth = metadata.get("width")
+        raw_data.itemStatus = metadata.get("status")
+        raw_data.itemPinned = metadata.get("pinned")
+        raw_data.itemAnnotator = metadata.get("annotatorEmail")
+        raw_data.itemQA = metadata.get("qaEmail")
+        return raw_data
 
     @staticmethod
-    def __get_user_metadata(annotation):
+    def __fill_user_metadata(row_data, annotation):
         annotation_created_at = pd.to_datetime(annotation.get("createdAt"))
         annotation_created_by = annotation.get("createdBy")
         annotation_creator_email = None
@@ -556,13 +511,11 @@ class DataAggregator:
         if annotation_updated_by:
             annotation_updator_email = annotation_updated_by.get("email")
             annotation_updator_role = annotation_updated_by.get("role")
-        user_metadata = {
-            "createdAt": annotation_created_at,
-            "creatorRole": annotation_creator_role,
-            "creatorEmail": annotation_creator_email,
-            "creationType": annotation_creation_type,
-            "updatedAt": annotation_updated_at,
-            "updatorRole": annotation_updator_role,
-            "updatorEmail": annotation_updator_email,
-        }
-        return user_metadata
+        row_data.createdAt = annotation_created_at
+        row_data.creatorRole = annotation_creator_role
+        row_data.creatorEmail = annotation_creator_email
+        row_data.creationType = annotation_creation_type
+        row_data.updatedAt = annotation_updated_at
+        row_data.updatorRole = annotation_updator_role
+        row_data.updatorEmail = annotation_updator_email
+        return row_data

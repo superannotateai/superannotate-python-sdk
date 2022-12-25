@@ -35,6 +35,7 @@ from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import Setting
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import FolderSerializer
+from lib.app.serializers import ItemSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
@@ -84,6 +85,60 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         config_path: str = None,
     ):
         super().__init__(token, config_path)
+
+    def get_project_by_id(self, project_id: int):
+        """Returns the project metadata
+
+        :param project_id: the id of the project
+        :type project_id: int
+
+        :return: project metadata
+        :rtype: dict
+        """
+        response = self.controller.get_project_by_id(project_id=project_id)
+
+        return ProjectSerializer(response.data).serialize()
+
+    def get_folder_by_id(self, project_id: int, folder_id: int):
+        """Returns the folder metadata
+
+        :param project_id: the id of the project
+        :type project_id: int
+
+        :param folder_id: the id of the folder
+        :type folder_id: int
+
+        :return: folder metadata
+        :rtype: dict
+        """
+
+        response = self.controller.get_folder_by_id(
+            folder_id=folder_id, project_id=project_id
+        )
+
+        return FolderSerializer(response).serialize(
+            exclude={"completedCount", "is_root"}
+        )
+
+    def get_item_by_id(self, project_id: int, item_id: int):
+        """Returns the item metadata
+
+        :param project_id: the id of the project
+        :type project_id: int
+
+        :param item_id: the id of the item
+        :type item_id: int
+
+
+        :return: item metadata
+        :rtype: dict
+        """
+
+        response = self.controller.get_item_by_id(
+            item_id=item_id, project_id=project_id
+        )
+
+        return ItemSerializer(response).serialize(exclude={"url", "meta"})
 
     def get_team_metadata(self):
         """Returns team metadata
@@ -214,7 +269,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ProjectTypes.validate(project_type)
         except TypeError:
             raise AppException(
-                "Please provide a valid project type: Vector, Pixel, Document, or Video."
+                f"Please provide a valid project type: {', '.join(constants.ProjectType.titles())}."
             )
         response = self.controller.projects.create(
             entities.ProjectEntity(
@@ -231,8 +286,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def create_project_from_metadata(self, project_metadata: Project):
         """Create a new project in the team using project metadata object dict.
-        Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
-        Non-mandatory keys: "workflow", "settings" and "annotation_classes".
+
+        | Mandatory keys: “name”, “description” and “type” (Vector or Pixel)
+        | Non-mandatory keys: “workflow”, “settings” and “annotation_classes”
+
+        :param project_metadata: project metadata
+        :type project_metadata: dict
 
         :return: dict object metadata the new project
         :rtype: dict
@@ -1563,10 +1622,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
 
         project = self.controller.projects.get_by_name(project_name).data
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
+        if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not mask:
@@ -1659,10 +1715,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name = project["name"]
 
         project = self.controller.projects.get_by_name(project_name).data
-        if project.type in [
-            constants.ProjectType.VIDEO,
-            constants.ProjectType.DOCUMENT,
-        ]:
+        if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
         if not export_root:
@@ -1695,53 +1748,35 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         folder_names: List[NotEmptyStr],
-        export_root: Optional[Union[NotEmptyStr, Path]] = None,
         image_list: Optional[List[NotEmptyStr]] = None,
-        annot_type: Optional[AnnotationType] = "bbox",
-        show_plots: Optional[StrictBool] = False,
+        annotation_type: Optional[AnnotationType] = "bbox",
     ):
         """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
 
         :param project: project name
         :type project: str
+
         :param folder_names: list of folder names in the project for which the scores will be computed
         :type folder_names: list of str
-        :param export_root: root export path of the projects
-        :type export_root: Path-like (str or Path)
+
         :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
         :type image_list: list
-        :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
-        :type annot_type: str
-        :param show_plots: If True, show plots based on results of consensus computation. Default: False
-        :type show_plots: bool
+
+        :param annotation_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
+        :type annotation_type: str
 
         :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
         :rtype: pandas DataFrame
         """
 
-        if export_root is None:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                export_root = temp_dir
-                response = self.controller.consensus(
-                    project_name=project,
-                    folder_names=folder_names,
-                    export_path=export_root,
-                    image_list=image_list,
-                    annot_type=annot_type,
-                    show_plots=show_plots,
-                )
-
-        else:
-            response = self.controller.consensus(
-                project_name=project,
-                folder_names=folder_names,
-                export_path=export_root,
-                image_list=image_list,
-                annot_type=annot_type,
-                show_plots=show_plots,
-            )
-            if response.errors:
-                raise AppException(response.errors)
+        response = self.controller.consensus(
+            project_name=project,
+            folder_names=folder_names,
+            image_list=image_list,
+            annot_type=annotation_type,
+        )
+        if response.errors:
+            raise AppException(response.errors)
         return response.data
 
     def run_prediction(
@@ -1950,32 +1985,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: DataFrame on annotations
         :rtype: pandas DataFrame
         """
-        if project_type in (
-            constants.ProjectType.VECTOR.name,
-            constants.ProjectType.PIXEL.name,
-        ):
-            from superannotate.lib.app.analytics.common import (
-                aggregate_image_annotations_as_df,
-            )
+        from superannotate.lib.app.analytics.aggregators import DataAggregator
 
-            return aggregate_image_annotations_as_df(
-                project_root=project_root,
-                include_classes_wo_annotations=False,
-                include_comments=True,
-                include_tags=True,
-                folder_names=folder_names,
-            )
-        elif project_type in (
-            constants.ProjectType.VIDEO.name,
-            constants.ProjectType.DOCUMENT.name,
-        ):
-            from superannotate.lib.app.analytics.aggregators import DataAggregator
-
-            return DataAggregator(
-                project_type=project_type,
-                project_root=project_root,
-                folder_names=folder_names,
-            ).aggregate_annotations_as_df()
+        try:
+            ProjectTypes.validate(project_type)
+        except TypeError as e:
+            raise AppException(e)
+        return DataAggregator(
+            project_type=project_type,
+            project_root=project_root,
+            folder_names=folder_names,
+        ).aggregate_annotations_as_df()
 
     def delete_annotations(
         self, project: NotEmptyStr, item_names: Optional[List[NotEmptyStr]] = None

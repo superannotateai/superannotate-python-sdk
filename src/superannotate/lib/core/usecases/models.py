@@ -1,10 +1,11 @@
 import concurrent.futures
 import os.path
+import platform
 import tempfile
 import time
-import platform
 import zipfile
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import List
 
 import boto3
@@ -12,9 +13,10 @@ import lib.core as constances
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
+from lib.app.analytics.aggregators import DataAggregator
 from lib.app.analytics.common import aggregate_image_annotations_as_df
+from lib.app.analytics.common import consensus
 from lib.app.analytics.common import consensus_plot
-from lib.app.analytics.common import image_consensus
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import FolderEntity
@@ -26,8 +28,11 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.serviceproviders import BaseServiceProvider
+from lib.core.usecases.annotations import DownloadAnnotations
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
+from lib.core.usecases.classes import DownloadAnnotationClassesUseCase
+from lib.core.usecases.folders import GetFolderUseCase
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
@@ -348,13 +353,13 @@ class BenchmarkUseCase(BaseUseCase):
 
             if self._image_list is not None:
                 project_gt_df = project_gt_df.loc[
-                    project_gt_df["imageName"].isin(self._image_list)
+                    project_gt_df["itemName"].isin(self._image_list)
                 ]
 
             project_gt_df.query("type == '" + self._annotation_type + "'", inplace=True)
 
             project_gt_df = project_gt_df.groupby(
-                ["imageName", "instanceId", "folderName"]
+                ["itemName", "instanceId", "folderName"]
             )
 
             def aggregate_attributes(instance_df):
@@ -381,7 +386,7 @@ class BenchmarkUseCase(BaseUseCase):
                     ["attributeGroupName", "attributeName"], axis=1, inplace=True
                 )
                 instance_df.drop_duplicates(
-                    subset=["imageName", "instanceId", "folderName"], inplace=True
+                    subset=["itemName", "instanceId", "folderName"], inplace=True
                 )
                 instance_df["attributes"] = [attributes]
                 return instance_df
@@ -389,7 +394,7 @@ class BenchmarkUseCase(BaseUseCase):
             project_gt_df = project_gt_df.apply(aggregate_attributes).reset_index(
                 drop=True
             )
-            unique_images = set(project_gt_df["imageName"])
+            unique_images = set(project_gt_df["itemName"])
             all_benchmark_data = []
             for image_name in unique_images:
                 image_data = image_consensus(
@@ -413,21 +418,73 @@ class ConsensusUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder_names: list,
-        export_dir: str,
         image_list: list,
         annotation_type: str,
-        show_plots: bool,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._project = project
-        self._folder_names = folder_names
-        self._export_dir = export_dir
         self._image_list = image_list
-        self._annota_type_type = annotation_type
-        self._show_plots = show_plots
+        self._instance_type = annotation_type
+        self._folders = []
+        self._folder_names = folder_names
+        self.service_provider = service_provider
+
+        for folder_name in folder_names:
+            get_folder_uc = GetFolderUseCase(
+                project=self._project,
+                service_provider=service_provider,
+                folder_name=folder_name,
+            )
+            folder = get_folder_uc.execute().data
+            if not folder:
+                raise AppException(f"Can't find folder {folder_name}")
+
+            self._folders.append(folder)
+
+    def _download_annotations(self, destination):
+        reporter = Reporter(
+            log_info=False,
+            log_warning=False,
+            log_debug=False,
+            disable_progress_bar=True,
+        )
+
+        classes_dir = Path(destination) / "classes"
+        classes_dir.mkdir()
+
+        DownloadAnnotationClassesUseCase(
+            reporter=reporter,
+            download_path=classes_dir,
+            project=self._project,
+            service_provider=self.service_provider,
+        ).execute()
+
+        for folder in self._folders:
+            download_annotations_uc = DownloadAnnotations(
+                reporter=reporter,
+                project=self._project,
+                folder=folder,
+                item_names=self._image_list,
+                destination=destination,  # Destination unknown known known
+                service_provider=self.service_provider,
+                recursive=False,
+            )
+            tmp = download_annotations_uc.execute()
+            if tmp.errors:
+                raise AppException(tmp.errors)
+        return tmp.data
 
     def execute(self):
-        project_df = aggregate_image_annotations_as_df(self._export_dir)
+        with TemporaryDirectory() as temp_dir:
+            export_path = self._download_annotations(temp_dir)
+            aggregator = DataAggregator(
+                project_type=self._project.type,
+                folder_names=self._folder_names,
+                project_root=export_path,
+            )
+            project_df = aggregator.aggregate_annotations_as_df()
+
         all_projects_df = project_df[project_df["instanceId"].notna()]
         all_projects_df = all_projects_df.loc[
             all_projects_df["folderName"].isin(self._folder_names)
@@ -435,10 +492,10 @@ class ConsensusUseCase(BaseUseCase):
 
         if self._image_list is not None:
             all_projects_df = all_projects_df.loc[
-                all_projects_df["imageName"].isin(self._image_list)
+                all_projects_df["itemName"].isin(self._image_list)
             ]
 
-        all_projects_df.query("type == '" + self._annota_type_type + "'", inplace=True)
+        all_projects_df.query("type == '" + self._instance_type + "'", inplace=True)
 
         def aggregate_attributes(instance_df):
             def attribute_to_list(attribute_df):
@@ -462,29 +519,29 @@ class ConsensusUseCase(BaseUseCase):
                 ["attributeGroupName", "attributeName"], axis=1, inplace=True
             )
             instance_df.drop_duplicates(
-                subset=["imageName", "instanceId", "folderName"], inplace=True
+                subset=["itemName", "instanceId", "folderName"], inplace=True
             )
             instance_df["attributes"] = [attributes]
             return instance_df
 
-        all_projects_df = all_projects_df.groupby(
-            ["imageName", "instanceId", "folderName"]
-        )
-        all_projects_df = all_projects_df.apply(aggregate_attributes).reset_index(
-            drop=True
-        )
-        unique_images = set(all_projects_df["imageName"])
+        if self._instance_type != "tag":
+            all_projects_df = all_projects_df.groupby(
+                ["itemName", "instanceId", "folderName"]
+            )
+            all_projects_df = all_projects_df.apply(aggregate_attributes).reset_index(
+                drop=True
+            )
+            unique_images = set(all_projects_df["itemName"])
+        else:
+            unique_images = all_projects_df["itemName"].unique()
         all_consensus_data = []
         for image_name in unique_images:
-            image_data = image_consensus(
-                all_projects_df, image_name, self._annota_type_type
-            )
+            image_data = consensus(all_projects_df, image_name, self._instance_type)
             all_consensus_data.append(pd.DataFrame(image_data))
 
         consensus_df = pd.concat(all_consensus_data, ignore_index=True)
-
-        if self._show_plots:
-            consensus_plot(consensus_df, self._folder_names)
+        if self._instance_type == "tag":
+            consensus_df["score"] /= len(self._folder_names) - 1
 
         self._response.data = consensus_df
         return self._response

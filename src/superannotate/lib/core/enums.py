@@ -2,7 +2,7 @@ from enum import Enum
 from types import DynamicClassAttribute
 
 
-class classproperty:
+class classproperty:  # noqa
     def __init__(self, getter):
         self.getter = getter
 
@@ -77,10 +77,13 @@ class ProjectType(BaseTitledEnum):
     PIXEL = "Pixel", 2
     VIDEO = "Video", 3
     DOCUMENT = "Document", 4
+    TILED = "Tiled", 5
+    OTHER = "Other", 6
+    POINT_CLOUD = "PointCloud", 7
 
     @classproperty
     def images(self):
-        return self.VECTOR.value, self.PIXEL.value
+        return self.VECTOR.value, self.PIXEL.value, self.TILED.value
 
 
 class UserRole(BaseTitledEnum):

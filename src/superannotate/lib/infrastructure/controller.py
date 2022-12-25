@@ -47,6 +47,13 @@ class BaseManager:
 
 
 class ProjectManager(BaseManager):
+    def get_by_id(self, project_id):
+        use_case = usecases.GetProjectByIDUseCase(
+            project_id=project_id, service_provider=self.service_provider
+        )
+        response = use_case.execute()
+        return response
+
     def get_by_name(self, name: str):
         use_case = usecases.GetProjectByNameUseCase(
             name=name, service_provider=self.service_provider
@@ -302,6 +309,16 @@ class FolderManager(BaseManager):
         )
         return use_case.execute()
 
+    def get_by_id(self, folder_id, project_id, team_id):
+        use_case = usecases.GetFolderByIDUseCase(
+            folder_id=folder_id,
+            project_id=project_id,
+            team_id=team_id,
+            service_provider=self.service_provider,
+        )
+        result = use_case.execute()
+        return result
+
     def list(self, project: ProjectEntity, condition: Condition = None):
         use_case = usecases.SearchFoldersUseCase(
             project=project, service_provider=self.service_provider, condition=condition
@@ -352,6 +369,14 @@ class ItemManager(BaseManager):
             item_name=name,
             service_provider=self.service_provider,
             include_custom_metadata=include_custom_metadata,
+        )
+        return use_case.execute()
+
+    def get_by_id(self, item_id: int, project: ProjectEntity):
+        use_case = usecases.GetItemByIDUseCase(
+            item_id=item_id,
+            project=project.data,
+            service_provider=self.service_provider,
         )
         return use_case.execute()
 
@@ -832,6 +857,32 @@ class Controller(BaseController):
         cls.DEFAULT = obj
         return cls.DEFAULT
 
+    def get_folder_by_id(self, folder_id: int, project_id: int) -> FolderEntity:
+        response = self.folders.get_by_id(
+            folder_id=folder_id, project_id=project_id, team_id=self.team_id
+        )
+
+        if response.errors:
+            raise AppException(response.errors)
+
+        return response.data
+
+    def get_project_by_id(self, project_id: int) -> ProjectEntity:
+        response = self.projects.get_by_id(project_id=project_id)
+        if response.errors:
+            raise AppException(response.errors)
+
+        return response.data
+
+    def get_item_by_id(self, item_id: int, project_id: int):
+        project = self.get_project_by_id(project_id=project_id)
+        response = self.items.get_by_id(item_id=item_id, project=project)
+
+        if response.errors:
+            raise AppException(response.errors)
+
+        return response.data
+
     def get_project_folder_by_path(
         self, path: Union[str, Path]
     ) -> Tuple[ProjectEntity, FolderEntity]:
@@ -1128,38 +1179,19 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_names: list,
-        export_path: str,
+        # export_path: str,
         image_list: list,
         annot_type: str,
-        show_plots: bool,
+        # show_plots: bool,
     ):
         project = self.get_project(project_name)
 
-        export_response = self.prepare_export(
-            project.name,
-            folder_names=folder_names,
-            include_fuse=False,
-            only_pinned=False,
-        )
-        if export_response.errors:
-            return export_response
-
-        response = self.download_export(
-            project_name=project.name,
-            export_name=export_response.data["name"],
-            folder_path=export_path,
-            extract_zip_contents=True,
-            to_s3_bucket=False,
-        )
-        if response.errors:
-            raise AppException(response.errors)
         use_case = usecases.ConsensusUseCase(
             project=project,
             folder_names=folder_names,
-            export_dir=export_path,
             image_list=image_list,
             annotation_type=annot_type,
-            show_plots=show_plots,
+            service_provider=self.service_provider,
         )
         return use_case.execute()
 

@@ -21,11 +21,11 @@ class TestDF(BaseTestCase):
 
     def test_filter_instances(self):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
-        df = df[~(df.duplicated(["instanceId", "imageName"]))]
+        df = df[~(df.duplicated(["instanceId", "itemName"]))]
         df = df[df.duplicated(["trackingId"], False) & df["trackingId"].notnull()]
         self.assertEqual(len(df), 2)
         self.assertEqual(
-            {df.iloc[0]["imageName"], df.iloc[1]["imageName"]},
+            {df.iloc[0]["itemName"], df.iloc[1]["itemName"]},
             {"example_image_1.jpg", "example_image_2.jpg"},
         )
 

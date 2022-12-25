@@ -33,7 +33,7 @@ def aggregate_image_annotations_as_df(
     :type folder_names: (list of str)
 
     :return: DataFrame on annotations with columns:
-                                        "imageName", "instanceId",
+                                        "itemName", "instanceId",
                                         "className", "attributeGroupName", "attributeName", "type", "error", "locked",
                                         "visible", "trackingId", "probability", "pointLabels",
                                         "meta" (geometry information as string), "commentResolved", "classColor",
@@ -382,10 +382,10 @@ def instance_consensus(inst_1, inst_2):
     """Helper function that computes consensus score between two instances:
 
     :param inst_1: First instance for consensus score.
-    :type inst_1: shapely object
+    :type inst_1: shapely object or a tag
 
     :param inst_2: Second instance for consensus score.
-    :type inst_2: shapely object
+    :type inst_2: shapely object or a tag
     """
     if inst_1.type == inst_2.type == "Polygon":
         intersect = inst_1.intersection(inst_2)
@@ -399,7 +399,40 @@ def instance_consensus(inst_1, inst_2):
     return score
 
 
-def image_consensus(df, image_name, annot_type):
+def calculate_tag_consensus(image_df):
+    column_names = [
+        "creatorEmail",
+        "itemName",
+        "instanceId",
+        "className",
+        "folderName",
+        "attributeGroupName",
+        "attributeName",
+    ]
+
+    image_data = {}
+    for column_name in column_names:
+        image_data[column_name] = []
+
+    image_df = image_df.reset_index()
+    image_data["score"] = []
+    for i, irow in image_df.iterrows():
+        for c in column_names:
+            image_data[c].append(irow[c])
+        image_data["score"].append(0)
+        for j, jrow in image_df.iterrows():
+            if i == j:
+                continue
+            if (
+                (irow["className"] == jrow["className"])
+                and irow["attributeGroupName"] == jrow["attributeGroupName"]
+                and irow["attributeName"] == jrow["attributeName"]
+            ):
+                image_data["score"][i] += 1
+    return image_data
+
+
+def consensus(df, item_name, annot_type):
     """Helper function that computes consensus score for instances of a single image:
 
     :param df: Annotation data of all images
@@ -419,11 +452,11 @@ def image_consensus(df, image_name, annot_type):
             "To use superannotate.benchmark or superannotate.consensus functions please install shapely package."
         )
 
-    image_df = df[df["imageName"] == image_name]
+    image_df = df[df["itemName"] == item_name]
     all_projects = list(set(df["folderName"]))
     column_names = [
         "creatorEmail",
-        "imageName",
+        "itemName",
         "instanceId",
         "area",
         "className",
@@ -436,6 +469,8 @@ def image_consensus(df, image_name, annot_type):
     for column_name in column_names:
         image_data[column_name] = []
 
+    if annot_type == "tag":
+        return calculate_tag_consensus(image_df)
     projects_shaply_objs = {}
     # generate shapely objects of instances
     for _, row in image_df.iterrows():
@@ -443,19 +478,19 @@ def image_consensus(df, image_name, annot_type):
             projects_shaply_objs[row["folderName"]] = []
         inst_data = row["meta"]
         if annot_type == "bbox":
-            inst_coords = inst_data["points"]
+            inst_coords = inst_data
             x1, x2 = inst_coords["x1"], inst_coords["x2"]
             y1, y2 = inst_coords["y1"], inst_coords["y2"]
             inst = box(min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
         elif annot_type == "polygon":
-            inst_coords = inst_data["points"]
+            inst_coords = inst_data
             shapely_format = []
             for i in range(0, len(inst_coords) - 1, 2):
                 shapely_format.append((inst_coords[i], inst_coords[i + 1]))
             inst = Polygon(shapely_format)
         elif annot_type == "point":
             inst = Point(inst_data["x"], inst_data["y"])
-        if inst.is_valid:
+        if annot_type != "tag" and inst.is_valid:
             projects_shaply_objs[row["folderName"]].append(
                 (inst, row["className"], row["creatorEmail"], row["attributes"])
             )
@@ -479,7 +514,7 @@ def image_consensus(df, image_name, annot_type):
                     max_instances.append((curr_proj, *curr_inst_data))
                     visited_instances[curr_proj][curr_id] = True
                 else:
-                    if annot_type in ["polygon", "bbox"]:
+                    if annot_type in ["polygon", "bbox", "tag"]:
                         max_score = 0
                     else:
                         max_score = float("-inf")
@@ -501,7 +536,7 @@ def image_consensus(df, image_name, annot_type):
                 image_data["creatorEmail"].append(max_instances[0][3])
                 image_data["attributes"].append(max_instances[0][4])
                 image_data["area"].append(max_instances[0][1].area)
-                image_data["imageName"].append(image_name)
+                image_data["itemName"].append(item_name)
                 image_data["instanceId"].append(instance_id)
                 image_data["className"].append(max_instances[0][2])
                 image_data["folderName"].append(max_instances[0][0])
@@ -518,7 +553,7 @@ def image_consensus(df, image_name, annot_type):
                     image_data["creatorEmail"].append(curr_match_data[3])
                     image_data["attributes"].append(curr_match_data[4])
                     image_data["area"].append(curr_match_data[1].area)
-                    image_data["imageName"].append(image_name)
+                    image_data["itemName"].append(item_name)
                     image_data["instanceId"].append(instance_id)
                     image_data["className"].append(curr_match_data[2])
                     image_data["folderName"].append(curr_match_data[0])
@@ -564,7 +599,7 @@ def consensus_plot(consensus_df, *_, **__):
         color_discrete_sequence=px.colors.qualitative.Dark24,
         hover_data={
             "className": False,
-            "imageName": True,
+            "itemName": True,
             "folderName": False,
             "area": False,
             "score": False,

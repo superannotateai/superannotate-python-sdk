@@ -1665,6 +1665,9 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             )
             if not schema_response.ok:
                 raise AppException(f"Schema {version} does not exist.")
+            if not schema_response.data:
+                ValidateAnnotationUseCase.SCHEMAS[key] = lambda x: x
+                return ValidateAnnotationUseCase.SCHEMAS[key]
             validator = jsonschema.Draft7Validator(schema_response.data)
             from functools import partial
 
@@ -1698,7 +1701,6 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             version = self._annotation["version"]
         except KeyError:
             version = self.DEFAULT_VERSION
-
         extract_path = ValidateAnnotationUseCase.extract_path
         validator = self._get_validator(version)
         errors = sorted(validator.iter_errors(self._annotation), key=lambda e: e.path)

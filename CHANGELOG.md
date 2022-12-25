@@ -1,5 +1,14 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
+## 4.4.8 - December 25, 2022
+### Added
+- New project types `Tiled`, `PointCloud`, `Other`.
+- `SAClient.get_project_by_id` _method_ to get project metadata by id.
+- `SAClient.get_folder_by_id` _method_ to get folder metadata by id.
+- `SAClient.get_item_by_id` _method_ to get item metadata by id.
+### Updated
+- `SAClient.consensus` _method_ to compute agreement scores between tag type annotations.
+###
 ## 4.4.7 - December 04, 2022
 ### Updated
 - `SAClient.search_folders` _method_ to add a new `status` argument for searching folders via status.
