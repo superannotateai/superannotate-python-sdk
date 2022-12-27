@@ -46,7 +46,7 @@ class TestSearchProjectVector(BaseTestCase):
 
     def test_create_project_wrong_type(self):
         with self.assertRaisesRegexp(AppException,
-                                     "Please provide a valid project type: Vector, Pixel, Document, or Video."):
+                                     "Please provide a valid project type: Vector, Pixel, Video, Document, Tiled, Other, PointCloud."):
             sa.create_project(self.PROJECT_1, "desc", "wrong_type")
 
     def test_create_project_with_settings(self):

@@ -108,4 +108,4 @@ class TestBenchmark(BaseTestCase):
                 image_list=image_names,
             )
 
-            assert sorted(res_images["imageName"].unique()) == sorted(image_names)
+            assert sorted(res_images["itemName"].unique()) == sorted(image_names)

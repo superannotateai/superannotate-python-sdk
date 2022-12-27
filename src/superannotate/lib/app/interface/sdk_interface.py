@@ -271,7 +271,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ProjectTypes.validate(project_type)
         except TypeError:
             raise AppException(
-                f"Please provide a valid project type: {', '.join(constants.ProjectType.titles())}"
+                f"Please provide a valid project type: {', '.join(constants.ProjectType.titles())}."
             )
         response = self.controller.projects.create(
             entities.ProjectEntity(
@@ -288,8 +288,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def create_project_from_metadata(self, project_metadata: Project):
         """Create a new project in the team using project metadata object dict.
-        Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
-        Non-mandatory keys: "workflow", "settings" and "annotation_classes".
+
+        | Mandatory keys: “name”, “description” and “type” (Vector or Pixel)
+        | Non-mandatory keys: “workflow”, “settings” and “annotation_classes”
+
+        :param project_metadata: project metadata
+        :type project_metadata: dict
 
         :return: dict object metadata the new project
         :rtype: dict
@@ -1746,25 +1750,22 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         folder_names: List[NotEmptyStr],
-        export_root: Optional[Union[NotEmptyStr, Path]] = None,
         image_list: Optional[List[NotEmptyStr]] = None,
         annotation_type: Optional[AnnotationType] = "bbox",
-        show_plots: Optional[StrictBool] = False,
     ):
         """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
 
         :param project: project name
         :type project: str
+
         :param folder_names: list of folder names in the project for which the scores will be computed
         :type folder_names: list of str
-        :param export_root: root export path of the projects
-        :type export_root: Path-like (str or Path)
+
         :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
         :type image_list: list
-        :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
-        :type annot_type: str
-        :param show_plots: If True, show plots based on results of consensus computation. Default: False
-        :type show_plots: bool
+
+        :param annotation_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
+        :type annotation_type: str
 
         :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
         :rtype: pandas DataFrame
