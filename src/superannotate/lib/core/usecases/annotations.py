@@ -463,7 +463,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
         for item_path in annotation_paths:
             name_path_mappings[
-                UploadAnnotationsFromFolderUseCase.extract_name(Path(item_path).name)
+                UploadAnnotationsFromFolderUseCase.extract_name(Path(item_path))
             ] = item_path
         return name_path_mappings
 
@@ -560,12 +560,15 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             yield {k: data[k] for k in islice(it, size)}
 
     @staticmethod
-    def extract_name(value: str):
-        return os.path.basename(
-            value.replace(constants.PIXEL_ANNOTATION_POSTFIX, "")
-            .replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
-            .replace(constants.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
-        )
+    def extract_name(value: Path):
+
+        if constants.VECTOR_ANNOTATION_POSTFIX in value.name:
+            path = value.name.replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
+        elif constants.PIXEL_ANNOTATION_POSTFIX in value.name:
+            path = value.name.replace(constants.PIXEL_ANNOTATION_POSTFIX, "")
+        else:
+            path = value.stem
+        return path
 
     def get_existing_name_item_mapping(
         self, name_path_mappings: Dict[str, str]
