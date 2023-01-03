@@ -35,7 +35,7 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
         ]
 
 
-    @app.route("item_completed", methods=["post"])
+    @app.route("item_completed", methods=["POST"])
     def index(request):
         """
         Listening webhooks on items completed events form Superannotate automation
@@ -43,7 +43,7 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
         """
         project_id, folder_id = request.data['project_id'], request.data['folder_id']
         project = sa_client.get_project_by_id(project_id)
-        folder = sa_client.get_folder_by_id(folder_id)
+        folder = sa_client.get_folder_by_id(project_id=project_id, folder_id=folder_id)
         sa_client.assign_items(
             f"{project['name']}/{folder['name']}",
             items=[request.data['name']],
