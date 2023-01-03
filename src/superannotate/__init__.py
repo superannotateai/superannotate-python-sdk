@@ -18,6 +18,7 @@ from superannotate.lib.app.input_converters import convert_project_type  # noqa
 from superannotate.lib.app.input_converters import export_annotation  # noqa
 from superannotate.lib.app.input_converters import import_annotation  # noqa
 from superannotate.lib.app.interface.sdk_interface import SAClient  # noqa
+from superannotate.lib.app.server import SAServer  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
@@ -29,6 +30,7 @@ SESSIONS = {}
 __all__ = [
     "__version__",
     "SAClient",
+    "SAServer",
     # Utils
     "enums",
     "AppException",
