@@ -1,4 +1,5 @@
 import json
+import linecache
 
 from lib.app.server import SAServer
 from lib.core import LOG_FILE_LOCATION
@@ -19,28 +20,38 @@ def logs(request):
     limit = 20
     items = []
     cursor = None
-    get_cursor = lambda x: max(x - 2048, 0)
+    offset = request.args.get('offset', None)
+    if offset:
+        offset = int(offset)
+    limit = int(request.args.get('limit', 20))
+    response = {
+        'data': []
+    }
 
-    with open(
-        f"{LOG_FILE_LOCATION}/sa_server.log",
-    ) as log_file:
+    with open(f"{LOG_FILE_LOCATION}/sa_server.log") as log_file:
         log_file.seek(0, 2)
-        file_size = log_file.tell()
-        cursor = get_cursor(file_size)
+        if not offset:
+            offset = log_file.tell()
+        cursor =  max(offset - 2048, 0)
         while True:
             log_file.seek(cursor, 0)
-            lines = log_file.read().splitlines()[-limit:]
-            # if cursor == 0 and len(lines) >= limit:
-            #     continue
-            for line in lines:
+            tmp_cursor = cursor
+            for line in log_file:
+                tmp_cursor += len(line)
+                if tmp_cursor > offset:
+                    cursor = max(cursor - 2048, 0)
+                    break
                 try:
-                    items.append(json.loads(line))
+                    response['data'].append(json.loads(line))
                 except Exception:
                     ...
-            if len(lines) >= limit or cursor == 0:
-                return items
-            cursor = get_cursor(cursor)
-            items = []
+            cursor = max(cursor - 2048, 0)
+            if len(response['data']) >= limit or cursor == 0:
+                break
+            response['data'] = []
+    response['offset'] = cursor
+    return response
+
 
 
 #

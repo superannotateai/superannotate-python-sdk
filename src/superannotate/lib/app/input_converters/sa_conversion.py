@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
-from shapely.geometry import Polygon
 from superannotate.logger import get_default_logger
 
 from ..common import blue_color_generator
