@@ -15,7 +15,7 @@ CONFIG = Config()
 
 CONFIG_PATH = "~/.superannotate/config.json"
 CONFIG_FILE_LOCATION = expanduser(CONFIG_PATH)
-LOG_FILE_LOCATION = expanduser("~/.superannotate/sa.log")
+LOG_FILE_LOCATION = expanduser("~/.superannotate")
 BACKEND_URL = "https://api.annotate.online"
 
 DEFAULT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]

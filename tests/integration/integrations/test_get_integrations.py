@@ -21,7 +21,7 @@ class TestGetIntegrations(BaseTestCase):
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
-    @pytest.mark.skip("Need to adjust")
+    # @pytest.mark.skip("Need to adjust")
     def test_get(self):
         integrations = sa.get_integrations()
         integrations = sa.attach_items_from_integrated_storage(self.PROJECT_NAME, integrations[0]["name"])

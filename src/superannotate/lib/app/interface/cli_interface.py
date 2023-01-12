@@ -264,7 +264,6 @@ class CLIFacade:
         This will create a directory by the given name in your current or provided directory.
         """
         path = Path(os.path.expanduser(path if path else ".")) / name
-
         if path.exists():
             raise Exception(f"Directory already exists {str(path.absolute())}")
         path.mkdir(parents=True)

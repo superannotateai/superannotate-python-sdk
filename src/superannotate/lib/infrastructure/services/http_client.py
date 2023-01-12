@@ -6,7 +6,6 @@ import urllib.parse
 from contextlib import contextmanager
 from functools import lru_cache
 from typing import Any
-from typing import Callable
 from typing import Dict
 from typing import List
 
@@ -19,7 +18,6 @@ from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
 from superannotate import __version__
 from superannotate.logger import get_default_logger
-
 
 logger = get_default_logger()
 
@@ -84,6 +82,7 @@ class HttpClient(BaseClient):
         return safe_api
 
     def _request(self, url, method, session, retried=0, **kwargs):
+
         with self.safe_api():
             req = requests.Request(
                 method=method,
@@ -117,13 +116,12 @@ class HttpClient(BaseClient):
         headers=None,
         params=None,
         retried=0,
-        item_type=None,
         content_type=ServiceResponse,
         files=None,
-        dispatcher: Callable = None,
+        dispatcher: str = None,
     ) -> ServiceResponse:
-        kwargs = {"params": {"team_id": self.team_id}}
         _url = self._get_url(url)
+        kwargs = {"params": {"team_id": self.team_id}}
         if data:
             kwargs["data"] = json.dumps(data, cls=PydanticEncoder)
         if params:
@@ -135,7 +133,7 @@ class HttpClient(BaseClient):
         response = self._request(_url, method, session=session, retried=0, **kwargs)
         if files:
             session.headers.update(self.default_headers)
-        return content_type(response, dispatcher=dispatcher)
+        return self.serialize_response(response, content_type, dispatcher)
 
     def paginate(
         self,
@@ -143,7 +141,6 @@ class HttpClient(BaseClient):
         item_type: Any = None,
         chunk_size: int = 2000,
         query_params: Dict[str, Any] = None,
-        dispatcher: str = "data",
     ) -> ServiceResponse:
         offset = 0
         total = []
@@ -152,29 +149,24 @@ class HttpClient(BaseClient):
         while True:
             _url = f"{url}{splitter}offset={offset}"
             _response = self.request(
-                _url,
-                method="get",
-                item_type=List[item_type],
-                params=query_params,
+                _url, method="get", params=query_params, dispatcher="data"
             )
             if _response.ok:
-                if isinstance(_response.data, dict):
-                    data = _response.data.get(dispatcher)
-                else:
-                    data = _response.data
-                if data:
-                    total.extend(data)
+                if _response.data:
+                    total.extend(_response.data)
                 else:
                     break
-                data_len = len(data)
+                data_len = len(_response.data)
                 offset += data_len
                 if data_len < chunk_size or _response.count - offset < 0:
                     break
             else:
                 break
+
         if item_type:
             response = ServiceResponse(
-                data=pydantic.parse_obj_as(List[item_type], total)
+                status=_response.status,
+                data=pydantic.parse_obj_as(List[item_type], total),
             )
         else:
             response = ServiceResponse(data=total)
@@ -182,3 +174,31 @@ class HttpClient(BaseClient):
             response.set_error(_response.error)
             response.status = _response.status
         return response
+
+    @staticmethod
+    def serialize_response(
+        response: requests.Response, content_type, dispatcher: str = None
+    ) -> ServiceResponse:
+        data = {
+            "status": response.status_code,
+        }
+        try:
+            data_json = response.json()
+            if not response.ok:
+                data["_error"] = data_json.get(
+                    "error", data_json.get("errors", "Unknown Error")
+                )
+            else:
+                if dispatcher:
+                    if dispatcher in data_json:
+                        data["data"] = data_json.pop(dispatcher)
+                    else:
+                        data["data"] = data_json
+                        data_json = {}
+                    data.update(data_json)
+                else:
+                    data["data"] = data_json
+            return content_type(**data)
+        except json.decoder.JSONDecodeError:
+            data["reason"] = response.reason
+            return content_type(**data)

@@ -561,7 +561,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     @staticmethod
     def extract_name(value: Path):
-
         if constants.VECTOR_ANNOTATION_POSTFIX in value.name:
             path = value.name.replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
         elif constants.PIXEL_ANNOTATION_POSTFIX in value.name:

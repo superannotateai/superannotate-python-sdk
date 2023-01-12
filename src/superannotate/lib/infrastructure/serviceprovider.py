@@ -2,7 +2,6 @@ import datetime
 from typing import List
 
 import lib.core as constants
-import requests
 from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.service_types import DownloadMLModelAuthDataResponse
@@ -253,7 +252,7 @@ class ServiceProvider(BaseServiceProvider):
         if query:
             data["query"] = query
         items = []
-        response = requests.Response()
+        response = None
         for _ in range(0, self.MAX_ITEMS_COUNT, self.SAQUL_CHUNK_SIZE):
             response = self.client.request(
                 self.URL_SAQUL_QUERY, "post", params=params, data=data
@@ -263,8 +262,14 @@ class ServiceProvider(BaseServiceProvider):
             response_items = response.data
             items.extend(response_items)
             if len(response_items) < self.SAQUL_CHUNK_SIZE:
-                service_response = ServiceResponse(response)
-                service_response.data = items
-                return service_response
+                break
             data["image_index"] += self.SAQUL_CHUNK_SIZE
-        return ServiceResponse(response)
+
+        if response:
+            response = ServiceResponse(status=response.status_code, data=items)
+            if not response.ok:
+                response.set_error(response.error)
+                response = ServiceResponse(status=response.status_code, data=items)
+        else:
+            response = ServiceResponse(status=200, data=[])
+        return response

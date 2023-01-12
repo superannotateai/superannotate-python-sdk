@@ -1,12 +1,23 @@
 import json
+import pathlib
 import typing
+from datetime import datetime
 
+from jinja2 import Environment
+from jinja2 import FileSystemLoader
+from superannotate.logger import get_server_logger
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import Map
 from werkzeug.routing import Rule
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request
-from werkzeug.wrappers import Response
+from werkzeug.wrappers import Response as BaseResponse
+
+logger = get_server_logger()
+
+
+class Response(BaseResponse):
+    ...
 
 
 class SingletonMeta(type):
@@ -23,8 +34,14 @@ class SAServer(metaclass=SingletonMeta):
     def __init__(self):
         self._url_map: Map = Map([])
         self._view_function_map: typing.Dict[str, typing.Callable] = {}
+        self.jinja_env = Environment(
+            loader=FileSystemLoader(str(pathlib.Path(__file__).parent / "templates")),
+            autoescape=True,
+        )
 
-    def route(self, rule: str, methods: typing.List[str] = None, **options: typing.Any):
+    def route(
+        self, rule: str, methods: typing.List[str] = None, **options: typing.Any
+    ) -> typing.Any:
         """Decorate a view function to register it with the given URL
         rule and options. Calls :meth:`add_url_rule`, which has more
         details about the implementation.
@@ -135,17 +152,47 @@ class SAServer(metaclass=SingletonMeta):
     def _dispatch_request(self, request):
         """Dispatches the request."""
         adapter = self._url_map.bind_to_environ(request.environ)
+        response = None
+        content = None
         try:
             endpoint, values = adapter.match()
             view_func = self._view_function_map.get(endpoint)
             if not view_func:
                 return Response(status=404)
-            response = view_func(request, **values)
-            if isinstance(response, dict):
-                return Response(json.dumps(response), content_type="application/json")
-            return Response(response)
+            content = view_func(request, **values)
+            if isinstance(content, Response):
+                response = content
+            elif isinstance(content, (list, dict)):
+                response = Response(
+                    json.dumps(content), content_type="application/json"
+                )
+            else:
+                response = Response(content)
+            return response
         except HTTPException as e:
             return e
+        finally:
+            if "monitor" not in request.full_path and "log" not in request.full_path:
+                data = {
+                    "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "request": {
+                        "method": request.full_path,
+                        "path": request.url,
+                        "headers": dict(request.headers.items()),
+                        "data": request.data.decode("utf-8"),
+                    },
+                    "response": {
+                        "headers": dict(request.headers.items()) if response else None,
+                        # 'data': response.data.decode('utf-8') if response else None,
+                        "data": content.data.decode("utf-8")
+                        if isinstance(content, Response)
+                        else content,
+                        "status_code": response.status_code if response else None,
+                    },
+                }
+                # import ndjson
+                print(11111, request.full_path)
+                logger.info(json.dumps(data))
 
     def wsgi_app(self, environ, start_response):
         """WSGI application that processes requests and returns responses."""
@@ -197,3 +244,7 @@ class SAServer(metaclass=SingletonMeta):
             ssl_context=ssl_context,
             **kwargs
         )
+
+    def render_template(self, template_name, **context):
+        t = self.jinja_env.get_template(template_name)
+        return Response(t.render(context), mimetype="text/html")

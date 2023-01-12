@@ -182,6 +182,9 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
                         (_sub for _sub in response.data if _sub.name == self._subset),
                         None,
                     )
+                else:
+                    self._response.errors = response.error
+                    return self._response
                 if not subset:
                     self._response.errors = AppException(
                         "Subset not found. Use the superannotate."
@@ -840,13 +843,13 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         # so that we don't query them later.
         # Otherwise include folder in path object in order to later run a query
 
-        removeables = []
+        removables = []
         for path, value in self.path_separated.items():
 
             project, folder = extract_project_folder(path)
 
             if project != self.project.name:
-                removeables.append(path)
+                removables.append(path)
                 continue
 
             # If no folder was provided in the path use "root"
@@ -872,13 +875,13 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                         break
                 # If the folder did not exist add to skipped
                 if not folder_found:
-                    removeables.append(path)
+                    removables.append(path)
 
             except Exception as e:
-                removeables.append(path)
+                removables.append(path)
 
         # Removing completely incorrect paths and their items
-        for item in removeables:
+        for item in removables:
             self.results["skipped"].extend(self.path_separated[item]["items"])
             self.path_separated.pop(item)
 
@@ -970,6 +973,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     ids = future.result()
                     self.item_ids.extend(ids)
                 except Exception:
+                    raise
                     logger.debug(traceback.format_exc())
 
             subsets = self._service_provider.subsets.list(self.project).data
@@ -1016,7 +1020,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             for path, value in self.path_separated.items():
                 for item in value:
                     item_id = item.pop(
-                        "id"
+                        "id", None
                     )  # Need to remove it, since its added artificially
                     self.__distribute_to_results(item_id, response, item)
 

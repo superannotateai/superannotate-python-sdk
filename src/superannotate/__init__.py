@@ -1,6 +1,6 @@
 import os
 import sys
-
+import typing
 
 __version__ = "4.4.8"
 
@@ -19,6 +19,7 @@ from superannotate.lib.app.input_converters import export_annotation  # noqa
 from superannotate.lib.app.input_converters import import_annotation  # noqa
 from superannotate.lib.app.interface.sdk_interface import SAClient  # noqa
 from superannotate.lib.app.server import SAServer  # noqa
+from superannotate.lib.app.server.utils import setup_app  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
@@ -27,10 +28,18 @@ import superannotate.lib.core.enums as enums  # noqa
 
 SESSIONS = {}
 
+
+def create_app(apps: typing.List[str]) -> SAServer:
+    setup_app(apps)
+    server = SAServer()
+    return server
+
+
 __all__ = [
     "__version__",
     "SAClient",
     "SAServer",
+    "create_app",
     # Utils
     "enums",
     "AppException",

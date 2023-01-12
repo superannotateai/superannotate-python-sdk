@@ -1,16 +1,5 @@
-from importlib import import_module
-
-from superannotate import SAServer
-
+from superannotate import create_app
 
 APPS = ["app"]
 
-
-def create_app():
-    server = SAServer()
-    for path in APPS:
-        import_module(path)
-    return server
-
-
-app = create_app()
+app = create_app(APPS)
