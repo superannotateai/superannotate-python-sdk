@@ -4,9 +4,7 @@ import tempfile
 from pathlib import Path
 from tests import DATA_SET_PATH
 
-
 from src.superannotate import convert_project_type
-
 from unittest import TestCase
 
 

@@ -62,7 +62,7 @@ def log_version_info():
     local_version = parse(__version__)
     if local_version.is_prerelease:
         logger.info(PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
-    req = requests.get("https://pypi.python.org/pypi/superannotate/json")
+    req = requests.get("https://pypi.org/pypi/superannotate/json")
     if req.ok:
         releases = req.json().get("releases", [])
         pip_version = parse("0")
