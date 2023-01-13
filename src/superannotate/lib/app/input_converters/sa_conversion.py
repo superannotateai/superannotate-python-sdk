@@ -1,3 +1,4 @@
+import itertools
 import json
 import shutil
 
@@ -20,6 +21,7 @@ def copy_file(src_path, dst_path):
 
 def from_pixel_to_vector(json_paths, output_dir):
     img_names = []
+
     for json_path in json_paths:
         file_name = str(json_path.name).replace("___pixel.json", "___objects.json")
 
@@ -29,7 +31,7 @@ def from_pixel_to_vector(json_paths, output_dir):
         sa_json = json.load(open(json_path))
         instances = sa_json["instances"]
         new_instances = []
-        idx = 0
+        global_idx = itertools.count()
         sa_instances = []
 
         for instance in instances:
@@ -39,8 +41,7 @@ def from_pixel_to_vector(json_paths, output_dir):
                 continue
             parts = instance["parts"]
             if len(parts) > 1:
-                idx += 1
-                group_id = idx
+                group_id = next(global_idx)
             else:
                 group_id = 0
             from collections import defaultdict
