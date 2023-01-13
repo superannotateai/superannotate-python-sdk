@@ -152,8 +152,6 @@ class SAServer(metaclass=SingletonMeta):
     def _dispatch_request(self, request):
         """Dispatches the request."""
         adapter = self._url_map.bind_to_environ(request.environ)
-        response = None
-        content = None
         try:
             endpoint, values = adapter.match()
             view_func = self._view_function_map.get(endpoint)
@@ -171,34 +169,35 @@ class SAServer(metaclass=SingletonMeta):
             return response
         except HTTPException as e:
             return e
-        finally:
-            if "monitor" not in request.full_path and "log" not in request.full_path:
-                data = {
-                    "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "request": {
-                        "method": request.full_path,
-                        "path": request.url,
-                        "headers": dict(request.headers.items()),
-                        "data": request.data.decode("utf-8"),
-                    },
-                    "response": {
-                        "headers": dict(request.headers.items()) if response else None,
-                        # 'data': response.data.decode('utf-8') if response else None,
-                        "data": content.data.decode("utf-8")
-                        if isinstance(content, Response)
-                        else content,
-                        "status_code": response.status_code if response else None,
-                    },
-                }
-                # import ndjson
-                print(11111, request.full_path)
-                logger.info(json.dumps(data))
 
     def wsgi_app(self, environ, start_response):
         """WSGI application that processes requests and returns responses."""
         request = Request(environ)
         response = self._dispatch_request(request)
-        return response(environ, start_response)
+        return_value = response(environ, start_response)
+        if not any(i in request.full_path for i in ("monitor", "logs")):
+            data = {
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "request": {
+                    "method": request.method,
+                    "path": request.url,
+                    "headers": dict(request.headers.items()),
+                    "data": request.data.decode("utf-8"),
+                },
+                "response": {
+                    "headers": dict(response.headers.items())
+                    if hasattr(response, "headers")
+                    else {},
+                    "data": response.data.decode("utf-8")
+                    if hasattr(response, "data")
+                    else response.description,
+                    "status_code": response.status_code
+                    if hasattr(response, "status_code")
+                    else response.code,
+                },
+            }
+            logger.info(json.dumps(data))
+        return return_value
 
     def __call__(self, environ, start_response):
         """The WSGI server calls this method as the WSGI application."""

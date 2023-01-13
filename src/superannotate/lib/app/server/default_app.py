@@ -43,6 +43,7 @@ def logs(request):
                 break
             response["data"] = []
     response["offset"] = cursor
+    response["data"].reverse()
     return response
 
 

@@ -21,7 +21,6 @@ def get_server_logger():
         logger.addHandler(stream_handler)
         try:
             log_file_path = os.path.join(constances.LOG_FILE_LOCATION, "sa_server.log")
-            open(log_file_path, "w").close()
             if os.access(log_file_path, os.W_OK):
                 file_handler = RotatingFileHandler(
                     log_file_path,
