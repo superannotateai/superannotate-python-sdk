@@ -1,5 +1,4 @@
 import json
-import linecache
 
 from lib.app.server import SAServer
 from lib.core import LOG_FILE_LOCATION
@@ -16,23 +15,17 @@ def monitor_view(request):
 
 @app.route("/logs", methods=["GET"])
 def logs(request):
-    data = []
-    limit = 20
-    items = []
-    cursor = None
-    offset = request.args.get('offset', None)
+    offset = request.args.get("offset", None)
     if offset:
         offset = int(offset)
-    limit = int(request.args.get('limit', 20))
-    response = {
-        'data': []
-    }
+    limit = int(request.args.get("limit", 20))
+    response = {"data": []}
 
     with open(f"{LOG_FILE_LOCATION}/sa_server.log") as log_file:
         log_file.seek(0, 2)
         if not offset:
             offset = log_file.tell()
-        cursor =  max(offset - 2048, 0)
+        cursor = max(offset - 2048, 0)
         while True:
             log_file.seek(cursor, 0)
             tmp_cursor = cursor
@@ -42,16 +35,15 @@ def logs(request):
                     cursor = max(cursor - 2048, 0)
                     break
                 try:
-                    response['data'].append(json.loads(line))
-                except Exception:
+                    response["data"].append(json.loads(line))
+                except Exception as _:
                     ...
             cursor = max(cursor - 2048, 0)
-            if len(response['data']) >= limit or cursor == 0:
+            if len(response["data"]) >= limit or cursor == 0:
                 break
-            response['data'] = []
-    response['offset'] = cursor
+            response["data"] = []
+    response["offset"] = cursor
     return response
-
 
 
 #

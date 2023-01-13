@@ -68,7 +68,7 @@ def from_pixel_to_vector(json_paths, output_dir):
                     outer_points = contours[outer].flatten().tolist()
                     exclude_points = [contours[i].flatten().tolist() for i in inners]
                     temp = instance.copy()
-                    del temp['parts']
+                    del temp["parts"]
                     temp["pointLabels"] = {}
                     temp["groupId"] = group_id
                     temp["type"] = "polygon"
@@ -76,7 +76,7 @@ def from_pixel_to_vector(json_paths, output_dir):
                     temp["exclude"] = exclude_points
                     new_instances.append(temp)
 
-        sa_json['instances'] = new_instances
+        sa_json["instances"] = new_instances
         write_to_json(output_dir / file_name, sa_json)
         img_names.append(file_name.replace("___objects.json", ""))
     return img_names
