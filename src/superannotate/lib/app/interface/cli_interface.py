@@ -270,3 +270,8 @@ class CLIFacade:
         default_files_path = Path(sa_lib.__file__).parent / "app" / "server"
         shutil.copy(default_files_path / "__app.py", path / "app.py")
         shutil.copy(default_files_path / "__wsgi.py", path / "wsgi.py")
+        shutil.copy(default_files_path / "Dockerfile", path / "Dockerfile")
+        shutil.copy(default_files_path / "requirements.txt", path / "requirements.txt")
+        shutil.copy(default_files_path / "README.rst", path / "README.rst")
+        shutil.copy(default_files_path / "run.sh", path / "run.sh")
+        shutil.copytree(default_files_path / "deployment", path / "deployment")

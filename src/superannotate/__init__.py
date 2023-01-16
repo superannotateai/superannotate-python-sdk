@@ -2,7 +2,7 @@ import os
 import sys
 import typing
 
-__version__ = "4.4.8"
+__version__ = "4.4.9dev1"
 
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
@@ -29,7 +29,7 @@ import superannotate.lib.core.enums as enums  # noqa
 SESSIONS = {}
 
 
-def create_app(apps: typing.List[str]) -> SAServer:
+def create_app(apps: typing.List[str] = None) -> SAServer:
     setup_app(apps)
     server = SAServer()
     return server
