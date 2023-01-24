@@ -718,6 +718,85 @@ class SetAnnotationStatues(BaseReportableUseCase):
         return self._response
 
 
+class SetApprovalStatues(BaseReportableUseCase):
+    CHUNK_SIZE = 3000
+    ERROR_MESSAGE = " Failed to change approval status"
+
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        approval_status: str,
+        service_provider: BaseServiceProvider,
+        item_names: List[str] = None,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._item_names = item_names
+        self._approval_status_code = constants.ApprovalStatus.get_value(approval_status)
+        self._service_provider = service_provider
+
+    def validate_items(self):
+        if not self._item_names:
+            condition = Condition("project_id", self._project.id, EQ) & Condition(
+                "folder_id", self._folder.id, EQ
+            )
+            self._item_names = [
+                item.name for item in self._service_provider.items.list(condition).data
+            ]
+            return
+        else:
+            _tmp = set(self._item_names)
+            unique, total = len(_tmp), len(self._item_names)
+            if unique < total:
+                logger.info(
+                    f"Dropping duplicates. Found {unique}/{total} unique items."
+                )
+            self._item_names = list(_tmp)
+        existing_items = []
+        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+            search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
+            response = self._service_provider.items.list_by_names(
+                project=self._project,
+                folder=self._folder,
+                names=search_names,
+            )
+            if not response.ok:
+                raise AppValidationException(response.error)
+            cand_items = response.data
+            existing_items += cand_items
+        if not existing_items:
+            raise AppValidationException(self.ERROR_MESSAGE)
+        if existing_items:
+            self._item_names = list(
+                {i.name for i in existing_items}.intersection(set(self._item_names))
+            )
+
+    def execute(self):
+        if self.is_valid():
+            total_items = 0
+            for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+                response = self._service_provider.items.set_approval_statuses(
+                    project=self._project,
+                    folder=self._folder,
+                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203,
+                    approval_status=self._approval_status_code,
+                )
+                if not response.ok:
+                    self._response.errors = AppException(self.ERROR_MESSAGE)
+                    return self._response
+                total_items += len(response.data)
+            if total_items:
+                logger.info(
+                    f"Successfully updated {total_items}/{len(self._item_names)} item(s)"
+                )
+            else:
+                logger.info("No items found")
+        return self._response
+
+
 class DeleteItemsUseCase(BaseUseCase):
     CHUNK_SIZE = 1000
 

@@ -482,6 +482,23 @@ class ItemManager(BaseManager):
         )
         return use_case.execute()
 
+    def set_approval_statuses(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        approval_status: str,
+        item_names: List[str] = None,
+    ):
+        use_case = usecases.SetApprovalStatues(
+            Reporter(),
+            project=project,
+            folder=folder,
+            approval_status=approval_status,
+            item_names=item_names,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
     def update(self, project: ProjectEntity, item: BaseItemEntity):
         use_case = usecases.UpdateItemUseCase(
             project=project, service_provider=self.service_provider, item=item

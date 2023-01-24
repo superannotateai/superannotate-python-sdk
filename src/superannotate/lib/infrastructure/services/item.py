@@ -29,6 +29,7 @@ class ItemService(BaseItemService):
     URL_COPY_PROGRESS = "images/copy-image-progress"
     URL_DELETE_ITEMS = "image/delete/images"
     URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
+    URL_SET_APPROVAL_STATUSES = "/items/bulk/change"
     URL_GET_BY_ID = "image/{image_id}"
 
     PROJECT_TYPE_RESPONSE_MAP = {
@@ -197,6 +198,23 @@ class ItemService(BaseItemService):
                 "folder_id": folder.id,
                 "annotation_status": annotation_status,
                 "image_names": item_names,
+            },
+        )
+
+    def set_approval_statuses(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_names: List[str],
+        approval_status: int,
+    ):
+        return self.client.request(
+            self.URL_SET_APPROVAL_STATUSES,
+            "post",
+            params={"project_id": project.id, "folder_id": folder.id},
+            data={
+                "item_names": item_names,
+                "change_actions": {"APPROVAL_STATUS": approval_status},
             },
         )
 

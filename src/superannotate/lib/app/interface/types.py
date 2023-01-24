@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
+from lib.core.enums import ApprovalStatus
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
 from lib.core.enums import FolderStatus
@@ -195,6 +196,16 @@ class AnnotationStatuses(StrictStr):
         if value.lower() not in AnnotationStatus.values():
             raise TypeError(
                 f"Available an notation_statuses are {', '.join(AnnotationStatus.titles())}. "
+            )
+        return value
+
+
+class ApprovalStatuses(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if value.lower() not in ApprovalStatus.values():
+            raise TypeError(
+                f"Available an approval_statuses are {', '.join(ApprovalStatus.titles())}. "
             )
         return value
 

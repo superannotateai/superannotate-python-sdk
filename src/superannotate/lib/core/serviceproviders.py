@@ -294,6 +294,16 @@ class BaseItemService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def set_approval_statuses(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_names: List[str],
+        approval_status: int,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def delete_multiple(
         self, project: entities.ProjectEntity, item_ids: List[int]
     ) -> ServiceResponse:

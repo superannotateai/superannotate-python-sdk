@@ -185,9 +185,14 @@ class HttpClient(BaseClient):
         try:
             data_json = response.json()
             if not response.ok:
-                data["_error"] = data_json.get(
-                    "error", data_json.get("errors", "Unknown Error")
-                )
+                if response.status_code in (502, 504):
+                    data[
+                        "_error"
+                    ] = "Our service is currently unavailable, please try again later."
+                else:
+                    data["_error"] = data_json.get(
+                        "error", data_json.get("errors", "Unknown Error")
+                    )
             else:
                 if dispatcher:
                     if dispatcher in data_json:
