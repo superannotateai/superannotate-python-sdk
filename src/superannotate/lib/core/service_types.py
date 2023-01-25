@@ -1,5 +1,4 @@
 from typing import Any
-from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -9,7 +8,6 @@ from lib.core import entities
 from pydantic import BaseModel
 from pydantic import Extra
 from pydantic import Field
-from pydantic import parse_obj_as
 
 
 class Limit(BaseModel):
@@ -91,52 +89,13 @@ class UploadCustomFieldValues(BaseModel):
 class ServiceResponse(BaseModel):
     status: Optional[int]
     reason: Optional[str]
-    content: Optional[Union[bytes, str]]
-    data: Optional[Any]
+    content: Optional[Union[bytes, str]] = None
+    data: Optional[Any] = None
     count: Optional[int] = 0
     _error: Optional[str] = None
 
     class Config:
         extra = Extra.allow
-
-    def __init__(
-        self, response=None, content_type=None, dispatcher: Callable = None, data=None
-    ):
-        if response is None:
-            super().__init__(data=data, status=200)
-            return
-        data = {
-            "status": response.status_code,
-            "reason": response.reason,
-            "content": response.content,
-        }
-        try:
-            response_json = response.json()
-        except Exception:
-            response_json = dict()
-        if not response.ok:
-            error = response_json.get("error")
-            if not error:
-                error = response_json.get("errors", "Unknown Error")
-            data["_error"] = error
-            super().__init__(**data)
-            return
-        if dispatcher:
-            _data = response_json
-            response_json = dispatcher(_data)
-            data.update(_data)
-        try:
-            if isinstance(response_json, dict):
-                data["count"] = response_json.get("count", None)
-
-            if content_type and content_type is not self.__class__:
-                data["data"] = parse_obj_as(content_type, response_json)
-            else:
-                data["data"] = response_json
-        except Exception:
-            data["data"] = {}
-
-        super().__init__(**data)
 
     @property
     def status_code(self):
@@ -152,16 +111,15 @@ class ServiceResponse(BaseModel):
     def error(self):
         if self._error:
             return self._error
-        default_message = self.reason if self.reason else "Unknown Error"
-        if isinstance(self.data, dict) and "error" in self.data:
-            return self.data.get("error", default_message)
-        else:
-            return getattr(self.data, "error", default_message)
+        return self.data
 
     def set_error(self, value: Union[dict, str]):
         if isinstance(value, dict) and "error" in value:
             self._error = value["error"]
         self._error = value
+
+    def __str__(self):
+        return f"Status: {self.status_code}, Error {self.error}"
 
 
 class ImageResponse(ServiceResponse):
@@ -196,8 +154,12 @@ class ModelListResponse(ServiceResponse):
     data: List[entities.AnnotationClassEntity] = None
 
 
-class IntegrationResponse(ServiceResponse):
-    data: List[entities.IntegrationEntity] = None
+class _IntegrationResponse(ServiceResponse):
+    integrations: List[entities.IntegrationEntity] = []
+
+
+class IntegrationListResponse(ServiceResponse):
+    data: _IntegrationResponse
 
 
 class AnnotationClassListResponse(ServiceResponse):

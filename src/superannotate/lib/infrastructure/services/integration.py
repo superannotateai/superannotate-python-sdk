@@ -1,5 +1,5 @@
 from lib.core import entities
-from lib.core.service_types import IntegrationResponse
+from lib.core.service_types import IntegrationListResponse
 from lib.core.serviceproviders import BaseIntegrationService
 
 
@@ -12,8 +12,7 @@ class IntegrationService(BaseIntegrationService):
         res = self.client.request(
             self.URL_LIST,
             "get",
-            content_type=IntegrationResponse,
-            dispatcher=lambda x: x["integrations"],
+            content_type=IntegrationListResponse,
         )
 
         return res

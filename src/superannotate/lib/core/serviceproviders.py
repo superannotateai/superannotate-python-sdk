@@ -13,7 +13,7 @@ from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import DownloadMLModelAuthDataResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
-from lib.core.service_types import IntegrationResponse
+from lib.core.service_types import IntegrationListResponse
 from lib.core.service_types import ItemListResponse
 from lib.core.service_types import ModelListResponse
 from lib.core.service_types import ProjectListResponse
@@ -294,6 +294,16 @@ class BaseItemService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def set_approval_statuses(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_names: List[str],
+        approval_status: int,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def delete_multiple(
         self, project: entities.ProjectEntity, item_ids: List[int]
     ) -> ServiceResponse:
@@ -466,7 +476,7 @@ class BaseModelsService(SuperannotateServiceProvider):
 
 class BaseIntegrationService(SuperannotateServiceProvider):
     @abstractmethod
-    def list(self) -> IntegrationResponse:
+    def list(self) -> IntegrationListResponse:
         raise NotImplementedError
 
     @abstractmethod

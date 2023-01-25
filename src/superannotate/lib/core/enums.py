@@ -12,7 +12,7 @@ class classproperty:  # noqa
 
 class BaseTitledEnum(int, Enum):
     def __new__(cls, title, value):
-        obj = int.__new__(cls, value)
+        obj = super().__new__(cls, value)
         obj._value_ = value
         obj.__doc__ = title
         obj._type = "titled_enum"
@@ -40,7 +40,7 @@ class BaseTitledEnum(int, Enum):
     @classmethod
     def get_value(cls, name):
         for enum in list(cls):
-            if enum.__doc__.lower() == name.lower():
+            if enum.__doc__ and name and enum.__doc__.lower() == name.lower():
                 if isinstance(enum.value, int):
                     if enum.value < 0:
                         return ""
@@ -48,7 +48,7 @@ class BaseTitledEnum(int, Enum):
 
     @classmethod
     def values(cls):
-        return [enum.__doc__.lower() for enum in list(cls)]
+        return [enum.__doc__.lower() if enum else None for enum in list(cls)]
 
     @classmethod
     def titles(cls):
@@ -62,6 +62,12 @@ class BaseTitledEnum(int, Enum):
 
     def __hash__(self):
         return hash(self.name)
+
+
+class ApprovalStatus(BaseTitledEnum):
+    NONE = None, 0
+    DISAPPROVED = "Disapproved", 1
+    APPROVED = "Approved", 2
 
 
 class AnnotationTypes(str, Enum):
@@ -170,9 +176,3 @@ class SegmentationStatus(BaseTitledEnum):
     IN_PROGRESS = "InProgress", 2
     COMPLETED = "Completed", 3
     FAILED = "Failed", 4
-
-
-class ApprovalStatus(BaseTitledEnum):
-    NONE = None, 0
-    DISAPPROVED = "disapproved", 1
-    APPROVED = "approved", 2

@@ -17,6 +17,7 @@
 
    tutorial.sdk.rst
    superannotate.sdk.rst
+   server.rst
    cli.rst
    LICENSE.rst
 

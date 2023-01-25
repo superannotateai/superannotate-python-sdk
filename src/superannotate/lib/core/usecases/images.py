@@ -654,9 +654,12 @@ class DownloadImageUseCase(BaseReportableUseCase):
         )
 
     def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
+        if (
+            self._project.type in constances.LIMITED_FUNCTIONS
+            or self._project.upload_state == constances.UploadState.EXTERNAL.value
+        ):
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
+                "The feature does not support projects containing attached URLs."
             )
 
     def validate_variant_type(self):

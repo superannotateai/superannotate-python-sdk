@@ -36,6 +36,21 @@ To initialize CLI (and SDK) with team token:
 
 ----------
 
+
+.. _ref_create_server:
+
+Creating a server
+~~~~~~~~~~~~~~~~~~
+
+This will create a directory by the given name in your current or provided directory:
+
+.. code-block:: bash
+
+   superannotatecli create-server --name <directory_name> --path <directory_path>
+
+----------
+
+
 .. _ref_create_project:
 
 Creating a project

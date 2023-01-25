@@ -2,6 +2,7 @@ from os.path import expanduser
 
 from superannotate.lib.core.config import Config
 from superannotate.lib.core.enums import AnnotationStatus
+from superannotate.lib.core.enums import ApprovalStatus
 from superannotate.lib.core.enums import FolderStatus
 from superannotate.lib.core.enums import ImageQuality
 from superannotate.lib.core.enums import ProjectStatus
@@ -15,8 +16,8 @@ CONFIG = Config()
 
 CONFIG_PATH = "~/.superannotate/config.json"
 CONFIG_FILE_LOCATION = expanduser(CONFIG_PATH)
-LOG_FILE_LOCATION = expanduser("~/.superannotate/sa.log")
-BACKEND_URL = "https://api.annotate.online"
+LOG_FILE_LOCATION = expanduser("~/.superannotate")
+BACKEND_URL = "https://api.superannotate.com"
 
 DEFAULT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
 DEFAULT_FILE_EXCLUDE_PATTERNS = ["___save.png", "___fuse.png"]
@@ -121,6 +122,7 @@ __alL__ = (
     SegmentationStatus,
     ImageQuality,
     AnnotationStatus,
+    ApprovalStatus,
     CONFIG_FILE_LOCATION,
     CONFIG_PATH,
     BACKEND_URL,

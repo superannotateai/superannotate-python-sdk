@@ -53,7 +53,6 @@ if platform.system().lower() == "windows":
 BIG_FILE_THRESHOLD = 15 * 1024 * 1024
 ANNOTATION_CHUNK_SIZE_MB = 10 * 1024 * 1024
 URI_THRESHOLD = 4 * 1024 - 120
-nest_asyncio.apply()
 
 
 @dataclass
@@ -376,6 +375,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 len(items_to_upload), description="Uploading Annotations"
             )
             try:
+                nest_asyncio.apply()
                 asyncio.run(self.run_workers(items_to_upload))
             except Exception:
                 logger.debug(traceback.format_exc())
@@ -463,7 +463,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
         for item_path in annotation_paths:
             name_path_mappings[
-                UploadAnnotationsFromFolderUseCase.extract_name(Path(item_path).name)
+                UploadAnnotationsFromFolderUseCase.extract_name(Path(item_path))
             ] = item_path
         return name_path_mappings
 
@@ -560,12 +560,14 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             yield {k: data[k] for k in islice(it, size)}
 
     @staticmethod
-    def extract_name(value: str):
-        return os.path.basename(
-            value.replace(constants.PIXEL_ANNOTATION_POSTFIX, "")
-            .replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
-            .replace(constants.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
-        )
+    def extract_name(value: Path):
+        if constants.VECTOR_ANNOTATION_POSTFIX in value.name:
+            path = value.name.replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
+        elif constants.PIXEL_ANNOTATION_POSTFIX in value.name:
+            path = value.name.replace(constants.PIXEL_ANNOTATION_POSTFIX, "")
+        else:
+            path = value.stem
+        return path
 
     def get_existing_name_item_mapping(
         self, name_path_mappings: Dict[str, str]
@@ -718,6 +720,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             except KeyError:
                 missing_annotations.append(name)
         try:
+            nest_asyncio.apply()
             asyncio.run(self.run_workers(items_to_upload))
         except Exception:
             logger.debug(traceback.format_exc())
@@ -915,6 +918,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                 json.dump(annotation_json, annotation_file)
                 size = annotation_file.tell()
                 annotation_file.seek(0)
+                nest_asyncio.apply()
                 if size > BIG_FILE_THRESHOLD:
                     uploaded = asyncio.run(
                         self._service_provider.annotations.upload_big_annotation(
@@ -1107,6 +1111,7 @@ class GetAnnotations(BaseReportableUseCase):
             )
             small_annotations = [x["name"] for x in items["small"]]
             try:
+                nest_asyncio.apply()
                 annotations = asyncio.run(
                     self.run_workers(items["large"], small_annotations)
                 )
@@ -1353,14 +1358,6 @@ class DownloadAnnotations(BaseReportableUseCase):
     def get_items_count(path: str):
         return sum([len(files) for r, d, files in os.walk(path)])
 
-    @staticmethod
-    def coroutine_wrapper(coroutine):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        count = loop.run_until_complete(coroutine)
-        loop.close()
-        return count
-
     async def download_big_annotations(self, queue_idx, export_path):
         while True:
             cur_queue = self._big_file_queues[queue_idx]
@@ -1461,6 +1458,7 @@ class DownloadAnnotations(BaseReportableUseCase):
             if not folders:
                 folders.append(self._folder)
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                nest_asyncio.apply()
                 futures = []
                 for folder in folders:
                     if not self._item_names:

@@ -166,3 +166,10 @@ class CLITest(TestCase):
         self._create_project("Document")
         self.safe_run(self._cli.attach_document_urls, self.PROJECT_NAME, str(self.video_csv_path))
         self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
+
+    def test_create_server(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self._cli.create_server('test', temp_dir)
+            # self._cli.create_server('testo', '/Users/vaghinak.basentsyan/www/for_fun')
+            assert (Path(temp_dir) / 'test' / 'app.py').exists()
+            assert (Path(temp_dir) / 'test' / 'wsgi.py').exists()

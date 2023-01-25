@@ -23,6 +23,7 @@ from lib.app.interface.base_interface import TrackableMeta
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import AnnotatorRole
+from lib.app.interface.types import ApprovalStatuses
 from lib.app.interface.types import AttachmentArg
 from lib.app.interface.types import AttachmentDict
 from lib.app.interface.types import ClassType
@@ -129,7 +130,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param item_id: the id of the item
         :type item_id: int
 
-
         :return: item metadata
         :rtype: dict
         """
@@ -160,10 +160,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param email: filter by email
         :type email: str
+
         :param first_name: filter by first name
         :type first_name: str
+
         :param last_name: filter by last name
         :type last_name: str
+
         :param return_metadata: return metadata of contributors instead of names
         :type return_metadata: bool
 
@@ -252,7 +255,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_description: the new project's description
         :type project_description: str
 
-        :param project_type: the new project type, Vector or Pixel.
+        :param project_type: the new project type, Vector, Pixel, Video, Document, Tiled, PointCloud, Other.
         :type project_type: str
 
         :param settings: list of settings objects
@@ -2330,7 +2333,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                 ♦ “QualityCheck” \n
                                 ♦ “Returned” \n
                                 ♦ “Completed” \n
-                                ♦ “Skippe
+                                ♦ “Skip” \n
         :type annotation_status: str
 
         :param annotator_email: returns those items’ names that are assigned to the specified annotator.
@@ -2567,13 +2570,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., “project1/folder1”).
         :type project: str
 
-        :param annotation_status: annotation status to set, should be one of.
-                                    “NotStarted”
-                                    “InProgress”
-                                    “QualityCheck”
-                                    “Returned”
-                                    “Completed”
-                                    “Skipped”
+        :param annotation_status: annotation status to set, should be one of. \n
+                                    ♦ “NotStarted” \n
+                                    ♦ “InProgress” \n
+                                    ♦ “QualityCheck” \n
+                                    ♦ “Returned” \n
+                                    ♦ “Completed” \n
+                                    ♦ “Skipped” \n
         :type annotation_status: str
 
         :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.
@@ -3018,3 +3021,33 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
         return response.data
+
+    def set_approval_statuses(
+        self,
+        project: NotEmptyStr,
+        approval_status: Union[ApprovalStatuses, None],
+        items: Optional[List[NotEmptyStr]] = None,
+    ):
+        """Sets annotation statuses of items
+
+        :param project: project name or folder path (e.g., “project1/folder1”).
+        :type project: str
+
+        :param approval_status: approval status to set, should be one of. \n
+                                ♦ None \n
+                                ♦ “Approved” \n
+                                ♦ “Disapproved” \n
+        :type approval_status: str
+
+        :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.
+        :type items: list of strs
+        """
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.items.set_approval_statuses(
+            project=project,
+            folder=folder,
+            approval_status=approval_status,
+            item_names=items,
+        )
+        if response.errors:
+            raise AppException(response.errors)
