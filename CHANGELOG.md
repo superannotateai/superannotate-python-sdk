@@ -1,5 +1,10 @@
 # Changelog 
 All release highlights of this project will be documented in this file.
+## 4.4.9 - January 29, 2023
+### Added
+- `SAClient.set_approval_statuses` _method_ function to change the approval status of items (images, audio / videos) in bulk.
+### Updated
+- `SAClient.set_approval_statuses` _method_ updated from Pixel to Vector converter, added polygon holes handling.
 ## 4.4.8 - December 25, 2022
 ### Added
 - New project types `Tiled`, `PointCloud`, `Other`.
