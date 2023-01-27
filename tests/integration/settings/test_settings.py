@@ -156,7 +156,7 @@ class TestVideoSettings(BaseTestCase):
                 self.PROJECT_NAME,
                 self.PROJECT_DESCRIPTION,
                 self.PROJECT_TYPE,
-                [{"attribute": "FrameRate", "value": "1"}])
+                [{"attribute": "FrameRate", "value": "one"}])
 
     def test_frames_reset(self):
         sa.create_project(

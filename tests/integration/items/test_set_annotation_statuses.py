@@ -27,7 +27,7 @@ class TestSetAnnotationStatuses(BaseTestCase):
         },
         {
             "url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU",
-            "path": "123"
+            "name": "123"
         },
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",

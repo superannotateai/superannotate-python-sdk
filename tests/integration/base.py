@@ -9,7 +9,7 @@ sa = SAClient()
 class BaseTestCase(TestCase):
     PROJECT_NAME = ""
     PROJECT_DESCRIPTION = "Desc"
-    PROJECT_TYPE = "Type"
+    PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set"
 
     def __init__(self, *args, **kwargs):

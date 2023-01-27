@@ -73,7 +73,6 @@ class ProjectManager(BaseManager):
         include_complete_image_count: bool = False,
     ):
         use_case = usecases.GetProjectMetaDataUseCase(
-            reporter=Reporter(),
             project=project,
             service_provider=self.service_provider,
             include_annotation_classes=include_annotation_classes,
@@ -160,7 +159,6 @@ class ProjectManager(BaseManager):
     def add_contributors(self, project: ProjectEntity, team, emails: list, role: str):
         project = self.get_metadata(project).data
         use_case = usecases.AddContributorsToProject(
-            reporter=Reporter(),
             team=team,
             project=project,
             emails=emails,
@@ -233,7 +231,6 @@ class AnnotationClassManager(BaseManager):
 
     def create(self, project: ProjectEntity, annotation_class: AnnotationClassEntity):
         use_case = usecases.CreateAnnotationClassUseCase(
-            reporter=Reporter(),
             annotation_class=annotation_class,
             project=project,
             service_provider=self.service_provider,
@@ -244,7 +241,6 @@ class AnnotationClassManager(BaseManager):
         self, project: ProjectEntity, annotation_classes: List[AnnotationClassEntity]
     ):
         use_case = usecases.CreateAnnotationClassesUseCase(
-            reporter=Reporter(),
             service_provider=self.service_provider,
             annotation_classes=annotation_classes,
             project=project,
@@ -293,7 +289,6 @@ class AnnotationClassManager(BaseManager):
     def download(self, project: ProjectEntity, download_path: str):
         use_case = usecases.DownloadAnnotationClassesUseCase(
             project=project,
-            reporter=Reporter(),
             download_path=download_path,
             service_provider=self.service_provider,
         )
@@ -375,7 +370,7 @@ class ItemManager(BaseManager):
     def get_by_id(self, item_id: int, project: ProjectEntity):
         use_case = usecases.GetItemByIDUseCase(
             item_id=item_id,
-            project=project.data,
+            project=project,
             service_provider=self.service_provider,
         )
         return use_case.execute()
@@ -763,7 +758,6 @@ class IntegrationManager(BaseManager):
 class SubsetManager(BaseManager):
     def list(self, project: ProjectEntity):
         use_case = usecases.ListSubsetsUseCase(
-            reporter=Reporter(),
             project=project,
             service_provider=self.service_provider,
         )
@@ -1224,7 +1218,6 @@ class Controller(BaseController):
 
     def invite_contributors_to_team(self, emails: list, set_admin: bool):
         use_case = usecases.InviteContributorsToTeam(
-            reporter=self.get_default_reporter(),
             team=self.team,
             emails=emails,
             set_admin=set_admin,
