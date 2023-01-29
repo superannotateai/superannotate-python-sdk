@@ -1,9 +1,12 @@
 import os
+import shutil
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
+import lib as sa_lib
 import lib.core as constances
 from lib import __file__ as lib_path
 from lib.app.input_converters.conversion import import_annotation
@@ -255,3 +258,20 @@ class CLIFacade:
             image_quality_in_editor=None,
         )
         sys.exit(0)
+
+    def create_server(self, name: str, path: str = None):
+        """
+        This will create a directory by the given name in your current or provided directory.
+        """
+        path = Path(os.path.expanduser(path if path else ".")) / name
+        if path.exists():
+            raise Exception(f"Directory already exists {str(path.absolute())}")
+        path.mkdir(parents=True)
+        default_files_path = Path(sa_lib.__file__).parent / "app" / "server"
+        shutil.copy(default_files_path / "__app.py", path / "app.py")
+        shutil.copy(default_files_path / "__wsgi.py", path / "wsgi.py")
+        shutil.copy(default_files_path / "Dockerfile", path / "Dockerfile")
+        shutil.copy(default_files_path / "requirements.txt", path / "requirements.txt")
+        shutil.copy(default_files_path / "README.rst", path / "README.rst")
+        shutil.copy(default_files_path / "run.sh", path / "run.sh")
+        shutil.copytree(default_files_path / "deployment", path / "deployment")

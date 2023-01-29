@@ -30,5 +30,4 @@ class TestBaseUseCase(TestCase):
         validate_method.assert_called()
 
     def test_validate_should_fill_errors(self):
-        print(self.use_case.execute().errors)
         assert len(self.use_case.execute().errors) == 2

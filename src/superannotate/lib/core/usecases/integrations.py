@@ -17,7 +17,7 @@ class GetIntegrations(BaseReportableUseCase):
         self._service_provider = service_provider
 
     def execute(self) -> Response:
-        integrations = self._service_provider.integrations.list().data
+        integrations = self._service_provider.integrations.list().data.integrations
         integrations = list(sorted(integrations, key=lambda x: x.createdAt))
         integrations.reverse()
         self._response.data = integrations
@@ -49,7 +49,7 @@ class AttachIntegrations(BaseReportableUseCase):
     def execute(self) -> Response:
         integrations: List[
             IntegrationEntity
-        ] = self._service_provider.integrations.list().data
+        ] = self._service_provider.integrations.list().data.integrations
         integration_name_lower = self._integration.name.lower()
         integration = next(
             (i for i in integrations if i.name.lower() == integration_name_lower), None

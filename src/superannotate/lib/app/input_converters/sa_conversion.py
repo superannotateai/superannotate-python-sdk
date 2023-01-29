@@ -1,3 +1,4 @@
+import itertools
 import json
 import shutil
 
@@ -20,65 +21,63 @@ def copy_file(src_path, dst_path):
 
 def from_pixel_to_vector(json_paths, output_dir):
     img_names = []
+
     for json_path in json_paths:
         file_name = str(json_path.name).replace("___pixel.json", "___objects.json")
 
         mask_name = str(json_path).replace("___pixel.json", "___save.png")
         img = cv2.imread(mask_name)
         H, W, _ = img.shape
-
         sa_json = json.load(open(json_path))
         instances = sa_json["instances"]
-        idx = 0
+        new_instances = []
+        global_idx = itertools.count()
         sa_instances = []
+
         for instance in instances:
             if "parts" not in instance.keys():
                 if "type" in instance.keys() and instance["type"] == "meta":
                     sa_instances.append(instance)
                 continue
-
             parts = instance["parts"]
+            if len(parts) > 1:
+                group_id = next(global_idx)
+            else:
+                group_id = 0
+            from collections import defaultdict
 
-            polygons = []
             for part in parts:
                 color = list(hex_to_rgb(part["color"]))
                 mask = np.zeros((H, W), dtype=np.uint8)
                 mask[np.all((img == color[::-1]), axis=2)] = 255
-                contours, _ = cv2.findContours(
-                    mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+
+                #  child contour index hierarchy[0][[i][3]
+                contours, hierarchy = cv2.findContours(
+                    mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
                 )
-                part_polygons = []
-                for contour in contours:
-                    segment = contour.flatten().tolist()
-                    if len(segment) > 6:
-                        part_polygons.append(segment)
-                polygons.append(part_polygons)
+                parent_child_map = defaultdict(list)
+                for idx, _hierarchy in enumerate(hierarchy[0]):
 
-            for part_polygons in polygons:
-                if len(part_polygons) > 1:
-                    idx += 1
-                    group_id = idx
-                else:
-                    group_id = 0
+                    if len(contours[idx].flatten().tolist()) <= 6:
+                        continue
+                    if _hierarchy[3] < 0:
+                        parent_child_map[idx] = []
+                    else:
+                        parent_child_map[_hierarchy[3]].append(idx)
 
-                for polygon in part_polygons:
+                for outer, inners in parent_child_map.items():
+                    outer_points = contours[outer].flatten().tolist()
+                    exclude_points = [contours[i].flatten().tolist() for i in inners]
                     temp = instance.copy()
                     del temp["parts"]
                     temp["pointLabels"] = {}
                     temp["groupId"] = group_id
                     temp["type"] = "polygon"
-                    temp["points"] = polygon
-                    sa_instances.append(temp.copy())
-                    temp["type"] = "bbox"
-                    temp["points"] = {
-                        "x1": min(polygon[::2]),
-                        "x2": max(polygon[::2]),
-                        "y1": min(polygon[1::2]),
-                        "y2": max(polygon[1::2]),
-                    }
-                    sa_instances.append(temp.copy())
+                    temp["points"] = outer_points
+                    temp["exclude"] = exclude_points
+                    new_instances.append(temp)
 
-        sa_json["instances"] = sa_instances
+        sa_json["instances"] = new_instances
         write_to_json(output_dir / file_name, sa_json)
         img_names.append(file_name.replace("___objects.json", ""))
     return img_names

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* Add CSS styles here */
+        .d-flex {
+            display: flex;
+        }
+
+        .space-between {
+            justify-content: space-between;
+        }
+
+        .align-items-center {
+            align-items: center;
+        }
+
+
+        .request-item {
+            background: #e2e3e5;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .active-request-item {
+            background: #d1e7dd;
+        }
+
+        .headers-wrapper {
+            background: #e2e3e5;
+            border-radius: 4px;
+        }
+
+        .page-wrapper {
+            height: 100vh;
+        }
+
+        .content-wrapper {
+            height: 100%;
+        }
+
+        .left-content {
+            height: 100%;
+            overflow: auto;
+            position: relative;
+        }
+
+        .request-list-header {
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .right-content {
+            height: 100%;
+            overflow: auto;
+            position: relative;
+        }
+
+        #selected-request {
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+<div class="container py-4 page-wrapper">
+    <div class="row content-wrapper">
+        <div class="col-6 left-content" id="left-content">
+            <div class="d-flex space-between align-items-center mb-3 request-list-header pb-1">
+                <h5>All Requests</h5>
+            </div>
+            <div class="container" id="request-list-wrapper">
+
+            </div>
+        </div>
+        <div class="col-6 right-content" id="right-content">
+            <h5 id="selected-request" class="py-2"></h5>
+            <div>
+                <h5 class="mb-2">Request</h5>
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="request-headers-tab" data-bs-toggle="tab"
+                                data-bs-target="#request-headers-tab-pane" type="button" role="tab"
+                                aria-controls="request-headers-tab-pane" aria-selected="true">Headers
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="request-body-tab" data-bs-toggle="tab"
+                                data-bs-target="#request-body-tab-pane" type="button" role="tab"
+                                aria-controls="request-body-tab-pane" aria-selected="false">Body
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="request-headers-tab-pane" role="tabpanel"
+                         aria-labelledby="request-headers-tab" tabindex="0">
+                        <div class="headers-wrapper p-3 mt-3" id="request-header"></div>
+                    </div>
+                    <div class="tab-pane fade" id="request-body-tab-pane" role="tabpanel"
+                         aria-labelledby="request-body-tab"
+                         tabindex="0">
+                        <div class="headers-wrapper p-3 mt-3" id="request-body"></div>
+                    </div>
+                </div>
+                <h5 class="mb-2 mt-2">Response</h5>
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="response-headers-tab" data-bs-toggle="tab"
+                                data-bs-target="#response-headers-tab-pane" type="button" role="tab"
+                                aria-controls="response-headers-tab-pane" aria-selected="true">Headers
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="response-body-tab" data-bs-toggle="tab"
+                                data-bs-target="#response-body-tab-pane" type="button" role="tab"
+                                aria-controls="response-body-tab-pane" aria-selected="false">Body
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="response-headers-tab-pane" role="tabpanel"
+                         aria-labelledby="response-headers-tab" tabindex="0">
+                        <div class="headers-wrapper p-3 mt-3" id="response-header"></div>
+                    </div>
+                    <div class="tab-pane fade" id="response-body-tab-pane" role="tabpanel"
+                         aria-labelledby="response-body-tab"
+                         tabindex="0">
+                        <div class="headers-wrapper p-3 mt-3" id="response-body"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let offset = 0;
+    const limit =20;
+    const path = `${window.location.origin}/logs`;
+    $.ajax({
+        url: `${path}?limit=${limit}`,
+        dataType: "text",
+        success: (data) => renderLogs(data)
+    });
+
+    $('#left-content').scroll(function () {
+            if (this.scrollTop === (this.scrollHeight - this.offsetHeight) && offset) {
+                $.ajax({
+                    url: `${path}?limit=${limit}&offset=${offset}`,
+                    dataType: "text",
+                    success: (data) => renderLogs(data)
+                });
+
+            }
+        }
+    );
+
+    function renderLogs(data) {
+        let jsondata = $.parseJSON(data);
+        if (!jsondata.data.length) {
+            offset = null;
+            return;
+        }
+
+        $.each(jsondata.data, function (index, item) {
+            const requestItem = jQuery(`<div class="row p-2 mb-2 request-item">
+                    <div class="col-3">${item.request.method}</div>
+                    <div class="col-7">${item.request.path}</div>
+                    <div class="col-1">${item.response.status_code}</div>
+                </div>`)
+            requestItem.click(function () {
+                $(this).siblings('div.request-item').removeClass('active-request-item');
+                $(this).addClass('active-request-item');
+                $('#selected-request').empty().append(`${item.request.method} ${item.request.path}`);
+                $('#request-header').empty().append(`<pre>${JSON.stringify(item.request.headers, null, 4)}</pre>`);
+                $('#response-header').empty().append(`<pre>${JSON.stringify(item.response.headers, null, 4)}</pre>`);
+                $('#request-body').empty().append(`<pre>${JSON.stringify(item.request.data, null, 4)}</pre>`);
+                $('#response-body').empty().append(`<pre>${JSON.stringify(item.response.data, null, 4)}</pre>`);
+                $("#right-content").animate({scrollTop: 0}, "fast");
+            })
+
+
+            $('#request-list-wrapper').append(requestItem);
+            if (index === 0 && offset === 0) {
+                requestItem.click();
+            }
+
+            offset = jsondata.offset
+        });
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
