@@ -15,8 +15,8 @@
    :name: mastertoc
    :maxdepth: 1
 
-   tutorial.sdk.rst
-   superannotate.sdk.rst
+   User guide <userguide/index>
+   API Reference <api_reference/index>
    server.rst
    cli.rst
    LICENSE.rst

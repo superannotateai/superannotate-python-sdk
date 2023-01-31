@@ -6,4 +6,8 @@ pytest-xdist==2.3.0
 pytest-parallel==0.1.0
 pytest-rerunfailures==10.2
 sphinx_rtd_theme==1.0.0
+sphinx_inline_tabs==2022.1.2b11
+jaraco.tidelift==1.5.0
+sphinx-notfound-page==0.8.3
+furo==2022.12.7
 pytest-cov
