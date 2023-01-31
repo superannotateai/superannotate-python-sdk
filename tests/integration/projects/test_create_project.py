@@ -46,7 +46,7 @@ class TestSearchProjectVector(BaseTestCase):
 
     def test_create_project_wrong_type(self):
         with self.assertRaisesRegexp(AppException,
-                                     "Please provide a valid project type: Vector, Pixel, Video, Document, Tiled, Other, PointCloud."):
+                                     "Available values are 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'Other', 'PointCloud'."):
             sa.create_project(self.PROJECT_1, "desc", "wrong_type")
 
     def test_create_project_with_settings(self):
@@ -76,7 +76,7 @@ class TestSearchProjectVideo(BaseTestCase):
     def test_create_project_with_settings(self):
         sa.create_project(
             self.PROJECT_1, "desc", self.PROJECT_TYPE,
-            [{"attribute": "FrameRate", "value": 1}]
+            [{"attribute": "FrameRate", "value": 1.0}]
         )
         project = sa.get_project_metadata(self.PROJECT_1, include_settings=True)
         for setting in project["settings"]:

@@ -47,6 +47,9 @@ class AttachmentEntity(BaseModel):
     class Config:
         extra = Extra.ignore
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 class WorkflowEntity(BaseModel):
     id: Optional[int]

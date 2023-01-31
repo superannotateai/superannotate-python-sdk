@@ -12,7 +12,7 @@ sa = SAClient()
 class TestSetApprovalStatuses(BaseTestCase):
     PROJECT_NAME = "TestSetApprovalStatuses"
     PROJECT_DESCRIPTION = "TestSetApprovalStatuses"
-    PROJECT_TYPE = "Document"
+    PROJECT_TYPE = "Vector"
     FOLDER_NAME = "test_folder"
     CSV_PATH = "data_set/attach_urls.csv"
     EXAMPLE_IMAGE_1 = "6022a74d5384c50017c366b3"
@@ -28,7 +28,7 @@ class TestSetApprovalStatuses(BaseTestCase):
         },
         {
             "url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU",
-            "path": "123"
+            "name": "123"
         },
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
@@ -68,7 +68,7 @@ class TestSetApprovalStatuses(BaseTestCase):
         sa.attach_items(
             self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress"
         )
-        with self.assertRaisesRegexp(AppException, SetApprovalStatues.ERROR_MESSAGE):
+        with self.assertRaisesRegexp(AppException, "No items found."):
             sa.set_approval_statuses(
                 self.PROJECT_NAME, "Approved", ["self.EXAMPLE_IMAGE_1", "self.EXAMPLE_IMAGE_2"]
             )
@@ -87,7 +87,7 @@ class TestSetApprovalStatuses(BaseTestCase):
         sa.attach_items(
             self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]]
         )
-        with self.assertRaisesRegexp(AppException, 'Available approval_status options are None, Disapproved, Approved.'):
+        with self.assertRaisesRegexp(AppException, "Available values are 'Approved', 'Disapproved'."):
             sa.set_approval_statuses(
                 self.PROJECT_NAME, approval_status="aaa", items=[self.ATTACHMENT_LIST[0]["name"]]
             )

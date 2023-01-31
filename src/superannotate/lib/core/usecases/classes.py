@@ -7,10 +7,12 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
-from lib.core.reporter import Reporter
+from lib.core.reporter import Spinner
 from lib.core.serviceproviders import BaseServiceProvider
-from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
+from superannotate.logger import get_default_logger
+
+logger = get_default_logger()
 
 
 class GetAnnotationClassesUseCase(BaseUseCase):
@@ -32,15 +34,14 @@ class GetAnnotationClassesUseCase(BaseUseCase):
         return self._response
 
 
-class CreateAnnotationClassUseCase(BaseReportableUseCase):
+class CreateAnnotationClassUseCase(BaseUseCase):
     def __init__(
         self,
-        reporter: Reporter,
         service_provider: BaseServiceProvider,
         annotation_class: AnnotationClassEntity,
         project: ProjectEntity,
     ):
-        super().__init__(reporter)
+        super().__init__()
         self._service_provider = service_provider
         self._annotation_class = annotation_class
         self._project = project
@@ -63,7 +64,7 @@ class CreateAnnotationClassUseCase(BaseReportableUseCase):
             and self._annotation_class.type == "tag"
         ):
             raise AppException(
-                f"Predefined tagging functionality is not supported for projects"
+                "Predefined tagging functionality is not supported for projects"
                 f" of type {ProjectType.get_name(self._project.type)}."
             )
 
@@ -90,21 +91,20 @@ class CreateAnnotationClassUseCase(BaseReportableUseCase):
                         response.error.replace(". ", ".\n")
                     )
             else:
-                self.reporter.log_error("This class name already exists. Skipping.")
+                logger.error("This class name already exists. Skipping.")
         return self._response
 
 
-class CreateAnnotationClassesUseCase(BaseReportableUseCase):
+class CreateAnnotationClassesUseCase(BaseUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
         self,
-        reporter: Reporter,
         service_provider: BaseServiceProvider,
         annotation_classes: List[AnnotationClassEntity],
         project: ProjectEntity,
     ):
-        super().__init__(reporter)
+        super().__init__()
         self._project = project
         self._service_provider = service_provider
         self._annotation_classes = annotation_classes
@@ -145,12 +145,12 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
                 unique_annotation_classes
             )
             if not_unique_classes_count:
-                self.reporter.log_warning(
+                logger.warning(
                     f"{not_unique_classes_count} annotation classes already exist.Skipping."
                 )
             created = []
             chunk_failed = False
-            with self.reporter.spinner:
+            with Spinner():
                 # this is in reverse order because of the front-end
                 for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
                     response = (
@@ -166,7 +166,7 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
                     else:
                         chunk_failed = True
             if created:
-                self.reporter.log_info(
+                logger.info(
                     f"{len(created)} annotation classes were successfully created in {self._project.name}."
                 )
             if chunk_failed:
@@ -177,21 +177,20 @@ class CreateAnnotationClassesUseCase(BaseReportableUseCase):
         return self._response
 
 
-class DownloadAnnotationClassesUseCase(BaseReportableUseCase):
+class DownloadAnnotationClassesUseCase(BaseUseCase):
     def __init__(
         self,
-        reporter: Reporter,
         download_path: str,
         project: ProjectEntity,
         service_provider: BaseServiceProvider,
     ):
-        super().__init__(reporter)
+        super().__init__()
         self._download_path = download_path
         self._project = project
         self._service_provider = service_provider
 
     def execute(self):
-        self.reporter.log_info(
+        logger.info(
             f"Downloading classes.json from project {self._project.name} to folder {str(self._download_path)}."
         )
         response = self._service_provider.annotation_classes.list(

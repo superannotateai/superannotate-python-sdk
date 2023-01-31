@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from src.superannotate import AppException
 from src.superannotate import SAClient
-from src.superannotate.lib.core import UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE
 from src.superannotate.lib.core import UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE
+from src.superannotate.lib.core import UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE
 from src.superannotate.lib.core import UPLOAD_USER_LIMIT_ERROR_MESSAGE
 from tests.integration.base import BaseTestCase
 from tests.moks.limitatoins import folder_limit_response

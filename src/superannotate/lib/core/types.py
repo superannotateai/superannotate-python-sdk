@@ -25,7 +25,7 @@ class MLModel(BaseModel):
         extra = Extra.allow
 
 
-class PriorityScore(BaseModel):
+class PriorityScoreEntity(BaseModel):
     name: NotEmptyStr
     priority: float
 
