@@ -2,7 +2,7 @@ import os
 import sys
 import typing
 
-__version__ = "4.4.10dev1"
+__version__ = "4.4.10dev3"
 
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
@@ -67,7 +67,7 @@ def log_version_info():
         releases = req.json().get("releases", [])
         pip_version = parse("0")
         for release in releases:
-            verd = parse(release)
+            ver = parse(release)
             if not ver.is_prerelease or local_version.is_prerelease:
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:
