@@ -67,7 +67,7 @@ def log_version_info():
         releases = req.json().get("releases", [])
         pip_version = parse("0")
         for release in releases:
-            ver = parse(release)
+            verd = parse(release)
             if not ver.is_prerelease or local_version.is_prerelease:
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:

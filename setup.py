@@ -34,7 +34,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     package_data={
-        "superannotate.lib.app.server": ['*.txt', '*.sh',  '*.html', 'Dockerfile'],
+        "superannotate.lib.app.server": ['*.txt', '*.sh',  '*.rst', 'Dockerfile'],
         "superannotate.lib.app.server.templates": ['*.html'],
         "superannotate.lib.app.server.deployment": ['*.ini', '*.sh'],
     },

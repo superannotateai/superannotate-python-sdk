@@ -12,7 +12,7 @@ sa = SAClient()
 class TestSetApprovalStatuses(BaseTestCase):
     PROJECT_NAME = "TestSetApprovalStatuses"
     PROJECT_DESCRIPTION = "TestSetApprovalStatuses"
-    PROJECT_TYPE = "Document"
+    PROJECT_TYPE = "Vector"
     FOLDER_NAME = "test_folder"
     CSV_PATH = "data_set/attach_urls.csv"
     EXAMPLE_IMAGE_1 = "6022a74d5384c50017c366b3"
@@ -68,7 +68,7 @@ class TestSetApprovalStatuses(BaseTestCase):
         sa.attach_items(
             self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress"
         )
-        with self.assertRaisesRegexp(AppException, SetApprovalStatues.ERROR_MESSAGE):
+        with self.assertRaisesRegexp(AppException, "No items found."):
             sa.set_approval_statuses(
                 self.PROJECT_NAME, "Approved", ["self.EXAMPLE_IMAGE_1", "self.EXAMPLE_IMAGE_2"]
             )
@@ -91,4 +91,3 @@ class TestSetApprovalStatuses(BaseTestCase):
             sa.set_approval_statuses(
                 self.PROJECT_NAME, approval_status="aaa", items=[self.ATTACHMENT_LIST[0]["name"]]
             )
-
