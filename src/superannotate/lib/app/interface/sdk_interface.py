@@ -708,10 +708,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         item = response.data
         item.is_pinned = int(pin)
-        self.controller.items.update(
-            project=project,
-            item=item
-        )
+        self.controller.items.update(project=project, item=item)
 
     def delete_items(self, project: str, items: Optional[List[str]] = None):
         """Delete items in a given project.

@@ -13,10 +13,15 @@ from superannotate.lib.core.enums import UploadState
 from superannotate.lib.core.enums import UserRole
 
 CONFIG = Config()
+HOME_PATH = expanduser("~/.superannotate")
 
-CONFIG_PATH = "~/.superannotate/config.json"
-CONFIG_FILE_LOCATION = expanduser(CONFIG_PATH)
-LOG_FILE_LOCATION = expanduser("~/.superannotate")
+CONFIG_JSON_PATH = f"{HOME_PATH}/config.json"
+CONFIG_INI_PATH = f"{HOME_PATH}/config.ini"
+CONFIG_JSON_FILE_LOCATION = CONFIG_JSON_PATH
+CONFIG_INI_FILE_LOCATION = CONFIG_INI_PATH
+
+LOG_FILE_LOCATION = f"{HOME_PATH}/logs"
+
 BACKEND_URL = "https://api.superannotate.com"
 
 DEFAULT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
@@ -123,8 +128,8 @@ __alL__ = (
     ImageQuality,
     AnnotationStatus,
     ApprovalStatus,
-    CONFIG_FILE_LOCATION,
-    CONFIG_PATH,
+    CONFIG_JSON_FILE_LOCATION,
+    CONFIG_INI_FILE_LOCATION,
     BACKEND_URL,
     DEFAULT_IMAGE_EXTENSIONS,
     DEFAULT_FILE_EXCLUDE_PATTERNS,

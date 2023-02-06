@@ -8,11 +8,7 @@ from typing import Optional
 
 import lib as sa_lib
 import lib.core as constances
-from lib import __file__ as lib_path
 from lib.app.input_converters.conversion import import_annotation
-from lib.app.interface.sdk_interface import SAClient
-from lib.core.entities import ConfigEntity
-from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.utils import split_project_path
 
 
@@ -27,11 +23,9 @@ class CLIFacade:
         """
         To show the version of the current SDK installation
         """
-        with open(
-            f"{os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(lib_path))))}/version.py"
-        ) as f:
-            version = f.read().rstrip()[15:-1]
-            print(version)
+        from superannotate import __version__
+
+        print(__version__)
         sys.exit(0)
 
     @staticmethod
@@ -39,22 +33,32 @@ class CLIFacade:
         """
         To initialize CLI (and SDK) with team token
         """
-        repo = ConfigRepository()
-        config = repo.get_one(uuid=constances.TOKEN_UUID)
-        if config:
+        from configparser import ConfigParser
+
+        if Path(constances.CONFIG_INI_FILE_LOCATION).exists():
+            operation = "updated"
             if not input(
-                f"File {repo.config_path} exists. Do you want to overwrite? [y/n] : "
+                f"File {constances.CONFIG_INI_FILE_LOCATION} exists. Do you want to overwrite? [y/n] : "
             ).lower() in ("y", "yes"):
                 return
+        else:
+            operation = "created"
+
         token = input(
             "Input the team SDK token from https://app.superannotate.com/team : "
         )
-        config_entity = ConfigEntity(uuid=constances.TOKEN_UUID, value=token)
-        repo.insert(config_entity)
-        if config:
-            print("Configuration file successfully updated.")
-        else:
-            print("Configuration file successfully created.")
+        config_parser = ConfigParser()
+        config_parser.optionxform = str
+
+        config_parser["DEFAULT"] = {
+            "API_TOKEN": token,
+            "API_URL": constances.BACKEND_URL,
+            "LOGGING_LEVEL": "INFO",
+            "LOGGING_PATH": constances.LOG_FILE_LOCATION,
+        }
+        with open(constances.CONFIG_INI_FILE_LOCATION, "w") as configfile:
+            config_parser.write(configfile)
+        print(f"Configuration file successfully {operation}.")
         sys.exit(0)
 
     def create_project(self, name: str, description: str, type: str):
