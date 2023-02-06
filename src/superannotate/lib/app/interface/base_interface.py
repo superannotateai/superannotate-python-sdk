@@ -52,8 +52,8 @@ class BaseInterfaceFacade:
                         constants.CONFIG_INI_FILE_LOCATION
                     )
                 elif Path(constants.CONFIG_JSON_FILE_LOCATION).exists():
-                    config = self._retrieve_configs_from_ini(
-                        constants.CONFIG_INI_FILE_LOCATION
+                    config = self._retrieve_configs_from_json(
+                        constants.CONFIG_JSON_FILE_LOCATION
                     )
                 else:
                     raise AppException(
