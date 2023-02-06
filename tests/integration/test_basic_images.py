@@ -5,10 +5,11 @@ from pathlib import Path
 
 import pytest
 
+from src.superannotate import AppException
 from src.superannotate import SAClient
+from tests.integration.base import BaseTestCase
 
 sa = SAClient()
-from tests.integration.base import BaseTestCase
 
 
 class TestVectorAnnotationsWithTag(BaseTestCase):
@@ -44,7 +45,17 @@ class TestVectorAnnotationsWithTag(BaseTestCase):
         self.assertEqual(annotations['instances'][0]['attributes'][0]['groupName'], 'g1')
         sa.pin_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, pin=True)
         metadata = sa.get_item_metadata(self.PROJECT_NAME, item_name=self.EXAMPLE_IMAGE_1)
-        assert metadata['is_pinned'] == True
+        assert metadata['is_pinned'] is True
+
+
+class TestPinImage(BaseTestCase):
+    PROJECT_NAME = "TestPinImage"
+    PROJECT_TYPE = "Vector"
+    PROJECT_DESCRIPTION = "TestPinImage"
+
+    def test_pin_image_negative_name(self):
+        with self.assertRaisesRegexp(AppException, "Item not found."):
+            sa.pin_image(self.PROJECT_NAME, 'NEW NAME')
 
 
 class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):

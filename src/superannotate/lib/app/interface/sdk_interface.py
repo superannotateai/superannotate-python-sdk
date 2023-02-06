@@ -703,11 +703,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type pin: bool
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        item = self.controller.items.get_by_name(project, folder, image_name).data
+        response = self.controller.items.get_by_name(project, folder, image_name)
+        if response.errors:
+            raise AppException(response.errors)
+        item = response.data
         item.is_pinned = int(pin)
         self.controller.items.update(
             project=project,
-            item=item,
+            item=item
         )
 
     def delete_items(self, project: str, items: Optional[List[str]] = None):
