@@ -295,7 +295,7 @@ class ConfigEntity(BaseModel):
     API_TOKEN: str
     API_URL: str = BACKEND_URL
     LOGGING_LEVEL: str = "INFO"
-    LOGGING_PATH: str = f"{LOG_FILE_LOCATION}/sa.log"
+    LOGGING_PATH: str = f"{LOG_FILE_LOCATION}"
     VERIFY_SSL: bool = True
     ANNOTATION_CHUNK_SIZE = 5000
     ITEM_CHUNK_SIZE = 2000

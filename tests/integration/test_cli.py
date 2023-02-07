@@ -1,20 +1,24 @@
 import os
 import tempfile
+from configparser import ConfigParser
 from os.path import dirname
 from pathlib import Path
+from unittest.mock import patch
 from unittest import TestCase
 
 import pkg_resources
 
 from src.superannotate import SAClient
+import src.superannotate.lib.core as constants
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 
-sa = SAClient()
 
 try:
     CLI_VERSION = pkg_resources.get_distribution("superannotate").version
 except Exception:
     CLI_VERSION = None
+
+sa = SAClient()
 
 
 class CLITest(TestCase):
@@ -173,3 +177,18 @@ class CLITest(TestCase):
             # self._cli.create_server('testo', '/Users/vaghinak.basentsyan/www/for_fun')
             assert (Path(temp_dir) / 'test' / 'app.py').exists()
             assert (Path(temp_dir) / 'test' / 'wsgi.py').exists()
+
+    def test_init(self):
+        _token = "asd=123"
+        with tempfile.TemporaryDirectory() as config_dir:
+            constants.HOME_PATH = config_dir
+            config_ini_path = f"{config_dir}/config.ini"
+            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
+                self.safe_run(self._cli.init, _token)
+            config = ConfigParser()
+            config.read(config_ini_path)
+            assert config['DEFAULT']['API_TOKEN'] == _token
+            assert config['DEFAULT']['API_URL'] == constants.BACKEND_URL
+            assert config['DEFAULT']['LOGGING_LEVEL'] == "INFO"
+            assert config['DEFAULT']['LOGGING_PATH'] == f"{constants.LOG_FILE_LOCATION}"
+

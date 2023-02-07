@@ -26,7 +26,6 @@ class BaseInterfaceFacade:
     REGISTRY = []
 
     def __init__(self, token: str = None, config_path: str = None):
-        config = None
         if token:
             config = ConfigEntity(API_TOKEN=token)
         elif config_path:
@@ -38,7 +37,7 @@ class BaseInterfaceFacade:
             try:
                 if config_path.suffix == ".json":
                     config = self._retrieve_configs_from_json(config_path)
-                elif config_path == ".ini":
+                else:
                     config = self._retrieve_configs_from_ini(config_path)
             except pydantic.ValidationError as e:
                 raise AppException(wrap_error(e))

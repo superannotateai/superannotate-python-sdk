@@ -9,6 +9,7 @@ from typing import Optional
 import lib as sa_lib
 import lib.core as constances
 from lib.app.input_converters.conversion import import_annotation
+from lib.app.interface.sdk_interface import SAClient
 from lib.infrastructure.utils import split_project_path
 
 
@@ -29,9 +30,14 @@ class CLIFacade:
         sys.exit(0)
 
     @staticmethod
-    def init():
+    def init(token: str):
         """
         To initialize CLI (and SDK) with team token
+        Input the team SDK token from https://app.superannotate.com/team
+
+        :param token: the team token
+        :type token: str
+
         """
         from configparser import ConfigParser
 
@@ -44,9 +50,6 @@ class CLIFacade:
         else:
             operation = "created"
 
-        token = input(
-            "Input the team SDK token from https://app.superannotate.com/team : "
-        )
         config_parser = ConfigParser()
         config_parser.optionxform = str
 

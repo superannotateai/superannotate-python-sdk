@@ -897,7 +897,9 @@ class GetTeamUseCase(BaseUseCase):
                 raise AppException(response.error)
             self._response.data = response.data
         except Exception:
-            raise AppException("Can't get team data.") from None
+            raise AppException(
+                "Unable to retrieve team data. Please verify your credentials."
+            ) from None
         return self._response
 
 
