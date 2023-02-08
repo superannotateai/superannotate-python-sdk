@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAttachItemsVector(BaseTestCase):
@@ -17,19 +18,16 @@ class TestAttachItemsVector(BaseTestCase):
     ATTACHMENT_LIST = [
         {
             "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-            "name": "6022a74d5384c50017c366b3"
+            "name": "6022a74d5384c50017c366b3",
         },
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad"
+            "name": "6022a74b5384c50017c366ad",
         },
-        {
-            "url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU",
-            "path": "123"
-        },
+        {"url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU", "path": "123"},
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad"
+            "name": "6022a74b5384c50017c366ad",
         },
     ]
 
@@ -51,22 +49,25 @@ class TestAttachItemsVector(BaseTestCase):
     def test_attached_items_list_of_dict(self):
         uploaded, _, _ = sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST)
         assert len(uploaded) == 3
-        uploaded, _, duplicated = sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST)
+        uploaded, _, duplicated = sa.attach_items(
+            self.PROJECT_NAME, self.ATTACHMENT_LIST
+        )
         assert len(uploaded) == 1
         assert len(duplicated) == 2
 
     def test_attach_items_to_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
-        uploaded, _, _ = sa.attach_items(f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.ATTACHMENT_LIST)
+        uploaded, _, _ = sa.attach_items(
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.ATTACHMENT_LIST
+        )
         assert len(uploaded) == 3
-        uploaded, _, duplicated = sa.attach_items(f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.ATTACHMENT_LIST)
+        uploaded, _, duplicated = sa.attach_items(
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.ATTACHMENT_LIST
+        )
         assert len(uploaded) == 1
         assert len(duplicated) == 2
 
     def test_limitation(self):
         self.assertRaises(
-            Exception,
-            sa.attach_items,
-            self.PROJECT_NAME,
-            self.scv_path_50k
+            Exception, sa.attach_items, self.PROJECT_NAME, self.scv_path_50k
         )

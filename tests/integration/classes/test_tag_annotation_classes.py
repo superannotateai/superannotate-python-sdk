@@ -1,8 +1,9 @@
 import tempfile
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestTagClasses(BaseTestCase):
@@ -15,10 +16,9 @@ class TestTagClasses(BaseTestCase):
     def test_class_creation_type(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"
-            with open(temp_path,
-                      "w") as new_classes:
+            with open(temp_path, "w") as new_classes:
                 new_classes.write(
-                    '''
+                    """
                     [
                        {
                           "id":56820,
@@ -108,7 +108,7 @@ class TestTagClasses(BaseTestCase):
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "attribute_groups":[
-    
+
                           ]
                        },
                        {
@@ -120,7 +120,7 @@ class TestTagClasses(BaseTestCase):
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "attribute_groups":[
-    
+
                           ]
                        },
                        {
@@ -132,15 +132,15 @@ class TestTagClasses(BaseTestCase):
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "attribute_groups":[
-    
+
                           ]
                        }
                     ]
-    
-                    '''
+
+                    """
                 )
 
             created = sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, temp_path
             )
-            self.assertEqual(set([i["type"] for i in created]), {"tag", "object"})
+            self.assertEqual({i["type"] for i in created}, {"tag", "object"})

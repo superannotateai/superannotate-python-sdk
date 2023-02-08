@@ -3,8 +3,9 @@ import tempfile
 from os.path import dirname
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestExportImport(BaseTestCase):
@@ -26,7 +27,9 @@ class TestExportImport(BaseTestCase):
 
     def test_export_import(self):
         sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress",
+            self.PROJECT_NAME,
+            self.folder_path,
+            annotation_status="InProgress",
         )
 
         with tempfile.TemporaryDirectory() as tmpdir_name:

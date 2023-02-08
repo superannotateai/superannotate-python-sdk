@@ -37,22 +37,26 @@ class TestSearchProjectVector(BaseTestCase):
 
     def test_project_metadata(self):
         project = sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE)
-        pr = sa.get_project_metadata(project['name'])
-        assert 'Z' not in pr["createdAt"]
+        pr = sa.get_project_metadata(project["name"])
+        assert "Z" not in pr["createdAt"]
 
     def test_create_project_without_settings(self):
         project = sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE)
         assert project["name"] == self.PROJECT_1
 
     def test_create_project_wrong_type(self):
-        with self.assertRaisesRegexp(AppException,
-                                     "Available values are 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'Other', 'PointCloud'."):
+        with self.assertRaisesRegexp(
+            AppException,
+            "Available values are 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'Other', 'PointCloud'.",
+        ):
             sa.create_project(self.PROJECT_1, "desc", "wrong_type")
 
     def test_create_project_with_settings(self):
         sa.create_project(
-            self.PROJECT_1, "desc", self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}]
+            self.PROJECT_1,
+            "desc",
+            self.PROJECT_TYPE,
+            [{"attribute": "ImageQuality", "value": "original"}],
         )
         project = sa.get_project_metadata(self.PROJECT_1, include_settings=True)
         for setting in project["settings"]:
@@ -75,8 +79,10 @@ class TestSearchProjectVideo(BaseTestCase):
 
     def test_create_project_with_settings(self):
         sa.create_project(
-            self.PROJECT_1, "desc", self.PROJECT_TYPE,
-            [{"attribute": "FrameRate", "value": 1.0}]
+            self.PROJECT_1,
+            "desc",
+            self.PROJECT_TYPE,
+            [{"attribute": "FrameRate", "value": 1.0}],
         )
         project = sa.get_project_metadata(self.PROJECT_1, include_settings=True)
         for setting in project["settings"]:

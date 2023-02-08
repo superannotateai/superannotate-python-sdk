@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 from abc import ABCMeta
 from pathlib import Path
@@ -14,6 +15,7 @@ from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
+from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
@@ -30,7 +32,6 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import extract_project_folder
-from superannotate.logger import get_default_logger
 
 
 def build_condition(**kwargs) -> Condition:
@@ -780,11 +781,11 @@ class SubsetManager(BaseManager):
 class BaseController(metaclass=ABCMeta):
     SESSIONS = {}
 
-    def __init__(self, token: str, host: str, ssl_verify: bool, version: str):
-        self._version = version
-        self._logger = get_default_logger()
+    def __init__(self, config: ConfigEntity):
+        self._config = config
+        self._logger = logging.getLogger("sa")
         self._testing = os.getenv("SA_TESTING", "False").lower() in ("true", "1", "t")
-        self._token = token
+        self._token = config.API_TOKEN
         self._team_data = None
         self._s3_upload_auth_data = None
         self._projects = None
@@ -797,7 +798,9 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
-        http_client = HttpClient(api_url=host, token=token, verify_ssl=ssl_verify)
+        http_client = HttpClient(
+            api_url=config.API_URL, token=config.API_TOKEN, verify_ssl=config.VERIFY_SSL
+        )
 
         self.service_provider = ServiceProvider(http_client)
         self._team = self.get_team().data

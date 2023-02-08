@@ -1,20 +1,24 @@
 import functools
+import json
 import os
 import sys
+import typing
 from inspect import signature
 from pathlib import Path
 from types import FunctionType
 from typing import Iterable
 from typing import Sized
-from typing import Tuple
 
 import lib.core as constants
+import pydantic
 from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
+from lib.core import setup_logging
+from lib.core.entities.base import ConfigEntity
 from lib.core.exceptions import AppException
 from lib.infrastructure.controller import Controller
-from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.utils import extract_project_folder
+from lib.infrastructure.validators import wrap_error
 from mixpanel import Mixpanel
 from superannotate import __version__
 
@@ -23,44 +27,86 @@ class BaseInterfaceFacade:
     REGISTRY = []
 
     def __init__(self, token: str = None, config_path: str = None):
-        version = os.environ.get("SA_VERSION", "v1")
-        _token, _config_path = None, None
-        _host = os.environ.get("SA_URL", constants.BACKEND_URL)
-        _ssl_verify = not os.environ.get("SA_SSL", "True").lower() in (
-            "false",
-            "f",
-            "0",
-        )
         if token:
-            _token = Controller.validate_token(token=token)
+            config = ConfigEntity(API_TOKEN=token)
         elif config_path:
-            _token, _host, _ssl_verify = self._retrieve_configs(config_path)
-        else:
-            _token = os.environ.get("SA_TOKEN")
-            if not _token:
-                _token, _host, _ssl_verify = self._retrieve_configs(
-                    constants.CONFIG_PATH
+            config_path = Path(config_path)
+            if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
+                raise AppException(
+                    f"SuperAnnotate config file {str(config_path)} not found."
                 )
-        _host = _host if _host else constants.BACKEND_URL
-        _ssl_verify = True if _ssl_verify is None else _ssl_verify
-
-        self._token, self._host = _token, _host
-        self.controller = Controller(_token, _host, _ssl_verify, version)
+            try:
+                if config_path.suffix == ".json":
+                    config = self._retrieve_configs_from_json(config_path)
+                else:
+                    config = self._retrieve_configs_from_ini(config_path)
+            except pydantic.ValidationError as e:
+                raise AppException(wrap_error(e))
+            except KeyError:
+                raise
+        else:
+            config = self._retrieve_configs_from_env()
+            if not config:
+                if Path(constants.CONFIG_INI_FILE_LOCATION).exists():
+                    config = self._retrieve_configs_from_ini(
+                        constants.CONFIG_INI_FILE_LOCATION
+                    )
+                elif Path(constants.CONFIG_JSON_FILE_LOCATION).exists():
+                    config = self._retrieve_configs_from_json(
+                        constants.CONFIG_JSON_FILE_LOCATION
+                    )
+                else:
+                    raise AppException(
+                        f"SuperAnnotate config file {constants.CONFIG_INI_FILE_LOCATION} not found."
+                    )
+        if not config:
+            raise AppException("Credentials not provided.")
+        setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)
+        self.controller = Controller(config)
         BaseInterfaceFacade.REGISTRY.append(self)
 
     @staticmethod
-    def _retrieve_configs(path) -> Tuple[str, str, str]:
-        config_path = os.path.expanduser(str(path))
-        if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
-            raise AppException(
-                f"SuperAnnotate config file {str(config_path)} not found."
-            )
-        config_repo = ConfigRepository(config_path)
-        return (
-            Controller.validate_token(config_repo.get_one("token").value),
-            config_repo.get_one("main_endpoint").value,
-            config_repo.get_one("ssl_verify").value,
-        )
+    def _retrieve_configs_from_json(path: Path) -> typing.Union[ConfigEntity]:
+        with open(path) as json_file:
+            json_data = json.load(json_file)
+        token = json_data["token"]
+        config = ConfigEntity(API_TOKEN=token)
+        host = json_data.get("main_endpoint")
+        verify_ssl = json_data.get("ssl_verify")
+        if host:
+            config.API_URL = host
+        if verify_ssl:
+            config.VERIFY_SSL = verify_ssl
+        return config
+
+    @staticmethod
+    def _retrieve_configs_from_ini(path: Path) -> typing.Union[ConfigEntity]:
+        import configparser
+
+        config_parser = configparser.ConfigParser()
+        config_parser.optionxform = str
+        config_parser.read(path)
+        config_data = {}
+        for key in config_parser["DEFAULT"]:
+            config_data[key] = config_parser["DEFAULT"][key]
+        try:
+            return ConfigEntity(**config_data)
+        except pydantic.ValidationError as e:
+            raise AppException(wrap_error(e))
+
+    @staticmethod
+    def _retrieve_configs_from_env() -> typing.Union[ConfigEntity, None]:
+        token = os.environ.get("SA_TOKEN")
+        if not token:
+            return None
+        config = ConfigEntity(API_TOKEN=token)
+        host = os.environ.get("SA_URL")
+        verify_ssl = not os.environ.get("SA_SSL", "True").lower() in ("false", "f", "0")
+        if host:
+            config.API_URL = host
+        if verify_ssl:
+            config.VERIFY_SSL = verify_ssl
+        return config
 
     @property
     def host(self):

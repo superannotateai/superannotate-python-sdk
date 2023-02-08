@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -54,6 +53,8 @@ class TestClassDistributionWithTagInstance(BaseTestCase):
 
     @pytest.mark.skip(reason="Need to adjust")
     def test_filter_instances(self):
-        df = sa.class_distribution(export_root=self.folder_path, project_names=[self.PROJECT_NAME])
-        self.assertEqual(df.iloc[0]['count'], 1)
-        self.assertEqual(df.iloc[0]['className'], "Weather")
+        df = sa.class_distribution(
+            export_root=self.folder_path, project_names=[self.PROJECT_NAME]
+        )
+        self.assertEqual(df.iloc[0]["count"], 1)
+        self.assertEqual(df.iloc[0]["className"], "Weather")

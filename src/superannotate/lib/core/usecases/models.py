@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 import os.path
 import platform
 import tempfile
@@ -33,9 +34,8 @@ from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.classes import DownloadAnnotationClassesUseCase
 from lib.core.usecases.folders import GetFolderUseCase
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class PrepareExportUseCase(BaseUseCase):

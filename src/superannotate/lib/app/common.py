@@ -1,10 +1,10 @@
 import json
+import logging
 
 import numpy as np
-from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def hex_to_rgb(hex_string):

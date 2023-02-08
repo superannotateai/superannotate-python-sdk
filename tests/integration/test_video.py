@@ -1,11 +1,12 @@
 import os
 from os.path import dirname
 
+import pytest
 from src.superannotate import SAClient
-sa = SAClient()
 from src.superannotate.lib.core.plugin import VideoPlugin
 from tests.integration.base import BaseTestCase
-import pytest
+
+sa = SAClient()
 
 
 class TestVideo(BaseTestCase):
@@ -79,21 +80,37 @@ class TestVideo(BaseTestCase):
             f"{self.folder_path_big}/earth.mov",
             target_fps=1,
         )
-        self.assertEqual(len(sa.search_items(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_BIG_VIDEO}")), 31)
+        self.assertEqual(
+            len(
+                sa.search_items(
+                    f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_BIG_VIDEO}"
+                )
+            ),
+            31,
+        )
         sa.upload_video_to_project(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_BIG_VIDEO}",
             f"{self.folder_path_big}/earth.mov",
             target_fps=1,
         )
-        self.assertIn("31 already existing images found that won't be uploaded.", self._caplog.text)
+        self.assertIn(
+            "31 already existing images found that won't be uploaded.",
+            self._caplog.text,
+        )
 
     @pytest.mark.flaky(reruns=2)
     def test_frame_extraction(self):
         frames_gen = VideoPlugin.frames_generator(
-            f"{self.folder_path_big}/earth.mov", target_fps=None, start_time=0.0, end_time=None
+            f"{self.folder_path_big}/earth.mov",
+            target_fps=None,
+            start_time=0.0,
+            end_time=None,
         )
         self.assertEqual(len([*frames_gen]), 901)
         frames_gen = VideoPlugin.frames_generator(
-            f"{self.folder_path_big}/earth.mov", target_fps=None, start_time=10.0, end_time=None
+            f"{self.folder_path_big}/earth.mov",
+            target_fps=None,
+            start_time=10.0,
+            end_time=None,
         )
         self.assertGreaterEqual(len([*frames_gen]), 589)

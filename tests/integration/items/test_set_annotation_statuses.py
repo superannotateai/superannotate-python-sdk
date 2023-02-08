@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
 
-from src.superannotate import SAClient
-sa = SAClient()
 from src.superannotate import AppException
+from src.superannotate import SAClient
 from src.superannotate.lib.core.usecases import SetAnnotationStatues
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestSetAnnotationStatuses(BaseTestCase):
@@ -19,19 +20,16 @@ class TestSetAnnotationStatuses(BaseTestCase):
     ATTACHMENT_LIST = [
         {
             "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-            "name": "6022a74d5384c50017c366b3"
+            "name": "6022a74d5384c50017c366b3",
         },
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad"
+            "name": "6022a74b5384c50017c366ad",
         },
-        {
-            "url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU",
-            "name": "123"
-        },
+        {"url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU", "name": "123"},
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad"
+            "name": "6022a74b5384c50017c366ad",
         },
     ]
 
@@ -45,7 +43,8 @@ class TestSetAnnotationStatuses(BaseTestCase):
         )
 
         sa.set_annotation_statuses(
-            self.PROJECT_NAME, "QualityCheck",
+            self.PROJECT_NAME,
+            "QualityCheck",
         )
         for image in sa.search_items(self.PROJECT_NAME):
             self.assertEqual(image["annotation_status"], "QualityCheck")
@@ -56,7 +55,9 @@ class TestSetAnnotationStatuses(BaseTestCase):
         )
 
         sa.set_annotation_statuses(
-            self.PROJECT_NAME, "QualityCheck", [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2]
+            self.PROJECT_NAME,
+            "QualityCheck",
+            [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2],
         )
 
         for image_name in [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2]:
@@ -64,20 +65,20 @@ class TestSetAnnotationStatuses(BaseTestCase):
             self.assertEqual(metadata["annotation_status"], "QualityCheck")
 
     def test_image_annotation_status_via_invalid_names(self):
-        sa.attach_items(
-            self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress"
-        )
+        sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress")
         with self.assertRaisesRegexp(AppException, SetAnnotationStatues.ERROR_MESSAGE):
             sa.set_annotation_statuses(
-                self.PROJECT_NAME, "QualityCheck", ["self.EXAMPLE_IMAGE_1", "self.EXAMPLE_IMAGE_2"]
+                self.PROJECT_NAME,
+                "QualityCheck",
+                ["self.EXAMPLE_IMAGE_1", "self.EXAMPLE_IMAGE_2"],
             )
 
     def test_set_annotation_statuses(self):
-        sa.attach_items(
-            self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]]
-        )
+        sa.attach_items(self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]])
         data = sa.set_annotation_statuses(
-            self.PROJECT_NAME, annotation_status="Completed", items=[self.ATTACHMENT_LIST[0]["name"]]
+            self.PROJECT_NAME,
+            annotation_status="Completed",
+            items=[self.ATTACHMENT_LIST[0]["name"]],
         )
         data = sa.search_items(self.PROJECT_NAME)[0]
         assert data["annotation_status"] == "Completed"

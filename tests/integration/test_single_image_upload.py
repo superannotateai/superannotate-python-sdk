@@ -3,8 +3,9 @@ import os
 from os.path import dirname
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestSingleImageUpload(BaseTestCase):

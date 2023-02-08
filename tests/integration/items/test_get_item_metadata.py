@@ -31,9 +31,9 @@ class TestGetEntityMetadataVector(BaseTestCase):
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)
         assert item_metadata["path"] == f"{self.PROJECT_NAME}"
         assert item_metadata["prediction_status"] == "NotStarted"
-        assert item_metadata["segmentation_status"] == None
+        assert item_metadata["segmentation_status"] is None
         assert item_metadata["annotation_status"] == "InProgress"
-        assert item_metadata["approval_status"] == None
+        assert item_metadata["approval_status"] is None
 
 
 class TestGetEntityMetadataPixel(BaseTestCase):
@@ -71,12 +71,13 @@ class TestGetEntityMetadataVideo(BaseTestCase):
 
     def test_get_item_metadata(self):
         sa.attach_items(
-            self.PROJECT_NAME, [
+            self.PROJECT_NAME,
+            [
                 {
                     "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-                    "name": self.ITEM_NAME
+                    "name": self.ITEM_NAME,
                 }
-            ]
+            ],
         )
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.ITEM_NAME)
         assert item_metadata["path"] == f"{self.PROJECT_NAME}"

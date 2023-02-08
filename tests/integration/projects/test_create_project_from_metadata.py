@@ -20,7 +20,9 @@ class CreateProjectFromMetadata(TestCase):
                 pass
 
     def test_create_project_with_default_attribute(self):
-        sa.create_project(self.PROJECT_1, project_type="Vector", project_description="Desc")
+        sa.create_project(
+            self.PROJECT_1, project_type="Vector", project_description="Desc"
+        )
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_1,
             classes_json=[
@@ -33,23 +35,37 @@ class CreateProjectFromMetadata(TestCase):
                     "attribute_groups": [
                         {
                             "name": "test",
-                            "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                            "attributes": [
+                                {"name": "Car"},
+                                {"name": "Track"},
+                                {"name": "Bus"},
+                            ],
                             "default_value": "Bus",
-                            "is_multiselect": 0
+                            "is_multiselect": 0,
                         }
-                    ]
+                    ],
                 }
-            ]
+            ],
         )
-        pr_1_metadata = sa.get_project_metadata(self.PROJECT_1, include_annotation_classes=True)
+        pr_1_metadata = sa.get_project_metadata(
+            self.PROJECT_1, include_annotation_classes=True
+        )
         pr_1_metadata["name"] = self.PROJECT_2
         sa.create_project_from_metadata(pr_1_metadata)
-        pr_2_metadata = sa.get_project_metadata(self.PROJECT_2, include_annotation_classes=True)
-        assert pr_2_metadata["classes"][0]["attribute_groups"][0]["default_value"] == "Bus"
-        assert "is_multiselect" not in pr_2_metadata["classes"][0]["attribute_groups"][0]
+        pr_2_metadata = sa.get_project_metadata(
+            self.PROJECT_2, include_annotation_classes=True
+        )
+        assert (
+            pr_2_metadata["classes"][0]["attribute_groups"][0]["default_value"] == "Bus"
+        )
+        assert (
+            "is_multiselect" not in pr_2_metadata["classes"][0]["attribute_groups"][0]
+        )
 
     def test_metadata_create_workflow(self):
-        sa.create_project(self.PROJECT_1, project_type="Vector", project_description="Desc")
+        sa.create_project(
+            self.PROJECT_1, project_type="Vector", project_description="Desc"
+        )
         sa.create_annotation_class(
             self.PROJECT_1,
             "class1",
@@ -124,15 +140,19 @@ class CreateProjectFromMetadata(TestCase):
                             }
                         },
                     ],
-                }
+                },
             ],
         )
 
-        pr_1_metadata = sa.get_project_metadata(self.PROJECT_1, include_annotation_classes=True, include_workflow=True)
+        pr_1_metadata = sa.get_project_metadata(
+            self.PROJECT_1, include_annotation_classes=True, include_workflow=True
+        )
         pr_1_metadata["name"] = self.PROJECT_2
         sa.create_project_from_metadata(pr_1_metadata)
-        pr_2_metadata = sa.get_project_metadata(self.PROJECT_2, include_workflow=True, include_annotation_classes=True)
+        pr_2_metadata = sa.get_project_metadata(
+            self.PROJECT_2, include_workflow=True, include_annotation_classes=True
+        )
         assert pr_2_metadata["workflows"][0]["className"] == "class1"
         assert pr_2_metadata["workflows"][1]["className"] == "class2"
-        self.assertEqual(pr_2_metadata["classes"][0]['name'], "class1")
-        self.assertEqual(pr_2_metadata["classes"][1]['name'], "class2")
+        self.assertEqual(pr_2_metadata["classes"][0]["name"], "class1")
+        self.assertEqual(pr_2_metadata["classes"][1]["name"], "class2")

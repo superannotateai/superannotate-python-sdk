@@ -1,5 +1,6 @@
 import copy
 import decimal
+import logging
 from collections import defaultdict
 from typing import List
 
@@ -18,9 +19,8 @@ from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from requests.exceptions import RequestException
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class GetProjectByIDUseCase(BaseUseCase):
@@ -897,7 +897,9 @@ class GetTeamUseCase(BaseUseCase):
                 raise AppException(response.error)
             self._response.data = response.data
         except Exception:
-            raise AppException("Can't get team data.") from None
+            raise AppException(
+                "Unable to retrieve team data. Please verify your credentials."
+            ) from None
         return self._response
 
 

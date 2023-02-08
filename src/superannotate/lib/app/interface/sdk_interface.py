@@ -62,9 +62,9 @@ from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
-from superannotate.logger import get_default_logger
+import logging
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
@@ -708,10 +708,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         item = response.data
         item.is_pinned = int(pin)
-        self.controller.items.update(
-            project=project,
-            item=item
-        )
+        self.controller.items.update(project=project, item=item)
 
     def delete_items(self, project: str, items: Optional[List[str]] = None):
         """Delete items in a given project.

@@ -3,11 +3,10 @@ import tempfile
 from os.path import dirname
 
 import pytest
-
 from src.superannotate import SAClient
+from tests.integration.base import BaseTestCase
 
 sa = SAClient()
-from tests.integration.base import BaseTestCase
 
 
 class TestBenchmark(BaseTestCase):
@@ -72,7 +71,7 @@ class TestBenchmark(BaseTestCase):
             for i in range(1, 4):
                 sa.upload_annotations_from_folder_to_project(
                     self.PROJECT_NAME + f"/{self.CONSENSUS_PREFIX}{str(i)}",
-                    self.export_path + f"/{self.CONSENSUS_PREFIX}{str(i)}"
+                    self.export_path + f"/{self.CONSENSUS_PREFIX}{str(i)}",
                 )
 
             for annotation_type in annotation_types:

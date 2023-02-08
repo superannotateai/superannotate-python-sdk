@@ -2,7 +2,6 @@ import os
 import time
 
 import pytest
-
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
@@ -16,7 +15,7 @@ class TestFolders(BaseTestCase):
     TEST_FOLDER_PATH = "sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
-    SPECIAL_CHARS = "/\:*?“<>|"
+    SPECIAL_CHARS = r"/\:*?“<>|"
     TEST_FOLDER_NAME_1 = "folder_1"
     TEST_FOLDER_NAME_2 = "folder_2"
     EXAMPLE_IMAGE_1_NAME = "example_image_1"
@@ -36,7 +35,9 @@ class TestFolders(BaseTestCase):
 
     def test_get_folder_metadata(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        folder_metadata = sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        folder_metadata = sa.get_folder_metadata(
+            self.PROJECT_NAME, self.TEST_FOLDER_NAME_1
+        )
         assert "is_root" not in folder_metadata
 
     def test_search_folders(self):
@@ -145,7 +146,10 @@ class TestFolders(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME + "/" + folders[0]["name"], self.folder_path
         )
-        annotations = sa.get_annotations(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", [self.EXAMPLE_IMAGE_1], )
+        annotations = sa.get_annotations(
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
+            [self.EXAMPLE_IMAGE_1],
+        )
         self.assertGreater(len(annotations[0]["instances"]), 0)
 
     def test_delete_folders(self):
@@ -231,9 +235,11 @@ class TestFolders(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="Completed"
         )
-        project_metadata = sa.get_project_metadata(self.PROJECT_NAME, include_complete_image_count=True)
-        self.assertEqual(project_metadata['completed_images_count'], 8)
-        self.assertEqual(project_metadata['root_folder_completed_images_count'], 4)
+        project_metadata = sa.get_project_metadata(
+            self.PROJECT_NAME, include_complete_image_count=True
+        )
+        self.assertEqual(project_metadata["completed_images_count"], 8)
+        self.assertEqual(project_metadata["root_folder_completed_images_count"], 4)
 
     def test_folder_misnamed(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
@@ -251,7 +257,9 @@ class TestFolders(BaseTestCase):
 
     def test_create_folder_with_special_chars(self):
         sa.create_folder(self.PROJECT_NAME, self.SPECIAL_CHARS)
-        folder = sa.get_folder_metadata(self.PROJECT_NAME, "_" * len(self.SPECIAL_CHARS))
+        folder = sa.get_folder_metadata(
+            self.PROJECT_NAME, "_" * len(self.SPECIAL_CHARS)
+        )
         self.assertIsNotNone(folder)
         assert "completedCount" not in folder.keys()
         assert "is_root" not in folder.keys()
@@ -261,24 +269,32 @@ class TestFolders(BaseTestCase):
         with self.assertRaisesRegexp(AppException, err_msg):
             sa.create_folder(
                 self.PROJECT_NAME,
-                'A while back I needed to count the amount of letters that '
-                'a piece of text in an email template had (to avoid passing any)'
+                "A while back I needed to count the amount of letters that "
+                "a piece of text in an email template had (to avoid passing any)",
             )
 
     def test_search_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         time.sleep(1)
-        folders = sa.search_folders(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1, return_metadata=True)
+        folders = sa.search_folders(
+            self.PROJECT_NAME, self.TEST_FOLDER_NAME_1, return_metadata=True
+        )
         assert len(folders) == 1
-        assert folders[0]['name'] == self.TEST_FOLDER_NAME_1
-        assert folders[0]['status'] == 'NotStarted'
+        assert folders[0]["name"] == self.TEST_FOLDER_NAME_1
+        assert folders[0]["status"] == "NotStarted"
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1 + "1")
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1 + "2")
         folders = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
         assert len(folders) == 3
-        folders = sa.search_folders(self.PROJECT_NAME, status='Completed', return_metadata=True)
+        folders = sa.search_folders(
+            self.PROJECT_NAME, status="Completed", return_metadata=True
+        )
         assert len(folders) == 0
-        folders = sa.search_folders(self.PROJECT_NAME, status='Undefined', return_metadata=True)
+        folders = sa.search_folders(
+            self.PROJECT_NAME, status="Undefined", return_metadata=True
+        )
         assert len(folders) == 0
-        folders = sa.search_folders(self.PROJECT_NAME, status='NotStarted', return_metadata=True)
+        folders = sa.search_folders(
+            self.PROJECT_NAME, status="NotStarted", return_metadata=True
+        )
         assert len(folders) == 3

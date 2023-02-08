@@ -8,6 +8,8 @@ from typing import no_type_check
 from typing import Optional
 from typing import Union
 
+from lib.core import BACKEND_URL
+from lib.core import LOG_FILE_LOCATION
 from lib.core.enums import AnnotationStatus
 from lib.core.enums import BaseTitledEnum
 from pydantic import BaseModel as PydanticBaseModel
@@ -287,3 +289,15 @@ class BaseItemEntity(TimedBaseModel):
         entity["annotator_email"] = entity.get("annotator_id")
         entity["qa_email"] = entity.get("qa_id")
         return entity
+
+
+class ConfigEntity(BaseModel):
+    API_TOKEN: str
+    API_URL: str = BACKEND_URL
+    LOGGING_LEVEL: str = "INFO"
+    LOGGING_PATH: str = f"{LOG_FILE_LOCATION}"
+    VERIFY_SSL: bool = True
+    ANNOTATION_CHUNK_SIZE = 5000
+    ITEM_CHUNK_SIZE = 2000
+    MAX_THREAD_COUNT = 4
+    MAX_COROUTINE_COUNT = 8

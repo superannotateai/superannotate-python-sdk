@@ -9,26 +9,28 @@ sa = SAClient()
 class TestVectorValidators(TestCase):
     PROJECT_TYPE = "Vector"
 
-    @patch('builtins.print')
+    @patch("builtins.print")
     def test_validate_annotation_without_metadata(self, mock_print):
         is_valid = sa.validate_annotations("Vector", {"instances": []})
         assert not is_valid
-        mock_print.assert_any_call('\'metadata\' is a required property')
+        mock_print.assert_any_call("'metadata' is a required property")
 
-    @patch('builtins.print')
+    @patch("builtins.print")
     def test_validate_annotation_with_invalid_metadata(self, mock_print):
         is_valid = sa.validate_annotations("Vector", {"metadata": {"name": 12}})
         assert not is_valid
-        mock_print.assert_any_call("metadata.name                                   12 is not of type 'string'")
+        mock_print.assert_any_call(
+            "metadata.name                                   12 is not of type 'string'"
+        )
 
-    @patch('builtins.print')
+    @patch("builtins.print")
     def test_validate_instances(self, mock_print):
         is_valid = sa.validate_annotations(
             "Vector",
             {
                 "metadata": {"name": "12"},
-                "instances": [{"type": "invalid_type"}, {"type": "bbox"}]
-            }
+                "instances": [{"type": "invalid_type"}, {"type": "bbox"}],
+            },
         )
         assert not is_valid
         mock_print.assert_any_call(
@@ -36,7 +38,7 @@ class TestVectorValidators(TestCase):
             "instances[1]                                    'points' is a required property"
         )
 
-    @patch('builtins.print')
+    @patch("builtins.print")
     def test_validate_create_dby(self, mock_print):
         is_valid = sa.validate_annotations(
             "Vector",
@@ -45,14 +47,16 @@ class TestVectorValidators(TestCase):
                 "instances": [
                     {
                         "type": "bbox",
-                        "createdBy": {'email': 'arturn@superannotate.com', 'role': 'dmin'},
+                        "createdBy": {
+                            "email": "arturn@superannotate.com",
+                            "role": "dmin",
+                        },
                         "x": 1,
-                        "y": 2
-
+                        "y": 2,
                     },
-                    {"type": "bbox"}
-                ]
-            }
+                    {"type": "bbox"},
+                ],
+            },
         )
         assert not is_valid
         assert mock_print.call_args_list[0].args[0] == (

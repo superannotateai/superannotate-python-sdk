@@ -1,13 +1,13 @@
 import json
+import logging
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 from lib.app.exceptions import AppException
-from superannotate.logger import get_default_logger
 
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def aggregate_image_annotations_as_df(

@@ -1,6 +1,7 @@
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestProjectRename(BaseTestCase):
@@ -10,7 +11,7 @@ class TestProjectRename(BaseTestCase):
     PROJECT_TYPE = "Vector"
     NEW_PROJECT_NAME = "new"
     REPLACED_PROJECT_NAME = "_ _ _ _ _ _ _ _ _ _"
-    BAD_PROJECT_NAME = '/ \ : * ? " “ < > |'  # noqa: w605
+    BAD_PROJECT_NAME = r'/ \ : * ? " “ < > |'  # noqa: w605
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -22,7 +23,9 @@ class TestProjectRename(BaseTestCase):
         projects = []
         projects.extend(sa.search_projects(self.PROJECT_NAME, return_metadata=True))
         projects.extend(sa.search_projects(self.NEW_PROJECT_NAME, return_metadata=True))
-        projects.extend(sa.search_projects(self.REPLACED_PROJECT_NAME, return_metadata=True))
+        projects.extend(
+            sa.search_projects(self.REPLACED_PROJECT_NAME, return_metadata=True)
+        )
         projects.extend(sa.search_projects(self.NAME_TO_RENAME, return_metadata=True))
         for project in projects:
             try:

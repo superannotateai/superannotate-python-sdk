@@ -22,12 +22,9 @@ class TestCreateAnnotationClass(BaseTestCase):
                     "name": "test",
                     "is_multiselect": 1,
                     "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
-
                 }
-            ]
+            ],
         )
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
-        assert classes[0]["attribute_groups"][0]["group_type"] == 'checklist'
+        assert classes[0]["attribute_groups"][0]["group_type"] == "checklist"
         assert classes[0]["attribute_groups"][0]["default_value"] == []
-
-

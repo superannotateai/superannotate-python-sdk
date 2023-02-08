@@ -1,4 +1,5 @@
 import copy
+import logging
 import traceback
 from collections import defaultdict
 from concurrent.futures import as_completed
@@ -30,9 +31,8 @@ from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.folders import SearchFoldersUseCase
 from lib.infrastructure.utils import extract_project_folder
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class GetItemByIDUseCase(BaseUseCase):
@@ -1056,8 +1056,8 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     ids = future.result()
                     self.item_ids.extend(ids)
                 except Exception:
-                    raise
                     logger.debug(traceback.format_exc())
+                    raise
 
             subsets = self._service_provider.subsets.list(self.project).data
             subset = None

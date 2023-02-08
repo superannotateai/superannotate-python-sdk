@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestMoveItems(BaseTestCase):
@@ -23,17 +24,23 @@ class TestMoveItems(BaseTestCase):
         uploaded, _, _ = sa.attach_items(self.PROJECT_NAME, self.scv_path)
         assert len(uploaded) == 7
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
-        skipped_items = sa.move_items(self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        skipped_items = sa.move_items(
+            self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}"
+        )
         assert len(skipped_items) == 0
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 7
 
     def test_move_items_from_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_2)
-        uploaded, _, _ = sa.attach_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}", self.scv_path)
+        uploaded, _, _ = sa.attach_items(
+            f"{self.PROJECT_NAME}/{self.FOLDER_1}", self.scv_path
+        )
         assert len(uploaded) == 7
-        skipped_items = sa.move_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}", f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        skipped_items = sa.move_items(
+            f"{self.PROJECT_NAME}/{self.FOLDER_1}",
+            f"{self.PROJECT_NAME}/{self.FOLDER_2}",
+        )
         assert len(skipped_items) == 0
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")) == 7
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0
-

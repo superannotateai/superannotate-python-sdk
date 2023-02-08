@@ -1,12 +1,12 @@
-import tempfile
-from pathlib import Path
-import os
-from os.path import join
 import json
-import pytest
-from unittest.mock import patch
+import os
+import tempfile
+from os.path import join
+from pathlib import Path
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
+import pytest
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -28,7 +28,9 @@ class TestAnnotationUploadVector(BaseTestCase):
 
     def test_annotation_upload_big_file(self):
         annotation_path = join(self.folder_path, f"{self.IMAGE_NAME}___objects.json")
-        sa.attach_items(self.PROJECT_NAME, [{"name": self.IMAGE_NAME, "url": self.IMAGE_NAME}])  # noqa
+        sa.attach_items(
+            self.PROJECT_NAME, [{"name": self.IMAGE_NAME, "url": self.IMAGE_NAME}]
+        )  # noqa
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
 
     # @pytest.mark.flaky(reruns=3)
@@ -37,10 +39,13 @@ class TestAnnotationUploadVector(BaseTestCase):
         reporter_mock = MagicMock()
         reporter.return_value = reporter_mock
         annotation_path = join(self.folder_path, f"{self.IMAGE_NAME}___objects.json")
-        sa.upload_image_to_project(self.PROJECT_NAME, join(self.folder_path, self.IMAGE_NAME))
+        sa.upload_image_to_project(
+            self.PROJECT_NAME, join(self.folder_path, self.IMAGE_NAME)
+        )
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
 
         from collections import defaultdict
+
         call_groups = defaultdict(list)
         reporter_calls = reporter_mock.method_calls
         for call in reporter_calls:
@@ -55,17 +60,19 @@ class TestAnnotationUploadVector(BaseTestCase):
                     if k == key:
                         obj[k] = replace_value
                     else:
-                        replace_item(v, key,  replace_value)
+                        replace_item(v, key, replace_value)
             return obj
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, tmp_dir)
             origin_annotation = replace_item(json.load(open(annotation_path)), "id", -1)
-            origin_annotation = replace_item(origin_annotation, 'groupId', -1)
-            annotation = json.load(open(join(tmp_dir, f"{self.IMAGE_NAME}___objects.json")))
+            origin_annotation = replace_item(origin_annotation, "groupId", -1)
+            annotation = json.load(
+                open(join(tmp_dir, f"{self.IMAGE_NAME}___objects.json"))
+            )
             self.assertEqual(
-                [i["attributes"]for i in annotation["instances"]],
-                [i["attributes"]for i in origin_annotation["instances"]]
+                [i["attributes"] for i in annotation["instances"]],
+                [i["attributes"] for i in origin_annotation["instances"]],
             )
 
     @pytest.mark.flaky(reruns=3)
@@ -86,8 +93,10 @@ class TestAnnotationUploadVector(BaseTestCase):
                 annotation_path = join(self.folder_path, f"{image_name}___objects.json")
                 sa.download_image_annotations(self.PROJECT_NAME, image_name, tmp_dir)
                 origin_annotation = json.load(open(annotation_path))
-                annotation = json.load(open(join(tmp_dir, f"{image_name}___objects.json")))
+                annotation = json.load(
+                    open(join(tmp_dir, f"{image_name}___objects.json"))
+                )
                 self.assertEqual(
                     len([i["attributes"] for i in annotation["instances"]]),
-                    len([i["attributes"] for i in origin_annotation["instances"]])
+                    len([i["attributes"] for i in origin_annotation["instances"]]),
                 )
