@@ -3,11 +3,13 @@ import pathlib
 import tempfile
 from os.path import dirname
 from unittest import TestCase
-import pytest
+
 import numpy as np
-from src.superannotate import SAClient
-sa = SAClient()
+import pytest
 from PIL import Image
+from src.superannotate import SAClient
+
+sa = SAClient()
 
 
 class TestFolders(TestCase):
@@ -39,10 +41,11 @@ class TestFolders(TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        projects = sa.search_projects(
-            cls.VECTOR_PROJECT_NAME, return_metadata=True
-        ) + sa.search_projects(cls.PIXEL_PROJECT_NAME, return_metadata=True) + \
-                   sa.search_projects(cls.PIXEL_PROJECT_NAME_FOR_FUSE,return_metadata=True)
+        projects = (
+            sa.search_projects(cls.VECTOR_PROJECT_NAME, return_metadata=True)
+            + sa.search_projects(cls.PIXEL_PROJECT_NAME, return_metadata=True)
+            + sa.search_projects(cls.PIXEL_PROJECT_NAME_FOR_FUSE, return_metadata=True)
+        )
         for project in projects:
             sa.delete_project(project)
 

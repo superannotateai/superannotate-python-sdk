@@ -62,9 +62,9 @@ from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
-from superannotate.logger import get_default_logger
+import logging
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))

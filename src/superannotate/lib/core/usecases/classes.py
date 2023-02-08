@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import List
 
 from lib.core.conditions import Condition
@@ -10,9 +11,8 @@ from lib.core.exceptions import AppException
 from lib.core.reporter import Spinner
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class GetAnnotationClassesUseCase(BaseUseCase):

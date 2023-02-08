@@ -15,13 +15,18 @@ class ClientInitTestCase(TestCase):
 
     def test_init_via_invalid_token(self):
         _token = "123"
-        with self.assertRaisesRegexp(AppException, 'Unable to retrieve team data. Please verify your credentials.'):
+        with self.assertRaisesRegexp(
+            AppException,
+            "Unable to retrieve team data. Please verify your credentials.",
+        ):
             SAClient(token=_token)
 
     @patch("lib.core.usecases.GetTeamUseCase")
     def test_init_via_token(self, get_team_use_case):
         sa = SAClient(token=self._token)
-        assert get_team_use_case.call_args_list[0].kwargs['team_id'] == int(self._token.split("=")[-1])
+        assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
+            self._token.split("=")[-1]
+        )
         assert sa.controller._config.API_TOKEN == self._token
         assert sa.controller._config.API_URL == constants.BACKEND_URL
 
@@ -32,19 +37,17 @@ class ClientInitTestCase(TestCase):
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
-                    "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path):
-                with open(f"{config_dir}/config.json", 'w') as config_json:
-                    json.dump(
-                        {
-                            "token": self._token
-                        },
-                        config_json
-                    )
-                for kwargs in ({}, {'config_path': f"{config_dir}/config.json"}):
+                "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
+            ):
+                with open(f"{config_dir}/config.json", "w") as config_json:
+                    json.dump({"token": self._token}, config_json)
+                for kwargs in ({}, {"config_path": f"{config_dir}/config.json"}):
                     sa = SAClient(**kwargs)
                     assert sa.controller._config.API_TOKEN == self._token
                     assert sa.controller._config.API_URL == constants.BACKEND_URL
-                    assert get_team_use_case.call_args_list[0].kwargs['team_id'] == int(self._token.split("=")[-1])
+                    assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
+                        self._token.split("=")[-1]
+                    )
 
     @patch("lib.core.usecases.GetTeamUseCase")
     def test_init_via_config_ini(self, get_team_use_case):
@@ -53,21 +56,24 @@ class ClientInitTestCase(TestCase):
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
-                    "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path):
-                with open(f"{config_dir}/config.ini", 'w') as config_ini:
+                "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
+            ):
+                with open(f"{config_dir}/config.ini", "w") as config_ini:
                     config_parser = ConfigParser()
                     config_parser.optionxform = str
                     config_parser["DEFAULT"] = {
                         "API_TOKEN": self._token,
-                        "LOGGING_LEVEL": "DEBUG"
+                        "LOGGING_LEVEL": "DEBUG",
                     }
                     config_parser.write(config_ini)
-                for kwargs in ({}, {'config_path': f"{config_dir}/config.ini"}):
+                for kwargs in ({}, {"config_path": f"{config_dir}/config.ini"}):
                     sa = SAClient(**kwargs)
                     assert sa.controller._config.API_TOKEN == self._token
-                    assert sa.controller._config.LOGGING_LEVEL == 'DEBUG'
+                    assert sa.controller._config.LOGGING_LEVEL == "DEBUG"
                     assert sa.controller._config.API_URL == constants.BACKEND_URL
-                    assert get_team_use_case.call_args_list[0].kwargs['team_id'] == int(self._token.split("=")[-1])
+                    assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
+                        self._token.split("=")[-1]
+                    )
 
     @patch("lib.core.usecases.GetTeamUseCase")
     @patch.dict(os.environ, {"SA_URL": "SOME_URL", "SA_TOKEN": "SOME_TOKEN=123"})
@@ -75,9 +81,11 @@ class ClientInitTestCase(TestCase):
         sa = SAClient()
         assert sa.controller._config.API_TOKEN == "SOME_TOKEN=123"
         assert sa.controller._config.API_URL == "SOME_URL"
-        assert get_team_use_case.call_args_list[0].kwargs['team_id'] == 123
+        assert get_team_use_case.call_args_list[0].kwargs["team_id"] == 123
 
     def test_invalid_config_path(self):
-        _path = 'something'
-        with self.assertRaisesRegexp(AppException, f"SuperAnnotate config file {_path} not found."):
+        _path = "something"
+        with self.assertRaisesRegexp(
+            AppException, f"SuperAnnotate config file {_path} not found."
+        ):
             SAClient(config_path=_path)

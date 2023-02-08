@@ -13,6 +13,7 @@ import lib.core as constants
 import pydantic
 from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
+from lib.core import setup_logging
 from lib.core.entities.base import ConfigEntity
 from lib.core.exceptions import AppException
 from lib.infrastructure.controller import Controller
@@ -60,6 +61,7 @@ class BaseInterfaceFacade:
                     )
         if not config:
             raise AppException("Credentials not provided.")
+        setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)
         self.controller = Controller(config)
         BaseInterfaceFacade.REGISTRY.append(self)
 

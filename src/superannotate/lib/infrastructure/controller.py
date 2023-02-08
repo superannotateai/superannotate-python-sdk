@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 from abc import ABCMeta
 from pathlib import Path
@@ -31,7 +32,6 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import extract_project_folder
-from superannotate.logger import get_default_logger
 
 
 def build_condition(**kwargs) -> Condition:
@@ -783,7 +783,7 @@ class BaseController(metaclass=ABCMeta):
 
     def __init__(self, config: ConfigEntity):
         self._config = config
-        self._logger = get_default_logger()
+        self._logger = logging.getLogger("sa")
         self._testing = os.getenv("SA_TESTING", "False").lower() in ("true", "1", "t")
         self._token = config.API_TOKEN
         self._team_data = None

@@ -3,11 +3,11 @@ from os.path import join
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
 
-import pytest
+sa = SAClient()
 
 
 class TestRecursiveFolderPixel(BaseTestCase):
@@ -39,7 +39,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
             destination,
             self.S3_FOLDER_PATH,
             from_s3_bucket="superannotate-python-sdk-test",
-            recursive_subfolders=False
+            recursive_subfolders=False,
         )
         self.assertEqual(len(uploaded_annotations), 3)
 
@@ -60,12 +60,18 @@ class TestAnnotationUploadPixelSingle(BaseTestCase):
 
     @property
     def folder_path_pixel(self):
-        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH_PIXEL)
+        return os.path.join(
+            Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH_PIXEL
+        )
 
     @pytest.mark.flaky(reruns=2)
     @patch("lib.core.usecases.annotations.UploadAnnotationUseCase.s3_bucket")
     def test_annotation_upload_pixel(self, s3_bucket):
-        annotation_path = join(self.folder_path_pixel, f"{self.IMAGE_NAME}___pixel.json")
-        sa.upload_image_to_project(self.PROJECT_NAME, join(self.folder_path_pixel, self.IMAGE_NAME))
+        annotation_path = join(
+            self.folder_path_pixel, f"{self.IMAGE_NAME}___pixel.json"
+        )
+        sa.upload_image_to_project(
+            self.PROJECT_NAME, join(self.folder_path_pixel, self.IMAGE_NAME)
+        )
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
         self.assertEqual(len(s3_bucket.method_calls), 1)

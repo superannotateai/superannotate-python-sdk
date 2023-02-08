@@ -1,8 +1,9 @@
 from unittest import TestCase
 
-from src.superannotate import SAClient
-sa = SAClient()
 from src.superannotate import AppException
+from src.superannotate import SAClient
+
+sa = SAClient()
 
 
 class BaseTestCase(TestCase):
@@ -16,7 +17,9 @@ class BaseTestCase(TestCase):
     def tearDown(self) -> None:
         try:
             projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
-            projects.extend(sa.search_projects(self.SECOND_PROJECT_NAME, return_metadata=True))
+            projects.extend(
+                sa.search_projects(self.SECOND_PROJECT_NAME, return_metadata=True)
+            )
             for project in projects:
                 try:
                     sa.delete_project(project)
@@ -33,10 +36,7 @@ class TestSettings(BaseTestCase):
 
     def test_create_project_with_empty_settings(self):
         sa.create_project(
-            self.PROJECT_NAME,
-            self.PROJECT_DESCRIPTION,
-            self.PROJECT_TYPE,
-            []
+            self.PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE, []
         )
         settings = sa.get_project_settings(self.PROJECT_NAME)
         for setting in settings:
@@ -51,7 +51,8 @@ class TestSettings(BaseTestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}])
+            [{"attribute": "ImageQuality", "value": "original"}],
+        )
 
         settings = sa.get_project_settings(self.PROJECT_NAME)
         for setting in settings:
@@ -66,9 +67,11 @@ class TestSettings(BaseTestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}]
+            [{"attribute": "ImageQuality", "value": "original"}],
         )
-        project_metadata = sa.get_project_metadata(self.PROJECT_NAME, include_settings=True)
+        project_metadata = sa.get_project_metadata(
+            self.PROJECT_NAME, include_settings=True
+        )
         project_metadata["name"] = self.SECOND_PROJECT_NAME
         sa.create_project_from_metadata(project_metadata)
         settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
@@ -84,8 +87,11 @@ class TestSettings(BaseTestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}])
-        sa.clone_project(self.SECOND_PROJECT_NAME, self.PROJECT_NAME, copy_settings=True)
+            [{"attribute": "ImageQuality", "value": "original"}],
+        )
+        sa.clone_project(
+            self.SECOND_PROJECT_NAME, self.PROJECT_NAME, copy_settings=True
+        )
         settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
         for setting in settings:
             if setting["attribute"] == "ImageQuality":
@@ -95,12 +101,15 @@ class TestSettings(BaseTestCase):
             raise Exception("Test failed")
 
     def test_frame_rate_invalid_range_value(self):
-        with self.assertRaisesRegexp(AppException, "FrameRate is available only for Video projects"):
+        with self.assertRaisesRegexp(
+            AppException, "FrameRate is available only for Video projects"
+        ):
             sa.create_project(
                 self.PROJECT_NAME,
                 self.PROJECT_DESCRIPTION,
                 self.PROJECT_TYPE,
-                [{"attribute": "FrameRate", "value": 1.0}])
+                [{"attribute": "FrameRate", "value": 1.0}],
+            )
 
 
 class TestVideoSettings(BaseTestCase):
@@ -113,7 +122,8 @@ class TestVideoSettings(BaseTestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "FrameRate", "value": 1}])
+            [{"attribute": "FrameRate", "value": 1}],
+        )
         settings = sa.get_project_settings(self.PROJECT_NAME)
         for setting in settings:
             if setting["attribute"] == "FrameRate":
@@ -130,7 +140,8 @@ class TestVideoSettings(BaseTestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "FrameRate", "value": 1.3}])
+            [{"attribute": "FrameRate", "value": 1.3}],
+        )
         settings = sa.get_project_settings(self.PROJECT_NAME)
         for setting in settings:
             if setting["attribute"] == "FrameRate":
@@ -143,27 +154,34 @@ class TestVideoSettings(BaseTestCase):
             raise Exception("Test failed")
 
     def test_frame_rate_invalid_range_value(self):
-        with self.assertRaisesRegexp(AppException, "The FrameRate value range is between 0.001 - 120"):
+        with self.assertRaisesRegexp(
+            AppException, "The FrameRate value range is between 0.001 - 120"
+        ):
             sa.create_project(
                 self.PROJECT_NAME,
                 self.PROJECT_DESCRIPTION,
                 self.PROJECT_TYPE,
-                [{"attribute": "FrameRate", "value": 1.00003}])
+                [{"attribute": "FrameRate", "value": 1.00003}],
+            )
 
     def test_frame_rate_invalid_str_value(self):
-        with self.assertRaisesRegexp(AppException, "The FrameRate value should be float"):
+        with self.assertRaisesRegexp(
+            AppException, "The FrameRate value should be float"
+        ):
             sa.create_project(
                 self.PROJECT_NAME,
                 self.PROJECT_DESCRIPTION,
                 self.PROJECT_TYPE,
-                [{"attribute": "FrameRate", "value": "one"}])
+                [{"attribute": "FrameRate", "value": "one"}],
+            )
 
     def test_frames_reset(self):
         sa.create_project(
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "FrameRate", "value": 1.3}])
+            [{"attribute": "FrameRate", "value": 1.3}],
+        )
         sa.rename_project(self.PROJECT_NAME, self.SECOND_PROJECT_NAME)
         settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
         for setting in settings:

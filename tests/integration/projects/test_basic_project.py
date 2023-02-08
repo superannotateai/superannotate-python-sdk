@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
@@ -92,20 +91,22 @@ class TestProjectBasic(BaseTestCase):
                             }
                         },
                     ],
-                }
+                },
             ],
         )
         workflows = sa.get_project_workflow(self.PROJECT_NAME)
         metadata = sa.get_project_metadata(self.PROJECT_NAME, include_workflow=True)
         assert metadata["workflows"][0]["className"] == "class1"
         assert metadata["workflows"][1]["className"] == "class2"
-        self.assertEqual(workflows[0]['className'], "class1")
-        self.assertEqual(workflows[1]['className'], "class2")
+        self.assertEqual(workflows[0]["className"], "class1")
+        self.assertEqual(workflows[1]["className"], "class2")
 
     def test_include_complete_image_count(self):
         self._attach_items()  # will attach 4 items
         sa.set_annotation_statuses(self.PROJECT_NAME, annotation_status="Completed")
-        metadata = sa.get_project_metadata(self.PROJECT_NAME, include_complete_image_count=True)
+        metadata = sa.get_project_metadata(
+            self.PROJECT_NAME, include_complete_image_count=True
+        )
         assert metadata["completed_images_count"] == 4
 
 
@@ -121,15 +122,11 @@ class TestProject(BaseTestCase):
 
     @property
     def folder_path(self):
-        return Path(
-            Path(os.path.join(DATA_SET_PATH, self.TEST_FOLDER_PATH))
-        )
+        return Path(Path(os.path.join(DATA_SET_PATH, self.TEST_FOLDER_PATH)))
 
     @property
     def annotations_path(self):
-        return Path(
-            Path(os.path.join(DATA_SET_PATH, self.TEST_ANNOTATION_PATH))
-        )
+        return Path(Path(os.path.join(DATA_SET_PATH, self.TEST_ANNOTATION_PATH)))
 
     @property
     def classes_json_path(self):

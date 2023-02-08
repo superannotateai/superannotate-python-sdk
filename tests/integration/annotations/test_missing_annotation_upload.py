@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationUpload(BaseTestCase):
@@ -40,8 +41,8 @@ class TestAnnotationUpload(BaseTestCase):
                 [
                     True
                     for part in missing_images
-                    if part in "sample_project_vector_for_checks/example_image_5.jpg___objects.json"
-
+                    if part
+                    in "sample_project_vector_for_checks/example_image_5.jpg___objects.json"
                 ]
             )
         )

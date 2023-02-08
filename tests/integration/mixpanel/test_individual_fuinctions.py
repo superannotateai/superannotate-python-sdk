@@ -2,8 +2,8 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
-from src.superannotate import AppException
 from src.superannotate import __version__
+from src.superannotate import AppException
 from src.superannotate import class_distribution
 from tests import DATA_SET_PATH
 
@@ -21,7 +21,9 @@ class TestDocumentUrls(TestCase):
     @patch("lib.app.interface.base_interface.Tracker._track")
     def test_get_team_metadata(self, track_method):
         try:
-            class_distribution(os.path.join(self.folder_path, "sample_project_vector"), "test")
+            class_distribution(
+                os.path.join(self.folder_path, "sample_project_vector"), "test"
+            )
         except AppException:
             pass
         data = list(track_method.call_args)[0][2]

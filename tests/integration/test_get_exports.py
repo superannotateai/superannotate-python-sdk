@@ -4,7 +4,6 @@ import tempfile
 from os.path import dirname
 
 from src.superannotate import SAClient
-from src.superannotate import export_annotation
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()

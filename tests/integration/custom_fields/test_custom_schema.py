@@ -11,14 +11,7 @@ class TestCustomSchema(BaseTestCase):
     PROJECT_NAME = "test custom field schema"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
-    PAYLOAD = {
-        "test": {
-            "type": "number"
-        },
-        "tester": {
-            "type": "number"
-        }
-    }
+    PAYLOAD = {"test": {"type": "number"}, "tester": {"type": "number"}}
 
     def test_create_schema(self):
         data = sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
@@ -27,14 +20,13 @@ class TestCustomSchema(BaseTestCase):
     def test_create_limit_25(self):
         payload = {i: {"type": "number"} for i in range(26)}
         with self.assertRaisesRegexp(
-                Exception, "Maximum number of custom fields is 25. You can only create 25 more custom fields."
+            Exception,
+            "Maximum number of custom fields is 25. You can only create 25 more custom fields.",
         ):
             sa.create_custom_fields(self.PROJECT_NAME, payload)
 
     def test_create_duplicated(self):
-        payload = {
-            "1": {"type": "number"}
-        }
+        payload = {"1": {"type": "number"}}
         with self.assertRaisesRegexp(Exception, "Field name 1 is already used."):
             for i in range(2):
                 sa.create_custom_fields(self.PROJECT_NAME, payload)
@@ -57,8 +49,10 @@ class TestCustomSchema(BaseTestCase):
         item_name = "test"
         payload = {"test": 12}
         sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
-        response = sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
-        assert response == {'failed': [], 'succeeded': [item_name]}
+        response = sa.upload_custom_values(
+            self.PROJECT_NAME, [{item_name: payload}] * 10000
+        )
+        assert response == {"failed": [], "succeeded": [item_name]}
         data = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
         assert data[0]["custom_metadata"] == payload
         sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])
@@ -70,12 +64,18 @@ class TestCustomSchema(BaseTestCase):
         item_name = "test"
         payload = {"test": 12}
         sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
-        response = sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
-        assert response == {'failed': [], 'succeeded': [item_name]}
-        data = sa.search_items(self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True)
+        response = sa.upload_custom_values(
+            self.PROJECT_NAME, [{item_name: payload}] * 10000
+        )
+        assert response == {"failed": [], "succeeded": [item_name]}
+        data = sa.search_items(
+            self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True
+        )
         assert data[0]["custom_metadata"] == payload
         sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])
-        data = sa.search_items(self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True)
+        data = sa.search_items(
+            self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True
+        )
         assert data[0]["custom_metadata"] == {}
 
     def test_search_items(self):
@@ -99,7 +99,9 @@ class TestCustomSchema(BaseTestCase):
         payload = {"test": 12}
         sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
         sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
-        item = sa.get_item_metadata(self.PROJECT_NAME, item_name, include_custom_metadata=True)
+        item = sa.get_item_metadata(
+            self.PROJECT_NAME, item_name, include_custom_metadata=True
+        )
         assert item["custom_metadata"] == payload
 
     def test_get_item_metadata_without_custom_metadata(self):
@@ -113,15 +115,28 @@ class TestCustomSchema(BaseTestCase):
             "date": {"type": "sring", "format": "date"},
             "date1": {"type": "string", "format": "dat"},
             "patient_sex": {"type": "string", "enum": [2, "female"]},
-            "date_enum": {"type": "string", "format": "date", "enum": ["2022-03-29", "2022-03-29", "2022-05-29"]},
+            "date_enum": {
+                "type": "string",
+                "format": "date",
+                "enum": ["2022-03-29", "2022-03-29", "2022-05-29"],
+            },
             "date_enum1": {"type": "string", "format": "date", "enum": "2022-03-29"},
             "date_enum2": {"type": "string", "format": "date", "enu": ["2022-03-29"]},
             "medical_specialist": {"type": "string", "format": "email"},
-            "medical_specialist1": {"type": "string", "format": "email", "enum": ["email1@gmail.com", "2022-03-29"]},
+            "medical_specialist1": {
+                "type": "string",
+                "format": "email",
+                "enum": ["email1@gmail.com", "2022-03-29"],
+            },
             "counts": {"type": "numbe"},
             "age_min": {"type": "number", "minimum": "min"},
-            "age_range": {"type": "number", "minimum": 30, "maximum": 20, "enum": [20, 23, 120, 12.5, 0.5, -12.3]},
-            "age_enum": {"type": "number", "enum": ["string", "string1", "string2"]}
+            "age_range": {
+                "type": "number",
+                "minimum": 30,
+                "maximum": 20,
+                "enum": [20, 23, 120, 12.5, 0.5, -12.3],
+            },
+            "age_enum": {"type": "number", "enum": ["string", "string1", "string2"]},
         }
         error_msg = (
             "-Not supported field type for date.\n"

@@ -1,19 +1,19 @@
 """
 Googlecloud to SA conversion method
 """
+import logging
 import threading
 from pathlib import Path
 
 import cv2
 import pandas as pd
-from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def googlecloud_to_sa_vector(path, output_dir):

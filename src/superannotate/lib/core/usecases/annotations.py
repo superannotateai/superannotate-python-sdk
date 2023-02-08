@@ -3,6 +3,7 @@ import concurrent.futures
 import copy
 import io
 import json
+import logging
 import os
 import platform
 import re
@@ -43,9 +44,8 @@ from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.video_convertor import VideoFrameGenerator
 from pydantic import BaseModel
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 if platform.system().lower() == "windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

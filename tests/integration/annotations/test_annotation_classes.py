@@ -1,9 +1,11 @@
-from urllib.parse import urlparse
 import os
 from pathlib import Path
+from urllib.parse import urlparse
+
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationClasses(BaseTestCase):
@@ -18,7 +20,9 @@ class TestAnnotationClasses(BaseTestCase):
 
     def test_invalid_json(self):
         try:
-            sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+            sa.create_annotation_classes_from_classes_json(
+                self.PROJECT_NAME, self.classes_path
+            )
         except Exception as e:
             self.assertIn("Couldn't validate annotation classes", str(e))
 

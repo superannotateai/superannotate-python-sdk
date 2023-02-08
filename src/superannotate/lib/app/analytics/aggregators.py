@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -11,9 +12,8 @@ import pandas as pd
 from lib.app.exceptions import AppException
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 @dataclass

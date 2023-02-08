@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import pytest
-
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
@@ -23,26 +22,32 @@ class TestCreateAnnotationClass(BaseTestCase):
         return os.path.join(DATA_SET_PATH, self.TEST_LARGE_CLASSES_JSON)
 
     def test_create_annotation_class(self):
-        sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", class_type="tag")
+        sa.create_annotation_class(
+            self.PROJECT_NAME, "test_add", "#FF0000", class_type="tag"
+        )
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(classes[0]["type"], "tag")
 
     def test_create_annotation_class_with_attr(self):
         _class = sa.create_annotation_class(
-            self.PROJECT_NAME, "test_add", "#FF0000",
+            self.PROJECT_NAME,
+            "test_add",
+            "#FF0000",
             attribute_groups=[
                 {
                     "name": "test",
                     "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
                 }
-            ]
+            ],
         )
         assert "is_multiselect" not in _class["attribute_groups"][0]
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         assert "is_multiselect" not in classes[0]["attribute_groups"][0]
 
     def test_create_annotations_classes_from_class_json(self):
-        classes = sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.large_json_path)
+        classes = sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.large_json_path
+        )
         self.assertEqual(len(classes), 1500)
         assert "is_multiselect" not in str(classes)
 
@@ -61,12 +66,12 @@ class TestCreateAnnotationClass(BaseTestCase):
                 {
                     "name": "test",
                     "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
-                    "default_value": "Bus"
+                    "default_value": "Bus",
                 }
-            ]
+            ],
         )
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
-        assert classes[0]['attribute_groups'][0]["default_value"] == "Bus"
+        assert classes[0]["attribute_groups"][0]["default_value"] == "Bus"
 
     def test_create_annotation_classes_with_default_attribute(self):
         sa.create_annotation_classes_from_classes_json(
@@ -81,31 +86,47 @@ class TestCreateAnnotationClass(BaseTestCase):
                     "attribute_groups": [
                         {
                             "name": "test",
-                            "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
-                            "default_value": "Bus"
+                            "attributes": [
+                                {"name": "Car"},
+                                {"name": "Track"},
+                                {"name": "Bus"},
+                            ],
+                            "default_value": "Bus",
                         }
-                    ]
+                    ],
                 }
-            ]
+            ],
         )
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
-        assert classes[0]['attribute_groups'][0]["default_value"] == "Bus"
+        assert classes[0]["attribute_groups"][0]["default_value"] == "Bus"
 
     def test_create_annotation_class_backend_errors(self):
         from lib.core.entities.classes import AnnotationClassEntity
+
         response = sa.controller.annotation_classes.create(
-            sa.controller.projects.get_by_name(self.PROJECT_NAME).data, AnnotationClassEntity(
-                name="t", color="blue",
+            sa.controller.projects.get_by_name(self.PROJECT_NAME).data,
+            AnnotationClassEntity(
+                name="t",
+                color="blue",
                 attribute_groups=[
-                    {"name": "t"}, {"name": "t"},
-                    {"name": "t", "group_type": "radio", "default_value": [], "attributes": []}
-                ]
-            )
+                    {"name": "t"},
+                    {"name": "t"},
+                    {
+                        "name": "t",
+                        "group_type": "radio",
+                        "default_value": [],
+                        "attributes": [],
+                    },
+                ],
+            ),
         )
 
-        assert response.errors == '"classes[0].attribute_groups[0].attributes" is required.\n' \
-                                  '"classes[0].attribute_groups[1].attributes" is required.\n' \
-                                  '"classes[0].attribute_groups[2].default_value" must be a string'
+        assert (
+            response.errors
+            == '"classes[0].attribute_groups[0].attributes" is required.\n'
+            '"classes[0].attribute_groups[1].attributes" is required.\n'
+            '"classes[0].attribute_groups[2].default_value" must be a string'
+        )
 
     def test_create_annotation_classes_with_empty_default_attribute(self):
         sa.create_annotation_classes_from_classes_json(
@@ -121,15 +142,19 @@ class TestCreateAnnotationClass(BaseTestCase):
                         {
                             "name": "test",
                             "group_type": "radio",
-                            "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                            "attributes": [
+                                {"name": "Car"},
+                                {"name": "Track"},
+                                {"name": "Bus"},
+                            ],
                         }
-                    ]
+                    ],
                 }
-            ]
+            ],
         )
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
-        assert classes[0]['attribute_groups'][0]["default_value"] is None
-        assert "is_multiselect" not in classes[0]['attribute_groups'][0]
+        assert classes[0]["attribute_groups"][0]["default_value"] is None
+        assert "is_multiselect" not in classes[0]["attribute_groups"][0]
 
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
@@ -141,23 +166,29 @@ class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
     def test_create_annotation_class(self):
         msg = ""
         try:
-            sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", class_type="tag")
+            sa.create_annotation_class(
+                self.PROJECT_NAME, "test_add", "#FF0000", class_type="tag"
+            )
         except Exception as e:
             msg = str(e)
-        self.assertEqual(msg, "Predefined tagging functionality is not supported for projects of type Video.")
-
+        self.assertEqual(
+            msg,
+            "Predefined tagging functionality is not supported for projects of type Video.",
+        )
 
     def test_create_radio_annotation_class_attr_required(self):
         msg = ""
         try:
             sa.create_annotation_class(
-                self.PROJECT_NAME, "test_add", "#FF0000",
+                self.PROJECT_NAME,
+                "test_add",
+                "#FF0000",
                 attribute_groups=[
                     {
                         "group_type": "radio",
                         "name": "name",
                     }
-                ]
+                ],
             )
         except Exception as e:
             msg = str(e)
@@ -173,10 +204,9 @@ class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
     def test_create_annotation_class(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"
-            with open(temp_path,
-                      "w") as new_classes:
+            with open(temp_path, "w") as new_classes:
                 new_classes.write(
-                    '''
+                    """
                     [
                        {
                           "id":56820,
@@ -201,7 +231,7 @@ class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
                        }
                     ]
 
-                    '''
+                    """
                 )
             msg = ""
             try:
@@ -210,7 +240,10 @@ class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
                 )
             except Exception as e:
                 msg = str(e)
-            self.assertEqual(msg, "Predefined tagging functionality is not supported for projects of type Video.")
+            self.assertEqual(
+                msg,
+                "Predefined tagging functionality is not supported for projects of type Video.",
+            )
 
 
 class TestCreateAnnotationClassPixel(BaseTestCase):
@@ -224,7 +257,10 @@ class TestCreateAnnotationClassPixel(BaseTestCase):
         return os.path.join(DATA_SET_PATH, self.TEST_LARGE_CLASSES_JSON)
 
     def test_create_annotation_class_with_default_attribute(self):
-        with self.assertRaisesRegexp(AppException, 'The "default_value" key is not supported for project type Pixel.'):
+        with self.assertRaisesRegexp(
+            AppException,
+            'The "default_value" key is not supported for project type Pixel.',
+        ):
             sa.create_annotation_class(
                 self.PROJECT_NAME,
                 "test_add",
@@ -232,14 +268,21 @@ class TestCreateAnnotationClassPixel(BaseTestCase):
                 attribute_groups=[
                     {
                         "name": "test",
-                        "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
-                        "default_value": "Bus"
+                        "attributes": [
+                            {"name": "Car"},
+                            {"name": "Track"},
+                            {"name": "Bus"},
+                        ],
+                        "default_value": "Bus",
                     }
-                ]
+                ],
             )
 
     def test_create_annotation_classes_with_default_attribute(self):
-        with self.assertRaisesRegexp(AppException, 'The "default_value" key is not supported for project type Pixel.'):
+        with self.assertRaisesRegexp(
+            AppException,
+            'The "default_value" key is not supported for project type Pixel.',
+        ):
             sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME,
                 classes_json=[
@@ -252,10 +295,14 @@ class TestCreateAnnotationClassPixel(BaseTestCase):
                         "attribute_groups": [
                             {
                                 "name": "test",
-                                "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
-                                "default_value": "Bus"
+                                "attributes": [
+                                    {"name": "Car"},
+                                    {"name": "Track"},
+                                    {"name": "Bus"},
+                                ],
+                                "default_value": "Bus",
                             }
-                        ]
+                        ],
                     }
-                ]
+                ],
             )

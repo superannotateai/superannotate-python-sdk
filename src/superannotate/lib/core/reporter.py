@@ -1,4 +1,5 @@
 import itertools
+import logging
 import sys
 import threading
 import time
@@ -7,7 +8,6 @@ from typing import Union
 
 import tqdm
 from lib.core import CONFIG
-from superannotate.logger import get_default_logger
 
 
 class Spinner:
@@ -47,7 +47,7 @@ class Reporter:
         disable_progress_bar: bool = False,
         log_debug: bool = True,
     ):
-        self.logger = get_default_logger()
+        self.logger = logging.getLogger("sa")
         self._log_info = log_info
         self._log_warning = log_warning
         self._log_debug = log_debug

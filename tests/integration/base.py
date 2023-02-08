@@ -37,5 +37,8 @@ class BaseTestCase(TestCase):
     def _attach_items(self):
         sa.attach_items(
             self.PROJECT_NAME,
-            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 5)]  # noqa
+            [
+                {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
+                for i in range(1, 5)
+            ],  # noqa
         )

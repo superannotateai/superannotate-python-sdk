@@ -1,10 +1,12 @@
 import os
 from unittest import TestCase
+
 import pytest
-from src.superannotate import SAClient
-sa = SAClient()
-from tests import DATA_SET_PATH
 import src.superannotate.lib.core as constances
+from src.superannotate import SAClient
+from tests import DATA_SET_PATH
+
+sa = SAClient()
 
 
 class TestCloneProject(TestCase):
@@ -49,7 +51,9 @@ class TestCloneProject(TestCase):
             ],
         )
 
-        sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME_1, self.IMAGE_QUALITY)
+        sa.set_project_default_image_quality_in_editor(
+            self.PROJECT_NAME_1, self.IMAGE_QUALITY
+        )
         sa.set_project_workflow(
             self.PROJECT_NAME_1,
             [
@@ -75,9 +79,14 @@ class TestCloneProject(TestCase):
             ],
         )
         new_project = sa.clone_project(
-            self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True, copy_annotation_classes=True
+            self.PROJECT_NAME_2,
+            self.PROJECT_NAME_1,
+            copy_contributors=True,
+            copy_annotation_classes=True,
         )
-        self.assertEqual(new_project['upload_state'], constances.UploadState.INITIAL.name)
+        self.assertEqual(
+            new_project["upload_state"], constances.UploadState.INITIAL.name
+        )
 
         new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
         image_quality = None
@@ -149,7 +158,7 @@ class TestCloneProjectAttachedUrls(TestCase):
                     "attributes": [{"name": "young"}, {"name": "old"}],
                 },
             ],
-            "object"
+            "object",
         )
 
         new_project = sa.clone_project(
@@ -163,5 +172,7 @@ class TestCloneProjectAttachedUrls(TestCase):
         self.assertEqual(ann_classes[0]["name"], "rrr")
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
         self.assertEqual(ann_classes[0]["type"], "object")
-        self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)
+        self.assertIn(
+            "Workflow copy is deprecated for Document projects.", self._caplog.text
+        )
         assert new_project["status"], constances.ProjectStatus.NotStarted.name

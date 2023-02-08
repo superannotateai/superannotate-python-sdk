@@ -1,19 +1,19 @@
 """
 YOLO to SA conversion method
 """
+import logging
 import threading
 from glob import glob
 from pathlib import Path
 
 import cv2
-from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def yolo_object_detection_to_sa_vector(data_path, output_dir):
