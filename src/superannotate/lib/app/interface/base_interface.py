@@ -108,14 +108,6 @@ class BaseInterfaceFacade:
             config.VERIFY_SSL = verify_ssl
         return config
 
-    @property
-    def host(self):
-        return self._host
-
-    @property
-    def token(self):
-        return self._token
-
 
 class Tracker:
     def get_mp_instance(self) -> Mixpanel:

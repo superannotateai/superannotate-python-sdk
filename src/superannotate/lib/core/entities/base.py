@@ -20,6 +20,7 @@ from pydantic.typing import is_namedtuple
 from pydantic.utils import ROOT_KEY
 from pydantic.utils import sequence_like
 from pydantic.utils import ValueItems
+from typing_extensions import Literal
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
@@ -41,14 +42,14 @@ class BaseModel(PydanticBaseModel):
     """
 
     def _iter(
-        self,
-        to_dict: bool = False,
-        by_alias: bool = False,
-        include: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
-        exclude: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = False,
+            self,
+            to_dict: bool = False,
+            by_alias: bool = False,
+            include: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
+            exclude: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
+            exclude_unset: bool = False,
+            exclude_defaults: bool = False,
+            exclude_none: bool = False,
     ) -> "TupleGenerator":  # noqa
 
         # Merge field set excludes with explicit exclude parameter with explicit overriding field set options.
@@ -63,7 +64,7 @@ class BaseModel(PydanticBaseModel):
             include=include, exclude=exclude, exclude_unset=exclude_unset  # type: ignore
         )
         if allowed_keys is None and not (
-            by_alias or exclude_unset or exclude_defaults or exclude_none
+                by_alias or exclude_unset or exclude_defaults or exclude_none
         ):
             # huge boost for plain _iter()
             yield from self.__dict__.items()
@@ -74,15 +75,15 @@ class BaseModel(PydanticBaseModel):
 
         for field_key, v in self.__dict__.items():
             if (allowed_keys is not None and field_key not in allowed_keys) or (
-                exclude_none and v is None
+                    exclude_none and v is None
             ):
                 continue
 
             if exclude_defaults:
                 model_field = self.__fields__.get(field_key)
                 if (
-                    not getattr(model_field, "required", True)
-                    and getattr(model_field, "default", _missing) == v
+                        not getattr(model_field, "required", True)
+                        and getattr(model_field, "default", _missing) == v
                 ):
                     continue
 
@@ -107,15 +108,15 @@ class BaseModel(PydanticBaseModel):
     @classmethod
     @no_type_check
     def _get_value(
-        cls,
-        v: Any,
-        to_dict: bool,
-        by_alias: bool,
-        include: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]],
-        exclude: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]],
-        exclude_unset: bool,
-        exclude_defaults: bool,
-        exclude_none: bool,
+            cls,
+            v: Any,
+            to_dict: bool,
+            by_alias: bool,
+            include: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]],
+            exclude: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]],
+            exclude_unset: bool,
+            exclude_defaults: bool,
+            exclude_none: bool,
     ) -> Any:
 
         if isinstance(v, PydanticBaseModel):
@@ -147,7 +148,7 @@ class BaseModel(PydanticBaseModel):
                 )
                 for k_, v_ in v.items()
                 if (not value_exclude or not value_exclude.is_excluded(k_))
-                and (not value_include or value_include.is_included(k_))
+                   and (not value_include or value_include.is_included(k_))
             }
 
         elif sequence_like(v):
@@ -164,7 +165,7 @@ class BaseModel(PydanticBaseModel):
                 )
                 for i, v_ in enumerate(v)
                 if (not value_exclude or not value_exclude.is_excluded(i))
-                and (not value_include or value_include.is_included(i))
+                   and (not value_include or value_include.is_included(i))
             )
 
             return (
@@ -173,9 +174,9 @@ class BaseModel(PydanticBaseModel):
                 else v.__class__(seq_args)
             )
         elif (
-            isinstance(v, BaseTitledEnum)
-            and getattr(cls.Config, "use_enum_names", False)
-            and to_dict
+                isinstance(v, BaseTitledEnum)
+                and getattr(cls.Config, "use_enum_names", False)
+                and to_dict
         ):
             return v.name
         elif isinstance(v, Enum) and getattr(cls.Config, "use_enum_values", False):
@@ -184,18 +185,18 @@ class BaseModel(PydanticBaseModel):
             return v
 
     def json(
-        self,
-        *,
-        include: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
-        exclude: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
-        by_alias: bool = False,
-        skip_defaults: Optional[bool] = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = False,
-        encoder: Optional[Callable[[Any], Any]] = None,
-        models_as_dict: bool = True,
-        **dumps_kwargs: Any,
+            self,
+            *,
+            include: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
+            exclude: Optional[Union["AbstractSetIntStr", "MappingIntStrAny"]] = None,
+            by_alias: bool = False,
+            skip_defaults: Optional[bool] = None,
+            exclude_unset: bool = False,
+            exclude_defaults: bool = False,
+            exclude_none: bool = False,
+            encoder: Optional[Callable[[Any], Any]] = None,
+            models_as_dict: bool = True,
+            **dumps_kwargs: Any,
     ) -> str:
         """
         Generate a JSON representation of the model, `include` and `exclude` arguments as per `dict()`.
@@ -294,7 +295,7 @@ class BaseItemEntity(TimedBaseModel):
 class ConfigEntity(BaseModel):
     API_TOKEN: str
     API_URL: str = BACKEND_URL
-    LOGGING_LEVEL: str = "INFO"
+    LOGGING_LEVEL: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     LOGGING_PATH: str = f"{LOG_FILE_LOCATION}"
     VERIFY_SSL: bool = True
     ANNOTATION_CHUNK_SIZE = 5000

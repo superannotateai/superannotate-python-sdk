@@ -55,7 +55,6 @@ class CLIFacade:
 
         config_parser["DEFAULT"] = {
             "API_TOKEN": token,
-            "API_URL": constances.BACKEND_URL,
             "LOGGING_LEVEL": "INFO",
             "LOGGING_PATH": constances.LOG_FILE_LOCATION,
         }
