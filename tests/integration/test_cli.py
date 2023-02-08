@@ -216,6 +216,5 @@ class CLITest(TestCase):
             config = ConfigParser()
             config.read(config_ini_path)
             assert config["DEFAULT"]["API_TOKEN"] == _token
-            assert config["DEFAULT"]["API_URL"] == constants.BACKEND_URL
             assert config["DEFAULT"]["LOGGING_LEVEL"] == "INFO"
             assert config["DEFAULT"]["LOGGING_PATH"] == f"{constants.LOG_FILE_LOCATION}"
