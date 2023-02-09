@@ -1,15 +1,3 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 import os
 import sys
 
@@ -34,31 +22,36 @@ master_doc = 'index'
 # ones.
 extensions = ['sphinx.ext.autodoc']
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
+extensions += ['sphinx_inline_tabs']
+extensions += ['jaraco.tidelift']
+extensions += ['notfound.extension']
+
+
 exclude_patterns = []
 
-# -- Options for HTML output -------------------------------------------------
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-html_theme = 'sphinx_rtd_theme'
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
-
 autodoc_typehints = "description"
+
 html_show_sourcelink = False
 
+html_static_path = ['images']
 html_context = {
     "display_github": False,  # Add 'Edit on Github' link instead of 'View page source'
     "last_updated": True,
     "commit": False,
+}
+
+html_theme = 'furo'
+html_logo = "images/sa_logo.png"
+
+html_theme_options = {
+    "sidebar_hide_name": True,
+    "light_css_variables": {
+        "color-brand-primary": "#336790",  # "blue"
+        "color-brand-content": "#336790",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#E5B62F",  # "yellow"
+        "color-brand-content": "#E5B62F",
+    },
 }

@@ -2326,7 +2326,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                include_custom_metadata=True
             )
 
-
         Response Example:
         ::
             {
@@ -2909,7 +2908,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param items:  list of name-data pairs.
             The key of each dict indicates an existing item name and the value represents the custom metadata dict.
-             The values for the corresponding keys will be added to an item or will be overridden.
+            The values for the corresponding keys will be added to an item or will be overridden.
         :type items: list of dicts
 
         :return: dictionary with succeeded and failed item names.
