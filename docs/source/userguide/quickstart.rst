@@ -5,6 +5,7 @@ Quickstart
 Installation
 ============
 
+.. _ref_quickstart:
 
 SDK is available on PyPI:
 
@@ -12,7 +13,7 @@ SDK is available on PyPI:
 
    pip install superannotate
 
-The package officially supports Python 3.6+ and was tested under Linux and
+The package officially supports Python 3.7+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
 
 For certain video related functions to work, ffmpeg package needs to be installed.
@@ -58,6 +59,7 @@ To generate a default location (:file:`~/.superannotate/config.json`) config fil
 
 Custom config file
 ~~~~~~~~~~~~~~~~~~~~~~
+.. _ref_custom_config_file:
 
 To create a custom config file a new JSON file with key "token" can be created:
 
@@ -67,10 +69,9 @@ To create a custom config file a new JSON file with key "token" can be created:
      "token" : "<team token>"
    }
 
-----------
 
 Initialization and authorization
-________________________________
+=========
 
 Include the package in your Python code:
 
@@ -89,11 +90,8 @@ the :ref:`CLI init <ref_cli_init>`. Otherwise to authenticate SDK with the :ref:
 
 .. _basic-use:
 
-Basic Use
-=========
-
 Creating a project
------------------
+=========
 
 To create a new "Vector" project with name "Example Project 1" and description
 "test":
@@ -106,8 +104,7 @@ To create a new "Vector" project with name "Example Project 1" and description
 
 
 Uploading images to project
------------------
-
+=========
 
 
 To upload all images with extensions "jpg" or "png" from the
@@ -132,3 +129,38 @@ For full list of available functions on projects, see :ref:`ref_projects`.
    performance improvement.
 
 
+Working with images
+=========
+
+
+To download the image one can use:
+
+.. code-block:: python
+
+   image = "example_image1.jpg"
+
+   sa.download_image(project, image, "<path_to_local_dir>")
+
+To download image annotations:
+
+.. code-block:: python
+
+   sa.download_image_annotations(project, image, "<path_to_local_dir>")
+
+Upload back to the platform with:
+
+.. code-block:: python
+
+   sa.upload_image_annotations(project, image, "<path_to_json>")
+
+
+
+
+Working with team contributors
+=========
+
+A team contributor can be invited to the team with:
+
+.. code-block:: python
+
+   sa.invite_contributors_to_team(emails=["admin@superannotate.com"], admin=False)

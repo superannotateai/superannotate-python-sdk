@@ -4,7 +4,7 @@ Remote metadata reference
 
 Projects metadata
 _________________
-
+.. _ref_metadata:
 Project metadata example:
 
 .. code-block:: python

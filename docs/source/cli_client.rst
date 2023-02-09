@@ -1,7 +1,8 @@
 .. _ref_cli:
 
+==========
 CLI Reference
-======================================
+==========
 
 With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
 
@@ -10,7 +11,8 @@ With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
    superannotatecli <command> <--arg1 val1> <--arg2 val2> [--optional_arg3 val3] [--optional_arg4] ...
 
 To use the CLI a command line initialization step should be performed after the
-:ref:`installation <ref_tutorial_installation>`:
+
+:ref:`installation <_ref_quickstart>`:
 
 .. code-block:: bash
 
@@ -19,7 +21,7 @@ To use the CLI a command line initialization step should be performed after the
 ----------
 
 
-Available commands 
+Available commands
 ________________________
 
 
@@ -116,7 +118,7 @@ To upload videos from folder to project use:
 
 .. code-block:: bash
 
-   superannotatecli upload-videos --project <project_name> --folder <folder_path> 
+   superannotatecli upload-videos --project <project_name> --folder <folder_path>
                                   [--recursive] [--extensions mp4,avi,mov,webm,flv,mpg,ogg]
                                   [--target-fps <float>] [--start-time <float>]
                                   [--end-time <float>]
@@ -133,7 +135,7 @@ If not specified all frames will be uploaded.
 *start-time* specifies time (in seconds) from which to start extracting frames,
 default is 0.0.
 
-*end-time* specifies time (in seconds) up to which to extract frames. 
+*end-time* specifies time (in seconds) up to which to extract frames.
 If it is not specified, then up to end is assumed.
 
 ----------
@@ -147,8 +149,8 @@ To upload preannotations from folder to project use:
 
 .. code-block:: bash
 
-   superannotatecli upload-preannotations --project <project_name> --folder <folder_path> 
-                                          [--format "COCO" or "SuperAnnotate"] 
+   superannotatecli upload-preannotations --project <project_name> --folder <folder_path>
+                                          [--format "COCO" or "SuperAnnotate"]
                                           [--dataset-name "<dataset_name_for_COCO_projects>"]
                                           [--task "<task_type_for_COCO_projects>]
 
@@ -160,7 +162,7 @@ Only when COCO format is specified *dataset-name* and *task* arguments are requi
 
 *dataset-name* specifies JSON filename (without extension) in <folder_path>.
 
-*task* specifies the COCO task for conversion. Please see 
+*task* specifies the COCO task for conversion. Please see
 :ref:`import_annotation_format <ref_import_annotation_format>` for more details.
 
 
@@ -175,8 +177,8 @@ To upload annotations from folder to project use:
 
 .. code-block:: bash
 
-   superannotatecli upload-annotations --project <project_name> --folder <folder_path> 
-                                       [--format "COCO" or "SuperAnnotate"] 
+   superannotatecli upload-annotations --project <project_name> --folder <folder_path>
+                                       [--format "COCO" or "SuperAnnotate"]
                                        [--dataset-name "<dataset_name_for_COCO_projects>"]
                                        [--task "<task_type_for_COCO_projects>]
 
@@ -187,7 +189,7 @@ Only when COCO format is specified *dataset-name* and *task* arguments are requi
 
 *dataset-name* specifies JSON filename (without extension) in <folder_path>.
 
-*task* specifies the COCO task for conversion. Please see 
+*task* specifies the COCO task for conversion. Please see
 :ref:`import_annotation_format <ref_import_annotation_format>` for more details.
 
 ----------
@@ -201,9 +203,9 @@ To export project
 
 .. code-block:: bash
 
-   superannotatecli export-project --project <project_name> --folder <folder_path> 
+   superannotatecli export-project --project <project_name> --folder <folder_path>
                                    [--include-fuse]
-                                   [--disable-extract-zip-contents] 
+                                   [--disable-extract-zip-contents]
                                    [--annotation-statuses <comma separated list of annotation statuses to export>]
 
 ----------

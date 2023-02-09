@@ -3,12 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. image:: sa_logo.png
+.. image:: images/sa_logo.png
   :width: 200
   :alt: SuperAnnotate AI
   :target: https://app.superannotate.com
 
-|
+
 
 .. toctree::
    :caption: Table of Contents
@@ -17,8 +17,8 @@
 
    User guide <userguide/index>
    API Reference <api_reference/index>
-   server.rst
-   cli.rst
+   CLI Reference <cli_client>
+   SA Server <sa_server>
    LICENSE.rst
 
 ----------
@@ -89,9 +89,6 @@ SDK is available on PyPI:
 
 The package officially supports Python 3.7+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
-
-For more detailed installation steps and package usage please have a look at 
-the :ref:`tutorial <ref_tutorial>`.
 
 ----------
 
