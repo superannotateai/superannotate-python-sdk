@@ -215,6 +215,6 @@ class CLITest(TestCase):
                 self.safe_run(self._cli.init, _token)
             config = ConfigParser()
             config.read(config_ini_path)
-            assert config["DEFAULT"]["API_TOKEN"] == _token
+            assert config["DEFAULT"]["SA_TOKEN"] == _token
             assert config["DEFAULT"]["LOGGING_LEVEL"] == "INFO"
             assert config["DEFAULT"]["LOGGING_PATH"] == f"{constants.LOG_FILE_LOCATION}"

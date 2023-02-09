@@ -28,7 +28,7 @@ class BaseInterfaceFacade:
 
     def __init__(self, token: str = None, config_path: str = None):
         if token:
-            config = ConfigEntity(API_TOKEN=token)
+            config = ConfigEntity(SA_TOKEN=token)
         elif config_path:
             config_path = Path(config_path)
             if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
@@ -70,7 +70,7 @@ class BaseInterfaceFacade:
         with open(path) as json_file:
             json_data = json.load(json_file)
         token = json_data["token"]
-        config = ConfigEntity(API_TOKEN=token)
+        config = ConfigEntity(SA_TOKEN=token)
         host = json_data.get("main_endpoint")
         verify_ssl = json_data.get("ssl_verify")
         if host:
@@ -99,7 +99,7 @@ class BaseInterfaceFacade:
         token = os.environ.get("SA_TOKEN")
         if not token:
             return None
-        config = ConfigEntity(API_TOKEN=token)
+        config = ConfigEntity(**dict(os.environ))
         host = os.environ.get("SA_URL")
         verify_ssl = not os.environ.get("SA_SSL", "True").lower() in ("false", "f", "0")
         if host:

@@ -62,7 +62,7 @@ class ClientInitTestCase(TestCase):
                     config_parser = ConfigParser()
                     config_parser.optionxform = str
                     config_parser["DEFAULT"] = {
-                        "API_TOKEN": self._token,
+                        "SA_TOKEN": self._token,
                         "LOGGING_LEVEL": "DEBUG",
                     }
                     config_parser.write(config_ini)

@@ -293,8 +293,8 @@ class BaseItemEntity(TimedBaseModel):
 
 
 class ConfigEntity(BaseModel):
-    API_TOKEN: str
-    API_URL: str = BACKEND_URL
+    API_TOKEN: str = Field(alias="SA_TOKEN")
+    API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
     LOGGING_LEVEL: Literal[
         "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
     ] = "INFO"
@@ -304,3 +304,6 @@ class ConfigEntity(BaseModel):
     ITEM_CHUNK_SIZE = 2000
     MAX_THREAD_COUNT = 4
     MAX_COROUTINE_COUNT = 8
+
+    class Config:
+        extra = Extra.ignore
