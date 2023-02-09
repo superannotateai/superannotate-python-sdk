@@ -54,8 +54,7 @@ class CLIFacade:
         config_parser.optionxform = str
 
         config_parser["DEFAULT"] = {
-            "API_TOKEN": token,
-            "API_URL": constances.BACKEND_URL,
+            "SA_TOKEN": token,
             "LOGGING_LEVEL": "INFO",
             "LOGGING_PATH": constances.LOG_FILE_LOCATION,
         }

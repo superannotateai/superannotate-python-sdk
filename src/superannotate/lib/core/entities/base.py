@@ -20,6 +20,7 @@ from pydantic.typing import is_namedtuple
 from pydantic.utils import ROOT_KEY
 from pydantic.utils import sequence_like
 from pydantic.utils import ValueItems
+from typing_extensions import Literal
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
@@ -292,12 +293,17 @@ class BaseItemEntity(TimedBaseModel):
 
 
 class ConfigEntity(BaseModel):
-    API_TOKEN: str
-    API_URL: str = BACKEND_URL
-    LOGGING_LEVEL: str = "INFO"
+    API_TOKEN: str = Field(alias="SA_TOKEN")
+    API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
+    LOGGING_LEVEL: Literal[
+        "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+    ] = "INFO"
     LOGGING_PATH: str = f"{LOG_FILE_LOCATION}"
     VERIFY_SSL: bool = True
     ANNOTATION_CHUNK_SIZE = 5000
     ITEM_CHUNK_SIZE = 2000
     MAX_THREAD_COUNT = 4
     MAX_COROUTINE_COUNT = 8
+
+    class Config:
+        extra = Extra.ignore
