@@ -209,7 +209,6 @@ class CLITest(TestCase):
     def test_init(self):
         _token = "asd=123"
         with tempfile.TemporaryDirectory() as config_dir:
-            constants.HOME_PATH = config_dir
             config_ini_path = f"{config_dir}/config.ini"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
                 self.safe_run(self._cli.init, _token)
@@ -218,3 +217,17 @@ class CLITest(TestCase):
             assert config["DEFAULT"]["SA_TOKEN"] == _token
             assert config["DEFAULT"]["LOGGING_LEVEL"] == "INFO"
             assert config["DEFAULT"]["LOGGING_PATH"] == f"{constants.LOG_FILE_LOCATION}"
+
+    def test_init_with_logging_configs(self):
+        _token = "asd=123"
+        _logging_level = "ERROR"
+        _logging_path = "my-user/logs/superannotate/"
+        with tempfile.TemporaryDirectory() as config_dir:
+            config_ini_path = f"{config_dir}/config.ini"
+            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
+                self.safe_run(self._cli.init, _token, _logging_level, _logging_path)
+            config = ConfigParser()
+            config.read(config_ini_path)
+            assert config["DEFAULT"]["SA_TOKEN"] == _token
+            assert config["DEFAULT"]["LOGGING_LEVEL"] == _logging_level
+            assert config["DEFAULT"]["LOGGING_PATH"] == _logging_path

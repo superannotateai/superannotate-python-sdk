@@ -13,7 +13,7 @@ repos:
     hooks:
       - id: black
         name: Code Formatter (black)
-  - repo: 'https://gitlab.com/pycqa/flake8'
+  - repo: 'https://github.com/PyCQA/flake8'
     rev: 3.8.2
     hooks:
       - id: flake8
