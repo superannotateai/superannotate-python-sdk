@@ -97,8 +97,9 @@ class ProjectEntity(TimedBaseModel):
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
     workflows: Optional[List[WorkflowEntity]] = []
-    completed_images_count: Optional[int] = Field(None, alias="completedImagesCount")
-    root_folder_completed_images_count: Optional[int] = Field(
+    item_count: Optional[int] = Field(None, alias="imageCount")
+    completed_items_count: Optional[int] = Field(None, alias="completedImagesCount")
+    root_folder_completed_items_count: Optional[int] = Field(
         None, alias="rootFolderCompletedImagesCount"
     )
 

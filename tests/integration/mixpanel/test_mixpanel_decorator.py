@@ -78,7 +78,7 @@ class TestMixpanel(TestCase):
     def test_search_projects(self, track_method):
         kwargs = {
             "name": self.PROJECT_NAME,
-            "include_complete_image_count": True,
+            "include_complete_item_count": True,
             "status": "NotStarted",
             "return_metadata": False,
         }
@@ -96,6 +96,9 @@ class TestMixpanel(TestCase):
             "project_description": self.PROJECT_DESCRIPTION,
             "project_type": self.PROJECT_TYPE,
             "settings": {"a": 1, "b": 2},
+            "classes": None,
+            "workflows": None,
+            'instructions_link': None
         }
         try:
             self.CLIENT.create_project(**kwargs)

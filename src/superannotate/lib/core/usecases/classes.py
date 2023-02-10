@@ -8,7 +8,6 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
-from lib.core.reporter import Spinner
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
 
@@ -150,21 +149,17 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
                 )
             created = []
             chunk_failed = False
-            with Spinner():
-                # this is in reverse order because of the front-end
-                for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
-                    response = (
-                        self._service_provider.annotation_classes.create_multiple(
-                            project=self._project,
-                            classes=unique_annotation_classes[
-                                i - self.CHUNK_SIZE : i
-                            ],  # noqa
-                        )
-                    )
-                    if response.ok:
-                        created.extend(response.data)
-                    else:
-                        chunk_failed = True
+            # this is in reverse order because of the front-end
+            for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
+                response = self._service_provider.annotation_classes.create_multiple(
+                    project=self._project,
+                    classes=unique_annotation_classes[i - self.CHUNK_SIZE : i],  # noqa
+                )
+                if response.ok:
+                    created.extend(response.data)
+                else:
+                    logger.debug(response.error)
+                    chunk_failed = True
             if created:
                 logger.info(
                     f"{len(created)} annotation classes were successfully created in {self._project.name}."

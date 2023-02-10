@@ -20,6 +20,7 @@ Project metadata example:
      "attachment_path": None,
      "entropy_status": 1,
      "status": "NotStarted",
+     "item_count": 123,
      "...": "..."
    }
 

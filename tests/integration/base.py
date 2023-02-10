@@ -34,11 +34,14 @@ class BaseTestCase(TestCase):
         except Exception as e:
             print(str(e))
 
-    def _attach_items(self):
+    def _attach_items(self, count=5, folder=None):
+        path = self.PROJECT_NAME
+        if folder:
+            path = f"{self.PROJECT_NAME}/{folder}"
         sa.attach_items(
-            self.PROJECT_NAME,
+            path,
             [
                 {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
-                for i in range(1, 5)
+                for i in range(1, count + 1)
             ],  # noqa
         )

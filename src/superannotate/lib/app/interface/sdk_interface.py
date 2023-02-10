@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -51,6 +52,7 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
 from lib.core.conditions import EmptyCondition
 from lib.core.entities import AttachmentEntity
+from lib.core.entities import WorkflowEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
@@ -233,7 +235,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         name: Optional[NotEmptyStr] = None,
         return_metadata: bool = False,
-        include_complete_image_count: bool = False,
+        include_complete_item_count: bool = False,
         status: Optional[Union[PROJECT_STATUS, List[PROJECT_STATUS]]] = None,
     ):
         """
@@ -246,8 +248,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param return_metadata: return metadata of projects instead of names
         :type return_metadata: bool
 
-        :param include_complete_image_count: return projects that have completed images and include the number of completed images in response.
-        :type include_complete_image_count: bool
+        :param include_complete_item_count: return projects that have completed items and include
+            the number of completed items in response.
+        :type include_complete_item_count: bool
 
         :param status: search projects via project status
         :type status: str
@@ -265,9 +268,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         condition = Condition.get_empty_condition()
         if name:
             condition &= Condition("name", name, EQ)
-        if include_complete_image_count:
+        if include_complete_item_count:
             condition &= Condition(
-                "completeImagesCount", include_complete_image_count, EQ
+                "completeImagesCount", include_complete_item_count, EQ
             )
         for status in statuses:
             condition &= Condition(
@@ -280,7 +283,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if return_metadata:
             return [
                 ProjectSerializer(project).serialize(
-                    exclude={"settings", "workflows", "contributors", "classes"}
+                    exclude={
+                        "settings",
+                        "workflows",
+                        "contributors",
+                        "classes",
+                        "item_count",
+                    }
                 )
                 for project in response.data
             ]
@@ -293,6 +302,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_description: NotEmptyStr,
         project_type: PROJECT_TYPE,
         settings: List[Setting] = None,
+        classes: List[AnnotationClassEntity] = None,
+        workflows: List = None,
+        instructions_link: str = None,
     ):
         """Create a new project in the team.
 
@@ -308,25 +320,71 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param settings: list of settings objects
         :type settings: list of dicts
 
+        :param classes: list of class objects
+        :type classes: list of dicts
+
+        :param workflows:  list of information for each step
+        :type workflows: list of dicts
+
+        :param instructions_link: str of instructions URL
+        :type instructions_link: str
+
         :return: dict object metadata the new project
         :rtype: dict
         """
+        if workflows:
+            if project_type.capitalize() not in (
+                constants.ProjectType.VECTOR.name,
+                constants.ProjectType.PIXEL.name,
+            ):
+                raise AppException(
+                    f"Workflow is not supported in {project_type} project."
+                )
+            parse_obj_as(List[WorkflowEntity], workflows)
+        if workflows and not classes:
+            raise AppException(
+                "Project with workflows can not be created without classes."
+            )
         if settings:
             settings = parse_obj_as(List[SettingEntity], settings)
         else:
             settings = []
-        response = self.controller.projects.create(
+        if classes:
+            classes = parse_obj_as(List[AnnotationClassEntity], classes)
+        if workflows and classes:
+            invalid_classes = []
+            class_names = [_class.name for _class in classes]
+            for step in workflows:
+                if step["className"] not in class_names:
+                    invalid_classes.append(step["className"])
+            if invalid_classes:
+                raise AppException(
+                    f"There are no [{', '.join(invalid_classes)}] classes created in the project."
+                )
+        project_response = self.controller.projects.create(
             entities.ProjectEntity(
                 name=project_name,
                 description=project_description,
                 type=constants.ProjectType.get_value(project_type),
                 settings=settings,
+                instructions_link=instructions_link,
             )
         )
-        if response.errors:
-            raise AppException(response.errors)
-
-        return ProjectSerializer(response.data).serialize()
+        project_response.raise_for_status()
+        project = project_response.data
+        if classes:
+            classes_response = self.controller.annotation_classes.create_multiple(
+                project, classes
+            )
+            classes_response.raise_for_status()
+            project.classes = classes_response.data
+            if workflows:
+                workflow_response = self.controller.projects.set_workflows(
+                    project, workflows
+                )
+                workflow_response.raise_for_status()
+                project.workflows = self.controller.projects.list_workflow(project).data
+        return ProjectSerializer(project).serialize()
 
     def create_project_from_metadata(self, project_metadata: Project):
         """Create a new project in the team using project metadata object dict.
@@ -340,6 +398,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: dict object metadata the new project
         :rtype: dict
         """
+        deprecation_msg = '"create_project_from_metadata" is deprecated and replaced by "create_project"'
+        warnings.warn(deprecation_msg, DeprecationWarning)
+        logger.warning(deprecation_msg)
+
         project_metadata = project_metadata.dict()
         if project_metadata["type"] not in enums.ProjectType.titles():
             raise AppException(
@@ -557,7 +619,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         include_settings: Optional[StrictBool] = False,
         include_workflow: Optional[StrictBool] = False,
         include_contributors: Optional[StrictBool] = False,
-        include_complete_image_count: Optional[StrictBool] = False,
+        include_complete_item_count: Optional[StrictBool] = False,
     ):
         """Returns project metadata
 
@@ -576,9 +638,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                  the key "contributors"
         :type include_contributors: bool
 
-        :param include_complete_image_count: enables project complete image count output under
-                                 the key "completed_images_count"
-        :type include_complete_image_count: bool
+        :param include_complete_item_count: enables project complete item count output under
+                                 the key "completed_items_count"
+        :type include_complete_item_count: bool
 
         :return: metadata of project
         :rtype: dict
@@ -591,7 +653,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_settings,
             include_workflow,
             include_contributors,
-            include_complete_image_count,
+            include_complete_item_count,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -968,7 +1030,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: number of images in the project
         :rtype: int
         """
+        deprecation_msg = (
+            "“get_project_image_count” is deprecated and replaced"
+            " by “item_count” value will be included in project metadata."
+        )
 
+        warnings.warn(deprecation_msg, DeprecationWarning)
+        logger.warning(deprecation_msg)
         project_name, folder_name = extract_project_folder(project)
 
         response = self.controller.get_project_image_count(
