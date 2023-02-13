@@ -30,4 +30,3 @@ Utility functions
 --------------------------------
 
 .. autofunction:: superannotate.SAClient.consensus
-.. autofunction:: superannotate.SAClient.benchmark

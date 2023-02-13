@@ -188,10 +188,3 @@ The points are colored according to class name. Each annotator is represented wi
 
 .. image:: images/consensus_scatter.png
 
-
-Computing benchmark scores for instances between ground truth project and given project list
-============
-
-
-Benchmark is a tool to compare the quallity of the annotations of the same image that is present in several projects with
-the ground truth annotation of the same image that is in a separate project.

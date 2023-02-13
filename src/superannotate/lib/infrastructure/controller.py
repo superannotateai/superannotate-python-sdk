@@ -1147,48 +1147,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def benchmark(
-        self,
-        project_name: str,
-        ground_truth_folder_name: str,
-        folder_names: List[str],
-        export_root: str,
-        image_list: List[str],
-        annot_type: str,
-        show_plots: bool,
-    ):
-        project = self.get_project(project_name)
-        export_response = self.prepare_export(
-            project.name,
-            folder_names=folder_names,
-            include_fuse=False,
-            only_pinned=False,
-        )
-        if export_response.errors:
-            return export_response
-
-        response = usecases.DownloadExportUseCase(
-            service_provider=self.service_provider,
-            project=project,
-            export_name=export_response.data["name"],
-            folder_path=export_root,
-            extract_zip_contents=True,
-            to_s3_bucket=False,
-            reporter=self.get_default_reporter(),
-        ).execute()
-        if response.errors:
-            raise AppException(response.errors)
-        use_case = usecases.BenchmarkUseCase(
-            project=project,
-            ground_truth_folder_name=ground_truth_folder_name,
-            folder_names=folder_names,
-            export_dir=export_root,
-            image_list=image_list,
-            annotation_type=annot_type,
-            show_plots=show_plots,
-        )
-        return use_case.execute()
-
     def consensus(
         self,
         project_name: str,

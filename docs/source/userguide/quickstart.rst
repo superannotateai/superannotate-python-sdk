@@ -23,8 +23,8 @@ It can be installed on Ubuntu with:
 
    sudo apt-get install ffmpeg
 
-For Windows and Mac OS based installations to use :py:obj:`benchmark` and :py:obj:`consensus`
-functions you might also need to install beforehand :py:obj:`shapely` package,
+For Windows and Mac OS based installations to use :py:obj:`consensus`
+function you might also need to install beforehand :py:obj:`shapely` package,
 which we found to work properly only under Anaconda distribution, with:
 
 .. code-block:: bash
