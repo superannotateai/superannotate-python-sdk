@@ -35,7 +35,7 @@ def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
     global _loggers
     if not _loggers.get("sa"):
         logger = logging.getLogger("sa")
-        logger.propagate = False
+        logger.propagate = True
         logger.setLevel(level)
         stream_handler = logging.StreamHandler()
         formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(message)s")
