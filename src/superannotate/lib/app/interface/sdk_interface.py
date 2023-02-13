@@ -4,7 +4,6 @@ import io
 import json
 import os
 import sys
-import tempfile
 import warnings
 from pathlib import Path
 from typing import Callable
@@ -1793,74 +1792,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             logger.error("\n".join([str(error) for error in res.errors]))
         else:
             return BaseSerializer(res.data).serialize()
-
-    def benchmark(
-        self,
-        project: Union[NotEmptyStr, dict],
-        gt_folder: str,
-        folder_names: List[NotEmptyStr],
-        export_root: Optional[Union[str, Path]] = None,
-        image_list=None,
-        annot_type: Optional[ANNOTATION_TYPE] = "bbox",
-        show_plots=False,
-    ):
-        """Computes benchmark score for each instance of given images that are present both gt_project_name project
-            and projects in folder_names list:
-
-        :param project: project name or metadata of the project
-        :type project: str or dict
-        :param gt_folder: project folder name that contains the ground truth annotations
-        :type gt_folder: str
-        :param folder_names: list of folder names in the project for which the scores will be computed
-        :type folder_names: list of str
-        :param export_root: root export path of the projects
-        :type export_root: Path-like (str or Path)
-        :param image_list: List of image names from the projects list that must be used. If None,
-                then all images from the projects list will be used. Default: None
-        :type image_list: list
-        :param annot_type: Type of annotation instances to consider.
-                Available candidates are: ["bbox", "polygon", "point"]
-        :type annot_type: str
-        :param show_plots: If True, show plots based on results of consensus computation. Default: False
-        :type show_plots: bool
-
-        :return: Pandas DateFrame with columns
-                (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
-        :rtype: pandas DataFrame
-        """
-        project_name = project
-        if isinstance(project, dict):
-            project_name = project["name"]
-
-        project = self.controller.projects.get_by_name(project_name).data
-        if project.type not in constants.ProjectType.images:
-            raise AppException(LIMITED_FUNCTIONS[project.type])
-
-        if not export_root:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                response = self.controller.benchmark(
-                    project_name=project_name,
-                    ground_truth_folder_name=gt_folder,
-                    folder_names=folder_names,
-                    export_root=temp_dir,
-                    image_list=image_list,
-                    annot_type=annot_type,
-                    show_plots=show_plots,
-                )
-
-        else:
-            response = self.controller.benchmark(
-                project_name=project_name,
-                ground_truth_folder_name=gt_folder,
-                folder_names=folder_names,
-                export_root=export_root,
-                image_list=image_list,
-                annot_type=annot_type,
-                show_plots=show_plots,
-            )
-            if response.errors:
-                raise AppException(response.errors)
-        return response.data
 
     def consensus(
         self,

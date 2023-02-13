@@ -117,10 +117,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))
         try:
-            sa.benchmark(self.PROJECT_NAME, "some", ["some folder1"])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.upload_videos_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

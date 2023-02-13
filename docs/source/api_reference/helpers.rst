@@ -15,8 +15,6 @@ _________________________________________________________________
 .. autofunction:: superannotate.convert_project_type
 .. autofunction:: superannotate.convert_json_version
 
-
-
 ----------
 
 Working with annotations
@@ -28,15 +26,7 @@ ________________________
 
 ----------
 
-Aggregating class distribution from annotations
-_____________________________________________________________
-
-.. autofunction:: superannotate.class_distribution
-
-----------
-
 Utility functions
 --------------------------------
 
 .. autofunction:: superannotate.SAClient.consensus
-.. autofunction:: superannotate.SAClient.benchmark

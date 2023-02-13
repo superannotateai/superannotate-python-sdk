@@ -45,4 +45,3 @@ class TestDFWithTagInstance(BaseTestCase):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
         self.assertEqual(df.iloc[0]["type"], "tag")
 
-
