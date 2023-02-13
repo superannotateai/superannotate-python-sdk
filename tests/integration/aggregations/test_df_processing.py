@@ -40,21 +40,3 @@ class TestDFWithTagInstance(BaseTestCase):
     def test_filter_instances(self):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
         self.assertEqual(df.iloc[0]["type"], "tag")
-
-
-class TestClassDistributionWithTagInstance(BaseTestCase):
-    PROJECT_TYPE = "Vector"
-    FOLDER_PATH = "data_set"
-    PROJECT_NAME = "sample_project_vector_with_tag"
-
-    @property
-    def folder_path(self):
-        return os.path.join(Path(__file__).parent.parent.parent, self.FOLDER_PATH)
-
-    @pytest.mark.skip(reason="Need to adjust")
-    def test_filter_instances(self):
-        df = sa.class_distribution(
-            export_root=self.folder_path, project_names=[self.PROJECT_NAME]
-        )
-        self.assertEqual(df.iloc[0]["count"], 1)
-        self.assertEqual(df.iloc[0]["className"], "Weather")

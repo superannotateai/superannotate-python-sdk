@@ -15,8 +15,6 @@ _________________________________________________________________
 .. autofunction:: superannotate.convert_project_type
 .. autofunction:: superannotate.convert_json_version
 
-
-
 ----------
 
 Working with annotations
@@ -25,13 +23,6 @@ ________________________
 .. _ref_aggregate_annotations_as_df:
 .. automethod:: superannotate.SAClient.validate_annotations
 .. automethod:: superannotate.SAClient.aggregate_annotations_as_df
-
-----------
-
-Aggregating class distribution from annotations
-_____________________________________________________________
-
-.. autofunction:: superannotate.class_distribution
 
 ----------
 

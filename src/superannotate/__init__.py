@@ -12,7 +12,6 @@ import requests  # noqa
 from packaging.version import parse  # noqa
 from superannotate.lib.app.input_converters import convert_json_version  # noqa
 from superannotate.lib.app.input_converters import convert_project_type  # noqa
-from superannotate.lib.app.analytics.class_analytics import class_distribution  # noqa
 from superannotate.lib.app.exceptions import AppException  # noqa
 from superannotate.lib.app.input_converters import convert_json_version  # noqa
 from superannotate.lib.app.input_converters import convert_project_type  # noqa
@@ -43,8 +42,6 @@ __all__ = [
     # Utils
     "enums",
     "AppException",
-    # analytics
-    "class_distribution",
     # converters
     "convert_json_version",
     "import_annotation",
