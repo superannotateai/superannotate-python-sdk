@@ -2091,8 +2091,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return uploaded, failed_images, duplications
         raise AppException(use_case.response.errors)
 
-    @staticmethod
     def aggregate_annotations_as_df(
+        self,
         project_root: Union[NotEmptyStr, Path],
         project_type: PROJECT_TYPE,
         folder_names: Optional[List[Union[Path, NotEmptyStr]]] = None,
