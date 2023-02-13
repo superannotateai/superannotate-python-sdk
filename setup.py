@@ -18,16 +18,6 @@ with open("requirements.txt") as f:
     requirements.extend(f.read().splitlines())
 
 
-def package_files(directory):
-    paths = []
-    for (path, directories, filenames) in os.walk(directory):
-        for filename in filenames:
-            if filename.endswith("pyc"):
-                continue
-            paths.append(os.path.join('..', path, filename))
-    return paths
-
-
 setup(
     name='superannotate',
     version=sdk_version,
