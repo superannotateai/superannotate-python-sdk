@@ -22,8 +22,12 @@ setup(
     name='superannotate',
     version=sdk_version,
     package_dir={"": "src"},
-    package_data={"superannotate": ["logging.conf"]},
     packages=find_packages(where="src"),
+    package_data={
+        "superannotate.lib.app.server": ['*.txt', '*.sh',  '*.rst', 'Dockerfile'],
+        "superannotate.lib.app.server.templates": ['*.html'],
+        "superannotate.lib.app.server.deployment": ['*.ini', '*.sh'],
+    },
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='SuperAnnotate AI',
@@ -48,5 +52,7 @@ setup(
     project_urls={
         'Documentation': 'https://superannotate.readthedocs.io/en/stable/',
     },
-    python_requires='>=3.7'
+    python_requires='>=3.7',
+    include_package_data=True,
+
 )
