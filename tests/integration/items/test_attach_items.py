@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+from unittest import TestCase
 
+from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -71,3 +73,17 @@ class TestAttachItemsVector(BaseTestCase):
         self.assertRaises(
             Exception, sa.attach_items, self.PROJECT_NAME, self.scv_path_50k
         )
+
+
+class TestAttachItemsVectorArguments(TestCase):
+    PROJECT_NAME = "TestAttachItemsVectorArguments"
+
+    def test_attach_items_invalid_payload(self):
+        error_msg = [
+            "attachments", "str type expected",
+            "value is not a valid path",
+            r"attachments\[0].url", "field required"
+        ]
+        pattern = r"(\s+)" + r"(\s+)".join(error_msg)
+        with self.assertRaisesRegexp(AppException, pattern):
+            sa.attach_items(self.PROJECT_NAME, [{'name': "name"}])

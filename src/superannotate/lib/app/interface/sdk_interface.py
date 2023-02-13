@@ -19,9 +19,9 @@ import pydantic
 from typing_extensions import Literal
 
 if sys.version_info < (3, 11):
-    from typing_extensions import TypedDict, NotRequired  # noqa
+    from typing_extensions import TypedDict, NotRequired, Required  # noqa
 else:
-    from typing import TypedDict, NotRequired  # noqa
+    from typing import TypedDict, NotRequired, Required  # noqa
 
 import boto3
 from pydantic import StrictBool
@@ -111,7 +111,7 @@ class PriorityScore(TypedDict):
 
 
 class Attachment(TypedDict, total=False):
-    url: str
+    url: Required[str]  # noqa
     name: NotRequired[str]  # noqa
 
 
@@ -2022,8 +2022,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return uploaded, failed_images, duplications
         raise AppException(use_case.response.errors)
 
-    @staticmethod
     def aggregate_annotations_as_df(
+        self,
         project_root: Union[NotEmptyStr, Path],
         project_type: PROJECT_TYPE,
         folder_names: Optional[List[Union[Path, NotEmptyStr]]] = None,
