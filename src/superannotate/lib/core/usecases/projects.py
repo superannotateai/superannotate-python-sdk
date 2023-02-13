@@ -137,8 +137,8 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                         root_completed_count = folder.completedCount  # noqa
                 except AttributeError:
                     pass
-            project.root_folder_completed_images_count = root_completed_count
-            project.completed_images_count = total_completed_count
+            project.root_folder_completed_items_count = root_completed_count
+            project.completed_items_count = total_completed_count
         if self._include_annotation_classes:
             project.classes = self._service_provider.annotation_classes.list(
                 Condition("project_id", self._project.id, EQ)
@@ -836,10 +836,7 @@ class SetWorkflowUseCase(BaseUseCase):
                     del step["id"]
                 step["class_id"] = annotation_classes_map.get(step["className"], None)
                 if not step["class_id"]:
-                    raise AppException(
-                        "Annotation class not found in set_project_workflow."
-                    )
-
+                    raise AppException("Annotation class not found.")
             self._service_provider.projects.set_workflows(
                 project=self._project,
                 steps=self._steps,
@@ -864,7 +861,7 @@ class SetWorkflowUseCase(BaseUseCase):
                         None,
                     ):
                         raise AppException(
-                            "Attribute group name or attribute name not found in set_project_workflow."
+                            f"Attribute group name or attribute name not found {attribute_group_name}."
                         )
 
                     if not existing_workflows_map.get(step["step"], None):

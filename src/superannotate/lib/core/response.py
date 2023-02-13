@@ -1,4 +1,7 @@
+from typing import NoReturn
 from typing import Union
+
+from lib.core.exceptions import AppException
 
 
 class Response:
@@ -10,6 +13,10 @@ class Response:
 
     def __str__(self):
         return f"Response object with status:{self.status}, data : {self.data}, errors: {self.errors} "
+
+    def raise_for_status(self) -> NoReturn:
+        if self.errors:
+            raise AppException(self.errors)
 
     @property
     def data(self):

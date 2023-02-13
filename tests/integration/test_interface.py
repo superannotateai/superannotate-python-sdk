@@ -107,9 +107,9 @@ class TestInterface(BaseTestCase):
             self.PROJECT_NAME, "Completed", [self.EXAMPLE_IMAGE_1]
         )
         data = sa.search_projects(
-            self.PROJECT_NAME, return_metadata=True, include_complete_image_count=True
+            self.PROJECT_NAME, return_metadata=True, include_complete_item_count=True
         )
-        self.assertIsNotNone(data[0]["completed_images_count"])
+        self.assertIsNotNone(data[0]["completed_items_count"])
 
     def test_overlay_fuse(self):
         sa.upload_image_to_project(

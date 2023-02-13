@@ -102,12 +102,12 @@ class TestProjectBasic(BaseTestCase):
         self.assertEqual(workflows[1]["className"], "class2")
 
     def test_include_complete_image_count(self):
-        self._attach_items()  # will attach 4 items
+        self._attach_items(count=4)
         sa.set_annotation_statuses(self.PROJECT_NAME, annotation_status="Completed")
         metadata = sa.get_project_metadata(
-            self.PROJECT_NAME, include_complete_image_count=True
+            self.PROJECT_NAME, include_complete_item_count=True
         )
-        assert metadata["completed_images_count"] == 4
+        assert metadata["completed_items_count"] == 4
 
 
 class TestProject(BaseTestCase):
