@@ -3,10 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. image:: images/sa_logo.png
-  :width: 200
-  :alt: SuperAnnotate AI
-  :target: https://app.superannotate.com
+.. comment image:: images/sa_logo.png :width: 200 :alt: SuperAnnotate AI :target: https://app.superannotate.com
 
 
 

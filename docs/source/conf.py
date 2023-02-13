@@ -21,8 +21,6 @@ master_doc = 'index'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc']
-
-
 extensions += ['sphinx_inline_tabs']
 extensions += ['jaraco.tidelift']
 extensions += ['notfound.extension']
@@ -42,10 +40,11 @@ html_context = {
 }
 
 html_theme = 'furo'
-html_logo = "images/sa_logo.png"
 
 html_theme_options = {
     "sidebar_hide_name": True,
+    "light_logo": "sa_logo_light.png",
+    "dark_logo": "sa_logo_dark.png",
     "light_css_variables": {
         "color-brand-primary": "#336790",  # "blue"
         "color-brand-content": "#336790",
