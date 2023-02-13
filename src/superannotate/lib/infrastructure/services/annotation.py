@@ -2,6 +2,7 @@ import asyncio
 import copy
 import io
 import json
+import logging
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -18,9 +19,8 @@ from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.serviceproviders import BaseAnnotationService
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from pydantic import parse_obj_as
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class AnnotationService(BaseAnnotationService):

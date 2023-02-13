@@ -2,16 +2,15 @@
 VoTT to SA conversion method
 """
 import json
+import logging
 import threading
-
-from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def vott_to_sa(file_list, task, output_dir):

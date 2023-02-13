@@ -1,3 +1,4 @@
+import typing
 from enum import Enum
 from types import DynamicClassAttribute
 
@@ -27,6 +28,9 @@ class BaseTitledEnum(int, Enum):
     def name(self) -> str:
         return self.__doc__
 
+    def __unicode__(self):
+        return self.__doc__
+
     @DynamicClassAttribute
     def value(self):
         return super().value
@@ -51,14 +55,17 @@ class BaseTitledEnum(int, Enum):
         return [enum.__doc__.lower() if enum else None for enum in list(cls)]
 
     @classmethod
-    def titles(cls):
-        return [enum.__doc__ for enum in list(cls)]
+    def titles(cls) -> typing.Tuple:
+        return tuple(enum.__doc__ for enum in list(cls))
 
     def equals(self, other: Enum):
         return self.__doc__.lower() == other.__doc__.lower()
 
     def __eq__(self, other):
         return super().__eq__(other)
+
+    def __repr__(self):
+        return self.name
 
     def __hash__(self):
         return hash(self.name)

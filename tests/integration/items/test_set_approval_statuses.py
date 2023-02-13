@@ -3,7 +3,6 @@ from pathlib import Path
 
 from src.superannotate import AppException
 from src.superannotate import SAClient
-from src.superannotate.lib.core.usecases import SetApprovalStatues
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -20,19 +19,16 @@ class TestSetApprovalStatuses(BaseTestCase):
     ATTACHMENT_LIST = [
         {
             "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-            "name": "6022a74d5384c50017c366b3"
+            "name": "6022a74d5384c50017c366b3",
         },
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad"
+            "name": "6022a74b5384c50017c366ad",
         },
-        {
-            "url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU",
-            "path": "123"
-        },
+        {"url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU", "name": "123"},
         {
             "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad"
+            "name": "6022a74b5384c50017c366ad",
         },
     ]
 
@@ -41,20 +37,17 @@ class TestSetApprovalStatuses(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent.parent, self.CSV_PATH)
 
     def test_image_approval_status(self):
-        sa.attach_items(
-            self.PROJECT_NAME, self.ATTACHMENT_LIST
-        )
+        sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST)
 
         sa.set_approval_statuses(
-            self.PROJECT_NAME, "Approved",
+            self.PROJECT_NAME,
+            "Approved",
         )
         for image in sa.search_items(self.PROJECT_NAME):
             self.assertEqual(image["approval_status"], "Approved")
 
     def test_image_approval_status_via_names(self):
-        sa.attach_items(
-            self.PROJECT_NAME, self.ATTACHMENT_LIST
-        )
+        sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST)
 
         sa.set_approval_statuses(
             self.PROJECT_NAME, "Approved", [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2]
@@ -65,29 +58,31 @@ class TestSetApprovalStatuses(BaseTestCase):
             self.assertEqual(metadata["approval_status"], "Approved")
 
     def test_image_approval_status_via_invalid_names(self):
-        sa.attach_items(
-            self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress"
-        )
+        sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress")
         with self.assertRaisesRegexp(AppException, "No items found."):
             sa.set_approval_statuses(
-                self.PROJECT_NAME, "Approved", ["self.EXAMPLE_IMAGE_1", "self.EXAMPLE_IMAGE_2"]
+                self.PROJECT_NAME,
+                "Approved",
+                ["self.EXAMPLE_IMAGE_1", "self.EXAMPLE_IMAGE_2"],
             )
 
     def test_set_approval_statuses(self):
-        sa.attach_items(
-            self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]]
-        )
+        sa.attach_items(self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]])
         sa.set_approval_statuses(
-            self.PROJECT_NAME, approval_status=None, items=[self.ATTACHMENT_LIST[0]["name"]]
+            self.PROJECT_NAME,
+            approval_status=None,
+            items=[self.ATTACHMENT_LIST[0]["name"]],
         )
         data = sa.search_items(self.PROJECT_NAME)[0]
         assert data["approval_status"] is None
 
     def test_set_invalid_approval_statuses(self):
-        sa.attach_items(
-            self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]]
-        )
-        with self.assertRaisesRegexp(AppException, 'Available approval_status options are None, Disapproved, Approved.'):
+        sa.attach_items(self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]])
+        with self.assertRaisesRegexp(
+            AppException, "Available values are 'Approved', 'Disapproved'."
+        ):
             sa.set_approval_statuses(
-                self.PROJECT_NAME, approval_status="aaa", items=[self.ATTACHMENT_LIST[0]["name"]]
+                self.PROJECT_NAME,
+                approval_status="aaa",
+                items=[self.ATTACHMENT_LIST[0]["name"]],
             )

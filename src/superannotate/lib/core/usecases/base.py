@@ -64,11 +64,11 @@ class BaseReportableUseCase(BaseUseCase, metaclass=ABCMeta):
         self.reporter = reporter
 
 
-class BaseUserBasedUseCase(BaseReportableUseCase, metaclass=ABCMeta):
+class BaseUserBasedUseCase(BaseUseCase, metaclass=ABCMeta):
     """
     class contain validation of unique emails
     """
 
-    def __init__(self, reporter: Reporter, emails: List[str]):
-        super().__init__(reporter)
+    def __init__(self, emails: List[str]):
+        super().__init__()
         self._emails = emails

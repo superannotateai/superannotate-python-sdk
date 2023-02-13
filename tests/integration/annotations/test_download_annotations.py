@@ -1,11 +1,10 @@
+import glob
 import json
 import os
-import glob
 import tempfile
 from pathlib import Path
 
 import pytest
-
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -36,13 +35,21 @@ class TestDownloadAnnotations(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
         with tempfile.TemporaryDirectory() as temp_dir:
-            annotations_path = sa.download_annotations(f"{self.PROJECT_NAME}", temp_dir, [self.IMAGE_NAME])
+            annotations_path = sa.download_annotations(
+                f"{self.PROJECT_NAME}", temp_dir, [self.IMAGE_NAME]
+            )
             self.assertEqual(len(os.listdir(temp_dir)), 1)
-            with open(f"{self.folder_path}/{self.IMAGE_NAME}___objects.json", "r") as pre_annotation_file, open(
-                    f"{annotations_path}/{self.IMAGE_NAME}___objects.json") as post_annotation_file:
+            with open(
+                f"{self.folder_path}/{self.IMAGE_NAME}___objects.json"
+            ) as pre_annotation_file, open(
+                f"{annotations_path}/{self.IMAGE_NAME}___objects.json"
+            ) as post_annotation_file:
                 pre_annotation_data = json.load(pre_annotation_file)
                 post_annotation_data = json.load(post_annotation_file)
-                self.assertEqual(len(pre_annotation_data["instances"]), len(post_annotation_data["instances"]))
+                self.assertEqual(
+                    len(pre_annotation_data["instances"]),
+                    len(post_annotation_data["instances"]),
+                )
 
     @pytest.mark.flaky(reruns=3)
     def test_download_annotations_from_folders(self):
@@ -53,13 +60,17 @@ class TestDownloadAnnotations(BaseTestCase):
         )
         for folder in [self.FOLDER_NAME, self.FOLDER_NAME_2, ""]:
             sa.upload_images_from_folder_to_project(
-                f"{self.PROJECT_NAME}{'/' + folder if folder else ''}", self.folder_path, annotation_status="InProgress"
+                f"{self.PROJECT_NAME}{'/' + folder if folder else ''}",
+                self.folder_path,
+                annotation_status="InProgress",
             )
             _, _, _ = sa.upload_annotations_from_folder_to_project(
                 f"{self.PROJECT_NAME}{'/' + folder if folder else ''}", self.folder_path
             )
         with tempfile.TemporaryDirectory() as temp_dir:
-            annotations_path = sa.download_annotations(f"{self.PROJECT_NAME}", temp_dir, recursive=True)
+            annotations_path = sa.download_annotations(
+                f"{self.PROJECT_NAME}", temp_dir, recursive=True
+            )
             self.assertEqual(len(os.listdir(annotations_path)), 7)
 
     @pytest.mark.flaky(reruns=3)
@@ -74,25 +85,38 @@ class TestDownloadAnnotations(BaseTestCase):
             self.assertEqual(len(os.listdir(annotations_path)), 1)
 
     @pytest.mark.flaky(reruns=3)
-    def test_download_annotations_from_folders(self):
+    def test_download_annotations_from_folders_mul(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
         sa.attach_items(
-            f'{self.PROJECT_NAME}/{self.FOLDER_NAME}',
-            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 5)]  # noqa
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}",
+            [
+                {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
+                for i in range(1, 5)
+            ],  # noqa
         )
         sa.attach_items(
             self.PROJECT_NAME,
-            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 19)]  # noqa
+            [
+                {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
+                for i in range(1, 19)
+            ],  # noqa
         )
         sa.attach_items(
-            f'{self.PROJECT_NAME}/{self.FOLDER_NAME_2}',
-            [{"name": f"example_image_{i}.jpg", "url": f"url_{i}"} for i in range(1, 10)]  # noqa
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}",
+            [
+                {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
+                for i in range(1, 10)
+            ],  # noqa
         )
         with tempfile.TemporaryDirectory() as temp_dir:
-            annotations_path = sa.download_annotations(self.PROJECT_NAME, temp_dir, recursive=True)
-            count = len([i for i in glob.iglob(annotations_path + '**/**', recursive=True)])
+            annotations_path = sa.download_annotations(
+                self.PROJECT_NAME, temp_dir, recursive=True
+            )
+            count = len(
+                [i for i in glob.iglob(annotations_path + "**/**", recursive=True)]
+            )
             assert count == 31 + 5  # folder names and classes

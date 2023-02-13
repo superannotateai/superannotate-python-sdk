@@ -105,8 +105,6 @@ class SAServer(metaclass=SingletonMeta):
 
             app.add_url_rule("/", view_func=index)
 
-        See :ref:`url-route-registrations`.
-
         The endpoint name for the route defaults to the name of the view
         function if the ``endpoint`` parameter isn't passed. An error
         will be raised if a function has already been registered for the

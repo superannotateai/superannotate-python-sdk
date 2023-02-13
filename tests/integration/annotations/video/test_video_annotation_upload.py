@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import pytest
-
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
@@ -54,30 +53,43 @@ class TestUploadVideoAnnotation(BaseTestCase):
 
     @pytest.mark.skip(reason="Need to adjust")
     def test_video_annotation_upload_invalid_json(self):
-        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.classes_path
+        )
 
         _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
-        (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME, self.invalid_annotations_path)
+        (
+            uploaded_annotations,
+            failed_annotations,
+            missing_annotations,
+        ) = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.invalid_annotations_path
+        )
         self.assertEqual(len(uploaded_annotations), 0)
         self.assertEqual(len(failed_annotations), 1)
         self.assertEqual(len(missing_annotations), 0)
         self.assertIn("Couldn't validate ", self._caplog.text)
 
     def test_upload_annotations_without_class_name(self):
-        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.classes_path
+        )
 
         _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
-        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_without_classes)
+        sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.annotations_without_classes
+        )
 
     def test_upload_annotations_empty_json(self):
-        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.classes_path
+        )
 
         _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
@@ -88,5 +100,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = temp_dir
             sa.download_export(self.PROJECT_NAME, export, output_path, True)
-            uploaded, _, _ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, output_path)
+            uploaded, _, _ = sa.upload_annotations_from_folder_to_project(
+                self.PROJECT_NAME, output_path
+            )
             self.assertEqual(len(uploaded), 1)

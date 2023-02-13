@@ -3,6 +3,7 @@ import concurrent.futures
 import copy
 import io
 import json
+import logging
 import os
 import platform
 import re
@@ -39,13 +40,12 @@ from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import BaseServiceProvider
-from lib.core.types import PriorityScore
+from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.video_convertor import VideoFrameGenerator
 from pydantic import BaseModel
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 if platform.system().lower() == "windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -585,6 +585,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     @property
     def annotation_upload_data(self) -> UploadAnnotationAuthData:
+
         CHUNK_SIZE = UploadAnnotationsFromFolderUseCase.CHUNK_SIZE_PATHS
 
         if self._annotation_upload_data:
@@ -598,7 +599,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 item_ids=self._item_ids[i : i + CHUNK_SIZE],
             )
             if not tmp.ok:
-                raise AppException(tmp.errors)
+                raise AppException(tmp.error)
             else:
                 images.update(tmp.data.images)
 
@@ -1195,7 +1196,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
         reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        scores: List[PriorityScore],
+        scores: List[PriorityScoreEntity],
         project_folder_name: str,
         service_provider: BaseServiceProvider,
     ):

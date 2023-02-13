@@ -1,5 +1,6 @@
 import copy
 import decimal
+import logging
 from collections import defaultdict
 from typing import List
 
@@ -13,16 +14,13 @@ from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
-from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
-from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from requests.exceptions import RequestException
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class GetProjectByIDUseCase(BaseUseCase):
@@ -65,7 +63,7 @@ class GetProjectsUseCase(BaseUseCase):
             if response.ok:
                 self._response.data = response.data
             else:
-                self._response.errors = response.errors
+                self._response.errors = response.error
         return self._response
 
 
@@ -102,10 +100,9 @@ class GetProjectByNameUseCase(BaseUseCase):
         return self._response
 
 
-class GetProjectMetaDataUseCase(BaseReportableUseCase):
+class GetProjectMetaDataUseCase(BaseUseCase):
     def __init__(
         self,
-        reporter: Reporter,
         project: ProjectEntity,
         service_provider: BaseServiceProvider,
         include_annotation_classes: bool,
@@ -114,7 +111,7 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
         include_contributors: bool,
         include_complete_image_count: bool,
     ):
-        super().__init__(reporter)
+        super().__init__()
         self._project = project
         self._service_provider = service_provider
 
@@ -140,8 +137,8 @@ class GetProjectMetaDataUseCase(BaseReportableUseCase):
                         root_completed_count = folder.completedCount  # noqa
                 except AttributeError:
                     pass
-            project.root_folder_completed_images_count = root_completed_count
-            project.completed_images_count = total_completed_count
+            project.root_folder_completed_items_count = root_completed_count
+            project.completed_items_count = total_completed_count
         if self._include_annotation_classes:
             project.classes = self._service_provider.annotation_classes.list(
                 Condition("project_id", self._project.id, EQ)
@@ -191,7 +188,8 @@ class CreateProjectUseCase(BaseUseCase):
                     raise AppValidationException(
                         "FrameRate is available only for Video projects"
                     )
-                if isinstance(setting.value, (float, int)):
+                try:
+                    setting.value = float(setting.value)
                     if (
                         not (0.0001 < setting.value < 120)
                         or decimal.Decimal(str(setting.value)).as_tuple().exponent < -3
@@ -211,7 +209,7 @@ class CreateProjectUseCase(BaseUseCase):
                         )
                     else:
                         frame_mode.value = 1
-                else:
+                except ValueError:
                     raise AppValidationException("The FrameRate value should be float")
 
     def validate_project_name(self):
@@ -256,6 +254,9 @@ class CreateProjectUseCase(BaseUseCase):
             if instructions_link:
                 entity.instructions_link = instructions_link
                 self._service_provider.projects.update(entity)
+            if not entity:
+                self._response.errors = AppException("Failed to create project.")
+                return self._response
             self._response.data = entity
             data = {}
             # TODO delete
@@ -297,10 +298,8 @@ class CreateProjectUseCase(BaseUseCase):
                     self._response.errors = set_workflow_response.errors
 
             logger.info(
-                "Created project %s (ID %s) with type %s",
-                self._response.data.name,
-                self._response.data.id,
-                constances.ProjectType.get_name(self._response.data.type),
+                f"Created project {entity.name} (ID {entity.id}) "
+                f"with type {constances.ProjectType.get_name(self._response.data.type)}"
             )
         return self._response
 
@@ -376,7 +375,7 @@ class UpdateProjectUseCase(BaseUseCase):
         if self.is_valid():
             response = self._service_provider.projects.update(self._project)
             if not response.ok:
-                self._response.errors = response.errors
+                self._response.errors = response.error
             else:
                 self._response.data = response.data
         return self._response
@@ -837,10 +836,7 @@ class SetWorkflowUseCase(BaseUseCase):
                     del step["id"]
                 step["class_id"] = annotation_classes_map.get(step["className"], None)
                 if not step["class_id"]:
-                    raise AppException(
-                        "Annotation class not found in set_project_workflow."
-                    )
-
+                    raise AppException("Annotation class not found.")
             self._service_provider.projects.set_workflows(
                 project=self._project,
                 steps=self._steps,
@@ -865,7 +861,7 @@ class SetWorkflowUseCase(BaseUseCase):
                         None,
                     ):
                         raise AppException(
-                            "Attribute group name or attribute name not found in set_project_workflow."
+                            f"Attribute group name or attribute name not found {attribute_group_name}."
                         )
 
                     if not existing_workflows_map.get(step["step"], None):
@@ -898,7 +894,9 @@ class GetTeamUseCase(BaseUseCase):
                 raise AppException(response.error)
             self._response.data = response.data
         except Exception:
-            raise AppException("Can't get team data.") from None
+            raise AppException(
+                "Unable to retrieve team data. Please verify your credentials."
+            ) from None
         return self._response
 
 
@@ -927,14 +925,13 @@ class AddContributorsToProject(BaseUserBasedUseCase):
 
     def __init__(
         self,
-        reporter: Reporter,
         team: TeamEntity,
         project: ProjectEntity,
         emails: list,
         role: str,
         service_provider: BaseServiceProvider,
     ):
-        super().__init__(reporter, emails)
+        super().__init__(emails)
         self._team = team
         self._project = project
         self._role = role
@@ -973,7 +970,7 @@ class AddContributorsToProject(BaseUserBasedUseCase):
             to_skip = list(set(self._emails).difference(to_add))
 
             if to_skip:
-                self.reporter.log_warning(
+                logger.warning(
                     f"Skipped {len(to_skip)}/{len(self._emails)} "
                     "contributors that are out of the team scope or already have access to the project."
                 )
@@ -986,7 +983,7 @@ class AddContributorsToProject(BaseUserBasedUseCase):
                     ],
                 )
                 if response and not response.data.get("invalidUsers"):
-                    self.reporter.log_info(
+                    logger.info(
                         f"Added {len(to_add)}/{len(self._emails)} "
                         f"contributors to the project {self._project.name} with the {self._role} role."
                     )
@@ -1001,13 +998,12 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
 
     def __init__(
         self,
-        reporter: Reporter,
         team: TeamEntity,
         emails: list,
         set_admin: bool,
         service_provider: BaseServiceProvider,
     ):
-        super().__init__(reporter, emails)
+        super().__init__(emails)
         self._team = team
         self._set_admin = set_admin
         self._service_provider = service_provider
@@ -1026,7 +1022,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
             to_add = list(emails.difference(to_skip))
             invited, failed = [], to_skip
             if to_skip:
-                self.reporter.log_warning(
+                logger.warning(
                     f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
                 )
             if to_add:
@@ -1043,14 +1039,14 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     response.data["failed"]["emails"],
                 )
                 if invited:
-                    self.reporter.log_info(
+                    logger.info(
                         f"Sent team {'admin' if self._set_admin else 'contributor'} invitations"
                         f" to {len(invited)}/{len(self._emails)} users."
                     )
                 if failed:
                     to_skip = set(to_skip)
                     to_skip.update(set(failed))
-                    self.reporter.log_info(
+                    logger.info(
                         f"Skipped team {'admin' if self._set_admin else 'contributor'} "
                         f"invitations for {len(failed)}/{len(self._emails)} users."
                     )
@@ -1058,14 +1054,13 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
             return self._response
 
 
-class ListSubsetsUseCase(BaseReportableUseCase):
+class ListSubsetsUseCase(BaseUseCase):
     def __init__(
         self,
-        reporter: Reporter,
         project: ProjectEntity,
         service_provider: BaseServiceProvider,
     ):
-        super().__init__(reporter)
+        super().__init__()
         self._project = project
         self._service_provider = service_provider
 

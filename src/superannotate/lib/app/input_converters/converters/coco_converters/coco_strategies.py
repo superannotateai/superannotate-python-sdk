@@ -1,17 +1,17 @@
 """
 """
+import logging
 import threading
 from pathlib import Path
 
 from PIL import Image
-from superannotate.logger import get_default_logger
 
 from ....common import id2rgb
 from ....common import tqdm_converter
 from ....common import write_to_json
 from .coco_converter import CocoBaseStrategy
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class CocoPanopticConverterStrategy(CocoBaseStrategy):

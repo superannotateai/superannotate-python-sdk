@@ -24,23 +24,6 @@ class BaseEntity(ABC):
         raise NotImplementedError
 
 
-class ConfigEntity(BaseEntity):
-    def __init__(self, uuid: str, value: str):
-        super().__init__(uuid)
-        self._value = value
-
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        self._value = value
-
-    def to_dict(self):
-        return {"key": self.uuid, "value": self.value}
-
-
 class ImageInfoEntity(BaseEntity):
     def __init__(
         self,

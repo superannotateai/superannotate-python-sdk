@@ -4,11 +4,11 @@ from os.path import dirname
 from pathlib import Path
 
 import pytest
-
+from src.superannotate import AppException
 from src.superannotate import SAClient
+from tests.integration.base import BaseTestCase
 
 sa = SAClient()
-from tests.integration.base import BaseTestCase
 
 
 class TestVectorAnnotationsWithTag(BaseTestCase):
@@ -39,12 +39,26 @@ class TestVectorAnnotationsWithTag(BaseTestCase):
             annotation_json=f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___objects.json",
         )
         annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
-        self.assertEqual(annotations['instances'][0]['type'], 'tag')
-        self.assertEqual(annotations['instances'][0]['attributes'][0]['name'], '1')
-        self.assertEqual(annotations['instances'][0]['attributes'][0]['groupName'], 'g1')
+        self.assertEqual(annotations["instances"][0]["type"], "tag")
+        self.assertEqual(annotations["instances"][0]["attributes"][0]["name"], "1")
+        self.assertEqual(
+            annotations["instances"][0]["attributes"][0]["groupName"], "g1"
+        )
         sa.pin_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, pin=True)
-        metadata = sa.get_item_metadata(self.PROJECT_NAME, item_name=self.EXAMPLE_IMAGE_1)
-        assert metadata['is_pinned'] == True
+        metadata = sa.get_item_metadata(
+            self.PROJECT_NAME, item_name=self.EXAMPLE_IMAGE_1
+        )
+        assert metadata["is_pinned"] is True
+
+
+class TestPinImage(BaseTestCase):
+    PROJECT_NAME = "TestPinImage"
+    PROJECT_TYPE = "Vector"
+    PROJECT_DESCRIPTION = "TestPinImage"
+
+    def test_pin_image_negative_name(self):
+        with self.assertRaisesRegexp(AppException, "Item not found."):
+            sa.pin_image(self.PROJECT_NAME, "NEW NAME")
 
 
 class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):
@@ -74,9 +88,11 @@ class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
         annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
-        self.assertEqual(annotations['instances'][0]['type'], 'tag')
-        self.assertEqual(annotations['instances'][0]['attributes'][0]['name'], '1')
-        self.assertEqual(annotations['instances'][0]['attributes'][0]['groupName'], 'g1')
+        self.assertEqual(annotations["instances"][0]["type"], "tag")
+        self.assertEqual(annotations["instances"][0]["attributes"][0]["name"], "1")
+        self.assertEqual(
+            annotations["instances"][0]["attributes"][0]["groupName"], "g1"
+        )
 
 
 class TestVectorAnnotationsWithTagFolderUploadPreannotation(BaseTestCase):
@@ -119,11 +135,18 @@ class TestPixelImages(BaseTestCase):
                 self.PROJECT_NAME, self.classes_json_path
             )
             image = sa.get_item_metadata(self.PROJECT_NAME, "example_image_1.jpg")
-            del image['createdAt']
-            del image['updatedAt']
-            truth = {'name': 'example_image_1.jpg', 'annotation_status': 'InProgress',
-                     'prediction_status': 'NotStarted', 'segmentation_status': 'NotStarted', 'approval_status': None,
-                     'annotator_email': None, 'qa_email': None, 'entropy_value': None}
+            del image["createdAt"]
+            del image["updatedAt"]
+            truth = {
+                "name": "example_image_1.jpg",
+                "annotation_status": "InProgress",
+                "prediction_status": "NotStarted",
+                "segmentation_status": "NotStarted",
+                "approval_status": None,
+                "annotator_email": None,
+                "qa_email": None,
+                "entropy_value": None,
+            }
 
             assert all([truth[i] == image[i] for i in truth])
 
