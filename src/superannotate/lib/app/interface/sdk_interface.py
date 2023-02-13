@@ -20,9 +20,9 @@ import pydantic
 from typing_extensions import Literal
 
 if sys.version_info < (3, 11):
-    from typing_extensions import TypedDict, NotRequired  # noqa
+    from typing_extensions import TypedDict, NotRequired, Required  # noqa
 else:
-    from typing import TypedDict, NotRequired  # noqa
+    from typing import TypedDict, NotRequired, Required  # noqa
 
 import boto3
 from pydantic import StrictBool
@@ -112,7 +112,7 @@ class PriorityScore(TypedDict):
 
 
 class Attachment(TypedDict, total=False):
-    url: str
+    url: Required[str]  # noqa
     name: NotRequired[str]  # noqa
 
 

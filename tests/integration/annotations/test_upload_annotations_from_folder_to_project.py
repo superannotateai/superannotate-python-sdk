@@ -120,3 +120,34 @@ class TestAnnotationUploadVector(BaseTestCase):
         assert [len(annotation["instances"]) > 1 for annotation in annotations].count(
             True
         ) == 4
+
+
+
+class TestExporeExportUploadVector(BaseTestCase):
+    PROJECT_NAME = "Test-TestExporeExportUploadVector"
+    PROJECT_DESCRIPTION = "Desc"
+    PROJECT_TYPE = "Vector"
+    TEST_FOLDER_PATH = "data_set/sample_explore_export"
+
+    @property
+    def data_set(self):
+        return Path(__file__).parent.parent.parent
+
+    @property
+    def folder_path(self):
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
+
+    def test_annotation_folder_upload_download(self):
+        sa.attach_items(
+            self.PROJECT_NAME,
+            [
+                {"name": "file_example.jpg", "url": "url_"}
+            ],
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        uploaded, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        assert len(uploaded) == 1

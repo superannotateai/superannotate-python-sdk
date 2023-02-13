@@ -214,6 +214,8 @@ class DataAggregator:
             return self.aggregate_video_annotations_as_df(annotation_paths)
         elif self.project_type is constances.ProjectType.DOCUMENT:
             return self.aggregate_document_annotations_as_df(annotation_paths)
+        else:
+            raise AppException(f"The function is not supported for {self.project_type.name} projects.")
 
     def __add_attributes_to_raws(self, raws, attributes, element_raw):
         for attribute_id, attribute in enumerate(attributes):
