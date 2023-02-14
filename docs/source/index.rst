@@ -30,7 +30,7 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
     from superannotate import SAClient
 
 
-    sa_client =SAClient()
+    sa_client = SAClient()
 
     project = 'Dogs'
 

@@ -103,19 +103,26 @@ The SuperAnnotate format annotation JSONs have the general form:
 
   {
     "metadata": {...}
-    "annotations": [
+    "instances": [
         {
-          "className": "Human",
-          "points" : "...",
-          "..." : "..."
+          "type": "polygon",
+          "className": "Jake",
+          "points" : [...],
+          ...
         },
         {
-          "className": "Cat",
-          "points" : "...",
-          "..." : "..."
+          "type": "bbox",
+          "className": "Finn",
+          "points": {
+            "x1": 437.16,
+            "x2": 465.23,
+            "y1": 341.5,
+            "y2": 357.09
+          },
+          ...
         },
         {
-          "..." : "..."
+          ...
         }
     ]
 
@@ -125,16 +132,15 @@ the "className" fields here will identify the annotation class of an annotation
 object (polygon, points, etc.). The project
 you are uploading to should contain annotation class with that name.
 
-To upload annotations to platform:
+:ref:`To upload annotations to platform: <ref_upload_annotations_from_folder_to_project>`
 
 .. code-block:: python
 
     sa.upload_annotations_from_folder_to_project(project, "<path_to_local_dir>")
 
-This will try uploading to the project all the JSON files in the folder that have specific
-file naming convention. For vector
-projects JSONs should be named :file:`"<image_name>___objects.json"`. For pixel projects
-JSON files should be named :file:`"<image_name>___pixel.json"` and also for
+
+This will try uploading to the project all the JSON files in the folder that have :file:`"<image_name>.json"` postfix.
+For pixel projects JSON files should be named :file:`"<image_name>___pixel.json"` and also for
 each JSON a mask image file should be present with the name
 :file:`"<image_name>___save.png"`. Image with :file:`<image_name>` should
 already be present in the project for the upload to work.

@@ -48,26 +48,27 @@ To generate a default location (:file:`~/.superannotate/config.json`) config fil
 
     ~/(home directory)
     └── .superannotate
-        ├── config.json
+        ├── config.ini
 
 
 :ref:`CLI init <ref_cli_init>` can be used:
 
 .. code-block:: bash
 
-   superannotatecli init
+   superannotatecli init <token>
 
 Custom config file
 ~~~~~~~~~~~~~~~~~~~~~~
 .. _ref_custom_config_file:
 
-To create a custom config file a new JSON file with key "token" can be created:
+To create a custom config file a new INI file with key "token" can be created:
 
-.. code-block:: json
+.. code-block:: ini
 
-   {
-     "token" : "<team token>"
-   }
+    [DEFAULT]
+    SA_TOKEN = <token>
+    LOGGING_LEVEL = INFO
+    LOGGING_PATH = ~/.superannotate/logs
 
 
 Initialization and authorization
@@ -84,7 +85,7 @@ the :ref:`CLI init <ref_cli_init>`. Otherwise to authenticate SDK with the :ref:
 
 .. code-block:: python
 
-   sa = SAClient(config_path="<path_to_config_json>")
+   sa = SAClient(config_path="<path_to_config_file>")
 
 
 
