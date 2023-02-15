@@ -187,4 +187,3 @@ Scatter plot of consensus score vs instance area is separated by projects. Hover
 The points are colored according to class name. Each annotator is represented with separate symbol.
 
 .. image:: images/consensus_scatter.png
-

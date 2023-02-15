@@ -122,7 +122,6 @@ class TestAnnotationUploadVector(BaseTestCase):
         ) == 4
 
 
-
 class TestExporeExportUploadVector(BaseTestCase):
     PROJECT_NAME = "Test-TestExporeExportUploadVector"
     PROJECT_DESCRIPTION = "Desc"
@@ -140,9 +139,7 @@ class TestExporeExportUploadVector(BaseTestCase):
     def test_annotation_folder_upload_download(self):
         sa.attach_items(
             self.PROJECT_NAME,
-            [
-                {"name": "file_example.jpg", "url": "url_"}
-            ],
+            [{"name": "file_example.jpg", "url": "url_"}],
         )
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"

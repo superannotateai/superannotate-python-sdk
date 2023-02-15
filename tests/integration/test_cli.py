@@ -211,8 +211,9 @@ class CLITest(TestCase):
         with tempfile.TemporaryDirectory() as config_dir:
             ini_path = config_dir + "/config.ini"
             log_path = config_dir + "/logs"
-            with patch("lib.core.LOG_FILE_LOCATION", log_path),\
-                    patch('lib.core.CONFIG_INI_FILE_LOCATION', ini_path):
+            with patch("lib.core.LOG_FILE_LOCATION", log_path), patch(
+                "lib.core.CONFIG_INI_FILE_LOCATION", ini_path
+            ):
                 self.safe_run(self._cli.init, _token)
             config = ConfigParser()
             config.read(ini_path)

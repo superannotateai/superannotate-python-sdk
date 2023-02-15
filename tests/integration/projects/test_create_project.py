@@ -104,8 +104,8 @@ class TestSearchProjectVector(BaseTestCase):
 
     def test_create_project_wrong_type(self):
         with self.assertRaisesRegexp(
-                AppException,
-                "Available values are 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'Other', 'PointCloud'.",
+            AppException,
+            "Available values are 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'Other', 'PointCloud'.",
         ):
             sa.create_project(self.PROJECT_1, "desc", "wrong_type")
 
@@ -122,38 +122,53 @@ class TestSearchProjectVector(BaseTestCase):
                 assert setting["value"] == "original"
 
     def test_create_with_classes_and_workflows(self):
-        project = sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE, classes=self.CLASSES,
-                                    workflows=self.WORKFLOWS)
-        assert len(project['classes']) == 1
-        assert len(project['classes'][0]['attribute_groups']) == 1
-        assert len(project['classes'][0]['attribute_groups'][0]['attributes']) == 3
+        project = sa.create_project(
+            self.PROJECT_1,
+            "desc",
+            self.PROJECT_TYPE,
+            classes=self.CLASSES,
+            workflows=self.WORKFLOWS,
+        )
+        assert len(project["classes"]) == 1
+        assert len(project["classes"][0]["attribute_groups"]) == 1
+        assert len(project["classes"][0]["attribute_groups"][0]["attributes"]) == 3
 
-        assert len(project['workflows']) == 2
-        assert project['workflows'][0]['className'] == self.CLASSES[0]['name']
-        assert project['workflows'][0]['attribute'][0]['attribute']['name'] == 'Car'
-        assert project['workflows'][0]['attribute'][1]['attribute']['name'] == 'Bus'
-        assert project['workflows'][1]['attribute'][0]['attribute']['name'] == 'Track'
-        assert project['workflows'][1]['attribute'][1]['attribute']['name'] == 'Bus'
+        assert len(project["workflows"]) == 2
+        assert project["workflows"][0]["className"] == self.CLASSES[0]["name"]
+        assert project["workflows"][0]["attribute"][0]["attribute"]["name"] == "Car"
+        assert project["workflows"][0]["attribute"][1]["attribute"]["name"] == "Bus"
+        assert project["workflows"][1]["attribute"][0]["attribute"]["name"] == "Track"
+        assert project["workflows"][1]["attribute"][1]["attribute"]["name"] == "Bus"
 
     def test_create_with_workflow_without_classes(self):
-        with self.assertRaisesRegexp(AppException, 'Project with workflows can not be created without classes.'):
-            sa.create_project(self.PROJECT_1, "desc", self.PROJECT_TYPE, workflows=self.WORKFLOWS)
+        with self.assertRaisesRegexp(
+            AppException, "Project with workflows can not be created without classes."
+        ):
+            sa.create_project(
+                self.PROJECT_1, "desc", self.PROJECT_TYPE, workflows=self.WORKFLOWS
+            )
 
     def test_create_wrong_project_type(self):
-        with self.assertRaisesRegexp(AppException, 'Workflow is not supported in Video project.'):
+        with self.assertRaisesRegexp(
+            AppException, "Workflow is not supported in Video project."
+        ):
             sa.create_project(self.PROJECT_1, "desc", "Video", workflows=self.WORKFLOWS)
 
     def test_create_with_workflow_wrong_classes(self):
         # with self.assertRaisesRegexp didnt work
         try:
             workflows = copy.copy(self.WORKFLOWS)
-            workflows[0]['className'] = "1"
-            workflows[1]['className'] = "2"
+            workflows[0]["className"] = "1"
+            workflows[1]["className"] = "2"
             sa.create_project(
-                self.PROJECT_1, "desc", self.PROJECT_TYPE, classes=self.CLASSES, workflows=self.WORKFLOWS
+                self.PROJECT_1,
+                "desc",
+                self.PROJECT_TYPE,
+                classes=self.CLASSES,
+                workflows=self.WORKFLOWS,
             )
         except AppException as e:
-            assert str(e) == 'There are no [1, 2] classes created in the project.'
+            assert str(e) == "There are no [1, 2] classes created in the project."
 
 
 class TestSearchProjectVideo(BaseTestCase):

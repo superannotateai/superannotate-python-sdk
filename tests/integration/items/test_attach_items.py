@@ -80,10 +80,12 @@ class TestAttachItemsVectorArguments(TestCase):
 
     def test_attach_items_invalid_payload(self):
         error_msg = [
-            "attachments", "str type expected",
+            "attachments",
+            "str type expected",
             "value is not a valid path",
-            r"attachments\[0].url", "field required"
+            r"attachments\[0].url",
+            "field required",
         ]
         pattern = r"(\s+)" + r"(\s+)".join(error_msg)
         with self.assertRaisesRegexp(AppException, pattern):
-            sa.attach_items(self.PROJECT_NAME, [{'name': "name"}])
+            sa.attach_items(self.PROJECT_NAME, [{"name": "name"}])

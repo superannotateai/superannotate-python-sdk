@@ -98,7 +98,7 @@ class TestMixpanel(TestCase):
             "settings": {"a": 1, "b": 2},
             "classes": None,
             "workflows": None,
-            'instructions_link': None
+            "instructions_link": None,
         }
         try:
             self.CLIENT.create_project(**kwargs)

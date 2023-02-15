@@ -224,4 +224,3 @@ Team contributor metadata example:
     "user_role": 6
     "...": "...",
   }
-

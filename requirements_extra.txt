@@ -6,7 +6,6 @@ furo==2022.12.7
 jaraco.tidelift==1.5.0
 sphinx-notfound-page==0.8.3
 sphinx_inline_tabs==2022.1.2b11
-
 pytest==7.2.1
 pytest-xdist==3.2.0
 pytest-parallel==0.1.1
