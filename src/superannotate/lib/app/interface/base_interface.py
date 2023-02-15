@@ -88,7 +88,7 @@ class BaseInterfaceFacade:
         config_parser.read(path)
         config_data = {}
         for key in config_parser["DEFAULT"]:
-            config_data[key] = config_parser["DEFAULT"][key]
+            config_data[key.upper()] = config_parser["DEFAULT"][key]
         try:
             return ConfigEntity(**config_data)
         except pydantic.ValidationError as e:
