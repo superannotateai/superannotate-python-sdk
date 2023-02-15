@@ -51,6 +51,7 @@ class CLIFacade:
         """
         from configparser import ConfigParser
 
+        os.makedirs(constances.LOG_FILE_LOCATION, exist_ok=True)
         if Path(constances.CONFIG_INI_FILE_LOCATION).exists():
             operation = "updated"
             if not input(
@@ -59,10 +60,8 @@ class CLIFacade:
                 return
         else:
             operation = "created"
-
         config_parser = ConfigParser()
         config_parser.optionxform = str
-
         config_parser["DEFAULT"] = {
             "SA_TOKEN": token,
             "LOGGING_LEVEL": logging_level,

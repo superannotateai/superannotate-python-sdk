@@ -209,14 +209,17 @@ class CLITest(TestCase):
     def test_init(self):
         _token = "asd=123"
         with tempfile.TemporaryDirectory() as config_dir:
-            config_ini_path = f"{config_dir}/config.ini"
-            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
+            ini_path = config_dir + "/config.ini"
+            log_path = config_dir + "/logs"
+            with patch("lib.core.LOG_FILE_LOCATION", log_path),\
+                    patch('lib.core.CONFIG_INI_FILE_LOCATION', ini_path):
                 self.safe_run(self._cli.init, _token)
             config = ConfigParser()
-            config.read(config_ini_path)
+            config.read(ini_path)
             assert config["DEFAULT"]["SA_TOKEN"] == _token
             assert config["DEFAULT"]["LOGGING_LEVEL"] == "INFO"
             assert config["DEFAULT"]["LOGGING_PATH"] == f"{constants.LOG_FILE_LOCATION}"
+            assert os.path.exists(log_path)
 
     def test_init_with_logging_configs(self):
         _token = "asd=123"
