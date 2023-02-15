@@ -62,7 +62,7 @@ class SAServer(metaclass=SingletonMeta):
         :type rule: str.
 
         :param methods: Allowed HTTP methods.
-        :type rule: list of str
+        :type methods: list of str
 
         :param options: Extra options passed to the
             :class:`~werkzeug.routing.Rule` object.

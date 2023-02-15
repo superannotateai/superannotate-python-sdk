@@ -1,8 +1,8 @@
 .. _ref_cli:
 
-==========
+=============
 CLI Reference
-==========
+=============
 
 With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
 
@@ -12,7 +12,7 @@ With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
 
 To use the CLI a command line initialization step should be performed after the
 
-:ref:`installation <_ref_quickstart>`:
+:ref:`installation <ref_quickstart>`:
 
 .. code-block:: bash
 
