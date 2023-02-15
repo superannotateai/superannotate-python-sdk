@@ -15,11 +15,11 @@ class TestGetProjectMetadata(BaseTestCase):
         and exclude in list
         """
         project = sa.get_project_metadata(self.PROJECT_NAME)
-        assert project['item_count'] == 0
+        assert project["item_count"] == 0
         self._attach_items(count=5)
         sa.create_folder(self.PROJECT_NAME, "tmp")
         self._attach_items(count=5, folder="tmp")
         project = sa.get_project_metadata(self.PROJECT_NAME)
-        assert project['item_count'] == 10
+        assert project["item_count"] == 10
         projects = sa.search_projects(name=self.PROJECT_NAME, return_metadata=True)
-        assert 'item_count' not in projects[0]
+        assert "item_count" not in projects[0]

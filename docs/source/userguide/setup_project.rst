@@ -1,10 +1,10 @@
-==========
+=============
 Setup Project
-==========
+=============
 
 
 Creating a project
------------------
+------------------
 
 To create a new "Vector" project with name "Example Project 1" and description
 "test":
@@ -17,7 +17,7 @@ To create a new "Vector" project with name "Example Project 1" and description
 
 
 Uploading images to project
------------------
+---------------------------
 
 
 To upload all images with extensions "jpg" or "png" from the
@@ -63,7 +63,7 @@ point to that folder with slash after the project name, e.g.,
          sa.upload_images_from_folder_to_project(project + "/folder1", "<local_folder_path>")
 
 Working with annotation classes
-_______________________________________________
+_______________________________
 
 An annotation class for a project can be created with SDK's:
 
@@ -94,39 +94,46 @@ The :file:`classes.json` file will be downloaded to :file:`"<path_to_local_folde
 
 
 Working with annotations
-_______________________________________________
+________________________
 
 
 The SuperAnnotate format annotation JSONs have the general form:
 
 .. code-block:: json
 
-  {
-    "metadata": {...}
-    "instances": [
-        {
-          "type": "polygon",
-          "className": "Jake",
-          "points" : [...],
-          ...
+    {
+        "metadata":{
+            "name":"example_image_1.jpg",
+            "width":1024,
+            "height":683,
+            "status":"Completed",
         },
-        {
-          "type": "bbox",
-          "className": "Finn",
-          "points": {
-            "x1": 437.16,
-            "x2": 465.23,
-            "y1": 341.5,
-            "y2": 357.09
-          },
-          ...
-        },
-        {
-          ...
-        }
-    ]
-
-  }
+        "instances":[
+            {
+                "type":"bbox",
+                "classId":72274,
+                "probability":100,
+                "points":{
+                    "x1":437.16,
+                    "x2":465.23,
+                    "y1":341.5,
+                    "y2":357.09
+                },
+                "className":"Jake"
+            },
+            {
+                "type":"polygon",
+                "classId":72274,
+                "probability":100,
+                "points":[
+                    281.98,
+                    383.75,
+                    282.55,
+                ],
+                "className":"Finn"
+            }
+        ],
+    }
 
 the "className" fields here will identify the annotation class of an annotation
 object (polygon, points, etc.). The project
@@ -163,4 +170,3 @@ We can download the prepared export with:
 
 :ref:`download_export <ref_download_export>` will wait until the export is
 finished preparing and download it to the specified folder.
-

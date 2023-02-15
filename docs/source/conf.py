@@ -1,29 +1,29 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../../src'))
+sys.path.insert(0, os.path.abspath("../../src"))
 
 # -- Project information -----------------------------------------------------
 
-project = 'SuperAnnotate Python SDK'
-copyright = '2021, SuperAnnotate AI'
-author = 'SuperAnnotate AI'
+project = "SuperAnnotate Python SDK"
+copyright = "2021, SuperAnnotate AI"
+author = "SuperAnnotate AI"
 
 # The full version, including alpha/beta/rc tags
-from superannotate import __version__
+from superannotate import __version__  # noqa
 
 release = __version__
 
 # -- General configuration ---------------------------------------------------
-master_doc = 'index'
+master_doc = "index"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc']
-extensions += ['sphinx_inline_tabs']
-extensions += ['jaraco.tidelift']
-extensions += ['notfound.extension']
+extensions = ["sphinx.ext.autodoc"]
+extensions += ["sphinx_inline_tabs"]
+extensions += ["jaraco.tidelift"]
+extensions += ["notfound.extension"]
 
 
 exclude_patterns = []
@@ -32,14 +32,14 @@ autodoc_typehints = "description"
 
 html_show_sourcelink = False
 
-html_static_path = ['images']
+html_static_path = ["images"]
 html_context = {
     "display_github": False,  # Add 'Edit on Github' link instead of 'View page source'
     "last_updated": True,
     "commit": False,
 }
 
-html_theme = 'furo'
+html_theme = "furo"
 
 html_theme_options = {
     "sidebar_hide_name": True,

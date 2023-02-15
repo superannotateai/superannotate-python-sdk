@@ -1303,9 +1303,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type color: str
 
         :param attribute_groups:  list of attribute group dicts.
-                                  The values for the "group_type" key are  "radio"|"checklist"|"text"|"numeric".
-                                  Mandatory keys for each attribute group are
-                                      -  "name"
+            The values for the "group_type" key are  "radio"|"checklist"|"text"|"numeric".
+            Mandatory keys for each attribute group are
+
+              -  "name"
         :type attribute_groups: list of dicts
 
         :param class_type: class type. Should be either "object" or "tag"
@@ -1316,11 +1317,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             attributes_list = [
-               {
-                   "group_type": "radio",
-                   "name": "Vehicle",
-                   "attributes": [
+                {
+                    "group_type": "radio",
+                    "name": "Vehicle",
+                    "attributes": [
                        {
                            "name": "Car"
                        },
@@ -1599,7 +1601,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type annotations: list of dicts
 
         :param keep_status: If False, the annotation status will be automatically
-         updated to "InProgress," otherwise the current status will be kept.
+            updated to "InProgress," otherwise the current status will be kept.
         :type keep_status: bool
 
 
@@ -1608,6 +1610,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
+
             {
                "succeeded": [],
                "failed":[],
@@ -2319,6 +2322,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             client.get_item_metadata(
                project="Medical Annotations",
                item_name = "image_1.png",
@@ -2327,6 +2331,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
+
             {
                "name": "image_1.jpeg",
                "path": "Medical Annotations/Study",
@@ -2370,35 +2375,35 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Search items by filtering criteria.
 
-
         :param project: project name or folder path (e.g., “project1/folder1”).
-         If recursive=False=True, then only the project name is required.
+            If recursive=False=True, then only the project name is required.
         :type project: str
 
         :param name_contains:  Returns those items, where the given string is found anywhere within an item’s name.
-         If None, all items returned, in accordance with the recursive=False parameter.
+            If None, all items returned, in accordance with the recursive=False parameter.
         :type name_contains: str
 
         :param annotation_status: if not None, filters items by annotation status.
-                            Values are:
-                                ♦ “NotStarted” \n
-                                ♦ “InProgress” \n
-                                ♦ “QualityCheck” \n
-                                ♦ “Returned” \n
-                                ♦ “Completed” \n
-                                ♦ “Skip” \n
+            Values are:
+
+                ♦ “NotStarted” \n
+                ♦ “InProgress” \n
+                ♦ “QualityCheck” \n
+                ♦ “Returned” \n
+                ♦ “Completed” \n
+                ♦ “Skip” \n
         :type annotation_status: str
 
         :param annotator_email: returns those items’ names that are assigned to the specified annotator.
-         If None, all items are returned. Strict equal.
+            If None, all items are returned. Strict equal.
         :type annotator_email: str
 
         :param qa_email:  returns those items’ names that are assigned to the specified QA.
-         If None, all items are returned. Strict equal.
+            If None, all items are returned. Strict equal.
         :type qa_email: str
 
         :param recursive: search in the project’s root and all of its folders.
-         If False search only in the project’s root or given directory.
+            If False search only in the project’s root or given directory.
         :type recursive: bool
 
         :param include_custom_metadata: include custom metadata that has been attached to an asset.
@@ -2409,6 +2414,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             client.search_items(
                project="Medical Annotations",
                name_contains="image_1",
@@ -2417,6 +2423,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
+
             [
                {
                    "name": "image_1.jpeg",
@@ -2750,6 +2757,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         enum            list of strings
         ==============  ======================
+
         ::
 
             custom_fields = {
@@ -2806,6 +2814,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
+
             {
                "study_date": {
                    "type": "string",
@@ -2856,6 +2865,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             client = SAClient()
             client.delete_custom_fields(
                project = "Medical Annotations",
@@ -2864,6 +2874,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
+
             {
                 "study_date": {
                    "type": "string",
@@ -2915,6 +2926,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             client = SAClient()
 
             items_values = [
@@ -2948,8 +2960,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                project = "Medical Annotations",
                items = items_values
             )
+
         Response Example:
         ::
+
             {
                "successful_items_count": 2,
                "failed_items_names": ["image_3.png"]
@@ -2975,15 +2989,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type project: str
 
         :param items:   list of name-custom data dicts.
-         The key of each dict element indicates an existing item in the project root or folder.
-          The value should be the list of fields to be removed from the given item.
-          Please note, that the function removes pointed metadata from a given item.
-          To delete metadata for all items you should delete it from the custom metadata schema.
-          To override values for existing fields, use SAClient.upload_custom_values()
+            The key of each dict element indicates an existing item in the project root or folder.
+            The value should be the list of fields to be removed from the given item.
+            Please note, that the function removes pointed metadata from a given item.
+            To delete metadata for all items you should delete it from the custom metadata schema.
+            To override values for existing fields, use SAClient.upload_custom_values()
         :type items: list of dicts
 
         Request Example:
         ::
+
             client.delete_custom_values(
                 project = "Medical Annotations",
                 items = [
@@ -3023,6 +3038,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             client = SAClient()
 
             # option 1
@@ -3057,6 +3073,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
+
             {
                 "succeeded": [
                     {

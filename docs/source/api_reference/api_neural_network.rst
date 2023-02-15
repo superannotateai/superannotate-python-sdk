@@ -1,6 +1,6 @@
-==========
+==============
 Neural Network
-==========
+==============
 
 
 .. automethod:: superannotate.SAClient.download_model

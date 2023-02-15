@@ -12,4 +12,3 @@ Contents
     api_client
     api_metadata
     helpers
----

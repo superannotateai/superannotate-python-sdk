@@ -13,7 +13,6 @@ class TestGetAnnotations(BaseTestCase):
     PROJECT_NAME = "test attach video urls"
     PATH_TO_URLS = "attach_video_for_annotation.csv"
     PATH_TO_URLS_WITHOUT_NAMES = "attach_urls_with_no_name.csv"
-    PATH_TO_50K_URLS = "501_urls.csv"
     PROJECT_DESCRIPTION = "desc"
     ANNOTATIONS_PATH = "video_convertor_annotations"
     VIDEO_NAME = "video.mp4"

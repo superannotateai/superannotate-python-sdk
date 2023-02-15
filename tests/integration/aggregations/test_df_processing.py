@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from src.superannotate import SAClient
 from src.superannotate import AppException
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -29,7 +29,9 @@ class TestDF(BaseTestCase):
         )
 
     def test_invalid_project_type(self):
-        with self.assertRaisesRegexp(AppException, "The function is not supported for PointCloud projects."):
+        with self.assertRaisesRegexp(
+            AppException, "The function is not supported for PointCloud projects."
+        ):
             sa.aggregate_annotations_as_df(self.folder_path, "PointCloud")
 
 
@@ -44,4 +46,3 @@ class TestDFWithTagInstance(BaseTestCase):
     def test_filter_instances(self):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
         self.assertEqual(df.iloc[0]["type"], "tag")
-

@@ -1,10 +1,13 @@
-==========
+=========================
 Remote metadata reference
-==========
+=========================
+
 
 Projects metadata
 _________________
+
 .. _ref_metadata:
+
 Project metadata example:
 
 .. code-block:: python
@@ -221,4 +224,3 @@ Team contributor metadata example:
     "user_role": 6
     "...": "...",
   }
-

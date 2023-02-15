@@ -1,6 +1,6 @@
-==========
+==================
 SAClient interface
-==========
+==================
 
 Contents
 ========
@@ -17,5 +17,3 @@ Contents
     api_annotation_class
     api_team
     api_neural_network
-
----
