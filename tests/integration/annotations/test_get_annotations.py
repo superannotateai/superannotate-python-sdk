@@ -143,7 +143,6 @@ class TestGetAnnotationsVideo(BaseTestCase):
     PROJECT_NAME = "test attach multiple video urls"
     PATH_TO_URLS = "data_set/video_urls.csv"
     PATH_TO_URLS_WITHOUT_NAMES = "data_set/attach_urls_with_no_name.csv"
-    PATH_TO_50K_URLS = "data_set/501_urls.csv"
     PROJECT_DESCRIPTION = "desc"
     ANNOTATIONS_PATH = "data_set/video_annotations"
     VIDEO_NAME = "video.mp4"

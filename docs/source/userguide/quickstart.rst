@@ -2,6 +2,8 @@
 Quickstart
 ==========
 
+This introduction provides a quick overview of how to get SuperAnnotate Python SDK up and running on your local machine.
+
 Installation
 ============
 
@@ -23,9 +25,8 @@ It can be installed on Ubuntu with:
 
    sudo apt-get install ffmpeg
 
-For Windows and Mac OS based installations to use :py:obj:`consensus`
-function you might also need to install beforehand :py:obj:`shapely` package,
-which we found to work properly only under Anaconda distribution, with:
+To use the :py:obj:`consensus` function on Windows and Mac platforms, you might also need to install the shapely package
+beforehand. The package works well only under the Anaconda distribution with:
 
 .. code-block:: bash
 
@@ -34,12 +35,14 @@ which we found to work properly only under Anaconda distribution, with:
 
 ----------
 
-Config file
-____________________
+Initialization and authorization
+================================
 
-To use the SDK, a config file with team specific authentication token needs to be
-created.  The token is available to team admins on
-team setting page at https://app.superannotate.com/team.
+Config file
+~~~~~~~~~~~
+
+To use the SDK, you need to create a config file with a team-specific authentication token. The token is available
+to team admins on the team settings page at https://app.superannotate.com/team.
 
 Default location config file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,7 +61,7 @@ To generate a default location (:file:`~/.superannotate/config.json`) config fil
    superannotatecli init <token>
 
 Custom config file
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 .. _ref_custom_config_file:
 
 To create a custom config file a new INI file with key "token" can be created:
@@ -70,9 +73,6 @@ To create a custom config file a new INI file with key "token" can be created:
     LOGGING_LEVEL = INFO
     LOGGING_PATH = ~/.superannotate/logs
 
-
-Initialization and authorization
-=========
 
 Include the package in your Python code:
 
@@ -92,7 +92,7 @@ the :ref:`CLI init <ref_cli_init>`. Otherwise to authenticate SDK with the :ref:
 .. _basic-use:
 
 Creating a project
-=========
+==================
 
 To create a new "Vector" project with name "Example Project 1" and description
 "test":
@@ -105,7 +105,7 @@ To create a new "Vector" project with name "Example Project 1" and description
 
 
 Uploading images to project
-=========
+===========================
 
 
 To upload all images with extensions "jpg" or "png" from the
@@ -118,7 +118,7 @@ To upload all images with extensions "jpg" or "png" from the
 See the full argument options for
 :py:func:`upload_images_from_folder_to_project` :ref:`here <ref_upload_images_from_folder_to_project>`.
 
-For full list of available functions on projects, see :ref:`ref_projects`.
+:ref:`For full list of available functions on projects, see <ref_projects>`.
 
 .. note::
 
@@ -131,7 +131,7 @@ For full list of available functions on projects, see :ref:`ref_projects`.
 
 
 Working with images
-=========
+===================
 
 
 To download the image one can use:
@@ -158,7 +158,7 @@ Upload back to the platform with:
 
 
 Working with team contributors
-=========
+==============================
 
 A team contributor can be invited to the team with:
 

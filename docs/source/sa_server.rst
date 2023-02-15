@@ -1,8 +1,5 @@
-.. _ref_cli:
-
 SAServer Reference
-======================================
-
+==================
 
 
 The SAServer provides interface to create web API and run in development or production servers.

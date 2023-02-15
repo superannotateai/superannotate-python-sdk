@@ -1,6 +1,6 @@
-==========
+===============
 Custom Metadata
-==========
+===============
 
 .. automethod:: superannotate.SAClient.create_custom_fields
 .. automethod:: superannotate.SAClient.get_custom_fields

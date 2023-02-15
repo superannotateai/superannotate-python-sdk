@@ -1,10 +1,10 @@
-==========
+=========
 Utilities
-==========
+=========
 
 
 Converting annotation format
-============
+----------------------------
 
 
 After exporting project annotations (in SuperAnnotate format), it is possible
@@ -107,7 +107,7 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 
 
 pandas DataFrame out of project annotations and annotation instance filtering
-============
+-----------------------------------------------------------------------------
 
 
 To create a `pandas DataFrame <https://pandas.pydata.org/>`_ from project
@@ -129,7 +129,7 @@ attribute groups can be grouped under :code:`instanceId` field.
 
 
 Working with DICOM files
-============
+------------------------
 
 JPEG images with names :file:`<dicom_file_name>_<frame_num>.jpg` will be created
 in :file:`<path_to_output_dir>`. Those JPEG images can be uploaded to
@@ -151,7 +151,7 @@ Grassroots DICOM library <http://gdcm.sourceforge.net/wiki/index.php/Main_Page>`
    sudo apt install python3-gdcm
 
 Computing consensus scores for instances between several projects
-============
+-----------------------------------------------------------------
 
 
 Consensus is a tool to compare the quallity of the annotations of the same image that is present in several projects.
