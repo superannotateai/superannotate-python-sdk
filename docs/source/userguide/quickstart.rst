@@ -32,64 +32,71 @@ beforehand. The package works well only under the Anaconda distribution with:
 
    conda install shapely
 
-
 ----------
+
 
 Initialization and authorization
 ================================
 
-Config file
-~~~~~~~~~~~
-
 To use the SDK, you need to create a config file with a team-specific authentication token. The token is available
 to team admins on the team settings page at https://app.superannotate.com/team.
 
-Default location config file
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SAClient can be used with or without arguments
+______________________________________________
 
-To generate a default location (:file:`~/.superannotate/config.json`) config file::
-
-    ~/(home directory)
-    └── .superannotate
-        ├── config.ini
-
-
-:ref:`CLI init <ref_cli_init>` can be used:
-
-.. code-block:: bash
-
-   superannotatecli init <token>
-
-Custom config file
-~~~~~~~~~~~~~~~~~~
-.. _ref_custom_config_file:
-
-To create a custom config file a new INI file with key "token" can be created:
-
-.. code-block:: ini
-
-    [DEFAULT]
-    SA_TOKEN = <token>
-    LOGGING_LEVEL = INFO
-    LOGGING_PATH = ~/.superannotate/logs
-
-
-Include the package in your Python code:
+**Without arguments**
 
 .. code-block:: python
 
    from superannotate import SAClient
 
-SDK is ready to be used if default location config file was created using
-the :ref:`CLI init <ref_cli_init>`. Otherwise to authenticate SDK with the :ref:`custom config file <ref_custom_config_file>`:
+
+   sa_client = SAClient()
+
+*Method 1:* SA_TOKEN is defined as an environment variable.
+
+*Method 2:* Generate a default location (~/.superannotate/config.ini) config file. :ref:`CLI init <ref_cli_init>` should be used:
+
+.. code-block:: bash
+
+   superannotatecli init --token <token>
+                         [--logging_level <NOTSET/INFO/DEBUG/WARNING/ERROR/CRITICAL (Default=INFO)>]
+                         [--logging_path <Default=/Users/username/.superannotate/logs>]
+
+
+**Arguments provided**
+
+*Method 1:* Use the token as an argument:
 
 .. code-block:: python
 
-   sa = SAClient(config_path="<path_to_config_file>")
+   from superannotate import SAClient
 
 
+   SAClient(token="<token>")
 
-.. _basic-use:
+
+*Method 2:* Create a custom config file:
+
+.. code-block:: python
+
+   from superannotate import SAClient
+
+
+   sa_client = SAClient(config_path="~/.superannotate/dev-config.ini")
+
+
+Custom config.ini example:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    SA_TOKEN = <token>
+    LOGGING_LEVEL = DEBUG
+    LOGGING_PATH = /Users/username/data/superannotate_logs
+
+----------
+
 
 Creating a project
 ==================
@@ -102,6 +109,8 @@ To create a new "Vector" project with name "Example Project 1" and description
     project = "Example Project 1"
 
     sa.create_project(project, "test", "Vector")
+
+----------
 
 
 Uploading images to project
@@ -129,6 +138,8 @@ See the full argument options for
    If project name is used it should be unique in team's project list. Using project metadata will give
    performance improvement.
 
+----------
+
 
 Working with images
 ===================
@@ -154,7 +165,7 @@ Upload back to the platform with:
 
    sa.upload_image_annotations(project, image, "<path_to_json>")
 
-
+---------
 
 
 Working with team contributors

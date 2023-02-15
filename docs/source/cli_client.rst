@@ -10,14 +10,6 @@ With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
 
    superannotatecli <command> <--arg1 val1> <--arg2 val2> [--optional_arg3 val3] [--optional_arg4] ...
 
-To use the CLI a command line initialization step should be performed after the
-
-:ref:`installation <ref_quickstart>`:
-
-.. code-block:: bash
-
-   superannotatecli init
-
 ----------
 
 
@@ -34,7 +26,9 @@ To initialize CLI (and SDK) with team token:
 
 .. code-block:: bash
 
-   superannotatecli init
+   superannotatecli init --token <token>
+                         [--logging_level <NOTSET/INFO/DEBUG/WARNING/ERROR/CRITICAL (Default=INFO)>]
+                         [--logging_path <Default=/Users/username/.superannotate/logs>]
 
 ----------
 
@@ -152,7 +146,7 @@ To upload preannotations from folder to project use:
    superannotatecli upload-preannotations --project <project_name> --folder <folder_path>
                                           [--format "COCO" or "SuperAnnotate"]
                                           [--dataset-name "<dataset_name_for_COCO_projects>"]
-                                          [--task "<task_type_for_COCO_projects>]
+                                          [--task "<task_type_for_COCO_projects>"]
 
 
 Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
@@ -180,7 +174,7 @@ To upload annotations from folder to project use:
    superannotatecli upload-annotations --project <project_name> --folder <folder_path>
                                        [--format "COCO" or "SuperAnnotate"]
                                        [--dataset-name "<dataset_name_for_COCO_projects>"]
-                                       [--task "<task_type_for_COCO_projects>]
+                                       [--task "<task_type_for_COCO_projects>"]
 
 Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
 If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
