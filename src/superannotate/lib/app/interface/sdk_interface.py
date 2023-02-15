@@ -83,7 +83,7 @@ ANNOTATION_STATUS = Literal[
     "NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"
 ]
 
-APPROVAL_STATUS = Literal["Approved", "Disapproved"]
+APPROVAL_STATUS = Literal["Approved", "Disapproved", None]
 
 IMAGE_QUALITY = Literal["compressed", "original"]
 
@@ -3101,7 +3101,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def set_approval_statuses(
         self,
         project: NotEmptyStr,
-        approval_status: Union[APPROVAL_STATUS, None],
+        approval_status: Optional[APPROVAL_STATUS],
         items: Optional[List[NotEmptyStr]] = None,
     ):
         """Sets annotation statuses of items

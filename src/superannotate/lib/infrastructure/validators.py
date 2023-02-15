@@ -22,7 +22,7 @@ def make_literal_validator(
     Adding ability to input literal in the lower case.
     """
     permitted_choices = validators.all_literal_values(type_)
-    allowed_choices = {v.lower(): v for v in permitted_choices}
+    allowed_choices = {v.lower() if v else v: v for v in permitted_choices}
 
     def literal_validator(v: typing.Any) -> typing.Any:
         try:
