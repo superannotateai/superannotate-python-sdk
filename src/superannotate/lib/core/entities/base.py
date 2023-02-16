@@ -1,3 +1,4 @@
+import re
 import warnings
 from datetime import datetime
 from enum import Enum
@@ -14,6 +15,7 @@ from lib.core.enums import AnnotationStatus
 from lib.core.enums import BaseTitledEnum
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Extra
+from pydantic import StrictStr
 from pydantic import Field
 from pydantic.datetime_parse import parse_datetime
 from pydantic.typing import is_namedtuple
@@ -292,8 +294,21 @@ class BaseItemEntity(TimedBaseModel):
         return entity
 
 
+class TokenStr(StrictStr):
+    regex = r'^[-.@_A-Za-z0-9]+=\d+$'
+
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if cls.curtail_length and len(value) > cls.curtail_length:
+            value = value[: cls.curtail_length]
+        if cls.regex:
+            if not re.match(cls.regex, value):
+                raise ValueError("Invalid token.")
+        return value
+
+
 class ConfigEntity(BaseModel):
-    API_TOKEN: str = Field(alias="SA_TOKEN")
+    API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
     API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
     LOGGING_LEVEL: Literal[
         "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"

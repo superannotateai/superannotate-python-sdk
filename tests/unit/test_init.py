@@ -6,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import superannotate.lib.core as constants
+from superannotate.lib.app.interface.types import validate_arguments
 from superannotate import AppException
 from superannotate import SAClient
 
@@ -15,10 +16,7 @@ class ClientInitTestCase(TestCase):
 
     def test_init_via_invalid_token(self):
         _token = "123"
-        with self.assertRaisesRegexp(
-            AppException,
-            "Unable to retrieve team data. Please verify your credentials.",
-        ):
+        with self.assertRaisesRegexp(AppException, r"(\s+)token(\s+)Invalid token."):
             SAClient(token=_token)
 
     @patch("lib.core.usecases.GetTeamUseCase")
@@ -48,6 +46,20 @@ class ClientInitTestCase(TestCase):
                     assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
                         self._token.split("=")[-1]
                     )
+
+    def test_init_via_config_json_invalid_json(self):
+        with tempfile.TemporaryDirectory() as config_dir:
+            constants.HOME_PATH = config_dir
+            config_ini_path = f"{config_dir}/config.ini"
+            config_json_path = f"{config_dir}/config.json"
+            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
+                    "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
+            ):
+                with open(f"{config_dir}/config.json", "w") as config_json:
+                    json.dump({"token": "INVALID_TOKEN"}, config_json)
+                for kwargs in ({}, {"config_path": f"{config_dir}/config.json"}):
+                    with self.assertRaisesRegexp(AppException, r"(\s+)token(\s+)Invalid token."):
+                        SAClient(**kwargs)
 
     @patch("lib.core.usecases.GetTeamUseCase")
     def test_init_via_config_ini(self, get_team_use_case):
@@ -82,6 +94,32 @@ class ClientInitTestCase(TestCase):
         assert sa.controller._config.API_TOKEN == "SOME_TOKEN=123"
         assert sa.controller._config.API_URL == "SOME_URL"
         assert get_team_use_case.call_args_list[0].kwargs["team_id"] == 123
+
+    @patch.dict(os.environ, {"SA_URL": "SOME_URL", "SA_TOKEN": "SOME_TOKEN"})
+    def test_init_env_invalid_token(self):
+        with self.assertRaisesRegexp(AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."):
+            SAClient()
+
+    def test_init_via_config_ini_invalid_token(self):
+        with tempfile.TemporaryDirectory() as config_dir:
+            constants.HOME_PATH = config_dir
+            config_ini_path = f"{config_dir}/config.ini"
+            config_json_path = f"{config_dir}/config.json"
+            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
+                    "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
+            ):
+                with open(f"{config_dir}/config.ini", "w") as config_ini:
+                    config_parser = ConfigParser()
+                    config_parser.optionxform = str
+                    config_parser["DEFAULT"] = {
+                        "SA_TOKEN": "INVALID_TOKEN",
+                        "LOGGING_LEVEL": "DEBUG",
+                    }
+                    config_parser.write(config_ini)
+
+                for kwargs in ({}, {"config_path": f"{config_dir}/config.ini"}):
+                    with self.assertRaisesRegexp(AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."):
+                        SAClient(**kwargs)
 
     def test_invalid_config_path(self):
         _path = "something"

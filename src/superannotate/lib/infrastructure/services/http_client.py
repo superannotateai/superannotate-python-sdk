@@ -183,27 +183,30 @@ class HttpClient(BaseClient):
             "status": response.status_code,
         }
         try:
-            data_json = response.json()
             if not response.ok:
                 if response.status_code in (502, 504):
                     data[
                         "_error"
                     ] = "Our service is currently unavailable, please try again later."
+                    return content_type(**data)
                 else:
+                    data_json = response.json()
                     data["_error"] = data_json.get(
                         "error", data_json.get("errors", "Unknown Error")
                     )
-            else:
-                if dispatcher:
-                    if dispatcher in data_json:
-                        data["data"] = data_json.pop(dispatcher)
-                    else:
-                        data["data"] = data_json
-                        data_json = {}
-                    data.update(data_json)
+                    return content_type(**data)
+            data_json = response.json()
+            if dispatcher:
+                if dispatcher in data_json:
+                    data["data"] = data_json.pop(dispatcher)
                 else:
                     data["data"] = data_json
+                    data_json = {}
+                data.update(data_json)
+            else:
+                data["data"] = data_json
             return content_type(**data)
         except json.decoder.JSONDecodeError:
+            data['_error'] = response.content
             data["reason"] = response.reason
             return content_type(**data)

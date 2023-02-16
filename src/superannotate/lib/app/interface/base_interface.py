@@ -15,6 +15,7 @@ from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
 from lib.core import setup_logging
 from lib.core.entities.base import ConfigEntity
+from lib.core.entities.base import TokenStr
 from lib.core.exceptions import AppException
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.utils import extract_project_folder
@@ -26,39 +27,41 @@ from superannotate import __version__
 class BaseInterfaceFacade:
     REGISTRY = []
 
-    def __init__(self, token: str = None, config_path: str = None):
-        if token:
-            config = ConfigEntity(SA_TOKEN=token)
-        elif config_path:
-            config_path = Path(config_path)
-            if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
-                raise AppException(
-                    f"SuperAnnotate config file {str(config_path)} not found."
-                )
-            try:
+    @validate_arguments
+    def __init__(self, token: TokenStr = None, config_path: str = None):
+        try:
+            if token:
+                config = ConfigEntity(SA_TOKEN=token)
+            elif config_path:
+                config_path = Path(config_path)
+                if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
+                    raise AppException(
+                        f"SuperAnnotate config file {str(config_path)} not found."
+                    )
                 if config_path.suffix == ".json":
                     config = self._retrieve_configs_from_json(config_path)
                 else:
                     config = self._retrieve_configs_from_ini(config_path)
-            except pydantic.ValidationError as e:
-                raise AppException(wrap_error(e))
-            except KeyError:
-                raise
-        else:
-            config = self._retrieve_configs_from_env()
-            if not config:
-                if Path(constants.CONFIG_INI_FILE_LOCATION).exists():
-                    config = self._retrieve_configs_from_ini(
-                        constants.CONFIG_INI_FILE_LOCATION
-                    )
-                elif Path(constants.CONFIG_JSON_FILE_LOCATION).exists():
-                    config = self._retrieve_configs_from_json(
-                        constants.CONFIG_JSON_FILE_LOCATION
-                    )
-                else:
-                    raise AppException(
-                        f"SuperAnnotate config file {constants.CONFIG_INI_FILE_LOCATION} not found."
-                    )
+
+            else:
+                config = self._retrieve_configs_from_env()
+                if not config:
+                    if Path(constants.CONFIG_INI_FILE_LOCATION).exists():
+                        config = self._retrieve_configs_from_ini(
+                            constants.CONFIG_INI_FILE_LOCATION
+                        )
+                    elif Path(constants.CONFIG_JSON_FILE_LOCATION).exists():
+                        config = self._retrieve_configs_from_json(
+                            constants.CONFIG_JSON_FILE_LOCATION
+                        )
+                    else:
+                        raise AppException(
+                            f"SuperAnnotate config file {constants.CONFIG_INI_FILE_LOCATION} not found."
+                        )
+        except pydantic.ValidationError as e:
+            raise AppException(wrap_error(e))
+        except KeyError:
+            raise
         if not config:
             raise AppException("Credentials not provided.")
         setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)
@@ -70,7 +73,13 @@ class BaseInterfaceFacade:
         with open(path) as json_file:
             json_data = json.load(json_file)
         token = json_data["token"]
-        config = ConfigEntity(SA_TOKEN=token)
+        try:
+            config = ConfigEntity(SA_TOKEN=token)
+        except pydantic.ValidationError:
+            raise pydantic.ValidationError(
+                [pydantic.error_wrappers.ErrorWrapper(ValueError("Invalid token."), loc='token')],
+                model=ConfigEntity
+            )
         host = json_data.get("main_endpoint")
         verify_ssl = json_data.get("ssl_verify")
         if host:
@@ -89,10 +98,7 @@ class BaseInterfaceFacade:
         config_data = {}
         for key in config_parser["DEFAULT"]:
             config_data[key.upper()] = config_parser["DEFAULT"][key]
-        try:
-            return ConfigEntity(**config_data)
-        except pydantic.ValidationError as e:
-            raise AppException(wrap_error(e))
+        return ConfigEntity(**config_data)
 
     @staticmethod
     def _retrieve_configs_from_env() -> typing.Union[ConfigEntity, None]:
