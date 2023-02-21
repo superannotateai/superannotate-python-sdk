@@ -8,8 +8,7 @@ from tests.integration.base import BaseTestCase
 sa = SAClient()
 
 
-class \
-        TestAnnotationUploadVector(BaseTestCase):
+class TestAnnotationUploadVector(BaseTestCase):
     PROJECT_NAME = "Test-Upload_annotations_from_folder_to_project"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"

@@ -61,6 +61,7 @@ class TestAnnotationDelete(BaseTestCase):
         ]
 
     def test_delete_annotations_by_name(self):
+        # self._attach_items(4)
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )

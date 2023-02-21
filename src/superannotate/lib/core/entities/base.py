@@ -15,8 +15,8 @@ from lib.core.enums import AnnotationStatus
 from lib.core.enums import BaseTitledEnum
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Extra
-from pydantic import StrictStr
 from pydantic import Field
+from pydantic import StrictStr
 from pydantic.datetime_parse import parse_datetime
 from pydantic.typing import is_namedtuple
 from pydantic.utils import ROOT_KEY
@@ -295,7 +295,7 @@ class BaseItemEntity(TimedBaseModel):
 
 
 class TokenStr(StrictStr):
-    regex = r'^[-.@_A-Za-z0-9]+=\d+$'
+    regex = r"^[-.@_A-Za-z0-9]+=\d+$"
 
     @classmethod
     def validate(cls, value: Union[str]) -> Union[str]:

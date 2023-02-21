@@ -1,7 +1,7 @@
-import asyncio
 import copy
 import json
 import os
+import typing
 from typing import Callable
 
 import aiohttp
@@ -62,11 +62,11 @@ class StreamedAnnotations:
             yield json.loads(buffer)
             self._reporter.update_progress()
 
-    async def process_chunk(
+    async def list_annotations(
         self,
         method: str,
         url: str,
-        data: dict = None,
+        data: typing.List[int] = None,
         params: dict = None,
         verify_ssl=False,
     ):
@@ -81,19 +81,20 @@ class StreamedAnnotations:
                 session,
                 url,
                 self._process_data(data),
-                params=params,
+                params=copy.copy(params),
             ):
                 self._annotations.append(
                     self._callback(annotation) if self._callback else annotation
                 )
+        return self._annotations
 
-    async def store_chunk(
+    async def download_annotations(
         self,
         method: str,
         url: str,
         download_path,
         postfix,
-        data: dict = None,
+        data: typing.List[int],
         params: dict = None,
     ):
         async with aiohttp.ClientSession(
@@ -107,7 +108,7 @@ class StreamedAnnotations:
                 session,
                 url,
                 self._process_data(data),
-                params=params,
+                params=copy.copy(params),
             ):
                 self._annotations.append(
                     self._callback(annotation) if self._callback else annotation
@@ -120,31 +121,6 @@ class StreamedAnnotations:
                 )
                 self._items_downloaded += 1
 
-    async def get_data(
-        self,
-        url: str,
-        data: list,
-        method: str = "post",
-        params=None,
-        chunk_size: int = 5000,
-        verify_ssl: bool = False,
-    ):
-        params["limit"] = chunk_size
-        await asyncio.gather(
-            *[
-                self.process_chunk(
-                    method=method,
-                    url=url,
-                    data=data[i : i + chunk_size],
-                    params=copy.copy(params),
-                    verify_ssl=verify_ssl,
-                )
-                for i in range(0, len(data), chunk_size)
-            ]
-        )
-
-        return self._annotations
-
     @staticmethod
     def _store_annotation(path, postfix, annotation: dict, callback: Callable = None):
         os.makedirs(path, exist_ok=True)
@@ -156,32 +132,3 @@ class StreamedAnnotations:
         if data and self._map_function:
             return self._map_function(data)
         return data
-
-    async def download_data(
-        self,
-        url: str,
-        data: list,
-        download_path: str,
-        postfix: str,
-        method: str = "post",
-        params=None,
-        chunk_size: int = 5000,
-    ) -> int:
-        """
-        Returns the number of items downloaded
-        """
-        params["limit"] = chunk_size
-        await asyncio.gather(
-            *[
-                self.store_chunk(
-                    method=method,
-                    url=url,
-                    data=data[i : i + chunk_size],  # noqa
-                    params=copy.copy(params),
-                    download_path=download_path,
-                    postfix=postfix,
-                )
-                for i in range(0, len(data), chunk_size)
-            ]
-        )
-        return self._items_downloaded

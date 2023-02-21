@@ -61,6 +61,10 @@ class Reporter:
         self._spinner = None
 
     @property
+    def log_enabled(self):
+        return self._log_info
+
+    @property
     def spinner(self):
         return Spinner()
 
