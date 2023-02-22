@@ -210,11 +210,11 @@ class DownloadExportUseCase(BaseReportableUseCase):
                     raise AppException("Couldn't download export.")
                 time.sleep(1)
             self.reporter.stop_spinner()
-        filename = Path(export["path"]).stem
+        filename = export["name"]
         if platform.system().lower() == "windows":
             for char in DownloadExportUseCase.FORBIDDEN_CHARS:
                 filename = filename.replace(char, "_")
-        filepath = Path(destination) / (filename + ".zip")
+        filepath = Path(destination) / filename
         with requests.get(export["download"], stream=True) as response:
             response.raise_for_status()
             with open(filepath, "wb") as f:
