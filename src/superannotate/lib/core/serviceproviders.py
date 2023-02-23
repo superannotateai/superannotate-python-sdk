@@ -312,17 +312,6 @@ class BaseItemService(SuperannotateServiceProvider):
 
 class BaseAnnotationService(SuperannotateServiceProvider):
     @abstractmethod
-    async def get_small_annotations(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        items: List[str],
-        reporter: Reporter,
-        callback: Callable = None,
-    ) -> List[dict]:
-        raise NotImplementedError
-
-    @abstractmethod
     async def get_big_annotation(
         self,
         project: entities.ProjectEntity,

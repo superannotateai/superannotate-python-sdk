@@ -12,6 +12,29 @@ class TestCustomSchema(BaseTestCase):
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     PAYLOAD = {"test": {"type": "number"}, "tester": {"type": "number"}}
+    INITIAL_ALL_VALID = {
+        "test_string_email": {
+            "type": "string",
+            "format": "email",
+            "enum": [
+                "abc@gmail.com",
+                "afg@ahg.com",
+                "name+@gmail.com",
+                "name+surname@mail.ru",
+            ],
+        },
+        "test_type_number": {"type": "number"},
+        "number_and_range": {"type": "number", "minimum": -1, "maximum": 100.5},
+        "string_and_enum": {"type": "string", "enum": ["one", "two", "tree"]},
+        "string_and_date": {"type": "string", "format": "date"},
+        "number_and_enum": {"type": "number", "enum": [1.2, 0, -345, 100, 1, 0.1]},
+        "string_date_enum": {
+            "type": "string",
+            "format": "date",
+            "enum": ["2022-12-11", "2000-10-9"],
+        },
+        "just_string": {"type": "string"},
+    }
 
     def test_create_schema(self):
         data = sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
@@ -34,6 +57,12 @@ class TestCustomSchema(BaseTestCase):
     def test_get_schema(self):
         sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
         self.assertEqual(sa.get_custom_fields(self.PROJECT_NAME), self.PAYLOAD)
+
+    def test_create_large_schema(self):
+        sa.create_custom_fields(self.PROJECT_NAME, self.INITIAL_ALL_VALID)
+        self.assertEqual(
+            sa.get_custom_fields(self.PROJECT_NAME), self.INITIAL_ALL_VALID
+        )
 
     def test_delete_schema(self):
         payload = copy.copy(self.PAYLOAD)

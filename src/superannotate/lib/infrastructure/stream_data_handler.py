@@ -30,6 +30,12 @@ class StreamedAnnotations:
         self._map_function = map_function
         self._items_downloaded = 0
 
+    def get_json(self, data: bytes):
+        try:
+            return json.loads(data)
+        except json.decoder.JSONDecodeError as e:
+            self._reporter.log_error(f"Invalud chunk: {str(e)}")
+
     async def fetch(
         self,
         method: str,
@@ -41,25 +47,17 @@ class StreamedAnnotations:
         kwargs = {"params": params, "json": {"folder_id": params.pop("folder_id")}}
         if data:
             kwargs["json"].update(data)
-        response = await session._request(method, url, **kwargs, timeout=TIMEOUT)
+        response = await session._request(  # noqa
+            method, url, **kwargs, timeout=TIMEOUT
+        )
         buffer = b""
         async for line in response.content.iter_any():
-            slices = line.split(self.DELIMITER)
-            if len(slices) == 2 and slices[0]:
-                self._reporter.update_progress()
-                buffer += slices[0]
-                yield json.loads(buffer)
-                buffer = b""
-            elif len(slices) > 2:
-                for _slice in slices[:-1]:
-                    if not _slice:
-                        continue
-                    self._reporter.update_progress()
-                    yield json.loads(buffer + _slice)
-                    buffer = b""
-            buffer += slices[-1]
+            slices = (buffer + line).split(self.DELIMITER)
+            for _slice in slices[:-1]:
+                yield self.get_json(_slice)
+            buffer = slices[-1]
         if buffer:
-            yield json.loads(buffer)
+            yield self.get_json(buffer)
             self._reporter.update_progress()
 
     async def list_annotations(
@@ -70,6 +68,9 @@ class StreamedAnnotations:
         params: dict = None,
         verify_ssl=False,
     ):
+        params = copy.copy(params)
+        params["limit"] = len(data)
+        annotations = []
         async with aiohttp.ClientSession(
             headers=self._headers,
             timeout=TIMEOUT,
@@ -83,10 +84,11 @@ class StreamedAnnotations:
                 self._process_data(data),
                 params=copy.copy(params),
             ):
-                self._annotations.append(
+                annotations.append(
                     self._callback(annotation) if self._callback else annotation
                 )
-        return self._annotations
+
+        return annotations
 
     async def download_annotations(
         self,
@@ -97,6 +99,8 @@ class StreamedAnnotations:
         data: typing.List[int],
         params: dict = None,
     ):
+        params = copy.copy(params)
+        params["limit"] = len(data)
         async with aiohttp.ClientSession(
             headers=self._headers,
             timeout=TIMEOUT,
@@ -108,7 +112,7 @@ class StreamedAnnotations:
                 session,
                 url,
                 self._process_data(data),
-                params=copy.copy(params),
+                params=params,
             ):
                 self._annotations.append(
                     self._callback(annotation) if self._callback else annotation

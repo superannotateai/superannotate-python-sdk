@@ -66,12 +66,7 @@ class TestGetAnnotations(BaseTestCase):
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_from_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
-
-        sa.upload_images_from_folder_to_project(
-            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}",
-            self.folder_path,
-            annotation_status="InProgress",
-        )
+        self._attach_items(count=4, folder=self.FOLDER_NAME)
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
@@ -93,9 +88,7 @@ class TestGetAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_all(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
+        self._attach_items(count=4)
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
@@ -108,14 +101,9 @@ class TestGetAnnotations(BaseTestCase):
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_all_plus_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-        sa.upload_images_from_folder_to_project(
-            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}",
-            self.folder_path,
-            annotation_status="InProgress",
-        )
+        self._attach_items(count=4)
+        self._attach_items(count=4, folder=self.FOLDER_NAME)
+
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )

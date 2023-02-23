@@ -4,19 +4,21 @@ from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from os.path import expanduser
 
-from superannotate.lib.core.config import Config
-from superannotate.lib.core.enums import AnnotationStatus
-from superannotate.lib.core.enums import ApprovalStatus
-from superannotate.lib.core.enums import FolderStatus
-from superannotate.lib.core.enums import ImageQuality
-from superannotate.lib.core.enums import ProjectStatus
-from superannotate.lib.core.enums import ProjectType
-from superannotate.lib.core.enums import SegmentationStatus
-from superannotate.lib.core.enums import TrainingStatus
-from superannotate.lib.core.enums import UploadState
-from superannotate.lib.core.enums import UserRole
+from lib.core.config import Config
+from lib.core.enums import AnnotationStatus
+from lib.core.enums import ApprovalStatus
+from lib.core.enums import FolderStatus
+from lib.core.enums import ImageQuality
+from lib.core.enums import ProjectStatus
+from lib.core.enums import ProjectType
+from lib.core.enums import SegmentationStatus
+from lib.core.enums import TrainingStatus
+from lib.core.enums import UploadState
+from lib.core.enums import UserRole
+
 
 CONFIG = Config()
+BACKEND_URL = "https://api.superannotate.com"
 HOME_PATH = expanduser("~/.superannotate")
 
 CONFIG_JSON_PATH = f"{HOME_PATH}/config.json"
@@ -32,37 +34,33 @@ _loggers = {}
 
 def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
 
-    global _loggers
-    if not _loggers.get("sa"):
-        logger = logging.getLogger("sa")
-        logger.propagate = True
-        logger.setLevel(level)
-        stream_handler = logging.StreamHandler()
-        formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(message)s")
-        stream_handler.setFormatter(formatter)
-        logger.addHandler(stream_handler)
-        try:
-            log_file_path = os.path.join(file_path, "sa.log")
-            open(log_file_path, "w").close()
-            if os.access(log_file_path, os.W_OK):
-                file_handler = RotatingFileHandler(
-                    log_file_path,
-                    maxBytes=5 * 1024 * 1024,
-                    backupCount=5,
-                    mode="a",
-                )
-                file_formatter = Formatter(
-                    "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
-                )
-                file_handler.setFormatter(file_formatter)
-                logger.addHandler(file_handler)
-        except OSError:
-            pass
-        finally:
-            _loggers["sa"] = logger
+    logger = logging.getLogger("sa")
+    for handler in logger.handlers[:]:  # remove all old handlers
+        logger.removeHandler(handler)
+    logger.propagate = True
+    logger.setLevel(level)
+    stream_handler = logging.StreamHandler()
+    formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(message)s")
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+    try:
+        log_file_path = os.path.join(file_path, "sa.log")
+        open(log_file_path, "w").close()
+        if os.access(log_file_path, os.W_OK):
+            file_handler = RotatingFileHandler(
+                log_file_path,
+                maxBytes=5 * 1024 * 1024,
+                backupCount=5,
+                mode="a",
+            )
+            file_formatter = Formatter(
+                "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
+            )
+            file_handler.setFormatter(file_formatter)
+            logger.addHandler(file_handler)
+    except OSError as e:
+        logging.error(e)
 
-
-BACKEND_URL = "https://api.superannotate.com"
 
 DEFAULT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
 DEFAULT_FILE_EXCLUDE_PATTERNS = ["___save.png", "___fuse.png"]
