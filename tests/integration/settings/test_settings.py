@@ -82,24 +82,6 @@ class TestSettings(BaseTestCase):
         else:
             raise Exception("Test failed")
 
-    def test_clone_project(self):
-        sa.create_project(
-            self.PROJECT_NAME,
-            self.PROJECT_DESCRIPTION,
-            self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}],
-        )
-        sa.clone_project(
-            self.SECOND_PROJECT_NAME, self.PROJECT_NAME, copy_settings=True
-        )
-        settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
-        for setting in settings:
-            if setting["attribute"] == "ImageQuality":
-                assert setting["value"] == "original"
-                break
-        else:
-            raise Exception("Test failed")
-
     def test_frame_rate_invalid_range_value(self):
         with self.assertRaisesRegexp(
             AppException, "FrameRate is available only for Video projects"

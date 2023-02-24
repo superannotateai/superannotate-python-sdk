@@ -431,7 +431,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_description: Optional[NotEmptyStr] = None,
         copy_annotation_classes: Optional[StrictBool] = True,
         copy_settings: Optional[StrictBool] = True,
-        copy_workflow: Optional[StrictBool] = True,
+        copy_workflow: Optional[StrictBool] = False,
         copy_contributors: Optional[StrictBool] = False,
     ):
         """Create a new project in the team using annotation classes and settings from from_project.
@@ -455,22 +455,54 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: dict object metadata of the new project
         :rtype: dict
         """
-        project = self.controller.get_project(from_project)
-        new_project = copy.copy(project)
-        new_project.name = project_name
-        if project_description:
-            new_project.description = project_description
-        response = self.controller.projects.clone(
-            project=project,
-            new_project=new_project,
-            copy_annotation_classes=copy_annotation_classes,
-            copy_settings=copy_settings,
-            copy_workflow=copy_workflow,
-            copy_contributors=copy_contributors,
+        response = self.controller.projects.get_metadata(
+            self.controller.get_project(from_project),
+            include_annotation_classes=copy_annotation_classes,
+            include_settings=copy_settings,
+            include_workflow=copy_workflow,
+            include_contributors=copy_contributors,
         )
-        if response.errors:
-            raise AppException(response.errors)
-        return ProjectSerializer(response.data).serialize()
+        response.raise_for_status()
+        project: entities.ProjectEntity = response.data
+        if copy_workflow and project.type not in (
+            constants.ProjectType.VECTOR,
+            constants.ProjectType.PIXEL,
+        ):
+            raise AppException(
+                f"Workflow is not supported in {project.type.name} project."
+            )
+        logger.info(
+            f"Created project {project_name} with type {constants.ProjectType.get_name(project.type)}."
+        )
+        project_copy = copy.copy(project)
+        if project_description:
+            project_copy.description = project_description
+        project_copy.name = project_name
+        create_response = self.controller.projects.create(project_copy)
+        create_response.raise_for_status()
+        new_project = create_response.data
+        if copy_contributors:
+            logger.info(f"Cloning contributors from {from_project} to {project_name}.")
+            self.controller.projects.add_contributors(
+                self.controller.team, new_project, project.contributors
+            )
+        if copy_annotation_classes:
+            logger.info(
+                f"Cloning annotation classes from {from_project} to {project_name}."
+            )
+            classes_response = self.controller.annotation_classes.create_multiple(
+                new_project, project.classes
+            )
+            classes_response.raise_for_status()
+            project.classes = classes_response.data
+            if copy_workflow:
+                logger.info(f"Cloning workflow from {from_project} to {project_name}.")
+                workflow_response = self.controller.projects.set_workflows(
+                    new_project, project.workflows
+                )
+                workflow_response.raise_for_status()
+                project.workflows = self.controller.projects.list_workflow(project).data
+        return ProjectSerializer(new_project).serialize()
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Create a new folder in the project.
@@ -2123,8 +2155,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: tuple (2 members) of lists of strs
         """
         project = self.controller.projects.get_by_name(project).data
+        contributors = [
+            entities.ContributorEntity(email=email, user_role=constants.UserRole(role))
+            for email in emails
+        ]
         response = self.controller.projects.add_contributors(
-            project=project, team=self.controller.team, emails=emails, role=role
+            team=self.controller.team, project=project, contributors=contributors
         )
         if response.errors:
             raise AppException(response.errors)

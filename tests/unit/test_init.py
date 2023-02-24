@@ -6,7 +6,6 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import superannotate.lib.core as constants
-from superannotate.lib.app.interface.types import validate_arguments
 from superannotate import AppException
 from superannotate import SAClient
 
@@ -53,12 +52,14 @@ class ClientInitTestCase(TestCase):
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
-                    "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
+                "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
             ):
                 with open(f"{config_dir}/config.json", "w") as config_json:
                     json.dump({"token": "INVALID_TOKEN"}, config_json)
                 for kwargs in ({}, {"config_path": f"{config_dir}/config.json"}):
-                    with self.assertRaisesRegexp(AppException, r"(\s+)token(\s+)Invalid token."):
+                    with self.assertRaisesRegexp(
+                        AppException, r"(\s+)token(\s+)Invalid token."
+                    ):
                         SAClient(**kwargs)
 
     @patch("lib.core.usecases.GetTeamUseCase")
@@ -106,7 +107,7 @@ class ClientInitTestCase(TestCase):
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
-                    "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
+                "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
             ):
                 with open(f"{config_dir}/config.ini", "w") as config_ini:
                     config_parser = ConfigParser()
@@ -118,7 +119,9 @@ class ClientInitTestCase(TestCase):
                     config_parser.write(config_ini)
 
                 for kwargs in ({}, {"config_path": f"{config_dir}/config.ini"}):
-                    with self.assertRaisesRegexp(AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."):
+                    with self.assertRaisesRegexp(
+                        AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."
+                    ):
                         SAClient(**kwargs)
 
     def test_invalid_config_path(self):
