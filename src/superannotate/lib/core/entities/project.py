@@ -10,6 +10,7 @@ from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
+from lib.core.enums import UserRole
 from pydantic import Extra
 from pydantic import Field
 from pydantic import StrictBool
@@ -77,6 +78,17 @@ class SettingEntity(BaseModel):
         return SettingEntity(attribute=self.attribute, value=self.value)
 
 
+class ContributorEntity(BaseModel):
+    id: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: str
+    user_role: UserRole
+
+    class Config:
+        extra = Extra.ignore
+
+
 class ProjectEntity(TimedBaseModel):
     id: Optional[int]
     team_id: Optional[int]
@@ -93,7 +105,7 @@ class ProjectEntity(TimedBaseModel):
     upload_state: Optional[int]
     users: Optional[List[Any]] = []
     unverified_users: Optional[List[Any]] = []
-    contributors: List[Any] = []
+    contributors: List[ContributorEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
     workflows: Optional[List[WorkflowEntity]] = []
@@ -117,13 +129,12 @@ class ProjectEntity(TimedBaseModel):
             team_id=self.team_id,
             name=self.name,
             type=self.type,
-            description=self.description,
-            instructions_link=self.instructions_link
-            if self.description
-            else f"Copy of {self.name}.",
+            description=f"Copy of {self.name}.",
+            instructions_link=self.instructions_link,
             status=self.status,
             folder_id=self.folder_id,
             users=self.users,
+            settings=[s.__copy__() for s in self.settings],
             upload_state=self.upload_state,
         )
 
@@ -151,15 +162,6 @@ class MLModelEntity(TimedBaseModel):
         extra = Extra.ignore
 
 
-class UserEntity(BaseModel):
-    id: Optional[str]
-    first_name: Optional[str]
-    last_name: Optional[str]
-    email: Optional[str]
-    picture: Optional[str]
-    user_role: Optional[int]
-
-
 class TeamEntity(BaseModel):
     id: Optional[int]
     name: Optional[str]
@@ -167,6 +169,6 @@ class TeamEntity(BaseModel):
     type: Optional[str]
     user_role: Optional[str]
     is_default: Optional[bool]
-    users: Optional[List[UserEntity]]
+    users: Optional[List[ContributorEntity]]
     pending_invitations: Optional[List]
     creator_id: Optional[str]

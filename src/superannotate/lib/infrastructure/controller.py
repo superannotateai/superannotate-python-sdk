@@ -16,6 +16,7 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
+from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
@@ -109,26 +110,6 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def clone(
-        self,
-        project: ProjectEntity,
-        new_project: ProjectEntity,
-        copy_annotation_classes=True,
-        copy_settings=True,
-        copy_workflow=True,
-        copy_contributors=False,
-    ):
-        use_case = usecases.CloneProjectUseCase(
-            project=project,
-            service_provider=self.service_provider,
-            project_to_create=new_project,
-            include_contributors=copy_contributors,
-            include_settings=copy_settings,
-            include_workflow=copy_workflow,
-            include_annotation_classes=copy_annotation_classes,
-        )
-        return use_case.execute()
-
     def set_settings(self, project: ProjectEntity, settings: List[SettingEntity]):
         use_case = usecases.UpdateSettingsUseCase(
             to_update=settings,
@@ -157,13 +138,17 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def add_contributors(self, project: ProjectEntity, team, emails: list, role: str):
+    def add_contributors(
+        self,
+        team: TeamEntity,
+        project: ProjectEntity,
+        contributors: List[ContributorEntity],
+    ):
         project = self.get_metadata(project).data
         use_case = usecases.AddContributorsToProject(
             team=team,
             project=project,
-            emails=emails,
-            role=role,
+            contributors=contributors,
             service_provider=self.service_provider,
         )
         return use_case.execute()

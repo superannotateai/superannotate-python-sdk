@@ -34,7 +34,9 @@ class BaseInterfaceFacade:
                 config = ConfigEntity(SA_TOKEN=token)
             elif config_path:
                 config_path = Path(config_path)
-                if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
+                if not Path(config_path).is_file() or not os.access(
+                    config_path, os.R_OK
+                ):
                     raise AppException(
                         f"SuperAnnotate config file {str(config_path)} not found."
                     )
@@ -77,8 +79,12 @@ class BaseInterfaceFacade:
             config = ConfigEntity(SA_TOKEN=token)
         except pydantic.ValidationError:
             raise pydantic.ValidationError(
-                [pydantic.error_wrappers.ErrorWrapper(ValueError("Invalid token."), loc='token')],
-                model=ConfigEntity
+                [
+                    pydantic.error_wrappers.ErrorWrapper(
+                        ValueError("Invalid token."), loc="token"
+                    )
+                ],
+                model=ConfigEntity,
             )
         host = json_data.get("main_endpoint")
         verify_ssl = json_data.get("ssl_verify")

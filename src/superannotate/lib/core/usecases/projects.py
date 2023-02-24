@@ -1,4 +1,3 @@
-import copy
 import decimal
 import logging
 from collections import defaultdict
@@ -7,7 +6,7 @@ from typing import List
 import lib.core as constances
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
-from lib.core.entities import AnnotationClassEntity
+from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
@@ -18,7 +17,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
-from requests.exceptions import RequestException
+
 
 logger = logging.getLogger("sa")
 
@@ -207,8 +206,6 @@ class CreateProjectUseCase(BaseUseCase):
                         self._project.settings.append(
                             SettingEntity(attribute="FrameMode", value=1)
                         )
-                    else:
-                        frame_mode.value = 1
                 except ValueError:
                     raise AppValidationException("The FrameRate value should be float")
 
@@ -378,251 +375,6 @@ class UpdateProjectUseCase(BaseUseCase):
                 self._response.errors = response.error
             else:
                 self._response.data = response.data
-        return self._response
-
-
-class CloneProjectUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        project_to_create: ProjectEntity,
-        service_provider: BaseServiceProvider,
-        include_annotation_classes: bool = True,
-        include_settings: bool = True,
-        include_workflow: bool = True,
-        include_contributors: bool = False,
-    ):
-        super().__init__()
-        self._project = project
-        self._project_to_create = project_to_create
-        self._service_provider = service_provider
-        self._include_annotation_classes = include_annotation_classes
-        self._include_settings = include_settings
-        self._include_workflow = include_workflow
-        self._include_contributors = include_contributors
-
-    def validate_project_name(self):
-        if self._project_to_create.name:
-            if (
-                len(
-                    set(self._project_to_create.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    )
-                )
-                > 0
-            ):
-                self._project_to_create.name = "".join(
-                    "_"
-                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    else char
-                    for char in self._project_to_create.name
-                )
-                logger.warning(
-                    "New folder name has special characters. Special characters will be replaced by underscores."
-                )
-            condition = Condition("name", self._project_to_create.name, EQ)
-            for project in self._service_provider.projects.list(condition).data:
-                if project.name == self._project_to_create.name:
-                    logger.error("There are duplicated names.")
-                    raise AppValidationException(
-                        f"Project name {self._project_to_create.name} is not unique. "
-                        f"To use SDK please make project names unique."
-                    )
-
-    def _copy_annotation_classes(
-        self, annotation_classes_entity_mapping: dict, project: ProjectEntity
-    ):
-        annotation_classes = self._service_provider.annotation_classes.list(
-            Condition("project_id", self._project.id, EQ)
-        ).data
-        for annotation_class in annotation_classes:
-            annotation_class_copy = copy.copy(annotation_class)
-            annotation_classes_entity_mapping[
-                annotation_class.id
-            ] = self._service_provider.annotation_classes.create(
-                project.id, annotation_class_copy
-            ).data
-
-    def _copy_include_contributors(self, to_project: ProjectEntity):
-        from_project = self._service_provider.projects.get(uuid=self._project.id).data
-        users = []
-        for user in from_project.users:
-            users.append(
-                {"user_id": user.get("user_id"), "user_role": user.get("user_role")}
-            )
-
-        for user in from_project.unverified_users:
-            users.append(
-                {"user_id": user.get("email"), "user_role": user.get("user_role")}
-            )
-        if users:
-            self._service_provider.projects.share(to_project, users)
-
-    def _copy_settings(self, to_project: ProjectEntity):
-        new_settings = []
-        for setting in self._service_provider.projects.list_settings(
-            self._project
-        ).data:
-            if setting.attribute == "WorkflowType" and not self._include_workflow:
-                continue
-            for new_setting in self._service_provider.projects.list_settings(
-                to_project
-            ).data:
-                if new_setting.attribute == setting.attribute:
-                    setting_copy = copy.copy(setting)
-                    setting_copy.id = new_setting.id
-                    setting_copy.project_id = to_project.id
-                    new_settings.append(setting_copy)
-
-        self._service_provider.projects.set_settings(to_project, new_settings)
-
-    def _copy_workflow(
-        self, annotation_classes_entity_mapping: dict, to_project: ProjectEntity
-    ):
-        existing_workflow_ids = list(
-            map(
-                lambda i: i.id,
-                self._service_provider.projects.list_workflows(to_project).data,
-            )
-        )
-        for workflow in self._service_provider.projects.list_workflows(
-            self._project
-        ).data:
-            workflow_data = copy.copy(workflow)
-            workflow_data.project_id = to_project.id
-            if workflow.class_id not in annotation_classes_entity_mapping:
-                continue
-            workflow_data.class_id = annotation_classes_entity_mapping[
-                workflow.class_id
-            ]["id"]
-            self._service_provider.projects.set_workflow(to_project, workflow_data)
-            workflows = self._service_provider.projects.list_workflows(to_project).data
-            new_workflow = next(
-                (
-                    work_flow
-                    for work_flow in workflows
-                    if work_flow.id not in existing_workflow_ids
-                ),
-                None,
-            )
-            workflow_attributes = []
-            for attribute in workflow_data.attribute:
-                for annotation_attribute in annotation_classes_entity_mapping[
-                    workflow.class_id
-                ]["attribute_groups"]:
-                    if (
-                        attribute["attribute"]["attribute_group"]["name"]
-                        == annotation_attribute["name"]
-                    ):
-                        for annotation_attribute_value in annotation_attribute[
-                            "attributes"
-                        ]:
-                            if (
-                                annotation_attribute_value.get("name")
-                                == attribute["attribute"]["name"]
-                            ):
-                                workflow_attributes.append(
-                                    {
-                                        "workflow_id": new_workflow.id,
-                                        "attribute_id": annotation_attribute_value[
-                                            "id"
-                                        ],
-                                    }
-                                )
-                                break
-            if workflow_attributes:
-                self._service_provider.projects.set_project_workflow_attributes(
-                    project=to_project,
-                    attributes=workflow_attributes,
-                )
-
-    def execute(self):
-        if self.is_valid():
-            if self._project_to_create.type in (
-                constances.ProjectType.PIXEL.value,
-                constances.ProjectType.VECTOR.value,
-            ):
-                self._project_to_create.upload_state = (
-                    constances.UploadState.INITIAL.value
-                )
-
-            self._project_to_create.status = constances.ProjectStatus.NotStarted.value
-
-            project = self._service_provider.projects.create(
-                self._project_to_create
-            ).data
-            logger.info(
-                f"Created project {self._project_to_create.name} with type"
-                f" {constances.ProjectType.get_name(self._project_to_create.type)}."
-            )
-            # annotation_classes_entity_mapping = defaultdict(dict)
-            annotation_classes_entity_mapping = defaultdict(AnnotationClassEntity)
-            annotation_classes_created = False
-            if self._include_settings:
-                logger.info(
-                    f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
-                )
-                try:
-                    self._copy_settings(project)
-                except (AppException, RequestException) as e:
-                    logger.info(
-                        f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    logger.debug(str(e), exc_info=True)
-
-            if self._include_contributors:
-                logger.info(
-                    f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
-                )
-                try:
-                    self._copy_include_contributors(project)
-                except (AppException, RequestException) as e:
-                    logger.warning(
-                        f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    logger.debug(str(e), exc_info=True)
-
-            if self._include_annotation_classes:
-                logger.info(
-                    f"Cloning annotation classes from {self._project.name} to {self._project_to_create.name}."
-                )
-                try:
-                    self._copy_annotation_classes(
-                        annotation_classes_entity_mapping, project
-                    )
-                    annotation_classes_created = True
-                except (AppException, RequestException) as e:
-                    logger.warning(
-                        f"Failed to clone annotation classes from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    logger.debug(str(e), exc_info=True)
-
-            if self._include_workflow:
-                if self._project.type in (
-                    constances.ProjectType.DOCUMENT.value,
-                    constances.ProjectType.VIDEO.value,
-                ):
-                    logger.warning(
-                        "Workflow copy is deprecated for "
-                        f"{constances.ProjectType.get_name(self._project_to_create.type)} projects."
-                    )
-                elif not annotation_classes_created:
-                    logger.info(
-                        f"Skipping the workflow clone from {self._project.name} to {self._project_to_create.name}."
-                    )
-                else:
-                    logger.info(
-                        f"Cloning workflow from {self._project.name} to {self._project_to_create.name}."
-                    )
-                    try:
-                        self._copy_workflow(annotation_classes_entity_mapping, project)
-                    except (AppException, RequestException) as e:
-                        logger.warning(
-                            f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
-                        )
-                        logger.debug(str(e), exc_info=True)
-
-            self._response.data = self._service_provider.projects.get(project.id).data
         return self._response
 
 
@@ -918,7 +670,7 @@ class SearchContributorsUseCase(BaseUseCase):
         return self._response
 
 
-class AddContributorsToProject(BaseUserBasedUseCase):
+class AddContributorsToProject(BaseUseCase):
     """
     Returns tuple of lists (added, skipped)
     """
@@ -927,28 +679,25 @@ class AddContributorsToProject(BaseUserBasedUseCase):
         self,
         team: TeamEntity,
         project: ProjectEntity,
-        emails: list,
-        role: str,
+        contributors: List[ContributorEntity],
         service_provider: BaseServiceProvider,
     ):
-        super().__init__(emails)
+        super().__init__()
         self._team = team
         self._project = project
-        self._role = role
+        self._contributors = contributors
         self._service_provider = service_provider
 
-    @property
-    def user_role(self):
-        return constances.UserRole.get_value(self._role)
-
     def validate_emails(self):
-        emails = list(set(self._emails))
-        len_unique, len_provided = len(emails), len(self._emails)
+        email_entity_map = {}
+        for c in self._contributors:
+            email_entity_map[c.email] = c
+        len_unique, len_provided = len(email_entity_map), len(self._contributors)
         if len_unique < len_provided:
             logger.info(
                 f"Dropping duplicates. Found {len_unique}/{len_provided} unique users."
             )
-        self._emails = emails
+        self._contributors = email_entity_map.values()
 
     def execute(self):
         if self.is_valid():
@@ -966,27 +715,37 @@ class AddContributorsToProject(BaseUserBasedUseCase):
                 if user["user_role"] > constances.UserRole.ADMIN.value:
                     project_users.add(user["email"])
 
-            to_add = list(team_users.intersection(self._emails) - project_users)
-            to_skip = list(set(self._emails).difference(to_add))
+            role_email_map = defaultdict(list)
+            to_skip = []
+            to_add = []
+            for contributor in self._contributors:
+                role_email_map[contributor.user_role].append(contributor.email)
+            for role, emails in role_email_map.items():
+                _to_add = list(team_users.intersection(emails) - project_users)
+                to_add.extend(_to_add)
+                to_skip.extend(list(set(emails).difference(_to_add)))
+                if _to_add:
+                    response = self._service_provider.projects.share(
+                        project=self._project,
+                        users=[
+                            dict(
+                                user_id=user_id,
+                                user_role=constances.UserRole.get_value(role),
+                            )
+                            for user_id in _to_add
+                        ],
+                    )
+                    if response and not response.data.get("invalidUsers"):
+                        logger.info(
+                            f"Added {len(_to_add)}/{len(emails)} "
+                            f"contributors to the project {self._project.name} with the {role} role."
+                        )
 
             if to_skip:
                 logger.warning(
-                    f"Skipped {len(to_skip)}/{len(self._emails)} "
+                    f"Skipped {len(to_skip)}/{len(self._contributors)} "
                     "contributors that are out of the team scope or already have access to the project."
                 )
-            if to_add:
-                response = self._service_provider.projects.share(
-                    project=self._project,
-                    users=[
-                        dict(user_id=user_id, user_role=self.user_role)
-                        for user_id in to_add
-                    ],
-                )
-                if response and not response.data.get("invalidUsers"):
-                    logger.info(
-                        f"Added {len(to_add)}/{len(self._emails)} "
-                        f"contributors to the project {self._project.name} with the {self._role} role."
-                    )
             self._response.data = to_add, to_skip
             return self._response
 
