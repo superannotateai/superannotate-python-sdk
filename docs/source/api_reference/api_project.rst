@@ -23,14 +23,10 @@ Projects
 .. automethod:: superannotate.SAClient.upload_images_to_project
 .. automethod:: superannotate.SAClient.attach_items_from_integrated_storage
 .. automethod:: superannotate.SAClient.upload_image_to_project
-.. automethod:: superannotate.SAClient.upload_annotations
-.. automethod:: superannotate.SAClient.delete_annotations
 .. _ref_upload_images_from_folder_to_project:
 .. automethod:: superannotate.SAClient.upload_images_from_folder_to_project
 .. automethod:: superannotate.SAClient.upload_video_to_project
 .. automethod:: superannotate.SAClient.upload_videos_from_folder_to_project
-.. _ref_upload_annotations_from_folder_to_project:
-.. automethod:: superannotate.SAClient.upload_annotations_from_folder_to_project
 .. automethod:: superannotate.SAClient.add_contributors_to_project
 .. automethod:: superannotate.SAClient.get_project_settings
 .. automethod:: superannotate.SAClient.set_project_default_image_quality_in_editor
