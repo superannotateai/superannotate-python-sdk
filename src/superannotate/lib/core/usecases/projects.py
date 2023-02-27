@@ -730,11 +730,14 @@ class AddContributorsToProject(BaseUseCase):
                         users=[
                             dict(
                                 user_id=user_id,
-                                user_role=constances.UserRole.get_value(role),
+                                user_role=role.value,
                             )
                             for user_id in _to_add
                         ],
                     )
+                    if not response.ok:
+                        self._response.errors = AppException(response.error)
+                        return self._response
                     if response and not response.data.get("invalidUsers"):
                         logger.info(
                             f"Added {len(_to_add)}/{len(emails)} "
