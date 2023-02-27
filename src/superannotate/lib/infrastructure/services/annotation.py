@@ -29,9 +29,6 @@ class AnnotationService(BaseAnnotationService):
 
     URL_GET_ANNOTATIONS = "items/annotations/download"
     URL_UPLOAD_ANNOTATIONS = "items/annotations/upload"
-    URL_LARGE_ANNOTATION = "items/{item_id}/annotations/download"
-    URL_SYNC_LARGE_ANNOTATION = "items/{item_id}/annotations/sync"
-    URL_SYNC_LARGE_ANNOTATION_STATUS = "items/{item_id}/annotations/sync/status"
     URL_CLASSIFY_ITEM_SIZE = "items/annotations/download/method"
     URL_DOWNLOAD_LARGE_ANNOTATION = "items/{item_id}/annotations/download"
     URL_START_FILE_UPLOAD_PROCESS = "items/{item_id}/annotations/upload/multipart/start"
@@ -45,6 +42,7 @@ class AnnotationService(BaseAnnotationService):
 
     @property
     def assets_provider_url(self):
+
         if self.client.api_url != constants.BACKEND_URL:
             return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
         return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
@@ -71,7 +69,7 @@ class AnnotationService(BaseAnnotationService):
         }
         sync_url = urljoin(
             self.assets_provider_url,
-            self.URL_SYNC_LARGE_ANNOTATION.format(item_id=item_id),
+            self.URL_START_FILE_SYNC.format(item_id=item_id),
         )
         async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=False),
@@ -86,7 +84,7 @@ class AnnotationService(BaseAnnotationService):
             synced = False
             sync_status_url = urljoin(
                 self.assets_provider_url,
-                self.URL_SYNC_LARGE_ANNOTATION_STATUS.format(item_id=item_id),
+                self.URL_START_FILE_SYNC_STATUS.format(item_id=item_id),
             )
             while synced != "SUCCESS":
                 synced = await session.get(sync_status_url, params=sync_params)
@@ -96,11 +94,14 @@ class AnnotationService(BaseAnnotationService):
         return synced
 
     async def get_big_annotation(
-        self, project: entities.ProjectEntity, item: dict, reporter: Reporter
+        self,
+        project: entities.ProjectEntity,
+        item: entities.BaseItemEntity,
+        reporter: Reporter,
     ) -> dict:
         url = urljoin(
             self.assets_provider_url,
-            self.URL_LARGE_ANNOTATION.format(item_id=item["id"]),
+            self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item.id),
         )
 
         query_params = {
@@ -111,7 +112,7 @@ class AnnotationService(BaseAnnotationService):
         }
 
         await self._sync_large_annotation(
-            team_id=project.team_id, project_id=project.id, item_id=item["id"]
+            team_id=project.team_id, project_id=project.id, item_id=item.id
         )
 
         async with aiohttp.ClientSession(
@@ -125,11 +126,11 @@ class AnnotationService(BaseAnnotationService):
         reporter.update_progress()
         return large_annotation
 
-    async def get_small_annotations(
+    async def list_small_annotations(
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items: List[str],
+        item_ids: List[int],
         reporter: Reporter,
         callback: Callable = None,
     ) -> List[dict]:
@@ -142,26 +143,21 @@ class AnnotationService(BaseAnnotationService):
         handler = StreamedAnnotations(
             self.client.default_headers,
             reporter,
-            map_function=lambda x: {"image_names": x},
+            map_function=lambda x: {"image_ids": x},
             callback=callback,
         )
-
-        loop = asyncio.new_event_loop()
-
-        return loop.run_until_complete(
-            handler.get_data(
-                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
-                data=items,
-                params=query_params,
-                chunk_size=self.DEFAULT_CHUNK_SIZE,
-            )
+        return await handler.list_annotations(
+            method="post",
+            url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+            data=item_ids,
+            params=query_params,
         )
 
     def sort_items_by_size(
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_ids: List[int],
     ) -> Dict[str, List]:
         chunk_size = 2000
         query_params = {
@@ -170,10 +166,9 @@ class AnnotationService(BaseAnnotationService):
         }
 
         response_data = {"small": [], "large": []}
-        for i in range(0, len(item_names), chunk_size):
+        for i in range(0, len(item_ids), chunk_size):
             body = {
-                "item_names": item_names[i : i + chunk_size],  # noqa
-                "folder_id": folder.id,
+                "item_ids": item_ids[i : i + chunk_size],  # noqa
             }  # noqa
             response = self.client.request(
                 url=urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE),
@@ -235,7 +230,7 @@ class AnnotationService(BaseAnnotationService):
         reporter: Reporter,
         download_path: str,
         postfix: str,
-        items: List[str] = None,
+        item_ids: List[int],
         callback: Callable = None,
     ):
         query_params = {
@@ -246,15 +241,15 @@ class AnnotationService(BaseAnnotationService):
         handler = StreamedAnnotations(
             headers=self.client.default_headers,
             reporter=reporter,
-            map_function=lambda x: {"image_names": x},
+            map_function=lambda x: {"image_ids": x},
             callback=callback,
         )
 
-        return await handler.download_data(
+        return await handler.download_annotations(
+            method="post",
             url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
-            data=items,
+            data=item_ids,
             params=query_params,
-            chunk_size=self.DEFAULT_CHUNK_SIZE,
             download_path=download_path,
             postfix=postfix,
         )
@@ -301,6 +296,7 @@ class AnnotationService(BaseAnnotationService):
             if not _response.ok:
                 logger.debug(await _response.text())
                 raise AppException("Can't upload annotations.")
+            logger.debug(_response.status)
             data_json = await _response.json()
             response = UploadAnnotationsResponse()
             response.status = _response.status

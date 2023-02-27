@@ -488,6 +488,10 @@ class ItemManager(BaseManager):
 
 
 class AnnotationManager(BaseManager):
+    def __init__(self, service_provider: ServiceProvider, config: ConfigEntity):
+        super().__init__(service_provider)
+        self._config = config
+
     def list(
         self,
         project: ProjectEntity,
@@ -496,6 +500,7 @@ class AnnotationManager(BaseManager):
         verbose=True,
     ):
         use_case = usecases.GetAnnotations(
+            config=self._config,
             reporter=Reporter(log_info=verbose, log_warning=verbose),
             project=project,
             folder=folder,
@@ -514,6 +519,7 @@ class AnnotationManager(BaseManager):
         callback: Optional[Callable],
     ):
         use_case = usecases.DownloadAnnotations(
+            config=self._config,
             reporter=Reporter(),
             project=project,
             folder=folder,
@@ -793,7 +799,7 @@ class BaseController(metaclass=ABCMeta):
         self.projects = ProjectManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
         self.items = ItemManager(self.service_provider)
-        self.annotations = AnnotationManager(self.service_provider)
+        self.annotations = AnnotationManager(self.service_provider, config)
         self.custom_fields = CustomFieldManager(self.service_provider)
         self.subsets = SubsetManager(self.service_provider)
         self.models = ModelManager(self.service_provider)
@@ -1211,6 +1217,7 @@ class Controller(BaseController):
         folder = self.get_folder(project, folder_name)
 
         use_case = usecases.GetVideoAnnotationsPerFrame(
+            config=self._config,
             reporter=self.get_default_reporter(),
             project=project,
             folder=folder,

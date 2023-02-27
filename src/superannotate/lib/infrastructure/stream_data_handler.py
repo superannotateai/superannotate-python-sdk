@@ -1,7 +1,7 @@
-import asyncio
 import copy
 import json
 import os
+import typing
 from typing import Callable
 
 import aiohttp
@@ -30,6 +30,12 @@ class StreamedAnnotations:
         self._map_function = map_function
         self._items_downloaded = 0
 
+    def get_json(self, data: bytes):
+        try:
+            return json.loads(data)
+        except json.decoder.JSONDecodeError as e:
+            self._reporter.log_error(f"Invalud chunk: {str(e)}")
+
     async def fetch(
         self,
         method: str,
@@ -41,35 +47,30 @@ class StreamedAnnotations:
         kwargs = {"params": params, "json": {"folder_id": params.pop("folder_id")}}
         if data:
             kwargs["json"].update(data)
-        response = await session._request(method, url, **kwargs, timeout=TIMEOUT)
+        response = await session._request(  # noqa
+            method, url, **kwargs, timeout=TIMEOUT
+        )
         buffer = b""
         async for line in response.content.iter_any():
-            slices = line.split(self.DELIMITER)
-            if len(slices) == 2 and slices[0]:
-                self._reporter.update_progress()
-                buffer += slices[0]
-                yield json.loads(buffer)
-                buffer = b""
-            elif len(slices) > 2:
-                for _slice in slices[:-1]:
-                    if not _slice:
-                        continue
-                    self._reporter.update_progress()
-                    yield json.loads(buffer + _slice)
-                    buffer = b""
-            buffer += slices[-1]
+            slices = (buffer + line).split(self.DELIMITER)
+            for _slice in slices[:-1]:
+                yield self.get_json(_slice)
+            buffer = slices[-1]
         if buffer:
-            yield json.loads(buffer)
+            yield self.get_json(buffer)
             self._reporter.update_progress()
 
-    async def process_chunk(
+    async def list_annotations(
         self,
         method: str,
         url: str,
-        data: dict = None,
+        data: typing.List[int] = None,
         params: dict = None,
         verify_ssl=False,
     ):
+        params = copy.copy(params)
+        params["limit"] = len(data)
+        annotations = []
         async with aiohttp.ClientSession(
             headers=self._headers,
             timeout=TIMEOUT,
@@ -81,21 +82,25 @@ class StreamedAnnotations:
                 session,
                 url,
                 self._process_data(data),
-                params=params,
+                params=copy.copy(params),
             ):
-                self._annotations.append(
+                annotations.append(
                     self._callback(annotation) if self._callback else annotation
                 )
 
-    async def store_chunk(
+        return annotations
+
+    async def download_annotations(
         self,
         method: str,
         url: str,
         download_path,
         postfix,
-        data: dict = None,
+        data: typing.List[int],
         params: dict = None,
     ):
+        params = copy.copy(params)
+        params["limit"] = len(data)
         async with aiohttp.ClientSession(
             headers=self._headers,
             timeout=TIMEOUT,
@@ -120,31 +125,6 @@ class StreamedAnnotations:
                 )
                 self._items_downloaded += 1
 
-    async def get_data(
-        self,
-        url: str,
-        data: list,
-        method: str = "post",
-        params=None,
-        chunk_size: int = 5000,
-        verify_ssl: bool = False,
-    ):
-        params["limit"] = chunk_size
-        await asyncio.gather(
-            *[
-                self.process_chunk(
-                    method=method,
-                    url=url,
-                    data=data[i : i + chunk_size],
-                    params=copy.copy(params),
-                    verify_ssl=verify_ssl,
-                )
-                for i in range(0, len(data), chunk_size)
-            ]
-        )
-
-        return self._annotations
-
     @staticmethod
     def _store_annotation(path, postfix, annotation: dict, callback: Callable = None):
         os.makedirs(path, exist_ok=True)
@@ -156,32 +136,3 @@ class StreamedAnnotations:
         if data and self._map_function:
             return self._map_function(data)
         return data
-
-    async def download_data(
-        self,
-        url: str,
-        data: list,
-        download_path: str,
-        postfix: str,
-        method: str = "post",
-        params=None,
-        chunk_size: int = 5000,
-    ) -> int:
-        """
-        Returns the number of items downloaded
-        """
-        params["limit"] = chunk_size
-        await asyncio.gather(
-            *[
-                self.store_chunk(
-                    method=method,
-                    url=url,
-                    data=data[i : i + chunk_size],  # noqa
-                    params=copy.copy(params),
-                    download_path=download_path,
-                    postfix=postfix,
-                )
-                for i in range(0, len(data), chunk_size)
-            ]
-        )
-        return self._items_downloaded

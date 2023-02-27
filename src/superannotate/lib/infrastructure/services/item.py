@@ -22,15 +22,15 @@ from lib.core.types import AttachmentMeta
 class ItemService(BaseItemService):
     URL_LIST = "items"
     URL_GET = "image/{}"
-    URL_LIST_BY_NAMES = "images/getBulk"
     URL_ATTACH = "image/ext-create"
+    URL_GET_BY_ID = "image/{image_id}"
     URL_MOVE_MULTIPLE = "image/move"
+    URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
+    URL_LIST_BY_NAMES = "images/getBulk"
     URL_COPY_MULTIPLE = "images/copy-image-or-folders"
     URL_COPY_PROGRESS = "images/copy-image-progress"
     URL_DELETE_ITEMS = "image/delete/images"
-    URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
     URL_SET_APPROVAL_STATUSES = "/items/bulk/change"
-    URL_GET_BY_ID = "image/{image_id}"
 
     PROJECT_TYPE_RESPONSE_MAP = {
         ProjectType.VECTOR: ImageResponse,

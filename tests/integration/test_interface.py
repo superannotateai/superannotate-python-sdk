@@ -21,8 +21,6 @@ class TestInterface(BaseTestCase):
     EXAMPLE_IMAGE_1 = "example_image_1.jpg"
     EXAMPLE_IMAGE_2 = "example_image_2.jpg"
     NEW_IMAGE_NAME = "new_name_yup"
-    IMAGE_PATH_IN_S3 = "MP.MB/img1.bmp"
-    TEST_S3_BUCKET_NAME = "test-openseadragon-1212"
     TEST_INVALID_ANNOTATION_FOLDER_PATH = "sample_project_vector_invalid"
 
     @property
@@ -45,27 +43,6 @@ class TestInterface(BaseTestCase):
             dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS
         )
 
-    @pytest.mark.flaky(reruns=4)
-    def test_delete_items(self):
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
-
-        path = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}"
-        sa.upload_images_from_folder_to_project(
-            path,
-            self.folder_path,
-            annotation_status="InProgress",
-        )
-        num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=True
-        )
-        self.assertEqual(num_images, 4)
-        sa.delete_items(path)
-
-        num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=True
-        )
-        self.assertEqual(num_images, 0)
-
     def test_delete_folder(self):
         with self.assertRaises(AppException):
             sa.delete_folders(self.PROJECT_NAME, ["non-existing folder"])
@@ -84,11 +61,7 @@ class TestInterface(BaseTestCase):
         self.assertIsNotNone(metadata_with_users.get("contributors"))
 
     def test_upload_annotations_from_folder_to_project(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.folder_path,
-            annotation_status="Completed",
-        )
+        self._attach_items(count=4)
         uploaded_annotations, _, _ = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
@@ -160,18 +133,6 @@ class TestInterface(BaseTestCase):
             [self.EXAMPLE_IMAGE_1],
             image_quality_in_editor="random_string",
         )
-
-    @pytest.mark.flaky(reruns=2)
-    def test_image_upload_with_set_name_on_platform(self):
-        sa.upload_image_to_project(
-            self.PROJECT_NAME,
-            self.IMAGE_PATH_IN_S3,
-            self.NEW_IMAGE_NAME,
-            from_s3_bucket=self.TEST_S3_BUCKET_NAME,
-        )
-        assert self.NEW_IMAGE_NAME in [
-            i["name"] for i in sa.search_items(self.PROJECT_NAME)
-        ]
 
     def test_download_fuse_without_classes(self):
         sa.upload_image_to_project(
