@@ -96,7 +96,7 @@ class TestCloneProject(TestCase):
             if setting["attribute"].lower() == "imageQuality".lower():
                 self.assertEqual(setting["value"], self.IMAGE_QUALITY)
                 break
-        self.assertEqual(new_project["description"], f"Copy of {self.PROJECT_NAME_1}.")
+        self.assertEqual(new_project["description"], self.PROJECT_DESCRIPTION)
         self.assertEqual(new_project["type"].lower(), "vector")
 
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
@@ -211,7 +211,7 @@ class TestCloneVideoProject(TestCase):
         )
         self.assertEqual(new_project["name"], self.PROJECT_NAME_2)
         self.assertEqual(new_project["type"].lower(), "video")
-        self.assertEqual(new_project["description"], f"Copy of {self.PROJECT_NAME_1}.")
+        self.assertEqual(new_project["description"], self._project_1['description'])
 
     def test_clone_video_project_frame_mode_on(self):
         self._project_1 = sa.create_project(

@@ -79,10 +79,9 @@ class SettingEntity(BaseModel):
 
 
 class ContributorEntity(BaseModel):
-    id: Optional[str]
     first_name: Optional[str]
     last_name: Optional[str]
-    email: str
+    user_id: str
     user_role: UserRole
 
     class Config:
@@ -103,7 +102,7 @@ class ProjectEntity(TimedBaseModel):
     folder_id: Optional[int]
     sync_status: Optional[int]
     upload_state: Optional[int]
-    users: Optional[List[Any]] = []
+    users: Optional[List[ContributorEntity]] = []
     unverified_users: Optional[List[Any]] = []
     contributors: List[ContributorEntity] = []
     settings: List[SettingEntity] = []
@@ -169,6 +168,6 @@ class TeamEntity(BaseModel):
     type: Optional[str]
     user_role: Optional[str]
     is_default: Optional[bool]
-    users: Optional[List[ContributorEntity]]
-    pending_invitations: Optional[List]
+    users: Optional[List[Any]]
+    pending_invitations: Optional[List[Any]]
     creator_id: Optional[str]

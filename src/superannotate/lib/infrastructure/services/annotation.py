@@ -294,9 +294,9 @@ class AnnotationService(BaseAnnotationService):
                 data=data,
             )
             if not _response.ok:
+                logger.debug(f"Status code {str(_response.status)}")
                 logger.debug(await _response.text())
                 raise AppException("Can't upload annotations.")
-            logger.debug(_response.status)
             data_json = await _response.json()
             response = UploadAnnotationsResponse()
             response.status = _response.status

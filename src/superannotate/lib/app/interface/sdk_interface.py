@@ -357,8 +357,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 if step["className"] not in class_names:
                     invalid_classes.append(step["className"])
             if invalid_classes:
+                seen = set()
+                seen_add = seen.add
+                invalid_classes = [i for i in invalid_classes if not (i in seen or seen_add(i))]
                 raise AppException(
-                    f"There are no [{', '.join(set(invalid_classes))}] classes created in the project."
+                    f"There are no [{', '.join(invalid_classes)}] classes created in the project."
                 )
         project_response = self.controller.projects.create(
             entities.ProjectEntity(
@@ -477,6 +480,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         else:
             project_copy.description = project.description
         project_copy.name = project_name
+        if project.type in (constants.ProjectType.VECTOR, constants.ProjectType.PIXEL):
+            project.upload_state = enums.UploadState.INITIAL
         create_response = self.controller.projects.create(project_copy)
         create_response.raise_for_status()
         new_project = create_response.data
@@ -494,14 +499,28 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
             classes_response.raise_for_status()
             project.classes = classes_response.data
-            if copy_workflow:
+        if copy_workflow:
+            if not copy_annotation_classes:
+                logger.info(f"Skipping the workflow clone from {from_project} to {project_name}.")
+            else:
                 logger.info(f"Cloning workflow from {from_project} to {project_name}.")
                 workflow_response = self.controller.projects.set_workflows(
                     new_project, project.workflows
                 )
                 workflow_response.raise_for_status()
                 project.workflows = self.controller.projects.list_workflow(project).data
-        return ProjectSerializer(new_project).serialize()
+        response = self.controller.projects.get_metadata(
+            new_project,
+            include_settings=copy_settings,
+            include_workflow=copy_workflow,
+            include_contributors=copy_contributors,
+            include_annotation_classes=copy_annotation_classes,
+            include_complete_image_count=True,
+        )
+
+        if response.errors:
+            raise AppException(response.errors)
+        return ProjectSerializer(response.data).serialize()
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Create a new folder in the project.
@@ -907,7 +926,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
         contributors = response.data.users
-        verified_users = [i["user_id"] for i in contributors]
+        verified_users = [i.user_id for i in contributors]
         verified_users = set(users).intersection(set(verified_users))
         unverified_contributor = set(users) - verified_users
 
@@ -2155,7 +2174,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project = self.controller.projects.get_by_name(project).data
         contributors = [
-            entities.ContributorEntity(email=email, user_role=constants.UserRole(role))
+            entities.ContributorEntity(user_id=email, user_role=constants.UserRole(role))
             for email in emails
         ]
         response = self.controller.projects.add_contributors(

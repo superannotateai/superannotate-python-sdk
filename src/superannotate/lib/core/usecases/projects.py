@@ -296,7 +296,7 @@ class CreateProjectUseCase(BaseUseCase):
 
             logger.info(
                 f"Created project {entity.name} (ID {entity.id}) "
-                f"with type {constances.ProjectType.get_name(self._response.data.type)}"
+                f"with type {constances.ProjectType.get_name(self._response.data.type)}."
             )
         return self._response
 
@@ -691,7 +691,7 @@ class AddContributorsToProject(BaseUseCase):
     def validate_emails(self):
         email_entity_map = {}
         for c in self._contributors:
-            email_entity_map[c.email] = c
+            email_entity_map[c.user_id] = c
         len_unique, len_provided = len(email_entity_map), len(self._contributors)
         if len_unique < len_provided:
             logger.info(
@@ -702,10 +702,10 @@ class AddContributorsToProject(BaseUseCase):
     def execute(self):
         if self.is_valid():
             team_users = set()
-            project_users = {user["user_id"] for user in self._project.users}
+            project_users = {user.user_id for user in self._project.users}
             for user in self._team.users:
-                if user.user_role > constances.UserRole.ADMIN.value:
-                    team_users.add(user.email)
+                if user['user_role'] > constances.UserRole.ADMIN.value:
+                    team_users.add(user['email'])
             # collecting pending team users which is not admin
             for user in self._team.pending_invitations:
                 if user["user_role"] > constances.UserRole.ADMIN.value:
@@ -719,7 +719,7 @@ class AddContributorsToProject(BaseUseCase):
             to_skip = []
             to_add = []
             for contributor in self._contributors:
-                role_email_map[contributor.user_role].append(contributor.email)
+                role_email_map[contributor.user_role].append(contributor.user_id)
             for role, emails in role_email_map.items():
                 _to_add = list(team_users.intersection(emails) - project_users)
                 to_add.extend(_to_add)
