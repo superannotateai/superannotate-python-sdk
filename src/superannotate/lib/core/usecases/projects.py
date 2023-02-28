@@ -256,7 +256,7 @@ class CreateProjectUseCase(BaseUseCase):
                 return self._response
             self._response.data = entity
             data = {}
-            # TODO delete
+            # TODO delete if create_from_metadata deleted
             # if self._settings:
             #     settings_repo = self._settings_repo(self._backend_service, entity)
             #     for setting in self._settings:
