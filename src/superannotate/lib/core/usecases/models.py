@@ -144,7 +144,7 @@ class GetExportsUseCase(BaseUseCase):
 
 
 class DownloadExportUseCase(BaseReportableUseCase):
-    FORBIDDEN_CHARS = "*./\\[]:;|,\"'"
+    FORBIDDEN_CHARS = "*/\\[]:;|,\"'"
 
     def __init__(
         self,
