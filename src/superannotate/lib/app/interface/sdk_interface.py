@@ -358,7 +358,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     invalid_classes.append(step["className"])
             if invalid_classes:
                 raise AppException(
-                    f"There are no [{', '.join(invalid_classes)}] classes created in the project."
+                    f"There are no [{', '.join(set(invalid_classes))}] classes created in the project."
                 )
         project_response = self.controller.projects.create(
             entities.ProjectEntity(
