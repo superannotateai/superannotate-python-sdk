@@ -741,7 +741,7 @@ class AddContributorsToProject(BaseUseCase):
                     if response and not response.data.get("invalidUsers"):
                         logger.info(
                             f"Added {len(_to_add)}/{len(emails)} "
-                            f"contributors to the project {self._project.name} with the {role} role."
+                            f"contributors to the project {self._project.name} with the {role.name} role."
                         )
 
             if to_skip:
