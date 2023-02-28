@@ -477,6 +477,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_copy = copy.copy(project)
         if project_description:
             project_copy.description = project_description
+        else:
+            project_copy.description = project.description
         project_copy.name = project_name
         create_response = self.controller.projects.create(project_copy)
         create_response.raise_for_status()
