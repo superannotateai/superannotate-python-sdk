@@ -471,9 +471,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(
                 f"Workflow is not supported in {project.type.name} project."
             )
-        logger.info(
-            f"Created project {project_name} with type {constants.ProjectType.get_name(project.type)}."
-        )
         project_copy = copy.copy(project)
         if project_description:
             project_copy.description = project_description
