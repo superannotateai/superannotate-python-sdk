@@ -120,3 +120,14 @@ class TestDownloadAnnotations(BaseTestCase):
                 [i for i in glob.iglob(annotations_path + "**/**", recursive=True)]
             )
             assert count == 31 + 5  # folder names and classes
+
+    def test_download_annotations_duplicated_names(self):
+        self._attach_items(count=4)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with self.assertLogs("sa", level="INFO") as cm:
+                sa.download_annotations(
+                    self.PROJECT_NAME, temp_dir, [self.IMAGE_NAME] * 4
+                )  # noqa
+                assert (
+                    "INFO:sa:Dropping duplicates. Found 1/4 unique items." in cm.output
+                )

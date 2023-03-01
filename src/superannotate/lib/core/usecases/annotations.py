@@ -1408,7 +1408,10 @@ class GetAnnotations(BaseReportableUseCase):
                     f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
                 )
             #  Keep order required
-            self._item_names = [i for i in self._item_names if i in unique_item_names]
+            seen = set()
+            self._item_names = [
+                i for i in self._item_names if not (i in seen or seen.add(i))
+            ]
         elif self._item_names is None:
             self._item_names_provided = False
             condition = Condition("project_id", self._project.id, EQ) & Condition(

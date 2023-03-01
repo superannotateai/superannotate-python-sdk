@@ -346,7 +346,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         download_path: str,
         postfix: str,
-        item: dict,
+        item: entities.BaseItemEntity,
         callback: Callable = None,
     ):
         raise NotImplementedError

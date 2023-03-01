@@ -187,11 +187,11 @@ class AnnotationService(BaseAnnotationService):
         project: entities.ProjectEntity,
         download_path: str,
         postfix: str,
-        item: dict,
+        item: entities.BaseItemEntity,
         callback: Callable = None,
     ):
-        item_id = item["id"]
-        item_name = item["name"]
+        item_id = item.id
+        item_name = item.name
         query_params = {
             "team_id": project.team_id,
             "project_id": project.id,

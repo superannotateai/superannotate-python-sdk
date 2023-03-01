@@ -772,7 +772,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
 
     def execute(self):
         if self.is_valid():
-            team_users = {user.email for user in self._team.users}
+            team_users = {user["email"] for user in self._team.users}
             # collecting pending team users
             team_users.update(
                 {user["email"] for user in self._team.pending_invitations}

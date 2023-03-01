@@ -139,6 +139,12 @@ class TestGetAnnotations(BaseTestCase):
         a = sa.get_annotations(self.PROJECT_NAME)
         assert len(a) == count
 
+    def test_get_annotations_duplicated_names(self):
+        self._attach_items(count=4)
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.get_annotations(self.PROJECT_NAME, [self.IMAGE_NAME] * 4)
+            assert "INFO:sa:Dropping duplicates. Found 1/4 unique items." in cm.output
+
 
 class TestGetAnnotationsVideo(BaseTestCase):
     PROJECT_NAME = "test attach multiple video urls"
