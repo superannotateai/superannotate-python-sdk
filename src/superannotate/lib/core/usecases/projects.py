@@ -704,8 +704,8 @@ class AddContributorsToProject(BaseUseCase):
             team_users = set()
             project_users = {user.user_id for user in self._project.users}
             for user in self._team.users:
-                if user['user_role'] > constances.UserRole.ADMIN.value:
-                    team_users.add(user['email'])
+                if user["user_role"] > constances.UserRole.ADMIN.value:
+                    team_users.add(user["email"])
             # collecting pending team users which is not admin
             for user in self._team.pending_invitations:
                 if user["user_role"] > constances.UserRole.ADMIN.value:

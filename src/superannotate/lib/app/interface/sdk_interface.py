@@ -359,7 +359,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if invalid_classes:
                 seen = set()
                 seen_add = seen.add
-                invalid_classes = [i for i in invalid_classes if not (i in seen or seen_add(i))]
+                invalid_classes = [
+                    i for i in invalid_classes if not (i in seen or seen_add(i))
+                ]
                 raise AppException(
                     f"There are no [{', '.join(invalid_classes)}] classes created in the project."
                 )
@@ -475,7 +477,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 f"Workflow is not supported in {project.type.name} project."
             )
         project_copy = copy.copy(project)
-        if project_copy.type in (constants.ProjectType.VECTOR, constants.ProjectType.PIXEL,):
+        if project_copy.type in (
+            constants.ProjectType.VECTOR,
+            constants.ProjectType.PIXEL,
+        ):
             project_copy.upload_state = constants.UploadState.INITIAL
         if project_description:
             project_copy.description = project_description
@@ -503,7 +508,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project.classes = classes_response.data
         if copy_workflow:
             if not copy_annotation_classes:
-                logger.info(f"Skipping the workflow clone from {from_project} to {project_name}.")
+                logger.info(
+                    f"Skipping the workflow clone from {from_project} to {project_name}."
+                )
             else:
                 logger.info(f"Cloning workflow from {from_project} to {project_name}.")
                 workflow_response = self.controller.projects.set_workflows(
@@ -2176,7 +2183,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project = self.controller.projects.get_by_name(project).data
         contributors = [
-            entities.ContributorEntity(user_id=email, user_role=constants.UserRole(role))
+            entities.ContributorEntity(
+                user_id=email, user_role=constants.UserRole(role)
+            )
             for email in emails
         ]
         response = self.controller.projects.add_contributors(
