@@ -89,7 +89,7 @@ class TestCloneProject(TestCase):
             copy_annotation_classes=True,
         )
         self.assertEqual(
-            new_project["upload_state"], constances.UploadState.EXTERNAL.name
+            new_project["upload_state"], constances.UploadState.INITIAL.name
         )
         new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
         for setting in new_settings:
@@ -211,7 +211,7 @@ class TestCloneVideoProject(TestCase):
         )
         self.assertEqual(new_project["name"], self.PROJECT_NAME_2)
         self.assertEqual(new_project["type"].lower(), "video")
-        self.assertEqual(new_project["description"], self._project_1['description'])
+        self.assertEqual(new_project["description"], self._project_1["description"])
 
     def test_clone_video_project_frame_mode_on(self):
         self._project_1 = sa.create_project(
