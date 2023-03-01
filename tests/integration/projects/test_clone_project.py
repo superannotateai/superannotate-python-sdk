@@ -89,7 +89,7 @@ class TestCloneProject(TestCase):
             copy_annotation_classes=True,
         )
         self.assertEqual(
-            new_project["upload_state"], constances.UploadState.EXTERNAL.name
+            new_project["upload_state"], constances.UploadState.INITIAL.name
         )
         new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
         for setting in new_settings:

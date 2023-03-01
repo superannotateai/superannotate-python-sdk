@@ -475,6 +475,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 f"Workflow is not supported in {project.type.name} project."
             )
         project_copy = copy.copy(project)
+        if project_copy.type in (constants.ProjectType.VECTOR, constants.ProjectType.PIXEL,):
+            project_copy.upload_state = constants.UploadState.INITIAL
         if project_description:
             project_copy.description = project_description
         else:
