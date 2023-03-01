@@ -487,8 +487,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         else:
             project_copy.description = project.description
         project_copy.name = project_name
-        if project.type in (constants.ProjectType.VECTOR, constants.ProjectType.PIXEL):
-            project.upload_state = enums.UploadState.INITIAL
         create_response = self.controller.projects.create(project_copy)
         create_response.raise_for_status()
         new_project = create_response.data
