@@ -161,6 +161,15 @@ class MLModelEntity(TimedBaseModel):
         extra = Extra.ignore
 
 
+class UserEntity(BaseModel):
+    id: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: Optional[str]
+    picture: Optional[str]
+    user_role: Optional[int]
+
+
 class TeamEntity(BaseModel):
     id: Optional[int]
     name: Optional[str]
@@ -168,6 +177,6 @@ class TeamEntity(BaseModel):
     type: Optional[str]
     user_role: Optional[str]
     is_default: Optional[bool]
-    users: Optional[List[Any]]
+    users: Optional[List[UserEntity]]
     pending_invitations: Optional[List[Any]]
     creator_id: Optional[str]
