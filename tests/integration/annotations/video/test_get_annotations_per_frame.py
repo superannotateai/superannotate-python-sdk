@@ -62,4 +62,4 @@ class TestGetAnnotations(BaseTestCase):
                 "INFO:sa:Getting annotations for 31 frames from video.mp4."
                 == cm.output[0]
             )
-            assert cm.output[0] == 1
+            assert len(cm.output) == 1

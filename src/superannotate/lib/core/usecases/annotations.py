@@ -1520,11 +1520,13 @@ class GetAnnotations(BaseReportableUseCase):
                     self.reporter.log_warning(
                         f"Could not find annotations for {len_provided_items - len_items}/{len_provided_items} items."
                     )
-            else:
+            elif self._item_names is None:
                 condition = Condition("project_id", self._project.id, EQ) & Condition(
                     "folder_id", self._folder.id, EQ
                 )
                 items = get_or_raise(self._service_provider.items.list(condition))
+            else:
+                items = []
             id_item_map = {i.id: i for i in items}
             if not items:
                 logger.info("No annotations to download.")

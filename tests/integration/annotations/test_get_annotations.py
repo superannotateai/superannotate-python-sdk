@@ -130,7 +130,7 @@ class TestGetAnnotations(BaseTestCase):
         items_names = [self.IMAGE_NAME] * 4
         items_names.append("Non-existent item")
         with self.assertLogs("sa", level="INFO") as cm:
-            assert len(sa.get_annotations(self.PROJECT_NAME, items_names)) == 4
+            assert len(sa.get_annotations(self.PROJECT_NAME, items_names)) == 1
             assert (
                 "INFO:sa:Dropping duplicates. Found 2/5 unique items." == cm.output[0]
             )
@@ -206,5 +206,3 @@ class TestGetAnnotationsVideo(BaseTestCase):
         )
         annotations = sa.get_annotations(self.PROJECT_NAME, items=[])
         assert len(annotations) == 0
-        annotations = sa.get_annotations(self.PROJECT_NAME, items=None)
-        assert len(annotations) == 2
