@@ -43,17 +43,23 @@ class TestGetAnnotations(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.annotations_path
         )
-        annotations = sa.get_annotations_per_frame(
-            self.PROJECT_NAME, self.VIDEO_NAME, 1
-        )
-        self.assertEqual(
-            len(annotations),
-            int(
-                math.ceil(
-                    json.load(open(f"{self.annotations_path}/{self.VIDEO_NAME}.json"))[
-                        "metadata"
-                    ]["duration"]
-                    / (1000 * 1000)
-                )
-            ),
-        )
+        with self.assertLogs("sa") as cm:
+            annotations = sa.get_annotations_per_frame(
+                self.PROJECT_NAME, self.VIDEO_NAME, 1
+            )
+            self.assertEqual(
+                len(annotations),
+                int(
+                    math.ceil(
+                        json.load(
+                            open(f"{self.annotations_path}/{self.VIDEO_NAME}.json")
+                        )["metadata"]["duration"]
+                        / (1000 * 1000)
+                    )
+                ),
+            )
+            assert (
+                "INFO:sa:Getting annotations for 31 frames from video.mp4."
+                == cm.output[0]
+            )
+            assert len(cm.output) == 1

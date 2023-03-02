@@ -1037,7 +1037,6 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            self.reporter.disable_info()
             response = GetAnnotations(
                 config=self._config,
                 reporter=Reporter(log_info=False),
@@ -1046,10 +1045,9 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
                 item_names=[self._video_name],
                 service_provider=self._service_provider,
             ).execute()
-            self.reporter.enable_info()
             if response.data:
                 generator = VideoFrameGenerator(response.data[0], fps=self._fps)
-                self.reporter.log_info(
+                logger.info(
                     f"Getting annotations for {generator.frames_count} frames from {self._video_name}."
                 )
                 if response.errors:
@@ -1412,21 +1410,10 @@ class GetAnnotations(BaseReportableUseCase):
             self._item_names = [
                 i for i in self._item_names if not (i in seen or seen.add(i))
             ]
-        elif self._item_names is None:
-            self._item_names_provided = False
-            condition = Condition("project_id", self._project.id, EQ) & Condition(
-                "folder_id", self._folder.id, EQ
-            )
-
-            self._item_names = [
-                item.name for item in self._service_provider.items.list(condition).data
-            ]
-        else:
-            self._item_names = []
 
     def _prettify_annotations(self, annotations: List[dict]):
         re_struct = {}
-        if self._item_names_provided:
+        if self._item_names:
             for annotation in annotations:
                 re_struct[annotation["metadata"]["name"]] = annotation
             try:
@@ -1499,25 +1486,25 @@ class GetAnnotations(BaseReportableUseCase):
             )
         if small_annotations:
             self._small_annotations_queue = asyncio.Queue()
-        small_chunks = divide_to_chunks(
-            small_annotations, size=self._config.ANNOTATION_CHUNK_SIZE
-        )
-        for chunk in small_chunks:
-            self._small_annotations_queue.put_nowait(chunk)
-        self._small_annotations_queue.put_nowait(None)
+            small_chunks = divide_to_chunks(
+                small_annotations, size=self._config.ANNOTATION_CHUNK_SIZE
+            )
+            for chunk in small_chunks:
+                self._small_annotations_queue.put_nowait(chunk)
+            self._small_annotations_queue.put_nowait(None)
 
-        annotations.extend(
-            list(
-                itertools.chain.from_iterable(
-                    await asyncio.gather(
-                        *[
-                            self.get_small_annotations()
-                            for _ in range(self._config.MAX_COROUTINE_COUNT)
-                        ]
+            annotations.extend(
+                list(
+                    itertools.chain.from_iterable(
+                        await asyncio.gather(
+                            *[
+                                self.get_small_annotations()
+                                for _ in range(self._config.MAX_COROUTINE_COUNT)
+                            ]
+                        )
                     )
                 )
             )
-        )
         return list(filter(None, annotations))
 
     def execute(self):
@@ -1528,19 +1515,25 @@ class GetAnnotations(BaseReportableUseCase):
                         self._project, self._folder, self._item_names
                     )
                 )
-            else:
+                len_items, len_provided_items = len(items), len(self._item_names)
+                if len_items != len_provided_items:
+                    self.reporter.log_warning(
+                        f"Could not find annotations for {len_provided_items - len_items}/{len_provided_items} items."
+                    )
+            elif self._item_names is None:
                 condition = Condition("project_id", self._project.id, EQ) & Condition(
                     "folder_id", self._folder.id, EQ
                 )
                 items = get_or_raise(self._service_provider.items.list(condition))
+            else:
+                items = []
             id_item_map = {i.id: i for i in items}
-
             if not items:
                 logger.info("No annotations to download.")
                 self._response.data = []
                 return self._response
             items_count = len(items)
-            logger.info(
+            self.reporter.log_info(
                 f"Getting {items_count} annotations from "
                 f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}."
             )
@@ -1563,12 +1556,8 @@ class GetAnnotations(BaseReportableUseCase):
                 logger.error(e)
                 self._response.errors = AppException("Can't get annotations.")
                 return self._response
-            received_items_count = len(annotations)
             self.reporter.finish_progress()
-            if items_count > received_items_count:
-                self.reporter.log_warning(
-                    f"Could not find annotations for {items_count - received_items_count}/{items_count} items."
-                )
+
             self._response.data = self._prettify_annotations(annotations)
         return self._response
 

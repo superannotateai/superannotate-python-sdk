@@ -24,9 +24,8 @@ class TestGetAnnotations(BaseTestCase):
 
     # @pytest.mark.flaky(reruns=3)
     def test_get_annotations(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
+        self._attach_items(count=4)
+
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
@@ -126,24 +125,23 @@ class TestGetAnnotations(BaseTestCase):
         a = sa.get_annotations(self.PROJECT_NAME)
         assert len(a) == count
 
-    def test_get_annotation(self):  # to_delete
-        count = 2
-        sa.attach_items(
-            self.PROJECT_NAME,
-            [
-                {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
-                for i in range(count)
-            ],  # noqa
-        )
-        assert len(sa.search_items(self.PROJECT_NAME)) == count
-        a = sa.get_annotations(self.PROJECT_NAME)
-        assert len(a) == count
-
-    def test_get_annotations_duplicated_names(self):
+    def test_get_annotations_logs(self):
         self._attach_items(count=4)
+        items_names = [self.IMAGE_NAME] * 4
+        items_names.append("Non-existent item")
         with self.assertLogs("sa", level="INFO") as cm:
-            sa.get_annotations(self.PROJECT_NAME, [self.IMAGE_NAME] * 4)
-            assert "INFO:sa:Dropping duplicates. Found 1/4 unique items." in cm.output
+            assert len(sa.get_annotations(self.PROJECT_NAME, items_names)) == 1
+            assert (
+                "INFO:sa:Dropping duplicates. Found 2/5 unique items." == cm.output[0]
+            )
+            assert (
+                "WARNING:sa:Could not find annotations for 1/2 items." == cm.output[1]
+            )
+            assert (
+                f"INFO:sa:Getting 1 annotations from {self.PROJECT_NAME}."
+                == cm.output[2]
+            )
+            assert len(cm.output) == 3
 
 
 class TestGetAnnotationsVideo(BaseTestCase):
@@ -172,7 +170,7 @@ class TestGetAnnotationsVideo(BaseTestCase):
     def annotations_path(self):
         return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
 
-    def test_video_annotation_upload_root(self):
+    def test_video_get_annotations_root(self):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, self.classes_path
         )
@@ -187,7 +185,7 @@ class TestGetAnnotationsVideo(BaseTestCase):
         annotations = sa.get_annotations(self.PROJECT_NAME)
         self.assertEqual(len(annotations), 2)
 
-    def test_video_annotation_upload_folder(self):
+    def test_video_get_annotations_from_folder(self):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, self.classes_path
         )
@@ -208,5 +206,3 @@ class TestGetAnnotationsVideo(BaseTestCase):
         )
         annotations = sa.get_annotations(self.PROJECT_NAME, items=[])
         assert len(annotations) == 0
-        annotations = sa.get_annotations(self.PROJECT_NAME, items=None)
-        assert len(annotations) == 2
