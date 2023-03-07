@@ -16,7 +16,6 @@ class TestAnnotationUploadVector(BaseTestCase):
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_vector_annotations_with_tag_classes"
     TEST_4_FOLDER_PATH = "data_set/sample_project_vector"
-    TEST_BIG_FOLDER_PATH = "sample_big_json_vector"
     TEST_LARGE_FOLDER_PATH = "sample_large_json_vector"
     IMAGE_NAME = "example_image_1.jpg"
 
@@ -27,10 +26,6 @@ class TestAnnotationUploadVector(BaseTestCase):
     @property
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
-
-    @property
-    def big_annotations_folder_path(self):
-        return os.path.join(DATA_SET_PATH, self.TEST_BIG_FOLDER_PATH)
 
     @property
     def large_annotations_folder_path(self):
@@ -50,9 +45,7 @@ class TestAnnotationUploadVector(BaseTestCase):
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
         annotations = self._get_annotations_from_folder(self.folder_path)
-        uploaded, _, _ = sa.upload_annotations(
-            self.PROJECT_NAME, annotations
-        ).values()
+        uploaded, _, _ = sa.upload_annotations(self.PROJECT_NAME, annotations).values()
         assert len(uploaded) == 1
 
         annotation = sa.get_annotations(self.PROJECT_NAME, ["example_image_1.jpg"])[0]
@@ -69,7 +62,9 @@ class TestAnnotationUploadVector(BaseTestCase):
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
         annotations = self._get_annotations_from_folder(self.folder_path)
-        sa.set_annotation_statuses(self.PROJECT_NAME, "Completed", items=["example_image_1.jpg"])
+        sa.set_annotation_statuses(
+            self.PROJECT_NAME, "Completed", items=["example_image_1.jpg"]
+        )
         uploaded, _, _ = sa.upload_annotations(
             self.PROJECT_NAME, annotations, keep_status=True
         ).values()
@@ -85,7 +80,9 @@ class TestAnnotationUploadVector(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
-        annotations = self._get_annotations_from_folder(os.path.join(self.data_set, self.TEST_4_FOLDER_PATH))
+        annotations = self._get_annotations_from_folder(
+            os.path.join(self.data_set, self.TEST_4_FOLDER_PATH)
+        )
         uploaded, _, _ = sa.upload_annotations(
             self.PROJECT_NAME, annotations=annotations
         ).values()
@@ -94,32 +91,22 @@ class TestAnnotationUploadVector(BaseTestCase):
     def test_upload_large_annotations(self):
         sa.attach_items(
             self.PROJECT_NAME,
-            [{"name": f"aearth_mov_00{i}.jpg", "url": f"url_{i}"} for i in range(1, 6)]  # noqa
+            [
+                {"name": f"aearth_mov_00{i}.jpg", "url": f"url_{i}"}
+                for i in range(1, 6)
+            ],  # noqa
         )
 
         sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.large_annotations_folder_path}/classes/classes.json"
-        )
-        annotations = self._get_annotations_from_folder(self.large_annotations_folder_path)
-        uploaded, a, b = sa.upload_annotations(
-            self.PROJECT_NAME, annotations
-        ).values()
-        assert len(uploaded) == 5
-        annotations = sa.get_annotations(self.PROJECT_NAME)
-        assert [len(annotation["instances"]) > 1 for annotation in annotations].count(True) == 5
-
-    def test_upload_big_annotations(self):
-        sa.attach_items(
             self.PROJECT_NAME,
-            [{"name": f"aearth_mov_00{i}.jpg", "url": f"url_{i}"} for i in range(1, 6)]  # noqa
+            f"{self.large_annotations_folder_path}/classes/classes.json",
         )
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.big_annotations_folder_path}/classes/classes.json"
+        annotations = self._get_annotations_from_folder(
+            self.large_annotations_folder_path
         )
-        annotations = self._get_annotations_from_folder(self.big_annotations_folder_path)
-        uploaded, _, _ = sa.upload_annotations(
-            self.PROJECT_NAME, annotations
-        ).values()
+        uploaded, a, b = sa.upload_annotations(self.PROJECT_NAME, annotations).values()
         assert len(uploaded) == 5
         annotations = sa.get_annotations(self.PROJECT_NAME)
-        assert [len(annotation["instances"]) > 1 for annotation in annotations].count(True) == 4
+        assert [len(annotation["instances"]) > 1 for annotation in annotations].count(
+            True
+        ) == 5

@@ -10,6 +10,7 @@ from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
+from lib.core.enums import UserRole
 from pydantic import Extra
 from pydantic import Field
 from pydantic import StrictBool
@@ -47,6 +48,9 @@ class AttachmentEntity(BaseModel):
     class Config:
         extra = Extra.ignore
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 class WorkflowEntity(BaseModel):
     id: Optional[int]
@@ -74,6 +78,16 @@ class SettingEntity(BaseModel):
         return SettingEntity(attribute=self.attribute, value=self.value)
 
 
+class ContributorEntity(BaseModel):
+    first_name: Optional[str]
+    last_name: Optional[str]
+    user_id: str
+    user_role: UserRole
+
+    class Config:
+        extra = Extra.ignore
+
+
 class ProjectEntity(TimedBaseModel):
     id: Optional[int]
     team_id: Optional[int]
@@ -88,14 +102,15 @@ class ProjectEntity(TimedBaseModel):
     folder_id: Optional[int]
     sync_status: Optional[int]
     upload_state: Optional[int]
-    users: Optional[List[Any]] = []
+    users: Optional[List[ContributorEntity]] = []
     unverified_users: Optional[List[Any]] = []
-    contributors: List[Any] = []
+    contributors: List[ContributorEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
     workflows: Optional[List[WorkflowEntity]] = []
-    completed_images_count: Optional[int] = Field(None, alias="completedImagesCount")
-    root_folder_completed_images_count: Optional[int] = Field(
+    item_count: Optional[int] = Field(None, alias="imageCount")
+    completed_items_count: Optional[int] = Field(None, alias="completedImagesCount")
+    root_folder_completed_items_count: Optional[int] = Field(
         None, alias="rootFolderCompletedImagesCount"
     )
 
@@ -113,13 +128,12 @@ class ProjectEntity(TimedBaseModel):
             team_id=self.team_id,
             name=self.name,
             type=self.type,
-            description=self.description,
-            instructions_link=self.instructions_link
-            if self.description
-            else f"Copy of {self.name}.",
+            description=f"Copy of {self.name}.",
+            instructions_link=self.instructions_link,
             status=self.status,
             folder_id=self.folder_id,
             users=self.users,
+            settings=[s.__copy__() for s in self.settings],
             upload_state=self.upload_state,
         )
 
@@ -164,5 +178,5 @@ class TeamEntity(BaseModel):
     user_role: Optional[str]
     is_default: Optional[bool]
     users: Optional[List[UserEntity]]
-    pending_invitations: Optional[List]
+    pending_invitations: Optional[List[Any]]
     creator_id: Optional[str]

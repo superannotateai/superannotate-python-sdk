@@ -2,17 +2,16 @@
 Sagemaker to SA conversion method
 """
 import json
+import logging
 import threading
 from pathlib import Path
-
-from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):

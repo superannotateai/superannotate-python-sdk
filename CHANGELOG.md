@@ -1,4 +1,4 @@
-# Changelog 
+# Changelog
 All release highlights of this project will be documented in this file.
 ## 4.4.9 - January 29, 2023
 ### Added
@@ -69,7 +69,7 @@ All release highlights of this project will be documented in this file.
 ## 4.4.2, 4.4.3 - August 21, 2022
 ### Updated
 - the **schema** of `classes JSON` to support new values for the `"group_type"` key for a given attribute group. `"group_type": "radio" | "checklist" | "text" | "numeric"`.
-- the **schema** of `video annotation JSON` to support instances that have a `"tag"` type. 
+- the **schema** of `video annotation JSON` to support instances that have a `"tag"` type.
 ### Fixed
 - `SAClient.get_annotations()` _method_ to address the issue of working with the large projects.
 - `SAClient.get_annotations_per_frame()` _method_ to address the issue of throwing an error on small videos when the fps is set to 1.
@@ -186,7 +186,7 @@ All release highlights of this project will be documented in this file.
 - `attach_items_from_integrated_storage()` to attach items from an integrated cloud storage.
 - `upload_priority_scores()` to set priority scores for a given list of items.
 ### Updated
-- `JSON Schema` to version `1.0.40` to add instance type differentiation for text annotations and `"exclude"` key for subtracted polygon instances for image annotations. 
+- `JSON Schema` to version `1.0.40` to add instance type differentiation for text annotations and `"exclude"` key for subtracted polygon instances for image annotations.
 - `validate_annotations()` to validate text and image annotations based on JSON schema version `1.0.40`.
 - `get_annotations()` to get annotation instances based on JSON schema version `1.0.40`.
 - `prepare_export()` to prepare for the download annotations with based on JSON schema version `1.0.40`.
@@ -206,8 +206,8 @@ All release highlights of this project will be documented in this file.
 ### Updated
 - `get_image_annotations()` to reference `get_annotations()`.
 - `create_annotation_class()` to add `class_type` in parameters to specify class type on creation.
-- `create_annotation_classes_from_classes_json()` to handle class type in classes JSON. 
-- `search_annotation_classes()` to return class type in metadata. 
+- `create_annotation_classes_from_classes_json()` to handle class type in classes JSON.
+- `search_annotation_classes()` to return class type in metadata.
 - `upload_annotations_from_folder_to_project()` to handle tag annotations.
 - `upload_preannotations_from_folder_to_project()` to handle tag annotations.
 - `upload_image_annotations()` to handle tag annotations.
@@ -230,9 +230,9 @@ All release highlights of this project will be documented in this file.
 ### Updated
 - `upload_annotations_from_folder_to_project()` to reference the `validate_annotations()`.
 - `upload_videos_from_folder_to_project()` to remove code duplications.
-- `clone_project()` to set upload state of clone project to inital. 
+- `clone_project()` to set upload state of clone project to inital.
 ### Fixed
-- `validate_annotations()` to fix rotated bounding box schema. 
+- `validate_annotations()` to fix rotated bounding box schema.
 ### Removed
 - Third party logs from logging mechanism.
 ###
@@ -264,22 +264,22 @@ All release highlights of this project will be documented in this file.
 ###
 ## 4.2.6 - Nov 21 2021
 ### Added
-- Validation schemas for annotations. 
+- Validation schemas for annotations.
 - Dataframe aggregation for video projects.
 ### Fixed
-- Minor bug fixes and enhancements.  
+- Minor bug fixes and enhancements.
 ###
 ## 4.2.4 - Nov 2 2021
 ### Fixed
-- Minor bug fixes and enhancements.  
+- Minor bug fixes and enhancements.
 ###
 ## 4.2.3 - Oct 31 2021
 ### Fixed
-- Minor bug fixes and enhancements.  
+- Minor bug fixes and enhancements.
 ###
 ## 4.2.2 - Oct 22 2021
 ### Fixed
-- Minor bug fixes and enhancements.  
+- Minor bug fixes and enhancements.
 ###
 ## 4.2.1 - Oct 13 2021
 ### Fixed
@@ -288,7 +288,7 @@ All release highlights of this project will be documented in this file.
 ###
 ## 4.2.0 - Oct 10 2021
 ### Added
-- `delete_annotations()` for bulk annotation delete. 
+- `delete_annotations()` for bulk annotation delete.
 ### Updated
 - Project/folder limitations.
 ### Fixed
@@ -300,7 +300,7 @@ All release highlights of this project will be documented in this file.
 ### Added
 - Video project release.
 ###
-## 4.1.7 - Aug 1 2021 
+## 4.1.7 - Aug 1 2021
 ### Fixed
 - Video upload refinements.
 ###
@@ -345,7 +345,7 @@ All release highlights of this project will be documented in this file.
 ###
 ## 4.1.0 - Mar 22 2021
 ### Added
-- Folder structure on platform. 
+- Folder structure on platform.
 ###
 ## 4.0.1 - Mar 15 2021
 ### Updated

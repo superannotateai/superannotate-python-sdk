@@ -1,10 +1,7 @@
 import os
-import tempfile
 from os.path import dirname
 
 import boto3
-
-import src.superannotate as sa
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -25,8 +22,9 @@ class TestExportUploadS3(BaseTestCase):
 
     def tearDown(self) -> None:
         super().tearDown()
-        for object_data in s3_client.list_objects_v2(Bucket=self.TEST_S3_BUCKET, Prefix=self.TMP_DIR).get("Contents",
-                                                                                                          []):
+        for object_data in s3_client.list_objects_v2(
+            Bucket=self.TEST_S3_BUCKET, Prefix=self.TMP_DIR
+        ).get("Contents", []):
             s3_client.delete_object(Bucket=self.TEST_S3_BUCKET, Key=object_data["Key"])
 
     @property
@@ -48,9 +46,10 @@ class TestExportUploadS3(BaseTestCase):
             export=new_export,
             folder_path=self.TMP_DIR,
             to_s3_bucket=self.TEST_S3_BUCKET,
-            extract_zip_contents=True
+            extract_zip_contents=True,
         )
-        for object_data in s3_client.list_objects_v2(Bucket=self.TEST_S3_BUCKET, Prefix=self.TMP_DIR).get("Contents",
-                                                                                                          []):
+        for object_data in s3_client.list_objects_v2(
+            Bucket=self.TEST_S3_BUCKET, Prefix=self.TMP_DIR
+        ).get("Contents", []):
             files.append(object_data["Key"])
         self.assertEqual(13, len(files))

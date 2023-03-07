@@ -1,14 +1,14 @@
 import os
 from os.path import dirname
-import pytest
 from unittest import TestCase
 
-from src.superannotate import SAClient
+import pytest
 from src.superannotate import AppException
-from src.superannotate.lib.core import LIMITED_FUNCTIONS
-from src.superannotate.lib.core import INVALID_PROJECT_TYPE_TO_PROCESS
-from src.superannotate.lib.core import ProjectType
+from src.superannotate import SAClient
 from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+from src.superannotate.lib.core import INVALID_PROJECT_TYPE_TO_PROCESS
+from src.superannotate.lib.core import LIMITED_FUNCTIONS
+from src.superannotate.lib.core import ProjectType
 
 
 sa = SAClient()
@@ -51,7 +51,9 @@ class TestDeprecatedFunctionsDocument(TestCase):
 
     @property
     def video_export_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_VIDEO_EXPORT_PATH)
+        return os.path.join(
+            dirname(dirname(__file__)), self.TEST_FOLDER_VIDEO_EXPORT_PATH
+        )
 
     @property
     def folder_path(self):
@@ -59,11 +61,11 @@ class TestDeprecatedFunctionsDocument(TestCase):
 
     @property
     def annotation_path(self):
-        return f'{self.folder_path}/example_image_1.jpg___objects.json'
+        return f"{self.folder_path}/example_image_1.jpg___objects.json"
 
     @property
     def image_path(self):
-        return f'{self.folder_path}/example_image_1.jpg'
+        return f"{self.folder_path}/example_image_1.jpg"
 
     @pytest.mark.flaky(reruns=2)
     def test_deprecated_functions(self):
@@ -80,11 +82,18 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.download_image_annotations(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "./")
+            sa.download_image_annotations(
+                self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "./"
+            )
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.upload_images_to_project(self.PROJECT_NAME, [self.image_path, ])
+            sa.upload_images_to_project(
+                self.PROJECT_NAME,
+                [
+                    self.image_path,
+                ],
+            )
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -108,14 +117,12 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))
         try:
-            sa.benchmark(self.PROJECT_NAME, "some", ["some folder1"])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.upload_videos_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME,"original")
+            sa.set_project_default_image_quality_in_editor(
+                self.PROJECT_NAME, "original"
+            )
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))

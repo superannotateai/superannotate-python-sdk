@@ -2,8 +2,9 @@ import os
 from os.path import dirname
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestUploadImages(BaseTestCase):
@@ -23,6 +24,6 @@ class TestUploadImages(BaseTestCase):
         result = sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME,
             os.path.join(self.folder_path, self.TEST_IMAGES_PATH),
-            extensions=[]
-            )
+            extensions=[],
+        )
         self.assertEqual(([], [], []), result)

@@ -1,8 +1,6 @@
 import os
 from os.path import dirname
 
-import pytest
-
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -24,4 +22,6 @@ class TestGetIntegrations(BaseTestCase):
     # @pytest.mark.skip("Need to adjust")
     def test_get(self):
         integrations = sa.get_integrations()
-        integrations = sa.attach_items_from_integrated_storage(self.PROJECT_NAME, integrations[0]["name"])
+        integrations = sa.attach_items_from_integrated_storage(
+            self.PROJECT_NAME, integrations[0]["name"]
+        )

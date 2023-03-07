@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 from abc import ABCMeta
 from pathlib import Path
@@ -14,6 +15,8 @@ from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
+from lib.core.entities import ConfigEntity
+from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
@@ -30,7 +33,6 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import extract_project_folder
-from superannotate.logger import get_default_logger
 
 
 def build_condition(**kwargs) -> Condition:
@@ -73,7 +75,6 @@ class ProjectManager(BaseManager):
         include_complete_image_count: bool = False,
     ):
         use_case = usecases.GetProjectMetaDataUseCase(
-            reporter=Reporter(),
             project=project,
             service_provider=self.service_provider,
             include_annotation_classes=include_annotation_classes,
@@ -109,26 +110,6 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def clone(
-        self,
-        project: ProjectEntity,
-        new_project: ProjectEntity,
-        copy_annotation_classes=True,
-        copy_settings=True,
-        copy_workflow=True,
-        copy_contributors=False,
-    ):
-        use_case = usecases.CloneProjectUseCase(
-            project=project,
-            service_provider=self.service_provider,
-            project_to_create=new_project,
-            include_contributors=copy_contributors,
-            include_settings=copy_settings,
-            include_workflow=copy_workflow,
-            include_annotation_classes=copy_annotation_classes,
-        )
-        return use_case.execute()
-
     def set_settings(self, project: ProjectEntity, settings: List[SettingEntity]):
         use_case = usecases.UpdateSettingsUseCase(
             to_update=settings,
@@ -157,14 +138,17 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def add_contributors(self, project: ProjectEntity, team, emails: list, role: str):
+    def add_contributors(
+        self,
+        team: TeamEntity,
+        project: ProjectEntity,
+        contributors: List[ContributorEntity],
+    ):
         project = self.get_metadata(project).data
         use_case = usecases.AddContributorsToProject(
-            reporter=Reporter(),
             team=team,
             project=project,
-            emails=emails,
-            role=role,
+            contributors=contributors,
             service_provider=self.service_provider,
         )
         return use_case.execute()
@@ -233,7 +217,6 @@ class AnnotationClassManager(BaseManager):
 
     def create(self, project: ProjectEntity, annotation_class: AnnotationClassEntity):
         use_case = usecases.CreateAnnotationClassUseCase(
-            reporter=Reporter(),
             annotation_class=annotation_class,
             project=project,
             service_provider=self.service_provider,
@@ -244,7 +227,6 @@ class AnnotationClassManager(BaseManager):
         self, project: ProjectEntity, annotation_classes: List[AnnotationClassEntity]
     ):
         use_case = usecases.CreateAnnotationClassesUseCase(
-            reporter=Reporter(),
             service_provider=self.service_provider,
             annotation_classes=annotation_classes,
             project=project,
@@ -293,7 +275,6 @@ class AnnotationClassManager(BaseManager):
     def download(self, project: ProjectEntity, download_path: str):
         use_case = usecases.DownloadAnnotationClassesUseCase(
             project=project,
-            reporter=Reporter(),
             download_path=download_path,
             service_provider=self.service_provider,
         )
@@ -375,7 +356,7 @@ class ItemManager(BaseManager):
     def get_by_id(self, item_id: int, project: ProjectEntity):
         use_case = usecases.GetItemByIDUseCase(
             item_id=item_id,
-            project=project.data,
+            project=project,
             service_provider=self.service_provider,
         )
         return use_case.execute()
@@ -507,6 +488,10 @@ class ItemManager(BaseManager):
 
 
 class AnnotationManager(BaseManager):
+    def __init__(self, service_provider: ServiceProvider, config: ConfigEntity):
+        super().__init__(service_provider)
+        self._config = config
+
     def list(
         self,
         project: ProjectEntity,
@@ -515,6 +500,7 @@ class AnnotationManager(BaseManager):
         verbose=True,
     ):
         use_case = usecases.GetAnnotations(
+            config=self._config,
             reporter=Reporter(log_info=verbose, log_warning=verbose),
             project=project,
             folder=folder,
@@ -533,6 +519,7 @@ class AnnotationManager(BaseManager):
         callback: Optional[Callable],
     ):
         use_case = usecases.DownloadAnnotations(
+            config=self._config,
             reporter=Reporter(),
             project=project,
             folder=folder,
@@ -763,7 +750,6 @@ class IntegrationManager(BaseManager):
 class SubsetManager(BaseManager):
     def list(self, project: ProjectEntity):
         use_case = usecases.ListSubsetsUseCase(
-            reporter=Reporter(),
             project=project,
             service_provider=self.service_provider,
         )
@@ -786,11 +772,11 @@ class SubsetManager(BaseManager):
 class BaseController(metaclass=ABCMeta):
     SESSIONS = {}
 
-    def __init__(self, token: str, host: str, ssl_verify: bool, version: str):
-        self._version = version
-        self._logger = get_default_logger()
+    def __init__(self, config: ConfigEntity):
+        self._config = config
+        self._logger = logging.getLogger("sa")
         self._testing = os.getenv("SA_TESTING", "False").lower() in ("true", "1", "t")
-        self._token = token
+        self._token = config.API_TOKEN
         self._team_data = None
         self._s3_upload_auth_data = None
         self._projects = None
@@ -803,7 +789,9 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
-        http_client = HttpClient(api_url=host, token=token, verify_ssl=ssl_verify)
+        http_client = HttpClient(
+            api_url=config.API_URL, token=config.API_TOKEN, verify_ssl=config.VERIFY_SSL
+        )
 
         self.service_provider = ServiceProvider(http_client)
         self._team = self.get_team().data
@@ -811,7 +799,7 @@ class BaseController(metaclass=ABCMeta):
         self.projects = ProjectManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
         self.items = ItemManager(self.service_provider)
-        self.annotations = AnnotationManager(self.service_provider)
+        self.annotations = AnnotationManager(self.service_provider, config)
         self.custom_fields = CustomFieldManager(self.service_provider)
         self.subsets = SubsetManager(self.service_provider)
         self.models = ModelManager(self.service_provider)
@@ -1150,48 +1138,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def benchmark(
-        self,
-        project_name: str,
-        ground_truth_folder_name: str,
-        folder_names: List[str],
-        export_root: str,
-        image_list: List[str],
-        annot_type: str,
-        show_plots: bool,
-    ):
-        project = self.get_project(project_name)
-        export_response = self.prepare_export(
-            project.name,
-            folder_names=folder_names,
-            include_fuse=False,
-            only_pinned=False,
-        )
-        if export_response.errors:
-            return export_response
-
-        response = usecases.DownloadExportUseCase(
-            service_provider=self.service_provider,
-            project=project,
-            export_name=export_response.data["name"],
-            folder_path=export_root,
-            extract_zip_contents=True,
-            to_s3_bucket=False,
-            reporter=self.get_default_reporter(),
-        ).execute()
-        if response.errors:
-            raise AppException(response.errors)
-        use_case = usecases.BenchmarkUseCase(
-            project=project,
-            ground_truth_folder_name=ground_truth_folder_name,
-            folder_names=folder_names,
-            export_dir=export_root,
-            image_list=image_list,
-            annotation_type=annot_type,
-            show_plots=show_plots,
-        )
-        return use_case.execute()
-
     def consensus(
         self,
         project_name: str,
@@ -1224,7 +1170,6 @@ class Controller(BaseController):
 
     def invite_contributors_to_team(self, emails: list, set_admin: bool):
         use_case = usecases.InviteContributorsToTeam(
-            reporter=self.get_default_reporter(),
             team=self.team,
             emails=emails,
             set_admin=set_admin,
@@ -1272,6 +1217,7 @@ class Controller(BaseController):
         folder = self.get_folder(project, folder_name)
 
         use_case = usecases.GetVideoAnnotationsPerFrame(
+            config=self._config,
             reporter=self.get_default_reporter(),
             project=project,
             folder=folder,

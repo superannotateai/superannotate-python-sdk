@@ -1,13 +1,13 @@
 import json
+import logging
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 from lib.app.exceptions import AppException
-from superannotate.logger import get_default_logger
 
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def aggregate_image_annotations_as_df(
@@ -449,7 +449,7 @@ def consensus(df, item_name, annot_type):
         from shapely.geometry import Point, Polygon, box
     except ImportError:
         raise ImportError(
-            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package."
+            "To use superannotate.consensus function please install shapely package."
         )
 
     image_df = df[df["itemName"] == item_name]

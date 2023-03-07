@@ -2,10 +2,10 @@
 VGG to SA conversion method.
 """
 import json
+import logging
 import threading
 
 import cv2
-from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
@@ -13,7 +13,7 @@ from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 from .vgg_helper import _create_attribute_list
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def vgg_to_sa(json_data, task, output_dir):

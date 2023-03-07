@@ -128,11 +128,13 @@ class ProjectSerializer(BaseSerializer):
             data["settings"] = [
                 SettingsSerializer(setting).serialize() for setting in data["settings"]
             ]
+
         if not data.get("status"):
             data["status"] = "Undefined"
 
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
+
         if data.get("users"):
             for contributor in data["users"]:
                 contributor["user_role"] = constance.UserRole.get_name(

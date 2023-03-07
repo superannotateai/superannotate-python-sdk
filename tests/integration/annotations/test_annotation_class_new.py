@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
-from unittest import TestCase
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationClasses(BaseTestCase):
@@ -14,7 +14,8 @@ class TestAnnotationClasses(BaseTestCase):
 
     @property
     def classes_json(self):
-        return os.path.join(Path(__file__).parent.parent.parent,
+        return os.path.join(
+            Path(__file__).parent.parent.parent,
             "data_set/sample_project_vector/classes/classes.json",
         )
 
@@ -22,7 +23,7 @@ class TestAnnotationClasses(BaseTestCase):
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF")
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(len(classes), 1)
-        self.assertEqual(classes[0]['type'], 'object')
+        self.assertEqual(classes[0]["type"], "object")
 
     def test_annotation_classes_filter(self):
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF")

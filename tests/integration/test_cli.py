@@ -1,20 +1,23 @@
 import os
 import tempfile
+from configparser import ConfigParser
 from os.path import dirname
 from pathlib import Path
 from unittest import TestCase
+from unittest.mock import patch
 
 import pkg_resources
-
+import src.superannotate.lib.core as constants
 from src.superannotate import SAClient
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 
-sa = SAClient()
 
 try:
     CLI_VERSION = pkg_resources.get_distribution("superannotate").version
 except Exception:
     CLI_VERSION = None
+
+sa = SAClient()
 
 
 class CLITest(TestCase):
@@ -100,11 +103,18 @@ class CLITest(TestCase):
             pass
 
     def _create_project(self, project_type="Vector"):
-        self.safe_run(self._cli.create_project, name=self.PROJECT_NAME, description="gg", type=project_type)
+        self.safe_run(
+            self._cli.create_project,
+            name=self.PROJECT_NAME,
+            description="gg",
+            type=project_type,
+        )
 
     def test_create_folder(self):
         self._create_project()
-        self.safe_run(self._cli.create_folder, project=self.PROJECT_NAME, name=self.FOLDER_NAME)
+        self.safe_run(
+            self._cli.create_folder, project=self.PROJECT_NAME, name=self.FOLDER_NAME
+        )
         folder = sa.get_folder_metadata(
             project=self.PROJECT_NAME, folder_name=self.FOLDER_NAME
         )
@@ -112,9 +122,13 @@ class CLITest(TestCase):
 
     def test_upload_images(self):
         self._create_project()
-        self.safe_run(self._cli.upload_images, project=self.PROJECT_NAME, folder=str(self.recursive_folder_path),
-                      extensions="jpg",
-                      set_annotation_status="QualityCheck")
+        self.safe_run(
+            self._cli.upload_images,
+            project=self.PROJECT_NAME,
+            folder=str(self.recursive_folder_path),
+            extensions="jpg",
+            set_annotation_status="QualityCheck",
+        )
         self.assertEqual(1, len(sa.search_items(self.PROJECT_NAME)))
 
     def test_upload_export(self):
@@ -122,7 +136,9 @@ class CLITest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             test_dir = Path(temp_dir) / "test1"
             test_dir.mkdir()
-            self.safe_run(self._cli.export_project, project=self.PROJECT_NAME, folder=test_dir)
+            self.safe_run(
+                self._cli.export_project, project=self.PROJECT_NAME, folder=test_dir
+            )
             self.assertEqual(len(list(test_dir.rglob("*.json"))), 1)
             self.assertEqual(len(list(test_dir.glob("*.jpg"))), 0)
             self.assertEqual(len(list(test_dir.glob("*.png"))), 0)
@@ -132,12 +148,20 @@ class CLITest(TestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
         )
-        self.safe_run(self._cli.upload_images, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
-                      extensions="jpg",
-                      set_annotation_status="QualityCheck")
-        self.safe_run(self._cli.upload_annotations, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
-                      format="COCO",
-                      dataset_name="instances_test")
+        self.safe_run(
+            self._cli.upload_images,
+            project=self.PROJECT_NAME,
+            folder=str(self.convertor_data_path),
+            extensions="jpg",
+            set_annotation_status="QualityCheck",
+        )
+        self.safe_run(
+            self._cli.upload_annotations,
+            project=self.PROJECT_NAME,
+            folder=str(self.convertor_data_path),
+            format="COCO",
+            dataset_name="instances_test",
+        )
 
         count_in = len(list(self.vector_folder_path.glob("*.json")))
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -149,27 +173,65 @@ class CLITest(TestCase):
 
     def test_attach_image_urls(self):
         self._create_project()
-        self.safe_run(self._cli.attach_image_urls, self.PROJECT_NAME, str(self.video_csv_path))
+        self.safe_run(
+            self._cli.attach_image_urls, self.PROJECT_NAME, str(self.video_csv_path)
+        )
         self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
     def test_attach_video_urls(self):
         self._create_project("Video")
-        self.safe_run(self._cli.attach_video_urls, self.PROJECT_NAME, str(self.video_csv_path))
+        self.safe_run(
+            self._cli.attach_video_urls, self.PROJECT_NAME, str(self.video_csv_path)
+        )
         self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
     def test_upload_videos(self):
         self._create_project()
-        self.safe_run(self._cli.upload_videos, self.PROJECT_NAME, str(self.video_folder_path))
+        self.safe_run(
+            self._cli.upload_videos, self.PROJECT_NAME, str(self.video_folder_path)
+        )
         self.assertEqual(121, len(sa.search_items(self.PROJECT_NAME)))
 
     def test_attach_document_urls(self):
         self._create_project("Document")
-        self.safe_run(self._cli.attach_document_urls, self.PROJECT_NAME, str(self.video_csv_path))
+        self.safe_run(
+            self._cli.attach_document_urls, self.PROJECT_NAME, str(self.video_csv_path)
+        )
         self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
     def test_create_server(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            self._cli.create_server('test', temp_dir)
+            self._cli.create_server("test", temp_dir)
             # self._cli.create_server('testo', '/Users/vaghinak.basentsyan/www/for_fun')
-            assert (Path(temp_dir) / 'test' / 'app.py').exists()
-            assert (Path(temp_dir) / 'test' / 'wsgi.py').exists()
+            assert (Path(temp_dir) / "test" / "app.py").exists()
+            assert (Path(temp_dir) / "test" / "wsgi.py").exists()
+
+    def test_init(self):
+        _token = "asd=123"
+        with tempfile.TemporaryDirectory() as config_dir:
+            ini_path = config_dir + "/config.ini"
+            log_path = config_dir + "/logs"
+            with patch("lib.core.LOG_FILE_LOCATION", log_path), patch(
+                "lib.core.CONFIG_INI_FILE_LOCATION", ini_path
+            ):
+                self.safe_run(self._cli.init, _token)
+            config = ConfigParser()
+            config.read(ini_path)
+            assert config["DEFAULT"]["SA_TOKEN"] == _token
+            assert config["DEFAULT"]["LOGGING_LEVEL"] == "INFO"
+            assert config["DEFAULT"]["LOGGING_PATH"] == f"{constants.LOG_FILE_LOCATION}"
+            assert os.path.exists(log_path)
+
+    def test_init_with_logging_configs(self):
+        _token = "asd=123"
+        _logging_level = "ERROR"
+        _logging_path = "my-user/logs/superannotate/"
+        with tempfile.TemporaryDirectory() as config_dir:
+            config_ini_path = f"{config_dir}/config.ini"
+            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
+                self.safe_run(self._cli.init, _token, _logging_level, _logging_path)
+            config = ConfigParser()
+            config.read(config_ini_path)
+            assert config["DEFAULT"]["SA_TOKEN"] == _token
+            assert config["DEFAULT"]["LOGGING_LEVEL"] == _logging_level
+            assert config["DEFAULT"]["LOGGING_PATH"] == _logging_path

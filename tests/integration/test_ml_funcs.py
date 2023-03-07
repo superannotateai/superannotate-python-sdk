@@ -1,10 +1,8 @@
 import os
-import tempfile
 import time
 from os.path import dirname
 
 import pytest
-
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
