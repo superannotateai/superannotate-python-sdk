@@ -1,5 +1,19 @@
 # Changelog
 All release highlights of this project will be documented in this file.
+## 4.4.10 - March 12, 2023
+### Updated
+- Configuration file creation flow
+- `SAClient.search_projects()` method, removed `include_complete_image_count` argument, use `include_complete_item_count` instead.
+- `SAClient.get_project_metadata()` method, removed `include_complete_image_count` argument, use `include_complete_item_count` instead.
+- `SAClient.create_project()` method to support classes, workflows and instructions_link.
+### Fixed
+- `SAClient.clone_project()` method to address the issue of FPS mode is not being copied.
+### Deprecated
+- `SAClient.create_project_from_metadata()` method, use `SAClient.create_project()` instead.
+- `SAClient.get_project_image_count()` method, use `SAClient.get_project_metadata()` instead.
+### Removed
+- `SAClient.class_distribution()` method
+- `SAClient.benchmark()` method
 ## 4.4.9 - January 29, 2023
 ### Added
 - `SAClient.set_approval_statuses` _method_ function to change the approval status of items (images, audio / videos) in bulk.

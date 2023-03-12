@@ -36,6 +36,7 @@ class GroupTypeEnum(str, Enum):
     CHECKLIST = "checklist"
     NUMERIC = "numeric"
     TEXT = "text"
+    OCR = "ocr"
 
 
 class StringDate(datetime):

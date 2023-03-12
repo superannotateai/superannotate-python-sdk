@@ -79,4 +79,5 @@ class TestClassesSerializers(TestCase):
                 "'checklist',",
                 "'numeric',",
                 "'text'",
+                "'ocr'",
             ] == wrap_error(e).split()
