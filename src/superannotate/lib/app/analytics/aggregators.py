@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -11,9 +12,8 @@ import pandas as pd
 from lib.app.exceptions import AppException
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 @dataclass
@@ -214,6 +214,10 @@ class DataAggregator:
             return self.aggregate_video_annotations_as_df(annotation_paths)
         elif self.project_type is constances.ProjectType.DOCUMENT:
             return self.aggregate_document_annotations_as_df(annotation_paths)
+        else:
+            raise AppException(
+                f"The function is not supported for {self.project_type.name} projects."
+            )
 
     def __add_attributes_to_raws(self, raws, attributes, element_raw):
         for attribute_id, attribute in enumerate(attributes):

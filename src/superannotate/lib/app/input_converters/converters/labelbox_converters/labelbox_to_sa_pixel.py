@@ -1,12 +1,12 @@
 """
 Labelbox to SA conversion method
 """
+import logging
 import threading
 from pathlib import Path
 
 import cv2
 import numpy as np
-from superannotate.logger import get_default_logger
 
 from ....common import blue_color_generator
 from ....common import hex_to_rgb
@@ -18,7 +18,7 @@ from .labelbox_helper import _create_attributes_list
 from .labelbox_helper import _create_classes_id_map
 from .labelbox_helper import image_downloader
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def labelbox_instance_segmentation_to_sa_pixel(json_data, output_dir, input_dir):

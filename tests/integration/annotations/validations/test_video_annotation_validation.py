@@ -1,7 +1,6 @@
-import os
 import json
+import os
 from unittest import TestCase
-from unittest.mock import patch
 
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
@@ -18,6 +17,5 @@ class TestVectorValidators(TestCase):
     # @patch('builtins.print')
     def test_free_text_numeric_invalid(self):
         json_data = json.load(open(os.path.join(DATA_SET_PATH, self.ANNOTATIONS_PATH)))
-        is_valid = sa.validate_annotations("video", json_data)
+        is_valid = sa.validate_annotations("Video", json_data)
         assert not is_valid
-

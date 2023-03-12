@@ -13,7 +13,7 @@ repos:
     hooks:
       - id: black
         name: Code Formatter (black)
-  - repo: 'https://gitlab.com/pycqa/flake8'
+  - repo: 'https://github.com/PyCQA/flake8'
     rev: 3.8.2
     hooks:
       - id: flake8
@@ -30,15 +30,26 @@ repos:
         name: Upgrade syntax for newer versions of the language (pyupgrade)
         args:
           - '--py37-plus'
+  - repo: 'https://github.com/PyCQA/doc8'
+    rev: v1.1.1
+    hooks:
+      - id: doc8
+        name: doc8
+        description: This hook runs doc8 for linting docs
+        entry: python -m doc8
+        language: python
+        args: ['--ignore=D001']
+        files: '^docs(.*)\.rst'
+        require_serial: true
   - repo: 'https://github.com/pre-commit/pre-commit-hooks'
     rev: v3.1.0
     hooks:
       - id: check-byte-order-marker
       - id: trailing-whitespace
       - id: end-of-file-fixer
+        files: \.rst$
 #  - repo: 'https://github.com/asottile/dead'
 #    rev: v1.3.0
 #    hooks:
 #      - id: dead
-files: src/
-exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
+exclude: src/lib/app/analytics | src/lib/app/input_converters

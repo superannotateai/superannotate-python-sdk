@@ -312,20 +312,23 @@ class BaseItemService(SuperannotateServiceProvider):
 
 class BaseAnnotationService(SuperannotateServiceProvider):
     @abstractmethod
-    async def get_small_annotations(
+    async def get_big_annotation(
         self,
         project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        items: List[str],
+        item: entities.BaseItemEntity,
         reporter: Reporter,
-        callback: Callable = None,
-    ) -> List[dict]:
+    ) -> dict:
         raise NotImplementedError
 
     @abstractmethod
-    async def get_big_annotation(
-        self, project: entities.ProjectEntity, item: dict, reporter: Reporter
-    ) -> dict:
+    async def list_small_annotations(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_ids: List[int],
+        reporter: Reporter,
+        callback: Callable = None,
+    ) -> List[dict]:
         raise NotImplementedError
 
     @abstractmethod
@@ -333,7 +336,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_ids: List[int],
     ) -> Dict[str, List]:
         raise NotImplementedError
 
@@ -343,7 +346,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         download_path: str,
         postfix: str,
-        item: dict,
+        item: entities.BaseItemEntity,
         callback: Callable = None,
     ):
         raise NotImplementedError
@@ -356,7 +359,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         reporter: Reporter,
         download_path: str,
         postfix: str,
-        items: List[str] = None,
+        item_ids: List[int],
         callback: Callable = None,
     ):
         raise NotImplementedError

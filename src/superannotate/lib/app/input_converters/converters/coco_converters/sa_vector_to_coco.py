@@ -1,9 +1,8 @@
 """
 SA to COCO conversion methods
 """
+import logging
 import threading
-
-from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from .coco_api import _area
@@ -11,7 +10,7 @@ from .coco_api import _merge
 from .coco_api import _polytoMask
 from .coco_api import _toBbox
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def sa_vector_to_coco_object_detection(

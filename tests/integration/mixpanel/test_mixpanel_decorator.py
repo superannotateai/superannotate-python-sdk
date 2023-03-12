@@ -1,12 +1,12 @@
 import copy
 import threading
-import pytest
 from unittest import TestCase
 from unittest.mock import patch
 
-from src.superannotate import SAClient
-from src.superannotate import AppException
+import pytest
 from src.superannotate import __version__
+from src.superannotate import AppException
+from src.superannotate import SAClient
 
 
 class TestMixpanel(TestCase):
@@ -17,7 +17,7 @@ class TestMixpanel(TestCase):
         "Team": TEAM_DATA["name"],
         "Team Owner": TEAM_DATA["creator_id"],
         "Version": __version__,
-        "Success": True
+        "Success": True,
     }
     PROJECT_NAME = "TEST_MIX"
     PROJECT_DESCRIPTION = "Desc"
@@ -35,7 +35,6 @@ class TestMixpanel(TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         cls._safe_delete_project(cls.PROJECT_NAME)
-
 
     @classmethod
     def _safe_delete_project(cls, project_name):
@@ -66,7 +65,8 @@ class TestMixpanel(TestCase):
             "email": "user@supernnotate.com",
             "first_name": "first_name",
             "last_name": "last_name",
-            "return_metadata": False}
+            "return_metadata": False,
+        }
         self.CLIENT.search_team_contributors(**kwargs)
         result = list(track_method.call_args)[0]
         payload = self.default_payload
@@ -78,9 +78,10 @@ class TestMixpanel(TestCase):
     def test_search_projects(self, track_method):
         kwargs = {
             "name": self.PROJECT_NAME,
-            "include_complete_image_count": True,
+            "include_complete_item_count": True,
             "status": "NotStarted",
-            "return_metadata": False}
+            "return_metadata": False,
+        }
         self.CLIENT.search_projects(**kwargs)
         result = list(track_method.call_args)[0]
         payload = self.default_payload
@@ -94,7 +95,10 @@ class TestMixpanel(TestCase):
             "project_name": self.PROJECT_NAME,
             "project_description": self.PROJECT_DESCRIPTION,
             "project_type": self.PROJECT_TYPE,
-            "settings": {"a": 1, "b": 2}
+            "settings": {"a": 1, "b": 2},
+            "classes": None,
+            "workflows": None,
+            "instructions_link": None,
         }
         try:
             self.CLIENT.create_project(**kwargs)
@@ -124,8 +128,12 @@ class TestMixpanel(TestCase):
                 "project_description": self.PROJECT_DESCRIPTION,
                 "project_type": self.PROJECT_TYPE,
             }
-            thread_1 = threading.Thread(target=self.CLIENT.create_project, kwargs=kwargs_1)
-            thread_2 = threading.Thread(target=self.CLIENT.create_project, kwargs=kwargs_2)
+            thread_1 = threading.Thread(
+                target=self.CLIENT.create_project, kwargs=kwargs_1
+            )
+            thread_2 = threading.Thread(
+                target=self.CLIENT.create_project, kwargs=kwargs_2
+            )
             thread_1.start()
             thread_2.start()
             thread_1.join()

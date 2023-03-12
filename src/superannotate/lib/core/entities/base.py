@@ -1,3 +1,4 @@
+import re
 import warnings
 from datetime import datetime
 from enum import Enum
@@ -8,16 +9,20 @@ from typing import no_type_check
 from typing import Optional
 from typing import Union
 
+from lib.core import BACKEND_URL
+from lib.core import LOG_FILE_LOCATION
 from lib.core.enums import AnnotationStatus
 from lib.core.enums import BaseTitledEnum
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Extra
 from pydantic import Field
+from pydantic import StrictStr
 from pydantic.datetime_parse import parse_datetime
 from pydantic.typing import is_namedtuple
 from pydantic.utils import ROOT_KEY
 from pydantic.utils import sequence_like
 from pydantic.utils import ValueItems
+from typing_extensions import Literal
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
@@ -287,3 +292,33 @@ class BaseItemEntity(TimedBaseModel):
         entity["annotator_email"] = entity.get("annotator_id")
         entity["qa_email"] = entity.get("qa_id")
         return entity
+
+
+class TokenStr(StrictStr):
+    regex = r"^[-.@_A-Za-z0-9]+=\d+$"
+
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if cls.curtail_length and len(value) > cls.curtail_length:
+            value = value[: cls.curtail_length]
+        if cls.regex:
+            if not re.match(cls.regex, value):
+                raise ValueError("Invalid token.")
+        return value
+
+
+class ConfigEntity(BaseModel):
+    API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
+    API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
+    LOGGING_LEVEL: Literal[
+        "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+    ] = "INFO"
+    LOGGING_PATH: str = f"{LOG_FILE_LOCATION}"
+    VERIFY_SSL: bool = True
+    ANNOTATION_CHUNK_SIZE = 5000
+    ITEM_CHUNK_SIZE = 2000
+    MAX_THREAD_COUNT = 4
+    MAX_COROUTINE_COUNT = 8
+
+    class Config:
+        extra = Extra.ignore

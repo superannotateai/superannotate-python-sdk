@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import lib.core as constances
@@ -9,9 +10,8 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
-from superannotate.logger import get_default_logger
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 class GetFolderByIDUseCase(BaseUseCase):

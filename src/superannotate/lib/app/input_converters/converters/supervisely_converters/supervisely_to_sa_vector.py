@@ -2,10 +2,9 @@
 Supervisely to SA conversion method
 """
 import json
+import logging
 import threading
 from pathlib import Path
-
-from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
@@ -14,7 +13,7 @@ from ..sa_json_helper import _create_vector_instance
 from .supervisely_helper import _base64_to_polygon
 from .supervisely_helper import _create_attribute_list
 
-logger = get_default_logger()
+logger = logging.getLogger("sa")
 
 
 def supervisely_to_sa(json_files, class_id_map, task, output_dir):
