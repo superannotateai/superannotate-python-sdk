@@ -44,6 +44,7 @@ def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
     try:
+        os.makedirs(file_path, exist_ok=True)
         log_file_path = os.path.join(file_path, "sa.log")
         open(log_file_path, "w").close()
         if os.access(log_file_path, os.W_OK):
