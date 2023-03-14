@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from configparser import ConfigParser
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -30,7 +31,6 @@ class ClientInitTestCase(TestCase):
     @patch("lib.core.usecases.GetTeamUseCase")
     def test_init_via_config_json(self, get_team_use_case):
         with tempfile.TemporaryDirectory() as config_dir:
-            constants.HOME_PATH = config_dir
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
@@ -48,7 +48,6 @@ class ClientInitTestCase(TestCase):
 
     def test_init_via_config_json_invalid_json(self):
         with tempfile.TemporaryDirectory() as config_dir:
-            constants.HOME_PATH = config_dir
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
@@ -65,7 +64,6 @@ class ClientInitTestCase(TestCase):
     @patch("lib.core.usecases.GetTeamUseCase")
     def test_init_via_config_ini(self, get_team_use_case):
         with tempfile.TemporaryDirectory() as config_dir:
-            constants.HOME_PATH = config_dir
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
@@ -89,6 +87,34 @@ class ClientInitTestCase(TestCase):
                     )
 
     @patch("lib.core.usecases.GetTeamUseCase")
+    def test_init_via_config_relative_filepath(self, get_team_use_case):
+        with tempfile.TemporaryDirectory(dir=Path("~").expanduser()) as config_dir:
+            config_ini_path = f"{config_dir}/config.ini"
+            config_json_path = f"{config_dir}/config.json"
+            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(
+                "lib.core.CONFIG_JSON_FILE_LOCATION", config_json_path
+            ):
+                with open(f"{config_dir}/config.ini", "w") as config_ini:
+                    config_parser = ConfigParser()
+                    config_parser.optionxform = str
+                    config_parser["DEFAULT"] = {
+                        "SA_TOKEN": self._token,
+                        "LOGGING_LEVEL": "DEBUG",
+                    }
+                    config_parser.write(config_ini)
+                for kwargs in (
+                    {},
+                    {"config_path": f"~/{Path(config_dir).name}/config.ini"},
+                ):
+                    sa = SAClient(**kwargs)
+                    assert sa.controller._config.API_TOKEN == self._token
+                    assert sa.controller._config.LOGGING_LEVEL == "DEBUG"
+                    assert sa.controller._config.API_URL == constants.BACKEND_URL
+                    assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
+                        self._token.split("=")[-1]
+                    )
+
+    @patch("lib.core.usecases.GetTeamUseCase")
     @patch.dict(os.environ, {"SA_URL": "SOME_URL", "SA_TOKEN": "SOME_TOKEN=123"})
     def test_init_env(self, get_team_use_case):
         sa = SAClient()
@@ -103,7 +129,6 @@ class ClientInitTestCase(TestCase):
 
     def test_init_via_config_ini_invalid_token(self):
         with tempfile.TemporaryDirectory() as config_dir:
-            constants.HOME_PATH = config_dir
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path), patch(

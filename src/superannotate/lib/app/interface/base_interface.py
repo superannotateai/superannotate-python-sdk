@@ -33,7 +33,7 @@ class BaseInterfaceFacade:
             if token:
                 config = ConfigEntity(SA_TOKEN=token)
             elif config_path:
-                config_path = Path(config_path)
+                config_path = Path(config_path).expanduser()
                 if not Path(config_path).is_file() or not os.access(
                     config_path, os.R_OK
                 ):
