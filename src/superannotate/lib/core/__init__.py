@@ -60,7 +60,7 @@ def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
             file_handler.setFormatter(file_formatter)
             logger.addHandler(file_handler)
     except OSError as e:
-        logging.error(e)
+        logger.debug(e)
 
 
 DEFAULT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
