@@ -1,6 +1,7 @@
 import functools
 import json
 import os
+import platform
 import sys
 import typing
 from inspect import signature
@@ -124,10 +125,10 @@ class BaseInterfaceFacade:
 class Tracker:
     def get_mp_instance(self) -> Mixpanel:
         client = self.get_client()
-        mp_token = "ca95ed96f80e8ec3be791e2d3097cf51"
-        if client:
-            if client.host != constants.BACKEND_URL:
-                mp_token = "e741d4863e7e05b1a45833d01865ef0d"
+        if client.controller._config.API_URL == constants.BACKEND_URL:  # noqa
+            mp_token = "ca95ed96f80e8ec3be791e2d3097cf51"
+        else:
+            mp_token = "e741d4863e7e05b1a45833d01865ef0d"
         return Mixpanel(mp_token)
 
     @staticmethod
@@ -137,6 +138,8 @@ class Tracker:
             "Team": team_name,
             "Team Owner": user_id,
             "Version": __version__,
+            "Python version": platform.python_version(),
+            "Python interpreter type": platform.python_implementation(),
         }
 
     def __init__(self, function):
@@ -170,6 +173,8 @@ class Tracker:
         for key, value in kwargs.items():
             if key == "self":
                 continue
+            elif key in ("token", "config_path"):
+                properties[key] = str(bool(value))
             elif value is None:
                 properties[key] = value
             elif key == "project":
@@ -241,5 +246,6 @@ class TrackableMeta(type):
                 attr_value, FunctionType
             ) and not attr_value.__name__.startswith("_"):
                 attrs[attr_name] = Tracker(validate_arguments(attr_value))
+        attrs["__init__"] = Tracker(validate_arguments(attrs["__init__"]))
         tmp = super().__new__(mcs, name, bases, attrs)
         return tmp
