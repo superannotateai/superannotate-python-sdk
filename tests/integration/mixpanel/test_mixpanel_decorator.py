@@ -59,7 +59,7 @@ class TestMixpanel(TestCase):
         SAClient()
         result = list(track_method.call_args)[0]
         payload = self.default_payload
-        payload.update({"token": "False", "config_path": "False"})
+        payload.update({"sa_token": "False", "config_path": "False"})
         assert result[1] == "__init__"
         assert payload == result[2]
 
@@ -71,7 +71,7 @@ class TestMixpanel(TestCase):
         payload = self.default_payload
         payload.update(
             {
-                "token": "True",
+                "sa_token": "True",
                 "config_path": "False",
                 "Team": get_team_use_case().execute().data.name,
                 "Team Owner": get_team_use_case().execute().data.creator_id,
@@ -96,7 +96,7 @@ class TestMixpanel(TestCase):
                 payload = self.default_payload
                 payload.update(
                     {
-                        "token": "False",
+                        "sa_token": "False",
                         "config_path": "True",
                         "Team": get_team_use_case().execute().data.name,
                         "Team Owner": get_team_use_case().execute().data.creator_id,
