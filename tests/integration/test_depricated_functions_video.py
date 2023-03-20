@@ -2,7 +2,6 @@ import os
 from os.path import dirname
 from unittest import TestCase
 
-import pytest
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
@@ -61,7 +60,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
     def image_path(self):
         return f"{self.folder_path}/example_image_1.jpg"
 
-    @pytest.mark.flaky(reruns=2)
     def test_deprecated_functions(self):
         try:
             sa.upload_images_from_folder_to_project(self.PROJECT_NAME, "some")
