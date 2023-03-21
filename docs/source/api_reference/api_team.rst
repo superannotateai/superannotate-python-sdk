@@ -1,6 +1,6 @@
-==========
+====
 Team
-==========
+====
 
 
 .. automethod:: superannotate.SAClient.get_team_metadata

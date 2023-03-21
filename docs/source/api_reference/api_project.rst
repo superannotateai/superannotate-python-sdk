@@ -1,6 +1,6 @@
-==========
+========
 Projects
-==========
+========
 .. _ref_projects:
 .. _ref_search_projects:
 .. automethod:: superannotate.SAClient.search_projects
@@ -13,13 +13,6 @@ Projects
 .. automethod:: superannotate.SAClient.get_project_by_id
 .. automethod:: superannotate.SAClient.get_project_metadata
 .. automethod:: superannotate.SAClient.get_project_image_count
-.. automethod:: superannotate.SAClient.search_folders
-.. automethod:: superannotate.SAClient.assign_folder
-.. automethod:: superannotate.SAClient.unassign_folder
-.. automethod:: superannotate.SAClient.get_folder_by_id
-.. automethod:: superannotate.SAClient.get_folder_metadata
-.. automethod:: superannotate.SAClient.create_folder
-.. automethod:: superannotate.SAClient.delete_folders
 .. automethod:: superannotate.SAClient.upload_images_to_project
 .. automethod:: superannotate.SAClient.attach_items_from_integrated_storage
 .. automethod:: superannotate.SAClient.upload_image_to_project
