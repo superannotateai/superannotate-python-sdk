@@ -7,6 +7,25 @@ from unittest import TestCase
 sa = SAClient()
 
 
+class DummyIterator:
+    def __init__(self, delay, to):
+        self.delay = delay
+        self.i = 0
+        self.to = to
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        i = self.i
+        if i >= self.to:
+            raise StopAsyncIteration
+        self.i += 1
+        if i:
+            await asyncio.sleep(self.delay)
+        return i
+
+
 class TestAsyncFunctions(TestCase):
     PROJECT_NAME = "TestAsync"
     PROJECT_DESCRIPTION = "Desc"
@@ -26,31 +45,35 @@ class TestAsyncFunctions(TestCase):
     def tearDownClass(cls):
         sa.delete_project(cls.PROJECT_NAME)
 
+    @staticmethod
+    async def nested():
+        annotations = sa.get_annotations(TestAsyncFunctions.PROJECT_NAME)
+        assert len(annotations) == 4
+
     def test_get_annotations_in_running_event_loop(self):
         async def _test():
             annotations = sa.get_annotations(self.PROJECT_NAME)
             assert len(annotations) == 4
         asyncio.run(_test())
 
-    def test_multiple_get_annotations_in_running_event_loop(self):
-        #  TODO add handling of nested loop
-        async def nested():
-            sa.attach_items(self.PROJECT_NAME, self.ATTACH_PAYLOAD)
-            annotations = sa.get_annotations(self.PROJECT_NAME)
-            assert len(annotations) == 4
-        async def create_task_test():
-            import nest_asyncio
-            nest_asyncio.apply()
-            task1 = asyncio.create_task(nested())
-            task2 = asyncio.create_task(nested())
+    def test_create_task_get_annotations_in_running_event_loop(self):
+        async def _test():
+            task1 = asyncio.create_task(self.nested())
+            task2 = asyncio.create_task(self.nested())
             await task1
             await task2
-        asyncio.run(create_task_test())
+        asyncio.run(_test())
 
+    def test_gather_get_annotations_in_running_event_loop(self):
         async def gather_test():
-            import nest_asyncio
-            nest_asyncio.apply()
-            await asyncio.gather(nested(), nested())
+            await asyncio.gather(self.nested(), self.nested())
+        asyncio.run(gather_test())
+
+    def test_gather_async_for(self):
+        async def gather_test():
+            async for _ in DummyIterator(delay=0.01, to=2):
+                annotations = sa.get_annotations(TestAsyncFunctions.PROJECT_NAME)
+                assert len(annotations) == 4
         asyncio.run(gather_test())
 
     def test_upload_annotations_in_running_event_loop(self):
