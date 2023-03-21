@@ -14,6 +14,7 @@ class TestSetFolderStatus(TestCase):
     FOLDER_NAME = "test_folder"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
+    FOLDER_STATUSES = ["NotStarted", "InProgress", "Completed", "OnHold"]
 
     @classmethod
     def setUpClass(cls, *args, **kwargs):
@@ -34,7 +35,7 @@ class TestSetFolderStatus(TestCase):
     def test_set_folder_status(self):
         with self.assertLogs("sa", level="INFO") as cm:
             for index, status in enumerate(
-                ["NotStarted", "InProgress", "Completed", "OnHold"]
+                self.FOLDER_STATUSES
             ):
                 sa.set_folder_status(
                     project=self.PROJECT_NAME, folder=self.FOLDER_NAME, status=status
@@ -47,6 +48,7 @@ class TestSetFolderStatus(TestCase):
                     == cm.output[index]
                 )
                 self.assertEqual(status, folder["status"])
+            self.assertEqual(len(cm.output), len(self.FOLDER_STATUSES))
 
     @patch("lib.infrastructure.services.folder.FolderService.update")
     def test_set_folder_status_fail(self, update_function):

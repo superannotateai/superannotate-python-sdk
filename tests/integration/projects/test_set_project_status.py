@@ -13,6 +13,7 @@ class TestSetProjectStatus(TestCase):
     PROJECT_NAME = "test_set_project_status"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
+    PROJECT_STATUSES = ["NotStarted", "InProgress", "Completed", "OnHold"]
 
     @classmethod
     def setUpClass(cls, *args, **kwargs):
@@ -30,7 +31,7 @@ class TestSetProjectStatus(TestCase):
     def test_set_project_status(self):
         with self.assertLogs("sa", level="INFO") as cm:
             for index, status in enumerate(
-                ["NotStarted", "InProgress", "Completed", "OnHold"]
+                self.PROJECT_STATUSES
             ):
                 sa.set_project_status(project=self.PROJECT_NAME, status=status)
                 project = sa.get_project_metadata(self.PROJECT_NAME)
@@ -39,6 +40,7 @@ class TestSetProjectStatus(TestCase):
                     == cm.output[index]
                 )
                 self.assertEqual(status, project["status"])
+            self.assertEqual(len(cm.output), len(self.PROJECT_STATUSES))
 
     @patch("lib.infrastructure.services.project.ProjectService.update")
     def test_set_project_status_fail(self, update_function):
