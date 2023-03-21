@@ -11,12 +11,14 @@ Projects
 .. automethod:: superannotate.SAClient.rename_project
 .. _ref_get_project_metadata:
 .. automethod:: superannotate.SAClient.get_project_by_id
+.. automethod:: superannotate.SAClient.set_project_status
 .. automethod:: superannotate.SAClient.get_project_metadata
 .. automethod:: superannotate.SAClient.get_project_image_count
 .. automethod:: superannotate.SAClient.search_folders
 .. automethod:: superannotate.SAClient.assign_folder
 .. automethod:: superannotate.SAClient.unassign_folder
 .. automethod:: superannotate.SAClient.get_folder_by_id
+.. automethod:: superannotate.SAClient.set_folder_status
 .. automethod:: superannotate.SAClient.get_folder_metadata
 .. automethod:: superannotate.SAClient.create_folder
 .. automethod:: superannotate.SAClient.delete_folders
