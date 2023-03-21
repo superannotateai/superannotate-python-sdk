@@ -71,7 +71,7 @@ logger = logging.getLogger("sa")
 NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 
 
-PROJECT_STATUS = Literal["Undefined", "NotStarted", "InProgress", "Completed", "OnHold"]
+PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 PROJECT_TYPE = Literal[
     "Vector", "Pixel", "Video", "Document", "Tiled", "Other", "PointCloud"
@@ -91,13 +91,7 @@ ANNOTATION_TYPE = Literal["bbox", "polygon", "point", "tag"]
 
 ANNOTATOR_ROLE = Literal["Admin", "Annotator", "QA"]
 
-FOLDER_STATUS = Literal[
-    "Undefined",
-    "NotStarted",
-    "InProgress",
-    "Completed",
-    "OnHold",
-]
+FOLDER_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 
 class Setting(TypedDict):
@@ -781,6 +775,52 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             i.dict(exclude={"attribute_groups": {"__all__": {"is_multiselect"}}})
             for i in response.data
         ]
+
+    def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
+        """Set project status
+
+        :param project: project name
+        :type project: str
+        :param status: status to set, should be one of. \n
+                                    ♦ “NotStarted” \n
+                                    ♦ “InProgress” \n
+                                    ♦ “Completed” \n
+                                    ♦ “OnHold” \n
+        :type status: str
+        """
+        project = self.controller.get_project(name=project)
+        project.status = constants.ProjectStatus.get_value(status)
+        response = self.controller.projects.update(project)
+        if response.errors:
+            raise AppException(f"Failed to change {project.name} status.")
+        logger.info(f"Successfully updated {project.name} status to {status}")
+
+    def set_folder_status(
+        self, project: NotEmptyStr, folder: NotEmptyStr, status: FOLDER_STATUS
+    ):
+        """Set folder status
+
+        :param project: project name
+        :type project: str
+        :param folder: folder name
+        :type folder: str
+        :param status: status to set, should be one of. \n
+                                    ♦ “NotStarted” \n
+                                    ♦ “InProgress” \n
+                                    ♦ “Completed” \n
+                                    ♦ “OnHold” \n
+        :type status: str
+        """
+        project, folder = self.controller.get_project_folder(
+            project_name=project, folder_name=folder
+        )
+        folder.status = constants.FolderStatus.get_value(status)
+        response = self.controller.update(project, folder)
+        if response.errors:
+            raise AppException(f"Failed to change {project.name}/{folder.name} status.")
+        logger.info(
+            f"Successfully updated {project.name}/{folder.name} status to {status}"
+        )
 
     def set_project_default_image_quality_in_editor(
         self,
