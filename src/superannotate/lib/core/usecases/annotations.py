@@ -26,7 +26,6 @@ import aiofiles
 import boto3
 import jsonschema.validators
 import lib.core as constants
-import nest_asyncio
 from jsonschema import Draft7Validator
 from jsonschema import ValidationError
 from lib.core.conditions import Condition
@@ -391,7 +390,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 len(items_to_upload), description="Uploading Annotations"
             )
             try:
-                nest_asyncio.apply()
                 asyncio.run(self.run_workers(items_to_upload))
             except Exception:
                 logger.debug(traceback.format_exc())
@@ -737,7 +735,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             except KeyError:
                 missing_annotations.append(name)
         try:
-            nest_asyncio.apply()
             asyncio.run(self.run_workers(items_to_upload))
         except Exception as e:
             logger.debug(e)
@@ -935,7 +932,6 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                 json.dump(annotation_json, annotation_file)
                 size = annotation_file.tell()
                 annotation_file.seek(0)
-                nest_asyncio.apply()
                 if size > BIG_FILE_THRESHOLD:
                     uploaded = asyncio.run(
                         self._service_provider.annotations.upload_big_annotation(
@@ -1550,7 +1546,6 @@ class GetAnnotations(BaseReportableUseCase):
             large_items = list(filter(lambda item: item.id in large_item_ids, items))
             small_items = list(filter(lambda item: item.id in small_items_ids, items))
             try:
-                nest_asyncio.apply()
                 annotations = asyncio.run(self.run_workers(large_items, small_items))
             except Exception as e:
                 logger.error(e)
@@ -1735,7 +1730,6 @@ class DownloadAnnotations(BaseReportableUseCase):
                 ).data
             if not folders:
                 folders.append(self._folder)
-            nest_asyncio.apply()
             for folder in folders:
                 if self._item_names:
                     items = get_or_raise(
