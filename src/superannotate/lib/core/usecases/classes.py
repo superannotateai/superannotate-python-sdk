@@ -6,6 +6,7 @@ from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities.classes import GroupTypeEnum
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import BaseServiceProvider
@@ -66,6 +67,13 @@ class CreateAnnotationClassUseCase(BaseUseCase):
                 "Predefined tagging functionality is not supported for projects"
                 f" of type {ProjectType.get_name(self._project.type)}."
             )
+        if self._project.type != ProjectType.VECTOR:
+            for g in self._annotation_class.attribute_groups:
+                if g.group_type == GroupTypeEnum.OCR:
+                    raise AppException(
+                        f"OCR attribute group is not supported for project type "
+                        f"{ProjectType.get_name(self._project.type)}."
+                    )
 
     def validate_default_value(self):
         if self._project.type == ProjectType.PIXEL.value and any(
@@ -109,13 +117,19 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._annotation_classes = annotation_classes
 
     def validate_project_type(self):
-        if self._project.type == ProjectType.PIXEL and any(
-            [True for i in self._annotation_classes if i.type == "tag"]
-        ):
-            raise AppException(
-                f"Predefined tagging functionality is not supported"
-                f" for projects of type {ProjectType.get_name(self._project.type)}."
-            )
+        if self._project.type != ProjectType.VECTOR:
+            for c in self._annotation_classes:
+                if self._project.type == ProjectType.PIXEL and c.type == "tag":
+                    raise AppException(
+                        f"Predefined tagging functionality is not supported"
+                        f" for projects of type {ProjectType.get_name(self._project.type)}."
+                    )
+                for g in c.attribute_groups:
+                    if g.group_type == GroupTypeEnum.OCR:
+                        raise AppException(
+                            f"OCR attribute group is not supported for project type "
+                            f"{ProjectType.get_name(self._project.type)}."
+                        )
 
     def validate_default_value(self):
         if self._project.type == ProjectType.PIXEL.value:

@@ -34,9 +34,7 @@ class TestSetFolderStatus(TestCase):
 
     def test_set_folder_status(self):
         with self.assertLogs("sa", level="INFO") as cm:
-            for index, status in enumerate(
-                self.FOLDER_STATUSES
-            ):
+            for index, status in enumerate(self.FOLDER_STATUSES):
                 sa.set_folder_status(
                     project=self.PROJECT_NAME, folder=self.FOLDER_NAME, status=status
                 )

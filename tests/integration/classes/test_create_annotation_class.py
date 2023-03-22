@@ -245,6 +245,71 @@ class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
                 "Predefined tagging functionality is not supported for projects of type Video.",
             )
 
+    def test_create_annotation_class_via_ocr_group_type(self):
+        with self.assertRaisesRegexp(
+            AppException,
+            f"OCR attribute group is not supported for project type {self.PROJECT_TYPE}.",
+        ):
+            attribute_groups = [
+                {
+                    "id": 21448,
+                    "class_id": 56820,
+                    "name": "Large",
+                    "group_type": "ocr",
+                    "is_multiselect": 0,
+                    "createdAt": "2020-09-29T10:39:39.000Z",
+                    "updatedAt": "2020-09-29T10:39:39.000Z",
+                    "attributes": [],
+                }
+            ]
+            sa.create_annotation_class(
+                self.PROJECT_NAME,
+                "test_add",
+                "#FF0000",
+                attribute_groups,
+                class_type="tag",
+            )
+
+    def test_create_annotation_class_via_json_and_ocr_group_type(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            temp_path = f"{tmpdir_name}/new_classes.json"
+            with open(temp_path, "w") as new_classes:
+                new_classes.write(
+                    """
+                    [
+                       {
+                          "id":56820,
+                          "project_id":7617,
+                          "name":"Personal vehicle",
+                          "color":"#547497",
+                          "count":18,
+                          "createdAt":"2020-09-29T10:39:39.000Z",
+                          "updatedAt":"2020-09-29T10:48:18.000Z",
+                          "type": "tag",
+                          "attribute_groups":[
+                             {
+                                "id":21448,
+                                "class_id":56820,
+                                "name":"Large",
+                                "group_type": "ocr",
+                                "is_multiselect":0,
+                                "createdAt":"2020-09-29T10:39:39.000Z",
+                                "updatedAt":"2020-09-29T10:39:39.000Z",
+                                "attributes":[]
+                             }
+                          ]
+                       }
+                    ]
+                    """
+                )
+            with self.assertRaisesRegexp(
+                AppException,
+                f"OCR attribute group is not supported for project type {self.PROJECT_TYPE}.",
+            ):
+                sa.create_annotation_classes_from_classes_json(
+                    self.PROJECT_NAME, temp_path
+                )
+
 
 class TestCreateAnnotationClassPixel(BaseTestCase):
     PROJECT_NAME = "TestCreateAnnotationClassPixel"
