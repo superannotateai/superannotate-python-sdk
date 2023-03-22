@@ -332,15 +332,6 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def sort_items_by_size(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        item_ids: List[int],
-    ) -> Dict[str, List]:
-        raise NotImplementedError
-
-    @abstractmethod
     def get_upload_chunks(
         self,
         project: entities.ProjectEntity,

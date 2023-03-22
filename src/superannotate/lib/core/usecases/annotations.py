@@ -1737,7 +1737,6 @@ class DownloadAnnotations(BaseReportableUseCase):
                         )
                     )
                 except Exception as e:
-                    raise e
                     logger.error(e)
                     self._response.errors = AppException("Can't get annotations.")
                     return self._response
