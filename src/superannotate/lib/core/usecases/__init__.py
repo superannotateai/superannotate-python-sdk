@@ -1,3 +1,4 @@
+import nest_asyncio
 from lib.core.usecases.annotations import *  # noqa: F403 F401
 from lib.core.usecases.classes import *  # noqa: F403 F401
 from lib.core.usecases.custom_fields import *  # noqa: F403 F401
@@ -7,3 +8,5 @@ from lib.core.usecases.integrations import *  # noqa: F403 F401
 from lib.core.usecases.items import *  # noqa: F403 F401
 from lib.core.usecases.models import *  # noqa: F403 F401
 from lib.core.usecases.projects import *  # noqa: F403 F401
+
+nest_asyncio.apply()

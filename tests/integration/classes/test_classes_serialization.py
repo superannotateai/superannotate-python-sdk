@@ -78,6 +78,6 @@ class TestClassesSerializers(TestCase):
                 "'radio',",
                 "'checklist',",
                 "'numeric',",
-                "'text'",
+                "'text',",
                 "'ocr'",
             ] == wrap_error(e).split()
