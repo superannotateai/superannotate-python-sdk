@@ -1,7 +1,7 @@
 import asyncio
+from unittest import TestCase
 
 from superannotate import SAClient
-from unittest import TestCase
 
 
 sa = SAClient()
@@ -30,6 +30,7 @@ class TestAsyncFunctions(TestCase):
         async def _test():
             annotations = sa.get_annotations(self.PROJECT_NAME)
             assert len(annotations) == 4
+
         asyncio.run(_test())
 
     def test_multiple_get_annotations_in_running_event_loop(self):
@@ -38,26 +39,32 @@ class TestAsyncFunctions(TestCase):
             sa.attach_items(self.PROJECT_NAME, self.ATTACH_PAYLOAD)
             annotations = sa.get_annotations(self.PROJECT_NAME)
             assert len(annotations) == 4
+
         async def create_task_test():
             import nest_asyncio
+
             nest_asyncio.apply()
             task1 = asyncio.create_task(nested())
             task2 = asyncio.create_task(nested())
             await task1
             await task2
+
         asyncio.run(create_task_test())
 
         async def gather_test():
             import nest_asyncio
+
             nest_asyncio.apply()
             await asyncio.gather(nested(), nested())
+
         asyncio.run(gather_test())
 
     def test_upload_annotations_in_running_event_loop(self):
         async def _test():
             sa.attach_items(self.PROJECT_NAME, self.ATTACH_PAYLOAD)
-            annotations = sa.upload_annotations(self.PROJECT_NAME, annotations=self.UPLOAD_PAYLOAD)
-            assert len(annotations['succeeded']) == 4
+            annotations = sa.upload_annotations(
+                self.PROJECT_NAME, annotations=self.UPLOAD_PAYLOAD
+            )
+            assert len(annotations["succeeded"]) == 4
+
         asyncio.run(_test())
-
-

@@ -30,9 +30,7 @@ class TestSetProjectStatus(TestCase):
 
     def test_set_project_status(self):
         with self.assertLogs("sa", level="INFO") as cm:
-            for index, status in enumerate(
-                self.PROJECT_STATUSES
-            ):
+            for index, status in enumerate(self.PROJECT_STATUSES):
                 sa.set_project_status(project=self.PROJECT_NAME, status=status)
                 project = sa.get_project_metadata(self.PROJECT_NAME)
                 assert (
