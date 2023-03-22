@@ -341,6 +341,14 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def get_upload_chunks(
+        self,
+        project: entities.ProjectEntity,
+        item_ids: List[int],
+    ) -> Dict[str, List]:
+        raise NotImplementedError
+
+    @abstractmethod
     async def download_big_annotation(
         self,
         project: entities.ProjectEntity,

@@ -1391,7 +1391,6 @@ class GetAnnotations(BaseReportableUseCase):
         self._item_names = item_names
         self._item_names_provided = True
         self._big_annotations_queue = None
-        self._small_annotations_queue = None
 
     def validate_project_type(self):
         if self._project.type == constants.ProjectType.PIXEL.value:
@@ -1440,29 +1439,18 @@ class GetAnnotations(BaseReportableUseCase):
                 break
         return large_annotations
 
-    async def get_small_annotations(self):
-        small_annotations = []
-        while True:
-            items = await self._small_annotations_queue.get()
-            if items:
-                annotations = (
-                    await self._service_provider.annotations.list_small_annotations(
-                        project=self._project,
-                        folder=self._folder,
-                        item_ids=[i.id for i in items],
-                        reporter=self.reporter,
-                    )
-                )
-                small_annotations.extend(annotations)
-            else:
-                await self._small_annotations_queue.put(None)
-                break
-        return small_annotations
+    async def get_small_annotations(self, item_ids: List[int]):
+        return await self._service_provider.annotations.list_small_annotations(
+            project=self._project,
+            folder=self._folder,
+            item_ids=item_ids,
+            reporter=self.reporter,
+        )
 
     async def run_workers(
         self,
         big_annotations: List[BaseItemEntity],
-        small_annotations: List[BaseItemEntity],
+        small_annotations: List[List[Dict]],
     ):
         annotations = []
         if big_annotations:
@@ -1485,26 +1473,16 @@ class GetAnnotations(BaseReportableUseCase):
                 )
             )
         if small_annotations:
-            self._small_annotations_queue = asyncio.Queue()
-            small_chunks = divide_to_chunks(
-                small_annotations, size=self._config.ANNOTATION_CHUNK_SIZE
-            )
-            for chunk in small_chunks:
-                self._small_annotations_queue.put_nowait(chunk)
-            self._small_annotations_queue.put_nowait(None)
-
-            annotations.extend(
-                list(
-                    itertools.chain.from_iterable(
-                        await asyncio.gather(
-                            *[
-                                self.get_small_annotations()
-                                for _ in range(self._config.MAX_COROUTINE_COUNT)
-                            ]
-                        )
-                    )
+            for chunks in divide_to_chunks(
+                small_annotations, self._config.MAX_COROUTINE_COUNT
+            ):
+                tasks = []
+                for chunk in chunks:
+                    tasks.append(self.get_small_annotations([i["id"] for i in chunk]))
+                annotations.extend(
+                    list(itertools.chain.from_iterable(await asyncio.gather(*tasks)))
                 )
-            )
+
         return list(filter(None, annotations))
 
     def execute(self):
@@ -1527,7 +1505,6 @@ class GetAnnotations(BaseReportableUseCase):
                 items = get_or_raise(self._service_provider.items.list(condition))
             else:
                 items = []
-            id_item_map = {i.id: i for i in items}
             if not items:
                 logger.info("No annotations to download.")
                 self._response.data = []
@@ -1537,18 +1514,20 @@ class GetAnnotations(BaseReportableUseCase):
                 f"Getting {items_count} annotations from "
                 f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}."
             )
+            id_item_map = {i.id: i for i in items}
             self.reporter.start_progress(
                 items_count,
                 disable=logger.level > logging.INFO or self.reporter.log_enabled,
             )
-
-            sort_response = self._service_provider.annotations.sort_items_by_size(
-                project=self._project, folder=self._folder, item_ids=list(id_item_map)
+            sort_response = self._service_provider.annotations.get_upload_chunks(
+                project=self._project,
+                item_ids=list(id_item_map),
             )
             large_item_ids = set(map(itemgetter("id"), sort_response["large"]))
-            small_items_ids = set(map(itemgetter("id"), sort_response["small"]))
-            large_items = list(filter(lambda item: item.id in large_item_ids, items))
-            small_items = list(filter(lambda item: item.id in small_items_ids, items))
+            large_items: List[BaseItemEntity] = list(
+                filter(lambda item: item.id in large_item_ids, items)
+            )
+            small_items: List[List[dict]] = sort_response["small"]
             try:
                 nest_asyncio.apply()
                 annotations = asyncio.run(self.run_workers(large_items, small_items))
@@ -1585,7 +1564,6 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._service_provider = service_provider
         self._callback = callback
         self._big_file_queue = None
-        self._small_file_queue = None
 
     def validate_item_names(self):
         if self._item_names:
@@ -1664,28 +1642,24 @@ class DownloadAnnotations(BaseReportableUseCase):
                 self._big_file_queue.put_nowait(None)
                 break
 
-    async def download_small_annotations(self, export_path, folder: FolderEntity):
+    async def download_small_annotations(
+        self, item_ids: List[int], export_path, folder: FolderEntity
+    ):
         postfix = self.get_postfix()
-        while True:
-            items = await self._small_file_queue.get()
-            if items:
-                await self._service_provider.annotations.download_small_annotations(
-                    project=self._project,
-                    folder=folder,
-                    item_ids=[i.id for i in items],
-                    reporter=self.reporter,
-                    download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-                    postfix=postfix,
-                    callback=self._callback,
-                )
-            else:
-                self._small_file_queue.put_nowait(None)
-                break
+        await self._service_provider.annotations.download_small_annotations(
+            project=self._project,
+            folder=folder,
+            item_ids=item_ids,
+            reporter=self.reporter,
+            download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
+            postfix=postfix,
+            callback=self._callback,
+        )
 
     async def run_workers(
         self,
         big_annotations: List[BaseItemEntity],
-        small_annotations: List[BaseItemEntity],
+        small_annotations: List[List[dict]],
         folder: FolderEntity,
         export_path,
     ):
@@ -1702,19 +1676,17 @@ class DownloadAnnotations(BaseReportableUseCase):
             )
 
         if small_annotations:
-            self._small_file_queue = asyncio.Queue()
-            small_chunks = divide_to_chunks(
-                small_annotations, size=self._config.ANNOTATION_CHUNK_SIZE
-            )
-            for chunk in small_chunks:
-                self._small_file_queue.put_nowait(chunk)
-            self._small_file_queue.put_nowait(None)
-            await asyncio.gather(
-                *[
-                    self.download_small_annotations(export_path, folder)
-                    for _ in range(self._config.MAX_COROUTINE_COUNT)
-                ]
-            )
+            for chunks in divide_to_chunks(
+                small_annotations, self._config.MAX_COROUTINE_COUNT
+            ):
+                tasks = []
+                for chunk in chunks:
+                    tasks.append(
+                        self.download_small_annotations(
+                            [i["id"] for i in chunk], export_path, folder
+                        )
+                    )
+                await asyncio.gather(*tasks)
 
     def execute(self):
         if self.is_valid():
@@ -1755,19 +1727,15 @@ class DownloadAnnotations(BaseReportableUseCase):
                     new_export_path += f"/{folder.name}"
 
                 id_item_map = {i.id: i for i in items}
-                sort_response = self._service_provider.annotations.sort_items_by_size(
+                sort_response = self._service_provider.annotations.get_upload_chunks(
                     project=self._project,
-                    folder=self._folder,
                     item_ids=list(id_item_map),
                 )
                 large_item_ids = set(map(itemgetter("id"), sort_response["large"]))
-                small_items_ids = set(map(itemgetter("id"), sort_response["small"]))
-                large_items = list(
+                large_items: List[BaseItemEntity] = list(
                     filter(lambda item: item.id in large_item_ids, items)
                 )
-                small_items = list(
-                    filter(lambda item: item.id in small_items_ids, items)
-                )
+                small_items: List[List[dict]] = sort_response["small"]
                 try:
                     asyncio.run(
                         self.run_workers(
@@ -1775,6 +1743,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                         )
                     )
                 except Exception as e:
+                    raise e
                     logger.error(e)
                     self._response.errors = AppException("Can't get annotations.")
                     return self._response
