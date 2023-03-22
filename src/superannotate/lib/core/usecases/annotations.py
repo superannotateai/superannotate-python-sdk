@@ -518,6 +518,8 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     def prepare_annotation(self, annotation: dict, size) -> dict:
         errors = None
+        if self._project.type == constants.ProjectType.POINT_CLOUD.value:
+            return annotation
         if size < BIG_FILE_THRESHOLD:
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
@@ -662,7 +664,13 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                         json.dump(annotation, item_to_upload.file)
                         item_to_upload.file.seek(0)
                         while True:
-                            if item_to_upload.file_size > BIG_FILE_THRESHOLD:
+                            if (
+                                self._project.type
+                                == constants.ProjectType.POINT_CLOUD.value
+                            ):
+                                self._big_files_queue.put_nowait(item_to_upload)
+                                break
+                            elif item_to_upload.file_size > BIG_FILE_THRESHOLD:
                                 if self._big_files_queue.qsize() > 32:
                                     await asyncio.sleep(3)
                                     continue
@@ -1410,13 +1418,13 @@ class GetAnnotations(BaseReportableUseCase):
     def _prettify_annotations(self, annotations: List[dict]):
         re_struct = {}
         if self._item_names:
-            for annotation in annotations:
-                re_struct[annotation["metadata"]["name"]] = annotation
             try:
+                for annotation in annotations:
+                    re_struct[annotation["metadata"]["name"]] = annotation
                 return [re_struct[x] for x in self._item_names if x in re_struct]
             except KeyError:
-                raise AppException("Broken data.")
-
+                if self._project.type not in constants.ProjectType.unsupported_types:
+                    raise AppException("Broken data.")
         return annotations
 
     async def get_big_annotation(self):
@@ -1581,6 +1589,12 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._callback = callback
         self._big_file_queue = None
         self._small_file_queue = None
+
+    def validate_project_type(self):
+        if self._project.type == constants.ProjectType.POINT_CLOUD.value:
+            raise AppException(
+                f"The function is not supported for {constants.ProjectType(self._project.type).name} projects."
+            )
 
     def validate_item_names(self):
         if self._item_names:

@@ -98,6 +98,10 @@ class ProjectType(BaseTitledEnum):
     def images(self):
         return self.VECTOR.value, self.PIXEL.value, self.TILED.value
 
+    @classproperty
+    def unsupported_types(cls):
+        return cls.POINT_CLOUD.value, cls.OTHER.value
+
 
 class UserRole(BaseTitledEnum):
     SUPER_ADMIN = "Superadmin", 1  # noqa
