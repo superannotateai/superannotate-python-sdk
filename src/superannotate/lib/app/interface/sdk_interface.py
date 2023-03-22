@@ -2380,7 +2380,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         subset: Optional[NotEmptyStr] = None,
     ):
         """Return items that satisfy the given query.
-        Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/query-search-1).
+        Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/explore-overview).
 
         :param project: project name or folder path (e.g., “project1/folder1”)
         :type project: str
