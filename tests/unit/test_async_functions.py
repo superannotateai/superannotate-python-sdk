@@ -63,18 +63,21 @@ class TestAsyncFunctions(TestCase):
             task2 = asyncio.create_task(self.nested())
             await task1
             await task2
+
         asyncio.run(_test())
 
     def test_gather_get_annotations_in_running_event_loop(self):
         async def gather_test():
             await asyncio.gather(self.nested(), self.nested())
+
         asyncio.run(gather_test())
 
     def test_gather_async_for(self):
         async def gather_test():
-        async for _ in DummyIterator(delay=0.01, to=2):
-            annotations = sa.get_annotations(TestAsyncFunctions.PROJECT_NAME)
-            assert len(annotations) == 4
+            async for _ in DummyIterator(delay=0.01, to=2):
+                annotations = sa.get_annotations(TestAsyncFunctions.PROJECT_NAME)
+                assert len(annotations) == 4
+
         asyncio.run(gather_test())
 
     def test_upload_annotations_in_running_event_loop(self):

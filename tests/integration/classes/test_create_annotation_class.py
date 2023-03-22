@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import pytest
-from lib.core.entities.classes import AttributeGroup
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
@@ -252,18 +251,16 @@ class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
             f"OCR attribute group is not supported for project type {self.PROJECT_TYPE}.",
         ):
             attribute_groups = [
-                AttributeGroup(
-                    **{
-                        "id": 21448,
-                        "class_id": 56820,
-                        "name": "Large",
-                        "group_type": "ocr",
-                        "is_multiselect": 0,
-                        "createdAt": "2020-09-29T10:39:39.000Z",
-                        "updatedAt": "2020-09-29T10:39:39.000Z",
-                        "attributes": [],
-                    }
-                )
+                {
+                    "id": 21448,
+                    "class_id": 56820,
+                    "name": "Large",
+                    "group_type": "ocr",
+                    "is_multiselect": 0,
+                    "createdAt": "2020-09-29T10:39:39.000Z",
+                    "updatedAt": "2020-09-29T10:39:39.000Z",
+                    "attributes": [],
+                }
             ]
             sa.create_annotation_class(
                 self.PROJECT_NAME,
