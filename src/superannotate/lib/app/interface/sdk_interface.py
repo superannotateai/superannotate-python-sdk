@@ -1400,7 +1400,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type color: str
 
         :param attribute_groups:  list of attribute group dicts.
-            The values for the "group_type" key are  "radio"|"checklist"|"text"|"numeric".
+            The values for the "group_type" key are "radio"|"checklist"|"text"|"numeric"|"ocr".
+            "ocr "group_type" key is only available for Vector projects.
             Mandatory keys for each attribute group are
 
               -  "name"
