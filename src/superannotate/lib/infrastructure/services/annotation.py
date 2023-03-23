@@ -24,7 +24,7 @@ logger = logging.getLogger("sa")
 
 
 class AnnotationService(BaseAnnotationService):
-    ASSETS_PROVIDER_VERSION = "v2"
+    ASSETS_PROVIDER_VERSION = "v2.01"
     DEFAULT_CHUNK_SIZE = 5000
 
     URL_GET_ANNOTATIONS = "items/annotations/download"
@@ -153,33 +153,24 @@ class AnnotationService(BaseAnnotationService):
             params=query_params,
         )
 
-    def sort_items_by_size(
+    def get_upload_chunks(
         self,
         project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
         item_ids: List[int],
     ) -> Dict[str, List]:
-        chunk_size = 2000
-        query_params = {
-            "project_id": project.id,
-            "folder_id": folder.id,
-        }
-
         response_data = {"small": [], "large": []}
-        for i in range(0, len(item_ids), chunk_size):
-            body = {
-                "item_ids": item_ids[i : i + chunk_size],  # noqa
-            }  # noqa
-            response = self.client.request(
-                url=urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE),
-                method="POST",
-                params=query_params,
-                data=body,
-            )
-            if not response.ok:
-                raise AppException(response.error)
-            response_data["small"].extend(response.data.get("small", []))
-            response_data["large"].extend(response.data.get("large", []))
+        response = self.client.request(
+            url=urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE),
+            method="POST",
+            params={"project_id": project.id, "limit": len(item_ids)},
+            data={"item_ids": item_ids},
+        )
+        if not response.ok:
+            raise AppException(response.error)
+        response_data["small"] = [
+            i["data"] for i in response.data.get("small", {}).values()
+        ]
+        response_data["large"] = response.data.get("large", [])
         return response_data
 
     async def download_big_annotation(

@@ -3,7 +3,6 @@ from unittest import TestCase
 
 from superannotate import SAClient
 
-
 sa = SAClient()
 
 
