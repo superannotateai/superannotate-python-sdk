@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 from unittest import TestCase
 
 from superannotate import SAClient
@@ -82,10 +83,26 @@ class TestAsyncFunctions(TestCase):
 
     def test_upload_annotations_in_running_event_loop(self):
         async def _test():
-            sa.attach_items(self.PROJECT_NAME, self.ATTACH_PAYLOAD)
             annotations = sa.upload_annotations(
                 self.PROJECT_NAME, annotations=self.UPLOAD_PAYLOAD
             )
             assert len(annotations["succeeded"]) == 4
 
         asyncio.run(_test())
+
+    def test_upload_in_threads(self):
+        def _test():
+            annotations = sa.upload_annotations(
+                self.PROJECT_NAME, annotations=self.UPLOAD_PAYLOAD
+            )
+            assert len(annotations["succeeded"]) == 4
+            return True
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = []
+            for i in range(8):
+                futures.append(executor.submit(_test))
+            results = []
+            for f in concurrent.futures.as_completed(futures):
+                results.append(f.result())
+            assert all(results)

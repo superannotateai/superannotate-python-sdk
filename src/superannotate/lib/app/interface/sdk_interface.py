@@ -2,6 +2,7 @@ import collections
 import copy
 import io
 import json
+import logging
 import os
 import sys
 import warnings
@@ -63,7 +64,10 @@ from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
-import logging
+
+import nest_asyncio
+
+nest_asyncio.apply()
 
 logger = logging.getLogger("sa")
 
