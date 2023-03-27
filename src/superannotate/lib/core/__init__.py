@@ -16,7 +16,6 @@ from lib.core.enums import TrainingStatus
 from lib.core.enums import UploadState
 from lib.core.enums import UserRole
 
-
 CONFIG = Config()
 BACKEND_URL = "https://api.superannotate.com"
 HOME_PATH = expanduser("~/.superannotate")
@@ -33,11 +32,10 @@ _loggers = {}
 
 
 def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
-
     logger = logging.getLogger("sa")
     for handler in logger.handlers[:]:  # remove all old handlers
         logger.removeHandler(handler)
-    logger.propagate = True
+    logger.propagate = False
     logger.setLevel(level)
     stream_handler = logging.StreamHandler()
     formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(message)s")
@@ -46,19 +44,18 @@ def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
     try:
         os.makedirs(file_path, exist_ok=True)
         log_file_path = os.path.join(file_path, "sa.log")
-        open(log_file_path, "w").close()
-        if os.access(log_file_path, os.W_OK):
-            file_handler = RotatingFileHandler(
-                log_file_path,
-                maxBytes=5 * 1024 * 1024,
-                backupCount=5,
-                mode="a",
-            )
-            file_formatter = Formatter(
-                "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
-            )
-            file_handler.setFormatter(file_formatter)
-            logger.addHandler(file_handler)
+        file_handler = RotatingFileHandler(
+            log_file_path,
+            maxBytes=5 * 1024 * 1024,
+            backupCount=5,
+            mode="a",
+        )
+        file_formatter = Formatter(
+            "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
+        )
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
+
     except OSError as e:
         logger.debug(e)
 
