@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import sys
-import asyncio
 import warnings
 from pathlib import Path
 from typing import Callable

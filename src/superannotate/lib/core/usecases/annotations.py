@@ -1533,7 +1533,6 @@ class GetAnnotations(BaseReportableUseCase):
             sort_response = self._service_provider.annotations.get_upload_chunks(
                 project=self._project,
                 item_ids=list(id_item_map),
-
             )
             large_item_ids = set(map(itemgetter("id"), sort_response["large"]))
             large_items: List[BaseItemEntity] = list(
