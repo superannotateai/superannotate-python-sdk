@@ -17,7 +17,6 @@ mixpanel==4.8.3
 pydantic>=1.10.4
 setuptools>=57.4.0
 email-validator>=1.0.3
-nest-asyncio==1.5.4
 jsonschema==3.2.0
 pandas>=1.1.4
 aiofiles==0.8.0

@@ -9,6 +9,7 @@ import platform
 import re
 import time
 import traceback
+import typing
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import islice
@@ -55,6 +56,20 @@ if platform.system().lower() == "windows":
 BIG_FILE_THRESHOLD = 15 * 1024 * 1024
 ANNOTATION_CHUNK_SIZE_MB = 10 * 1024 * 1024
 URI_THRESHOLD = 4 * 1024 - 120
+
+
+def run_async(f):
+    from threading import Thread
+
+    response = [None]
+
+    def foo(f: typing.Callable, res):
+        res[0] = asyncio.run(f)  # noqa
+
+    thread = Thread(target=foo, args=(f, response))
+    thread.start()
+    thread.join()
+    return response[0]
 
 
 @dataclass
@@ -390,7 +405,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 len(items_to_upload), description="Uploading Annotations"
             )
             try:
-                asyncio.run(self.run_workers(items_to_upload))
+                run_async(self.run_workers(items_to_upload))
             except Exception:
                 logger.debug(traceback.format_exc())
                 self._response.errors = AppException("Can't upload annotations.")
@@ -735,7 +750,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             except KeyError:
                 missing_annotations.append(name)
         try:
-            asyncio.run(self.run_workers(items_to_upload))
+            run_async(self.run_workers(items_to_upload))
         except Exception as e:
             logger.debug(e)
             self._response.errors = AppException("Can't upload annotations.")
@@ -933,7 +948,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                 size = annotation_file.tell()
                 annotation_file.seek(0)
                 if size > BIG_FILE_THRESHOLD:
-                    uploaded = asyncio.run(
+                    uploaded = run_async(
                         self._service_provider.annotations.upload_big_annotation(
                             project=self._project,
                             folder=self._folder,
@@ -945,7 +960,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                     if not uploaded:
                         self._response.errors = constants.INVALID_JSON_MESSAGE
                 else:
-                    response = asyncio.run(
+                    response = run_async(
                         self._service_provider.annotations.upload_small_annotations(
                             project=self._project,
                             folder=self._folder,
@@ -1518,6 +1533,7 @@ class GetAnnotations(BaseReportableUseCase):
             sort_response = self._service_provider.annotations.get_upload_chunks(
                 project=self._project,
                 item_ids=list(id_item_map),
+
             )
             large_item_ids = set(map(itemgetter("id"), sort_response["large"]))
             large_items: List[BaseItemEntity] = list(
@@ -1525,7 +1541,7 @@ class GetAnnotations(BaseReportableUseCase):
             )
             small_items: List[List[dict]] = sort_response["small"]
             try:
-                annotations = asyncio.run(self.run_workers(large_items, small_items))
+                annotations = run_async(self.run_workers(large_items, small_items))
             except Exception as e:
                 logger.error(e)
                 self._response.errors = AppException("Can't get annotations.")
@@ -1731,7 +1747,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                 )
                 small_items: List[List[dict]] = sort_response["small"]
                 try:
-                    asyncio.run(
+                    run_async(
                         self.run_workers(
                             large_items, small_items, folder, new_export_path
                         )
