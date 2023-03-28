@@ -66,9 +66,6 @@ from lib.core.types import Project
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 
-import nest_asyncio
-
-nest_asyncio.apply()
 
 logger = logging.getLogger("sa")
 
