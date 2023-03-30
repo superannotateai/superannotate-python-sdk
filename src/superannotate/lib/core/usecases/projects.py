@@ -359,7 +359,7 @@ class UpdateProjectUseCase(BaseUseCase):
             response = self._service_provider.projects.list(condition)
             if response.ok:
                 for project in response.data:
-                    if project.name == self._project.name:
+                    if project.name == self._project.name and project != self._project:
                         logger.error("There are duplicated names.")
                         raise AppValidationException(
                             f"Project name {self._project.name} is not unique. "

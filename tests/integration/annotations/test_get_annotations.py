@@ -119,7 +119,7 @@ class TestGetAnnotations(BaseTestCase):
             [
                 {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
                 for i in range(count)
-            ],  # noqa
+            ],
         )
         assert len(sa.search_items(self.PROJECT_NAME)) == count
         a = sa.get_annotations(self.PROJECT_NAME)

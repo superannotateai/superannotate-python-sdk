@@ -197,7 +197,7 @@ class UpdateFolderUseCase(BaseUseCase):
                 self._project, self._folder
             )
             if not response.ok:
-                self._response.errors = AppException("Couldn't rename folder.")
+                self._response.errors = AppException(response.error)
             self._response.data = response.data
         return self._response
 

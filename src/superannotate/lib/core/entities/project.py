@@ -137,6 +137,9 @@ class ProjectEntity(TimedBaseModel):
             upload_state=self.upload_state,
         )
 
+    def __eq__(self, other):
+        return self.id == other.id
+
 
 class MLModelEntity(TimedBaseModel):
     id: Optional[int]
