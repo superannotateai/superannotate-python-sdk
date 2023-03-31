@@ -3,7 +3,7 @@ import os
 import sys
 import typing
 
-__version__ = "4.4.11b1"
+__version__ = "4.4.11b3"
 
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
