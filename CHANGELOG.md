@@ -1,5 +1,12 @@
 # Changelog
 All release highlights of this project will be documented in this file.
+## 4.4.11 - April 2, 2023
+### Added
+- `SAClient.set_project_status()` method.
+- `SAClient.set_folder_status()` method.
+### Updated
+-  `SAClient.create_annotation_class()` added OCR type attribute group support in the vector projects.
+-  `SAClient.create_annotation_classes_from_classes_json()` added OCR type attribute group support in the vector projects.
 ## 4.4.10 - March 12, 2023
 ### Updated
 - Configuration file creation flow
