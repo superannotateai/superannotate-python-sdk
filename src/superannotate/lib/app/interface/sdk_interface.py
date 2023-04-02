@@ -2,6 +2,7 @@ import collections
 import copy
 import io
 import json
+import logging
 import os
 import sys
 import warnings
@@ -63,7 +64,7 @@ from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
-import logging
+
 
 logger = logging.getLogger("sa")
 
@@ -71,7 +72,7 @@ logger = logging.getLogger("sa")
 NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 
 
-PROJECT_STATUS = Literal["Undefined", "NotStarted", "InProgress", "Completed", "OnHold"]
+PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 PROJECT_TYPE = Literal[
     "Vector", "Pixel", "Video", "Document", "Tiled", "Other", "PointCloud"
@@ -91,13 +92,7 @@ ANNOTATION_TYPE = Literal["bbox", "polygon", "point", "tag"]
 
 ANNOTATOR_ROLE = Literal["Admin", "Annotator", "QA"]
 
-FOLDER_STATUS = Literal[
-    "Undefined",
-    "NotStarted",
-    "InProgress",
-    "Completed",
-    "OnHold",
-]
+FOLDER_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 
 class Setting(TypedDict):
@@ -782,6 +777,52 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for i in response.data
         ]
 
+    def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
+        """Set project status
+
+        :param project: project name
+        :type project: str
+        :param status: status to set, should be one of. \n
+                                    ♦ “NotStarted” \n
+                                    ♦ “InProgress” \n
+                                    ♦ “Completed” \n
+                                    ♦ “OnHold” \n
+        :type status: str
+        """
+        project = self.controller.get_project(name=project)
+        project.status = constants.ProjectStatus.get_value(status)
+        response = self.controller.projects.update(project)
+        if response.errors:
+            raise AppException(f"Failed to change {project.name} status.")
+        logger.info(f"Successfully updated {project.name} status to {status}")
+
+    def set_folder_status(
+        self, project: NotEmptyStr, folder: NotEmptyStr, status: FOLDER_STATUS
+    ):
+        """Set folder status
+
+        :param project: project name
+        :type project: str
+        :param folder: folder name
+        :type folder: str
+        :param status: status to set, should be one of. \n
+                                    ♦ “NotStarted” \n
+                                    ♦ “InProgress” \n
+                                    ♦ “Completed” \n
+                                    ♦ “OnHold” \n
+        :type status: str
+        """
+        project, folder = self.controller.get_project_folder(
+            project_name=project, folder_name=folder
+        )
+        folder.status = constants.FolderStatus.get_value(status)
+        response = self.controller.update(project, folder)
+        if response.errors:
+            raise AppException(f"Failed to change {project.name}/{folder.name} status.")
+        logger.info(
+            f"Successfully updated {project.name}/{folder.name} status to {status}"
+        )
+
     def set_project_default_image_quality_in_editor(
         self,
         project: Union[NotEmptyStr, dict],
@@ -1360,7 +1401,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type color: str
 
         :param attribute_groups:  list of attribute group dicts.
-            The values for the "group_type" key are  "radio"|"checklist"|"text"|"numeric".
+            The values for the "group_type" key are "radio"|"checklist"|"text"|"numeric"|"ocr".
+            "ocr "group_type" key is only available for Vector projects.
             Mandatory keys for each attribute group are
 
               -  "name"
@@ -2340,7 +2382,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         subset: Optional[NotEmptyStr] = None,
     ):
         """Return items that satisfy the given query.
-        Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/query-search-1).
+        Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/explore-overview).
 
         :param project: project name or folder path (e.g., “project1/folder1”)
         :type project: str

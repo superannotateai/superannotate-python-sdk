@@ -27,7 +27,7 @@ def make_literal_validator(
     def literal_validator(v: typing.Any) -> typing.Any:
         try:
             return allowed_choices[v.lower()]
-        except KeyError:
+        except (KeyError, AttributeError):
             raise WrongConstantError(given=v, permitted=permitted_choices)
 
     return literal_validator

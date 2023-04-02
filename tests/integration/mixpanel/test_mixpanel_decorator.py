@@ -1,5 +1,8 @@
 import copy
+import platform
+import tempfile
 import threading
+from configparser import ConfigParser
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -18,6 +21,8 @@ class TestMixpanel(TestCase):
         "Team Owner": TEAM_DATA["creator_id"],
         "Version": __version__,
         "Success": True,
+        "Python version": platform.python_version(),
+        "Python interpreter type": platform.python_implementation(),
     }
     PROJECT_NAME = "TEST_MIX"
     PROJECT_DESCRIPTION = "Desc"
@@ -50,6 +55,57 @@ class TestMixpanel(TestCase):
         return copy.copy(self.BLANK_PAYLOAD)
 
     @patch("lib.app.interface.base_interface.Tracker._track")
+    def test_init(self, track_method):
+        SAClient()
+        result = list(track_method.call_args)[0]
+        payload = self.default_payload
+        payload.update({"sa_token": "False", "config_path": "False"})
+        assert result[1] == "__init__"
+        assert payload == result[2]
+
+    @patch("lib.app.interface.base_interface.Tracker._track")
+    @patch("lib.core.usecases.GetTeamUseCase")
+    def test_init_via_token(self, get_team_use_case, track_method):
+        SAClient(token="test=3232")
+        result = list(track_method.call_args)[0]
+        payload = self.default_payload
+        payload.update(
+            {
+                "sa_token": "True",
+                "config_path": "False",
+                "Team": get_team_use_case().execute().data.name,
+                "Team Owner": get_team_use_case().execute().data.creator_id,
+            }
+        )
+        assert result[1] == "__init__"
+        assert payload == result[2]
+
+    @patch("lib.app.interface.base_interface.Tracker._track")
+    @patch("lib.core.usecases.GetTeamUseCase")
+    def test_init_via_config_file(self, get_team_use_case, track_method):
+        with tempfile.TemporaryDirectory() as config_dir:
+            config_ini_path = f"{config_dir}/config.ini"
+            with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
+                with open(f"{config_dir}/config.ini", "w") as config_ini:
+                    config_parser = ConfigParser()
+                    config_parser.optionxform = str
+                    config_parser["DEFAULT"] = {"SA_TOKEN": "test=3232"}
+                    config_parser.write(config_ini)
+                SAClient(config_path=f"{config_dir}/config.ini")
+                result = list(track_method.call_args)[0]
+                payload = self.default_payload
+                payload.update(
+                    {
+                        "sa_token": "False",
+                        "config_path": "True",
+                        "Team": get_team_use_case().execute().data.name,
+                        "Team Owner": get_team_use_case().execute().data.creator_id,
+                    }
+                )
+                assert result[1] == "__init__"
+                assert payload == result[2]
+
+    @patch("lib.app.interface.base_interface.Tracker._track")
     def test_get_team_metadata(self, track_method):
         team = self.CLIENT.get_team_metadata()
         team_owner = team["creator_id"]
@@ -57,7 +113,7 @@ class TestMixpanel(TestCase):
         payload = self.default_payload
         assert result[0] == team_owner
         assert result[1] == "get_team_metadata"
-        assert payload == list(track_method.call_args)[0][2]
+        assert payload == result[2]
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     def test_search_team_contributors(self, track_method):
@@ -72,7 +128,7 @@ class TestMixpanel(TestCase):
         payload = self.default_payload
         payload.update(kwargs)
         assert result[1] == "search_team_contributors"
-        assert payload == list(track_method.call_args)[0][2]
+        assert payload == result[2]
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     def test_search_projects(self, track_method):
@@ -87,7 +143,7 @@ class TestMixpanel(TestCase):
         payload = self.default_payload
         payload.update(kwargs)
         assert result[1] == "search_projects"
-        assert payload == list(track_method.call_args)[0][2]
+        assert payload == result[2]
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     def test_create_project(self, track_method):
@@ -110,7 +166,7 @@ class TestMixpanel(TestCase):
         payload.update(kwargs)
         payload["settings"] = list(kwargs["settings"].keys())
         assert result[1] == "create_project"
-        assert payload == list(track_method.call_args)[0][2]
+        assert payload == result[2]
 
     @pytest.mark.skip("Need to adjust")
     @patch("lib.app.interface.base_interface.Tracker._track")

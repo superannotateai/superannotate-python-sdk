@@ -78,20 +78,3 @@ class TestSearchItems(BaseTestCase):
 
         items = sa.search_items(self.PROJECT_NAME, recursive=True)
         assert len(items) == 8
-
-    def test_search_items_by_annotator_email(self):
-        test_email = "shab.prog@gmail.com"
-        sa.add_contributors_to_project(
-            self.PROJECT_NAME, ["shab.prog@gmail.com"], "Annotator"
-        )
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-        sa.assign_items(
-            self.PROJECT_NAME, [self.IMAGE1_NAME, self.IMAGE2_NAME], test_email
-        )
-
-        items = sa.search_items(
-            self.PROJECT_NAME, annotator_email=test_email, recursive=True
-        )
-        assert len(items) == 2

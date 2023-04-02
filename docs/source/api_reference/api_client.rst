@@ -9,6 +9,7 @@ Contents
     :maxdepth: 8
 
     api_project
+    api_folder
     api_item
     api_annotation
     api_annotation_class

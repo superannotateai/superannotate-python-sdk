@@ -291,7 +291,7 @@ class TestFolders(BaseTestCase):
         )
         assert len(folders) == 0
         folders = sa.search_folders(
-            self.PROJECT_NAME, status="Undefined", return_metadata=True
+            self.PROJECT_NAME, status="OnHold", return_metadata=True
         )
         assert len(folders) == 0
         folders = sa.search_folders(
