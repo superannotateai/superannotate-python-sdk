@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import sys
-import warnings
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -47,7 +46,6 @@ from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core import entities
-from lib.core import enums
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
 from lib.core.conditions import EmptyCondition
@@ -384,45 +382,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 workflow_response.raise_for_status()
                 project.workflows = self.controller.projects.list_workflow(project).data
         return ProjectSerializer(project).serialize()
-
-    def create_project_from_metadata(self, project_metadata: Project):
-        """Create a new project in the team using project metadata object dict.
-
-        | Mandatory keys: “name”, “description” and “type” (Vector or Pixel)
-        | Non-mandatory keys: “workflow”, “settings” and “annotation_classes”
-
-        :param project_metadata: project metadata
-        :type project_metadata: dict
-
-        :return: dict object metadata the new project
-        :rtype: dict
-        """
-        deprecation_msg = '"create_project_from_metadata" is deprecated and replaced by "create_project"'
-        warnings.warn(deprecation_msg, DeprecationWarning)
-        logger.warning(deprecation_msg)
-
-        project_metadata = project_metadata.dict()
-        if project_metadata["type"] not in enums.ProjectType.titles():
-            raise AppException(
-                "Please provide a valid project type: Vector, Pixel, Document, or Video."
-            )
-
-        response = self.controller.projects.create(
-            entities.ProjectEntity(
-                name=project_metadata["name"],
-                description=project_metadata.get("description"),
-                type=constants.ProjectType.get_value(project_metadata["type"]),
-                settings=parse_obj_as(
-                    List[SettingEntity], project_metadata.get("settings", [])
-                ),
-                classes=project_metadata.get("classes", []),
-                workflows=project_metadata.get("workflows", []),
-                instructions_link=project_metadata.get("instructions_link"),
-            ),
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return ProjectSerializer(response.data).serialize()
 
     def clone_project(
         self,
@@ -1111,39 +1070,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     progress_bar.update(1)
             return use_case.data
         raise AppException(use_case.response.errors)
-
-    def get_project_image_count(
-        self,
-        project: Union[NotEmptyStr, dict],
-        with_all_subfolders: Optional[StrictBool] = False,
-    ):
-        """Returns number of images in the project.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param with_all_subfolders: enables recursive folder counting
-        :type with_all_subfolders: bool
-
-        :return: number of images in the project
-        :rtype: int
-        """
-        deprecation_msg = (
-            "“get_project_image_count” is deprecated and replaced"
-            " by “item_count” value will be included in project metadata."
-        )
-
-        warnings.warn(deprecation_msg, DeprecationWarning)
-        logger.warning(deprecation_msg)
-        project_name, folder_name = extract_project_folder(project)
-
-        response = self.controller.get_project_image_count(
-            project_name=project_name,
-            folder_name=folder_name,
-            with_all_subfolders=with_all_subfolders,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
 
     def download_image_annotations(
         self,

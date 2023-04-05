@@ -1073,22 +1073,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def get_project_image_count(
-        self, project_name: str, folder_name: str, with_all_subfolders: bool
-    ):
-
-        project = self.get_project(project_name)
-        folder = self.get_folder(project=project, name=folder_name)
-
-        use_case = usecases.GetProjectImageCountUseCase(
-            service_provider=self.service_provider,
-            project=project,
-            folder=folder,
-            with_all_sub_folders=with_all_subfolders,
-        )
-
-        return use_case.execute()
-
     def download_image(
         self,
         project_name: str,
