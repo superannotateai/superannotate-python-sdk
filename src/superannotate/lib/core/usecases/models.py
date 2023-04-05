@@ -479,7 +479,7 @@ class RunPredictionUseCase(BaseUseCase):
             images = self._service_provider.items.list_by_names(
                 project=self._project, folder=self._folder, names=self._images_list
             ).data
-            image_ids = [image.uuid for image in images]
+            image_ids = [image.id for image in images]
             image_names = [image.name for image in images]
 
             if not len(image_names):
@@ -502,36 +502,36 @@ class RunPredictionUseCase(BaseUseCase):
                 ml_model_id=ml_model.id,
                 image_ids=image_ids,
             )
-            if not res.ok:
-                return self._response.data
+            if res.ok:
+                success_images = []
+                failed_images = []
+                while len(success_images) + len(failed_images) != len(image_ids):
+                    images_metadata = self._service_provider.items.list_by_names(
+                        project=self._project, folder=self._folder, names=self._images_list
+                    ).data
 
-            success_images = []
-            failed_images = []
-            while len(success_images) + len(failed_images) != len(image_ids):
-                images_metadata = self._service_provider.items.list_by_names(
-                    project=self._project, folder=self._folder, names=self._images_list
-                ).data
+                    success_images = [
+                        img.name
+                        for img in images_metadata
+                        if img.prediction_status
+                        == constances.SegmentationStatus.COMPLETED.value
+                    ]
+                    failed_images = [
+                        img.name
+                        for img in images_metadata
+                        if img.prediction_status
+                        == constances.SegmentationStatus.FAILED.value
+                    ]
 
-                success_images = [
-                    img.name
-                    for img in images_metadata
-                    if img.prediction_status
-                    == constances.SegmentationStatus.COMPLETED.value
-                ]
-                failed_images = [
-                    img.name
-                    for img in images_metadata
-                    if img.prediction_status
-                    == constances.SegmentationStatus.FAILED.value
-                ]
+                    complete_images = success_images + failed_images
+                    logger.info(
+                        f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+                    )
+                    time.sleep(5)
 
-                complete_images = success_images + failed_images
-                logger.info(
-                    f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
-                )
-                time.sleep(5)
-
-            self._response.data = (success_images, failed_images)
+                self._response.data = (success_images, failed_images)
+            else:
+                self._response.errors = res.error
         return self._response
 
 
