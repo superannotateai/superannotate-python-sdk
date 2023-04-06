@@ -74,8 +74,12 @@ class VideoFrameGenerator:
                     "x": round(data["x"] + steps["x"] * idx, 2),
                     "y": round(data["y"] + steps["y"] * idx, 2),
                 }
-            elif annotation_type != AnnotationTypes.EVENT:
-                tmp_data["points"] = data["points"]
+            elif (
+                annotation_type != AnnotationTypes.EVENT
+            ):  # AnnotationTypes.POLYGON, AnnotationTypes.POLYLINE
+                tmp_data["points"] = []
+                for i in range(len(data["points"])):
+                    tmp_data["points"].append(data["points"][i] + idx * steps[i])
 
             annotations[frame_idx] = Annotation(
                 instanceId=instance_id,
@@ -157,12 +161,16 @@ class VideoFrameGenerator:
                 "y": (to_frame["y"] - from_frame["y"]) / frames_diff,
             }
         elif annotation_type in (AnnotationTypes.POLYGON, AnnotationTypes.POLYLINE):
-            steps = [
-                (to_point - from_point) / frames_diff
-                for from_point, to_point in zip(
-                    from_frame["points"], to_frame["points"]
-                )
-            ]
+            if len(from_frame["points"]) == len(to_frame["points"]):
+                steps = [
+                    (to_point - from_point) / frames_diff
+                    for from_point, to_point in zip(
+                        from_frame["points"], to_frame["points"]
+                    )
+                ]
+            else:
+                steps = [0] * len(from_frame["points"])
+
         return self._interpolate(
             class_name=class_name,
             class_id=class_id,
