@@ -195,6 +195,7 @@ class ServiceProvider(BaseServiceProvider):
             self.URL_PREDICTION,
             "post",
             data={
+                "team_id": project.team_id,
                 "project_id": project.id,
                 "ml_model_id": ml_model_id,
                 "image_ids": image_ids,
