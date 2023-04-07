@@ -2229,7 +2229,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for email in emails
         ]
         response = self.controller.projects.add_contributors(
-            team=self.controller.team, project=project, contributors=contributors
+            team=self.controller.get_team().data, project=project, contributors=contributors
         )
         if response.errors:
             raise AppException(response.errors)
