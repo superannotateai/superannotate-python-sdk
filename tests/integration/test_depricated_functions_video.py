@@ -95,10 +95,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.get_project_image_count(self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.set_project_workflow(self.PROJECT_NAME, [{}])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

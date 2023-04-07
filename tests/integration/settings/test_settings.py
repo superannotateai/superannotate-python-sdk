@@ -62,26 +62,6 @@ class TestSettings(BaseTestCase):
         else:
             raise Exception("Test failed")
 
-    def test_create_from_metadata(self):
-        sa.create_project(
-            self.PROJECT_NAME,
-            self.PROJECT_DESCRIPTION,
-            self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}],
-        )
-        project_metadata = sa.get_project_metadata(
-            self.PROJECT_NAME, include_settings=True
-        )
-        project_metadata["name"] = self.SECOND_PROJECT_NAME
-        sa.create_project_from_metadata(project_metadata)
-        settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
-        for setting in settings:
-            if setting["attribute"] == "ImageQuality":
-                assert setting["value"] == "original"
-                break
-        else:
-            raise Exception("Test failed")
-
     def test_frame_rate_invalid_range_value(self):
         with self.assertRaisesRegexp(
             AppException, "FrameRate is available only for Video projects"

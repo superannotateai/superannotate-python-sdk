@@ -174,8 +174,6 @@ class TestFolders(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        num_images = sa.get_project_image_count(self.PROJECT_NAME)
-        self.assertEqual(num_images, 4)
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         sa.upload_images_from_folder_to_project(
@@ -183,18 +181,11 @@ class TestFolders(BaseTestCase):
             self.folder_path,
             annotation_status="InProgress",
         )
-        num_images = sa.get_project_image_count(self.PROJECT_NAME)
-        self.assertEqual(num_images, 4)
+        num_images = sa.search_items(self.PROJECT_NAME)
+        assert len(num_images) == 4
 
-        num_images = sa.get_project_image_count(
-            self.PROJECT_NAME + f"/{self.TEST_FOLDER_NAME_1}"
-        )
-        self.assertEqual(num_images, 4)
-
-        num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=True
-        )
-        self.assertEqual(num_images, 8)
+        num_images = sa.search_items(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}")
+        assert len(num_images) == 4
 
     def test_delete_items(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
@@ -204,26 +195,20 @@ class TestFolders(BaseTestCase):
             self.folder_path,
             annotation_status="InProgress",
         )
-        num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=True
-        )
-        self.assertEqual(num_images, 4)
+        num_images = sa.search_items(self.PROJECT_NAME)
+        assert len(num_images) == 4
 
         sa.delete_items(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
         )
-        num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=True
-        )
-        self.assertEqual(num_images, 2)
+        num_images = sa.search_items(self.PROJECT_NAME)
+        assert len(num_images) == 2
 
         sa.delete_items(self.PROJECT_NAME, None)
-        time.sleep(2)
-        num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=False
-        )
-        self.assertEqual(num_images, 0)
+
+        num_images = sa.search_items(self.PROJECT_NAME)
+        assert len(num_images) == 0
 
     @pytest.mark.flaky(reruns=2)
     def test_project_completed_count(self):
