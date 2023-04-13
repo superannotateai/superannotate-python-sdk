@@ -616,15 +616,13 @@ class GetCurrentUserUseCase(BaseUseCase):
         self._team_id = team_id
 
     def execute(self):
-        try:
-            response = self._service_provider.get_user(self._team_id)
-            if not response.ok:
-                raise AppException(response.error)
-            self._response.data = response.data
-        except Exception:
-            raise AppException(
+        response = self._service_provider.get_user(self._team_id)
+        if not response.ok:
+            self._response.errors = AppException(
                 "Unable to retrieve user data. Please verify your credentials."
-            ) from None
+            )
+        else:
+            self._response.data = response.data
         return self._response
 
 

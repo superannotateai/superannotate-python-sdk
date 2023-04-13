@@ -132,11 +132,11 @@ class Tracker:
         return Mixpanel(mp_token)
 
     @staticmethod
-    def get_default_payload(team_name, user_id):
+    def get_default_payload(team_name, user_email):
         return {
             "SDK": True,
             "Team": team_name,
-            "Team Owner": user_id,
+            "User Email": user_email,
             "Version": __version__,
             "Python version": platform.python_version(),
             "Python interpreter type": platform.python_implementation(),
@@ -207,13 +207,13 @@ class Tracker:
             function_name = self.function.__name__ if self.function else ""
             arguments = self.extract_arguments(self.function, *args, **kwargs)
             event_name, properties = self.default_parser(function_name, arguments)
-            user_id = client.controller.current_user.email
+            user_email = client.controller.current_user.email
             team_name = client.controller.team_data.name
 
             properties["Success"] = success
-            default = self.get_default_payload(team_name=team_name, user_id=user_id)
+            default = self.get_default_payload(team_name=team_name, user_email=user_email)
             self._track(
-                user_id,
+                user_email,
                 event_name,
                 {**default, **properties, **CONFIG.get_current_session().data},
             )

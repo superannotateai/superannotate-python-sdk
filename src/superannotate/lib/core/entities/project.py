@@ -169,7 +169,6 @@ class UserEntity(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     email: Optional[str]
-    picture: Optional[str]
     user_role: Optional[int]
 
     class Config:

@@ -796,7 +796,7 @@ class BaseController(metaclass=ABCMeta):
 
         self.service_provider = ServiceProvider(http_client)
         self._team = self.get_team().data
-        self._user = self.get_current_user().data
+        self._user = self.get_current_user()
         self.annotation_classes = AnnotationClassManager(self.service_provider)
         self.projects = ProjectManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
@@ -810,14 +810,6 @@ class BaseController(metaclass=ABCMeta):
     @property
     def current_user(self):
         return self._user
-
-    @staticmethod
-    def validate_token(token: str):
-        try:
-            int(token.split("=")[-1])
-        except ValueError:
-            raise AppException("Invalid token.")
-        return token
 
     @property
     def user_id(self):
@@ -834,10 +826,13 @@ class BaseController(metaclass=ABCMeta):
             service_provider=self.service_provider, team_id=self.team_id
         ).execute()
 
-    def get_current_user(self):
-        return usecases.GetCurrentUserUseCase(
+    def get_current_user(self) -> UserEntity:
+        response = usecases.GetCurrentUserUseCase(
             service_provider=self.service_provider, team_id=self.team_id
         ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
 
     @property
     def team_data(self):

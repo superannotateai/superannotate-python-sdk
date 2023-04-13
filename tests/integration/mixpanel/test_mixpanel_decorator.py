@@ -12,12 +12,14 @@ from src.superannotate import AppException
 from src.superannotate import SAClient
 
 
+sa = SAClient()
+
+
 class TestMixpanel(TestCase):
-    CLIENT = SAClient()
     BLANK_PAYLOAD = {
         "SDK": True,
-        "Team": CLIENT.get_team_metadata()["name"],
-        "Team Owner": CLIENT.controller.current_user.email,
+        "Team": sa.get_team_metadata()["name"],
+        "User Email": sa.controller.current_user.email,
         "Version": __version__,
         "Success": True,
         "Python version": platform.python_version(),
@@ -32,7 +34,7 @@ class TestMixpanel(TestCase):
     def setUpClass(cls) -> None:
         cls.tearDownClass()
         print(cls.PROJECT_NAME)
-        cls._project = cls.CLIENT.create_project(
+        cls._project = sa.create_project(
             cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE
         )
 
@@ -42,10 +44,10 @@ class TestMixpanel(TestCase):
 
     @classmethod
     def _safe_delete_project(cls, project_name):
-        projects = cls.CLIENT.search_projects(project_name, return_metadata=True)
+        projects = sa.search_projects(project_name, return_metadata=True)
         for project in projects:
             try:
-                cls.CLIENT.delete_project(project)
+                sa.delete_project(project)
             except Exception:
                 raise
 
@@ -64,9 +66,9 @@ class TestMixpanel(TestCase):
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     @patch("lib.core.usecases.GetTeamUseCase")
-    @patch("lib.core.usecases.GetCurrentUserUseCase")
+    @patch("lib.infrastructure.serviceprovider.ServiceProvider.get_user")
     def test_init_via_token(
-        self, get_current_user_use_case, get_team_use_case, track_method
+        self, get_user, get_team_use_case, track_method
     ):
         SAClient(token="test=3232")
         result = list(track_method.call_args)[0]
@@ -76,7 +78,7 @@ class TestMixpanel(TestCase):
                 "sa_token": "True",
                 "config_path": "False",
                 "Team": get_team_use_case().execute().data.name,
-                "Team Owner": get_current_user_use_case().execute().data.email,
+                "User Email": get_user().data.email,
             }
         )
         assert result[1] == "__init__"
@@ -84,9 +86,9 @@ class TestMixpanel(TestCase):
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     @patch("lib.core.usecases.GetTeamUseCase")
-    @patch("lib.core.usecases.GetCurrentUserUseCase")
+    @patch("lib.infrastructure.serviceprovider.ServiceProvider.get_user")
     def test_init_via_config_file(
-        self, get_current_user_use_case, get_team_use_case, track_method
+        self, get_user, get_team_use_case, track_method
     ):
         with tempfile.TemporaryDirectory() as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
@@ -104,7 +106,7 @@ class TestMixpanel(TestCase):
                         "sa_token": "False",
                         "config_path": "True",
                         "Team": get_team_use_case().execute().data.name,
-                        "Team Owner": get_current_user_use_case().execute().data.email,
+                        "User Email": get_user().data.email,
                     }
                 )
                 assert result[1] == "__init__"
@@ -112,8 +114,8 @@ class TestMixpanel(TestCase):
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     def test_get_team_metadata(self, track_method):
-        self.CLIENT.get_team_metadata()
-        team_owner = self.CLIENT.controller.current_user.email
+        sa.get_team_metadata()
+        team_owner = sa.controller.current_user.email
         result = list(track_method.call_args)[0]
         payload = self.default_payload
         assert result[0] == team_owner
@@ -128,7 +130,7 @@ class TestMixpanel(TestCase):
             "last_name": "last_name",
             "return_metadata": False,
         }
-        self.CLIENT.search_team_contributors(**kwargs)
+        sa.search_team_contributors(**kwargs)
         result = list(track_method.call_args)[0]
         payload = self.default_payload
         payload.update(kwargs)
@@ -143,7 +145,7 @@ class TestMixpanel(TestCase):
             "status": "NotStarted",
             "return_metadata": False,
         }
-        self.CLIENT.search_projects(**kwargs)
+        sa.search_projects(**kwargs)
         result = list(track_method.call_args)[0]
         payload = self.default_payload
         payload.update(kwargs)
@@ -162,7 +164,7 @@ class TestMixpanel(TestCase):
             "instructions_link": None,
         }
         try:
-            self.CLIENT.create_project(**kwargs)
+            sa.create_project(**kwargs)
         except AppException:
             pass
         result = list(track_method.call_args)[0]
@@ -190,10 +192,10 @@ class TestMixpanel(TestCase):
                 "project_type": self.PROJECT_TYPE,
             }
             thread_1 = threading.Thread(
-                target=self.CLIENT.create_project, kwargs=kwargs_1
+                target=sa.create_project, kwargs=kwargs_1
             )
             thread_2 = threading.Thread(
-                target=self.CLIENT.create_project, kwargs=kwargs_2
+                target=sa.create_project, kwargs=kwargs_2
             )
             thread_1.start()
             thread_2.start()
