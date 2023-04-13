@@ -1,5 +1,4 @@
 from abc import ABC
-from abc import abstractmethod
 from typing import Any
 from typing import List
 from typing import Optional
@@ -12,23 +11,19 @@ from pydantic import BaseModel
 
 
 class BaseReadOnlyRepository(ABC):
-
     def get_one(self, uuid: Union[Condition, int]) -> Optional[Union[BaseModel]]:
         raise NotImplementedError
-
 
     def get_all(self, condition: Optional[Condition] = None) -> List[Union[BaseModel]]:
         raise NotImplementedError
 
 
 class BaseManageableRepository(BaseReadOnlyRepository):
-
     def insert(self, entity: BaseEntity) -> BaseEntity:
         raise NotImplementedError
 
     def update(self, entity: BaseEntity) -> BaseEntity:
         raise NotImplementedError
-
 
     def delete(self, uuid: Any):
         raise NotImplementedError

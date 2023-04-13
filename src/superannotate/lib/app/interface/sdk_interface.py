@@ -1717,7 +1717,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.annotations.upload_from_folder(
             project=project,
             folder=folder,
-            team=self.controller.team,
+            user=self.controller.current_user,
             annotation_paths=annotation_paths,  # noqa: E203
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
@@ -1794,7 +1794,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder=folder,
             image=image,
             annotations=annotation_json,
-            team=self.controller.team,
+            user=self.controller.current_user,
             mask=mask,
             verbose=verbose,
             keep_status=keep_status,
@@ -2155,7 +2155,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for email in emails
         ]
         response = self.controller.projects.add_contributors(
-            team=self.controller.get_team().data, project=project, contributors=contributors
+            team=self.controller.get_team().data,
+            project=project,
+            contributors=contributors,
         )
         if response.errors:
             raise AppException(response.errors)

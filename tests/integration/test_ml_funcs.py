@@ -1,10 +1,10 @@
 import os
 from os.path import dirname
 
-from src.superannotate import SAClient
-from src.superannotate import AppException
-from tests.integration.base import BaseTestCase
 import pytest
+from src.superannotate import AppException
+from src.superannotate import SAClient
+from tests.integration.base import BaseTestCase
 
 sa = SAClient()
 
@@ -23,7 +23,9 @@ class TestMlFuncs(BaseTestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
     def test_run_prediction_with_non_exist_images(self):
-        with self.assertRaisesRegexp(AppException, 'No valid image names were provided.'):
+        with self.assertRaisesRegexp(
+            AppException, "No valid image names were provided."
+        ):
             sa.run_prediction(
                 self.PROJECT_NAME, ["NotExistingImage.jpg"], self.MODEL_NAME
             )

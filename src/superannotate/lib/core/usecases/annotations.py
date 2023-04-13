@@ -37,7 +37,7 @@ from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import TeamEntity
+from lib.core.entities import UserEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.response import Response
@@ -482,7 +482,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        team: TeamEntity,
+        user: UserEntity,
         annotation_paths: List[str],
         service_provider: BaseServiceProvider,
         pre_annotation: bool = False,
@@ -493,7 +493,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
-        self._team = team
+        self._user = user
         self._service_provider = service_provider
         self._annotation_classes = service_provider.annotation_classes.list(
             Condition("project_id", project.id, EQ)
@@ -581,7 +581,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             raise AppException(errors)
 
         annotation = UploadAnnotationUseCase.set_defaults(
-            self._team.creator_id, annotation, self._project.type
+            self._user.email, annotation, self._project.type
         )
         return annotation
 
@@ -827,7 +827,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
-        team: TeamEntity,
+        user: UserEntity,
         service_provider: BaseServiceProvider,
         reporter: Reporter,
         annotation_upload_data: UploadAnnotationAuthData = None,
@@ -844,7 +844,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._image = image
-        self._team = team
+        self._user = user
         self._service_provider = service_provider
         self._annotation_classes = service_provider.annotation_classes.list(
             Condition("project_id", project.id, EQ)
@@ -973,7 +973,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
             annotation_json, mask = self._get_annotation_json()
             errors = self._validate_json(annotation_json)
             annotation_json = UploadAnnotationUseCase.set_defaults(
-                self._team.creator_id, annotation_json, self._project.type
+                self._user.email, annotation_json, self._project.type
             )
             if not errors:
                 annotation_file = io.StringIO()

@@ -609,6 +609,25 @@ class GetTeamUseCase(BaseUseCase):
         return self._response
 
 
+class GetCurrentUserUseCase(BaseUseCase):
+    def __init__(self, service_provider: BaseServiceProvider, team_id: int):
+        super().__init__()
+        self._service_provider = service_provider
+        self._team_id = team_id
+
+    def execute(self):
+        try:
+            response = self._service_provider.get_user(self._team_id)
+            if not response.ok:
+                raise AppException(response.error)
+            self._response.data = response.data
+        except Exception:
+            raise AppException(
+                "Unable to retrieve user data. Please verify your credentials."
+            ) from None
+        return self._response
+
+
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
         self,

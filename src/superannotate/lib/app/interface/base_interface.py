@@ -207,7 +207,7 @@ class Tracker:
             function_name = self.function.__name__ if self.function else ""
             arguments = self.extract_arguments(self.function, *args, **kwargs)
             event_name, properties = self.default_parser(function_name, arguments)
-            user_id = client.controller.team_data.creator_id
+            user_id = client.controller.current_user.email
             team_name = client.controller.team_data.name
 
             properties["Success"] = success

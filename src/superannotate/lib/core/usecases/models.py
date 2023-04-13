@@ -507,7 +507,9 @@ class RunPredictionUseCase(BaseUseCase):
                 failed_images = []
                 while len(success_images) + len(failed_images) != len(image_ids):
                     images_metadata = self._service_provider.items.list_by_names(
-                        project=self._project, folder=self._folder, names=self._images_list
+                        project=self._project,
+                        folder=self._folder,
+                        names=self._images_list,
                     ).data
 
                     success_images = [

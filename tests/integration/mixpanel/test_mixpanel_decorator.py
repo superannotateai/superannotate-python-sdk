@@ -14,11 +14,10 @@ from src.superannotate import SAClient
 
 class TestMixpanel(TestCase):
     CLIENT = SAClient()
-    TEAM_DATA = CLIENT.get_team_metadata()
     BLANK_PAYLOAD = {
         "SDK": True,
-        "Team": TEAM_DATA["name"],
-        "Team Owner": TEAM_DATA["creator_id"],
+        "Team": CLIENT.get_team_metadata()["name"],
+        "Team Owner": CLIENT.controller.current_user.email,
         "Version": __version__,
         "Success": True,
         "Python version": platform.python_version(),
@@ -65,7 +64,10 @@ class TestMixpanel(TestCase):
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     @patch("lib.core.usecases.GetTeamUseCase")
-    def test_init_via_token(self, get_team_use_case, track_method):
+    @patch("lib.core.usecases.GetCurrentUserUseCase")
+    def test_init_via_token(
+        self, get_current_user_use_case, get_team_use_case, track_method
+    ):
         SAClient(token="test=3232")
         result = list(track_method.call_args)[0]
         payload = self.default_payload
@@ -74,7 +76,7 @@ class TestMixpanel(TestCase):
                 "sa_token": "True",
                 "config_path": "False",
                 "Team": get_team_use_case().execute().data.name,
-                "Team Owner": get_team_use_case().execute().data.creator_id,
+                "Team Owner": get_current_user_use_case().execute().data.email,
             }
         )
         assert result[1] == "__init__"
@@ -82,7 +84,10 @@ class TestMixpanel(TestCase):
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     @patch("lib.core.usecases.GetTeamUseCase")
-    def test_init_via_config_file(self, get_team_use_case, track_method):
+    @patch("lib.core.usecases.GetCurrentUserUseCase")
+    def test_init_via_config_file(
+        self, get_current_user_use_case, get_team_use_case, track_method
+    ):
         with tempfile.TemporaryDirectory() as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
@@ -99,7 +104,7 @@ class TestMixpanel(TestCase):
                         "sa_token": "False",
                         "config_path": "True",
                         "Team": get_team_use_case().execute().data.name,
-                        "Team Owner": get_team_use_case().execute().data.creator_id,
+                        "Team Owner": get_current_user_use_case().execute().data.email,
                     }
                 )
                 assert result[1] == "__init__"
@@ -107,8 +112,8 @@ class TestMixpanel(TestCase):
 
     @patch("lib.app.interface.base_interface.Tracker._track")
     def test_get_team_metadata(self, track_method):
-        team = self.CLIENT.get_team_metadata()
-        team_owner = team["creator_id"]
+        self.CLIENT.get_team_metadata()
+        team_owner = self.CLIENT.controller.current_user.email
         result = list(track_method.call_args)[0]
         payload = self.default_payload
         assert result[0] == team_owner

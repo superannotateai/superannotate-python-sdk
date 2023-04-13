@@ -16,6 +16,7 @@ from lib.core.entities.project import MLModelEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
 from lib.core.entities.project import TeamEntity
+from lib.core.entities.project import UserEntity
 from lib.core.entities.project import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import ImageInfoEntity
@@ -47,6 +48,7 @@ __all__ = [
     "S3FileEntity",
     "AnnotationClassEntity",
     "TeamEntity",
+    "UserEntity",
     "MLModelEntity",
     "IntegrationEntity",
 ]

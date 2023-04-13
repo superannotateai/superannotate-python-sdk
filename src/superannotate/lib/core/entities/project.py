@@ -172,6 +172,9 @@ class UserEntity(BaseModel):
     picture: Optional[str]
     user_role: Optional[int]
 
+    class Config:
+        extra = Extra.ignore
+
 
 class TeamEntity(BaseModel):
     id: Optional[int]
