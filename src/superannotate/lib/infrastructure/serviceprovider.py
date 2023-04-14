@@ -9,6 +9,7 @@ from lib.core.service_types import ServiceResponse
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UserLimitsResponse
+from lib.core.service_types import UserResponse
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.infrastructure.services.annotation import AnnotationService
 from lib.infrastructure.services.annotation_class import AnnotationClassService
@@ -31,6 +32,7 @@ class ServiceProvider(BaseServiceProvider):
     URL_GET_TEMPLATES = "templates"
     URL_PREPARE_EXPORT = "export"
     URL_GET_EXPORTS = "exports"
+    URL_USER = "user/ME"
     URL_USERS = "users"
     URL_GET_EXPORT = "export/{}"
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
@@ -57,6 +59,11 @@ class ServiceProvider(BaseServiceProvider):
     def get_team(self, team_id: int) -> TeamResponse:
         return self.client.request(
             f"{self.URL_TEAM}/{team_id}", "get", content_type=TeamResponse
+        )
+
+    def get_user(self, team_id: int) -> UserResponse:
+        return self.client.request(
+            self.URL_USER, "get", params={"team_id": team_id}, content_type=UserResponse
         )
 
     def list_templates(self):
