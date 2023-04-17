@@ -211,7 +211,9 @@ class Tracker:
             team_name = client.controller.team_data.name
 
             properties["Success"] = success
-            default = self.get_default_payload(team_name=team_name, user_email=user_email)
+            default = self.get_default_payload(
+                team_name=team_name, user_email=user_email
+            )
             self._track(
                 user_email,
                 event_name,

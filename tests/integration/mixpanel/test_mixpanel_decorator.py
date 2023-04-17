@@ -67,9 +67,7 @@ class TestMixpanel(TestCase):
     @patch("lib.app.interface.base_interface.Tracker._track")
     @patch("lib.core.usecases.GetTeamUseCase")
     @patch("lib.infrastructure.serviceprovider.ServiceProvider.get_user")
-    def test_init_via_token(
-        self, get_user, get_team_use_case, track_method
-    ):
+    def test_init_via_token(self, get_user, get_team_use_case, track_method):
         SAClient(token="test=3232")
         result = list(track_method.call_args)[0]
         payload = self.default_payload
@@ -87,9 +85,7 @@ class TestMixpanel(TestCase):
     @patch("lib.app.interface.base_interface.Tracker._track")
     @patch("lib.core.usecases.GetTeamUseCase")
     @patch("lib.infrastructure.serviceprovider.ServiceProvider.get_user")
-    def test_init_via_config_file(
-        self, get_user, get_team_use_case, track_method
-    ):
+    def test_init_via_config_file(self, get_user, get_team_use_case, track_method):
         with tempfile.TemporaryDirectory() as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
@@ -191,12 +187,8 @@ class TestMixpanel(TestCase):
                 "project_description": self.PROJECT_DESCRIPTION,
                 "project_type": self.PROJECT_TYPE,
             }
-            thread_1 = threading.Thread(
-                target=sa.create_project, kwargs=kwargs_1
-            )
-            thread_2 = threading.Thread(
-                target=sa.create_project, kwargs=kwargs_2
-            )
+            thread_1 = threading.Thread(target=sa.create_project, kwargs=kwargs_1)
+            thread_2 = threading.Thread(target=sa.create_project, kwargs=kwargs_2)
             thread_1.start()
             thread_2.start()
             thread_1.join()
