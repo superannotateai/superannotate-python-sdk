@@ -2192,7 +2192,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., “project1/folder1”).
         :type project: str
 
-        :param items:  item names. If None all items in the project will be exported
+        :param items:  item names. If None all items in specified directory
         :type items: list of strs
 
         :return: list of annotations
