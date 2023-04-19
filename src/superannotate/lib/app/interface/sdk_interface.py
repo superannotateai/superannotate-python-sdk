@@ -24,7 +24,6 @@ else:
     from typing import TypedDict, NotRequired, Required  # noqa
 
 import boto3
-from pydantic import StrictBool
 from pydantic import conlist
 from pydantic import constr
 from pydantic import parse_obj_as
@@ -388,10 +387,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name: Union[NotEmptyStr, dict],
         from_project: Union[NotEmptyStr, dict],
         project_description: Optional[NotEmptyStr] = None,
-        copy_annotation_classes: Optional[StrictBool] = True,
-        copy_settings: Optional[StrictBool] = True,
-        copy_workflow: Optional[StrictBool] = False,
-        copy_contributors: Optional[StrictBool] = False,
+        copy_annotation_classes: Optional[bool] = True,
+        copy_settings: Optional[bool] = True,
+        copy_workflow: Optional[bool] = False,
+        copy_contributors: Optional[bool] = False,
     ):
         """Create a new project in the team using annotation classes and settings from from_project.
 
@@ -578,7 +577,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: NotEmptyStr,
         folder_name: Optional[NotEmptyStr] = None,
         status: Optional[Union[FOLDER_STATUS, List[FOLDER_STATUS]]] = None,
-        return_metadata: Optional[StrictBool] = False,
+        return_metadata: Optional[bool] = False,
     ):
         """Folder name based case-insensitive search for folders in project.
 
@@ -625,11 +624,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def get_project_metadata(
         self,
         project: Union[NotEmptyStr, dict],
-        include_annotation_classes: Optional[StrictBool] = False,
-        include_settings: Optional[StrictBool] = False,
-        include_workflow: Optional[StrictBool] = False,
-        include_contributors: Optional[StrictBool] = False,
-        include_complete_item_count: Optional[StrictBool] = False,
+        include_annotation_classes: Optional[bool] = False,
+        include_settings: Optional[bool] = False,
+        include_workflow: Optional[bool] = False,
+        include_contributors: Optional[bool] = False,
+        include_complete_item_count: Optional[bool] = False,
     ):
         """Returns project metadata
 
@@ -809,7 +808,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, dict],
         image_name: str,
-        pin: Optional[StrictBool] = True,
+        pin: Optional[bool] = True,
     ):
         """Pins (or unpins) image
 
@@ -966,7 +965,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         exclude_file_patterns: Optional[
             Iterable[NotEmptyStr]
         ] = constants.DEFAULT_FILE_EXCLUDE_PATTERNS,
-        recursive_subfolders: Optional[StrictBool] = False,
+        recursive_subfolders: Optional[bool] = False,
         image_quality_in_editor: Optional[str] = None,
     ):
         """Uploads all images with given extensions from folder_path to the project.
@@ -1103,7 +1102,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return res.data
 
     def get_exports(
-        self, project: NotEmptyStr, return_metadata: Optional[StrictBool] = False
+        self, project: NotEmptyStr, return_metadata: Optional[bool] = False
     ):
         """Get all prepared exports of the project.
 
@@ -1125,7 +1124,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, dict],
         folder_names: Optional[List[NotEmptyStr]] = None,
         annotation_statuses: Optional[List[ANNOTATION_STATUS]] = None,
-        include_fuse: Optional[StrictBool] = False,
+        include_fuse: Optional[bool] = False,
         only_pinned=False,
     ):
         """Prepare annotations and classes.json for export. Original and fused images for images with
@@ -1180,7 +1179,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Union[Tuple[NotEmptyStr], List[NotEmptyStr]]
         ] = constants.DEFAULT_VIDEO_EXTENSIONS,
         exclude_file_patterns: Optional[List[NotEmptyStr]] = (),
-        recursive_subfolders: Optional[StrictBool] = False,
+        recursive_subfolders: Optional[bool] = False,
         target_fps: Optional[int] = None,
         start_time: Optional[float] = 0.0,
         end_time: Optional[float] = None,
@@ -1513,7 +1512,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, dict],
         export: Union[NotEmptyStr, dict],
         folder_path: Union[str, Path],
-        extract_zip_contents: Optional[StrictBool] = True,
+        extract_zip_contents: Optional[bool] = True,
         to_s3_bucket=None,
     ):
         """Download prepared export.
@@ -1572,9 +1571,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, dict],
         image_name: NotEmptyStr,
         local_dir_path: Optional[Union[str, Path]] = "./",
-        include_annotations: Optional[StrictBool] = False,
-        include_fuse: Optional[StrictBool] = False,
-        include_overlay: Optional[StrictBool] = False,
+        include_annotations: Optional[bool] = False,
+        include_fuse: Optional[bool] = False,
+        include_overlay: Optional[bool] = False,
         variant: Optional[str] = "original",
     ):
         """Downloads the image (and annotation if not None) to local_dir_path
@@ -1659,7 +1658,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, dict],
         folder_path: Union[str, Path],
         from_s3_bucket=None,
-        recursive_subfolders: Optional[StrictBool] = False,
+        recursive_subfolders: Optional[bool] = False,
         keep_status=False,
     ):
         """Finds and uploads all JSON files in the folder_path as annotations to the project.
@@ -1733,7 +1732,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         image_name: str,
         annotation_json: Union[str, Path, dict],
         mask: Optional[Union[str, Path, bytes]] = None,
-        verbose: Optional[StrictBool] = True,
+        verbose: Optional[bool] = True,
         keep_status: bool = False,
     ):
         """Upload annotations from JSON (also mask for pixel annotations)
@@ -1948,7 +1947,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         type_: Optional[NotEmptyStr] = None,  # noqa
         project_id: Optional[int] = None,
         task: Optional[NotEmptyStr] = None,
-        include_global: Optional[StrictBool] = True,
+        include_global: Optional[bool] = True,
     ):
         r"""Search for ML models.
 
@@ -2164,7 +2163,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def invite_contributors_to_team(
-        self, emails: conlist(EmailStr, min_items=1), admin: StrictBool = False
+        self, emails: conlist(EmailStr, min_items=1), admin: bool = False
     ) -> Tuple[List[str], List[str]]:
         """Invites contributors to the team.
 
@@ -2575,7 +2574,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         source: Union[NotEmptyStr, dict],
         destination: Union[NotEmptyStr, dict],
         items: Optional[List[NotEmptyStr]] = None,
-        include_annotations: Optional[StrictBool] = True,
+        include_annotations: Optional[bool] = True,
     ):
         """Copy images in bulk between folders in a project
 

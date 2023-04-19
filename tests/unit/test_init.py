@@ -95,7 +95,9 @@ class ClientInitTestCase(TestCase):
 
     @patch("lib.infrastructure.controller.Controller.get_current_user")
     @patch("lib.core.usecases.GetTeamUseCase")
-    def test_init_via_config_relative_filepath(self, get_team_use_case, get_current_user):
+    def test_init_via_config_relative_filepath(
+        self, get_team_use_case, get_current_user
+    ):
         with tempfile.TemporaryDirectory(dir=Path("~").expanduser()) as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
