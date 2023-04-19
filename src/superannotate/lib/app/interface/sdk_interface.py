@@ -2087,7 +2087,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param item_names:  image names. If None, all image annotations from a given project/folder will be deleted.
+        :param item_names:  item names. If None, all the items in the specified directory will be deleted.
         :type item_names: list of strs
         """
 
@@ -2192,7 +2192,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., “project1/folder1”).
         :type project: str
 
-        :param items:  item names. If None all items in specified directory
+        :param items:  item names. If None, all the items in the specified directory will be used.
         :type items: list of strs
 
         :return: list of annotations
@@ -2232,7 +2232,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_priority_scores(self, project: NotEmptyStr, scores: List[PriorityScore]):
-        """Returns per frame annotations for the given video.
+        """Upload priority scores for the given list of items.
 
         :param project: project name or folder path (e.g., “project1/folder1”)
         :type project: str
@@ -2673,7 +2673,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                     ♦ “Skipped” \n
         :type annotation_status: str
 
-        :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.
+        :param items:  item names. If None, all the items in the specified directory will be used.
         :type items: list of strs
         """
 

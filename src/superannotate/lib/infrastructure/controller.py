@@ -795,8 +795,8 @@ class BaseController(metaclass=ABCMeta):
         )
 
         self.service_provider = ServiceProvider(http_client)
-        self._team = self.get_team().data
         self._user = self.get_current_user()
+        self._team = self.get_team().data
         self.annotation_classes = AnnotationClassManager(self.service_provider)
         self.projects = ProjectManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
