@@ -7,7 +7,6 @@ import lib.core as constances
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import ContributorEntity
-from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
@@ -508,48 +507,6 @@ class UpdateSettingsUseCase(BaseUseCase):
         return self._response
 
 
-class GetProjectImageCountUseCase(BaseUseCase):
-    def __init__(
-        self,
-        service_provider: BaseServiceProvider,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        with_all_sub_folders: bool = False,
-    ):
-        super().__init__()
-        self._service_provider = service_provider
-        self._project = project
-        self._folder = folder
-        self._with_all_sub_folders = with_all_sub_folders
-
-    def validate_user_input(self):
-        if not self._folder.name == "root" and self._with_all_sub_folders:
-            raise AppValidationException("The folder does not contain any sub-folders.")
-
-    def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
-            )
-
-    def execute(self):
-        if self.is_valid():
-            data = self._service_provider.get_project_images_count(self._project).data
-            count = 0
-            if self._folder.name == "root":
-                count += data["images"]["count"]
-                if self._with_all_sub_folders:
-                    for i in data["folders"]["data"]:
-                        count += i["imagesCount"]
-            else:
-                for i in data["folders"]["data"]:
-                    if i["id"] == self._folder.id:
-                        count = i["imagesCount"]
-
-            self._response.data = count
-        return self._response
-
-
 class SetWorkflowUseCase(BaseUseCase):
     def __init__(
         self,
@@ -649,6 +606,23 @@ class GetTeamUseCase(BaseUseCase):
             raise AppException(
                 "Unable to retrieve team data. Please verify your credentials."
             ) from None
+        return self._response
+
+
+class GetCurrentUserUseCase(BaseUseCase):
+    def __init__(self, service_provider: BaseServiceProvider, team_id: int):
+        super().__init__()
+        self._service_provider = service_provider
+        self._team_id = team_id
+
+    def execute(self):
+        response = self._service_provider.get_user(self._team_id)
+        if not response.ok:
+            self._response.errors = AppException(
+                "Unable to retrieve user data. Please verify your credentials."
+            )
+        else:
+            self._response.data = response.data
         return self._response
 
 

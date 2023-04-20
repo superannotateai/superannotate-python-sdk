@@ -3,6 +3,7 @@ Folders
 =======
 
 .. automethod:: superannotate.SAClient.search_folders
+.. automethod:: superannotate.SAClient.set_folder_status
 .. automethod:: superannotate.SAClient.assign_folder
 .. automethod:: superannotate.SAClient.unassign_folder
 .. automethod:: superannotate.SAClient.get_folder_by_id

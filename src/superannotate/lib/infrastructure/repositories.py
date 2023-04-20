@@ -1,8 +1,5 @@
 import io
-from typing import List
 
-from lib.core.conditions import Condition
-from lib.core.entities import ProjectEntity
 from lib.core.entities import S3FileEntity
 from lib.core.repositories import BaseS3Repository
 
@@ -22,12 +19,3 @@ class S3Repository(BaseS3Repository):
             data["Metadata"] = temp
         self.bucket.put_object(**data)
         return entity
-
-    def update(self, entity: ProjectEntity):
-        self._service.update_project(entity.to_dict())
-
-    def delete(self, uuid: int):
-        self._service.delete_project(uuid)
-
-    def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
-        pass

@@ -19,17 +19,20 @@ class ClientInitTestCase(TestCase):
         with self.assertRaisesRegexp(AppException, r"(\s+)token(\s+)Invalid token."):
             SAClient(token=_token)
 
+    @patch("lib.infrastructure.controller.Controller.get_current_user")
     @patch("lib.core.usecases.GetTeamUseCase")
-    def test_init_via_token(self, get_team_use_case):
+    def test_init_via_token(self, get_team_use_case, get_current_user):
         sa = SAClient(token=self._token)
         assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
             self._token.split("=")[-1]
         )
+        assert get_current_user.call_count == 1
         assert sa.controller._config.API_TOKEN == self._token
         assert sa.controller._config.API_URL == constants.BACKEND_URL
 
+    @patch("lib.infrastructure.controller.Controller.get_current_user")
     @patch("lib.core.usecases.GetTeamUseCase")
-    def test_init_via_config_json(self, get_team_use_case):
+    def test_init_via_config_json(self, get_team_use_case, get_current_user):
         with tempfile.TemporaryDirectory() as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
@@ -40,11 +43,13 @@ class ClientInitTestCase(TestCase):
                     json.dump({"token": self._token}, config_json)
                 for kwargs in ({}, {"config_path": f"{config_dir}/config.json"}):
                     sa = SAClient(**kwargs)
+
                     assert sa.controller._config.API_TOKEN == self._token
                     assert sa.controller._config.API_URL == constants.BACKEND_URL
                     assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
                         self._token.split("=")[-1]
                     )
+                assert get_current_user.call_count == 2
 
     def test_init_via_config_json_invalid_json(self):
         with tempfile.TemporaryDirectory() as config_dir:
@@ -61,8 +66,9 @@ class ClientInitTestCase(TestCase):
                     ):
                         SAClient(**kwargs)
 
+    @patch("lib.infrastructure.controller.Controller.get_current_user")
     @patch("lib.core.usecases.GetTeamUseCase")
-    def test_init_via_config_ini(self, get_team_use_case):
+    def test_init_via_config_ini(self, get_team_use_case, get_current_user):
         with tempfile.TemporaryDirectory() as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
@@ -85,9 +91,13 @@ class ClientInitTestCase(TestCase):
                     assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
                         self._token.split("=")[-1]
                     )
+                assert get_current_user.call_count == 2
 
+    @patch("lib.infrastructure.controller.Controller.get_current_user")
     @patch("lib.core.usecases.GetTeamUseCase")
-    def test_init_via_config_relative_filepath(self, get_team_use_case):
+    def test_init_via_config_relative_filepath(
+        self, get_team_use_case, get_current_user
+    ):
         with tempfile.TemporaryDirectory(dir=Path("~").expanduser()) as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
             config_json_path = f"{config_dir}/config.json"
@@ -113,14 +123,17 @@ class ClientInitTestCase(TestCase):
                     assert get_team_use_case.call_args_list[0].kwargs["team_id"] == int(
                         self._token.split("=")[-1]
                     )
+                assert get_current_user.call_count == 2
 
-    @patch("lib.core.usecases.GetTeamUseCase")
+    @patch("lib.infrastructure.controller.Controller.get_current_user")
+    @patch("lib.infrastructure.controller.Controller.get_team")
     @patch.dict(os.environ, {"SA_URL": "SOME_URL", "SA_TOKEN": "SOME_TOKEN=123"})
-    def test_init_env(self, get_team_use_case):
+    def test_init_env(self, get_team, get_current_user):
         sa = SAClient()
         assert sa.controller._config.API_TOKEN == "SOME_TOKEN=123"
         assert sa.controller._config.API_URL == "SOME_URL"
-        assert get_team_use_case.call_args_list[0].kwargs["team_id"] == 123
+        assert get_team.call_count == 1
+        assert get_current_user.call_count == 1
 
     @patch.dict(os.environ, {"SA_URL": "SOME_URL", "SA_TOKEN": "SOME_TOKEN"})
     def test_init_env_invalid_token(self):

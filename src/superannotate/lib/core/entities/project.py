@@ -169,8 +169,10 @@ class UserEntity(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     email: Optional[str]
-    picture: Optional[str]
     user_role: Optional[int]
+
+    class Config:
+        extra = Extra.ignore
 
 
 class TeamEntity(BaseModel):
@@ -183,3 +185,6 @@ class TeamEntity(BaseModel):
     users: Optional[List[UserEntity]]
     pending_invitations: Optional[List[Any]]
     creator_id: Optional[str]
+
+    class Config:
+        extra = Extra.ignore

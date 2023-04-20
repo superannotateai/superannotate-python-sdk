@@ -23,6 +23,7 @@ from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
+from lib.core.entities import UserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
@@ -583,7 +584,7 @@ class AnnotationManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         annotation_paths: List[str],
-        team: TeamEntity,
+        user: UserEntity,
         keep_status: bool = False,
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
@@ -592,7 +593,7 @@ class AnnotationManager(BaseManager):
         use_case = usecases.UploadAnnotationsFromFolderUseCase(
             project=project,
             folder=folder,
-            team=team,
+            user=user,
             annotation_paths=annotation_paths,
             service_provider=self.service_provider,
             pre_annotation=is_pre_annotations,
@@ -608,7 +609,7 @@ class AnnotationManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
-        team: TeamEntity,
+        user: UserEntity,
         annotations: dict,
         mask: io.BytesIO = None,
         verbose: bool = True,
@@ -617,7 +618,7 @@ class AnnotationManager(BaseManager):
         use_case = usecases.UploadAnnotationUseCase(
             project=project,
             folder=folder,
-            team=team,
+            user=user,
             service_provider=self.service_provider,
             image=image,
             annotations=annotations,
@@ -794,6 +795,7 @@ class BaseController(metaclass=ABCMeta):
         )
 
         self.service_provider = ServiceProvider(http_client)
+        self._user = self.get_current_user()
         self._team = self.get_team().data
         self.annotation_classes = AnnotationClassManager(self.service_provider)
         self.projects = ProjectManager(self.service_provider)
@@ -805,13 +807,9 @@ class BaseController(metaclass=ABCMeta):
         self.models = ModelManager(self.service_provider)
         self.integrations = IntegrationManager(self.service_provider)
 
-    @staticmethod
-    def validate_token(token: str):
-        try:
-            int(token.split("=")[-1])
-        except ValueError:
-            raise AppException("Invalid token.")
-        return token
+    @property
+    def current_user(self):
+        return self._user
 
     @property
     def user_id(self):
@@ -827,6 +825,14 @@ class BaseController(metaclass=ABCMeta):
         return usecases.GetTeamUseCase(
             service_provider=self.service_provider, team_id=self.team_id
         ).execute()
+
+    def get_current_user(self) -> UserEntity:
+        response = usecases.GetCurrentUserUseCase(
+            service_provider=self.service_provider, team_id=self.team_id
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
 
     @property
     def team_data(self):
@@ -1071,22 +1077,6 @@ class Controller(BaseController):
             project=project,
             return_metadata=return_metadata,
         )
-        return use_case.execute()
-
-    def get_project_image_count(
-        self, project_name: str, folder_name: str, with_all_subfolders: bool
-    ):
-
-        project = self.get_project(project_name)
-        folder = self.get_folder(project=project, name=folder_name)
-
-        use_case = usecases.GetProjectImageCountUseCase(
-            service_provider=self.service_provider,
-            project=project,
-            folder=folder,
-            with_all_sub_folders=with_all_subfolders,
-        )
-
         return use_case.execute()
 
     def download_image(
