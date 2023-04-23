@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "width": 992,
+    "height": 568,
+    "duration": 6.5,
+    "name": null,
+    "lastAction": {
+      "timestamp": 1680778235176,
+      "email": "karen@superannotate.com"
+    }
+  },
+  "instances": [
+    {
+      "id": "MzE4NzcuODYwMzQ2Nzc5NTg=",
+      "type": "bbox",
+      "classId": -1,
+      "createdBy": {
+        "email": "karen@superannotate.com",
+        "role": "Admin"
+      },
+      "createdAt": "2023-04-06T10:49:58.410Z",
+      "updatedBy": {
+        "email": "karen@superannotate.com",
+        "role": "Admin"
+      },
+      "updatedAt": "2023-04-06T10:49:59.799Z",
+      "locked": false,
+      "timeline": {
+        "0": {
+          "active": true,
+          "points": {
+            "x1": 161.52,
+            "y1": 82,
+            "x2": 372.8,
+            "y2": 318.92
+          }
+        },
+        "0.100000": {
+          "active": false,
+          "points": {
+            "x1": 161.52,
+            "y1": 82,
+            "x2": 372.8,
+            "y2": 318.92
+          }
+        }
+      },
+      "pointLabels": {}
+    },
+    {
+      "id": "NDEyMDguNzUwNzYwMDc4MjU2",
+      "type": "bbox",
+      "classId": -1,
+      "createdBy": {
+        "email": "karen@superannotate.com",
+        "role": "Admin"
+      },
+      "createdAt": "2023-04-06T10:50:07.741Z",
+      "updatedBy": {
+        "email": "karen@superannotate.com",
+        "role": "Admin"
+      },
+      "updatedAt": "2023-04-06T10:50:09.264Z",
+      "locked": false,
+      "timeline": {
+        "0.900001": {
+          "active": true,
+          "points": {
+            "x1": 186.35,
+            "y1": 164.85,
+            "x2": 375.17,
+            "y2": 366.01
+          }
+        },
+        "1.000000": {
+          "active": false,
+          "points": {
+            "x1": 186.35,
+            "y1": 164.85,
+            "x2": 375.17,
+            "y2": 366.01
+          }
+        }
+      },
+      "pointLabels": {}
+    }
+  ],
+  "tags": [],
+  "name": "ernest mtom 10 fps"
+}

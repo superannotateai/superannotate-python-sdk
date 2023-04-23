@@ -1,0 +1,674 @@
+{
+  "metadata": {
+    "name": "1.mp4",
+    "duration": 30526667,
+    "width": 1920,
+    "height": 1080,
+    "lastAction": {
+      "timestamp": 1680762192661,
+      "email": "arturn@superannotate.com"
+    },
+    "projectId": 460663,
+    "url": "https://sa-public-files.s3.us-west-2.amazonaws.com/Video+project/video_file_example_1.mp4",
+    "status": "InProgress",
+    "error": null,
+    "annotatorEmail": null,
+    "qaEmail": null
+  },
+  "instances": [
+    {
+      "meta": {
+        "type": "polygon",
+        "classId": 4797926,
+        "className": "class_obj_1",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2023-04-05T08:24:12.256Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2023-04-05T08:27:34.436Z",
+        "start": 900001,
+        "end": 5400001
+      },
+      "parameters": [
+        {
+          "start": 900001,
+          "end": 5400001,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                226.36,
+                240.15,
+                191.47,
+                456.31,
+                283.59,
+                604.41,
+                585.2,
+                808.18,
+                949.66,
+                592.18,
+                957.41,
+                235.89,
+                596.02,
+                186.13
+              ],
+              "timestamp": 900001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                226.36,
+                240.15,
+                191.47,
+                456.31,
+                240.71,
+                648.53,
+                585.2,
+                808.18,
+                949.66,
+                592.18,
+                957.41,
+                235.89,
+                596.02,
+                186.13
+              ],
+              "timestamp": 2300001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                226.36,
+                240.15,
+                191.47,
+                456.31,
+                240.71,
+                648.53,
+                585.2,
+                808.18,
+                1342.69,
+                779.37,
+                957.41,
+                235.89,
+                596.02,
+                186.13
+              ],
+              "timestamp": 4000001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                226.36,
+                240.15,
+                191.47,
+                456.31,
+                240.71,
+                648.53,
+                585.2,
+                808.18,
+                906.83,
+                933.12,
+                1342.69,
+                779.37,
+                957.41,
+                235.89,
+                596.02,
+                186.13
+              ],
+              "timestamp": 4500001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                226.36,
+                240.15,
+                191.47,
+                456.31,
+                437.49,
+                569.12,
+                585.2,
+                808.18,
+                906.83,
+                933.12,
+                801.66,
+                625.14,
+                957.41,
+                235.89,
+                606.13,
+                563.07
+              ],
+              "timestamp": 4900001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                226.36,
+                240.15,
+                191.47,
+                456.31,
+                437.49,
+                569.12,
+                585.2,
+                808.18,
+                906.83,
+                933.12,
+                801.66,
+                625.14,
+                957.41,
+                235.89,
+                606.13,
+                563.07
+              ],
+              "timestamp": 5400001
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "polyline",
+        "classId": 4797926,
+        "className": "class_obj_1",
+        "createdBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2023-04-06T06:22:05.555Z",
+        "updatedBy": {
+          "email": "arturn@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2023-04-06T06:23:20.303Z",
+        "start": 6200001,
+        "end": 11000001
+      },
+      "parameters": [
+        {
+          "start": 6200001,
+          "end": 11000001,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                958.95,
+                86.53,
+                953.95,
+                509.98,
+                1085.52,
+                221.98
+              ],
+              "timestamp": 6200001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1008.46,
+                86.38,
+                953.95,
+                509.98,
+                1085.52,
+                221.98
+              ],
+              "timestamp": 6400001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1065.41,
+                102.04,
+                953.95,
+                509.98,
+                1085.52,
+                221.98
+              ],
+              "timestamp": 6800001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1164.59,
+                153.47,
+                953.95,
+                509.98,
+                1085.52,
+                221.98
+              ],
+              "timestamp": 7300001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1237.61,
+                194.59,
+                953.95,
+                509.98,
+                1110.52,
+                232.45
+              ],
+              "timestamp": 7700001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1237.61,
+                194.59,
+                1197.22,
+                435.16,
+                953.95,
+                509.98,
+                1110.52,
+                232.45
+              ],
+              "timestamp": 8200001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1237.61,
+                194.59,
+                1262.25,
+                529.69,
+                953.95,
+                509.98,
+                1110.52,
+                232.45
+              ],
+              "timestamp": 8800001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1237.61,
+                194.59,
+                1270.38,
+                587.25,
+                953.95,
+                509.98,
+                1110.52,
+                232.45
+              ],
+              "timestamp": 9300001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1237.61,
+                194.59,
+                1270.38,
+                587.25,
+                995.77,
+                913.51,
+                953.95,
+                509.98,
+                1110.52,
+                232.45
+              ],
+              "timestamp": 9800001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1237.61,
+                194.59,
+                1270.38,
+                587.25,
+                995.77,
+                913.51,
+                953.95,
+                509.98,
+                1234.05,
+                191.96
+              ],
+              "timestamp": 10300001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 9251166,
+                  "groupId": 4402994,
+                  "name": "atr_multi1",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251168,
+                  "groupId": 4402994,
+                  "name": "atr_multi3",
+                  "groupName": "group_MULTI"
+                },
+                {
+                  "id": 9251170,
+                  "groupId": 4402995,
+                  "name": "atr_single2",
+                  "groupName": "group_SINGLE"
+                }
+              ],
+              "points": [
+                1237.61,
+                194.59,
+                1270.38,
+                587.25,
+                995.77,
+                913.51,
+                953.95,
+                509.98,
+                1234.05,
+                191.96
+              ],
+              "timestamp": 11000001
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tags": []
+}

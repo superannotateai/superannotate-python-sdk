@@ -12,7 +12,7 @@ Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enable
     :target: https://github.com/superannotateai/superannotate-python-sdk/blob/master/LICENSE/
     :alt: License
 .. |Changelog| image:: https://img.shields.io/static/v1?label=change&message=log&color=yellow&style=flat-square
-    :target: https://github.com/superannotateai/superannotate-python-sdk/blob/master/CHANGELOG.md
+    :target: https://github.com/superannotateai/superannotate-python-sdk/blob/master/CHANGELOG.rst
     :alt: Changelog
 
 Resources

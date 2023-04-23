@@ -150,6 +150,10 @@ class TeamResponse(ServiceResponse):
     data: entities.TeamEntity = None
 
 
+class UserResponse(ServiceResponse):
+    data: entities.UserEntity = None
+
+
 class ModelListResponse(ServiceResponse):
     data: List[entities.AnnotationClassEntity] = None
 

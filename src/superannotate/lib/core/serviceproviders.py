@@ -26,6 +26,7 @@ from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UploadCustomFieldValuesResponse
 from lib.core.service_types import UserLimitsResponse
+from lib.core.service_types import UserResponse
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
 
@@ -505,6 +506,10 @@ class BaseServiceProvider:
 
     @abstractmethod
     def get_team(self, team_id: int) -> TeamResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_user(self, team_id: int) -> UserResponse:
         raise NotImplementedError
 
     @abstractmethod
