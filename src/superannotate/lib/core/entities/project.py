@@ -33,12 +33,8 @@ class StringDate(datetime.datetime):
 
 
 class TimedBaseModel(BaseModel):
-    createdAt: Optional[StringDate] = Field(
-        None, alias="createdAt", description="Date of creation"
-    )
-    updatedAt: Optional[StringDate] = Field(
-        None, alias="updatedAt", description="Update date"
-    )
+    createdAt: Optional[StringDate] = None
+    updatedAt: Optional[StringDate] = None
 
 
 class AttachmentEntity(BaseModel):
@@ -59,7 +55,10 @@ class WorkflowEntity(BaseModel):
     className: Optional[str]
     step: Optional[int]
     tool: Optional[int]
-    attribute: List = (tuple(),)
+    attribute: List = tuple()
+
+    class Config:
+        extra = Extra.ignore
 
     def __copy__(self):
         return WorkflowEntity(step=self.step, tool=self.tool, attribute=self.attribute)
@@ -91,8 +90,8 @@ class ContributorEntity(BaseModel):
 class ProjectEntity(TimedBaseModel):
     id: Optional[int]
     team_id: Optional[int]
-    name: Optional[str]
-    type: Optional[ProjectType]
+    name: str
+    type: ProjectType
     description: Optional[str]
     instructions_link: Optional[str]
     creator_id: Optional[str]
