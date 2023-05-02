@@ -64,7 +64,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
             attribute_groups=[
                 {
                     "name": "test",
-                    "is_multiselect": 1,
+                    "group_type": "checklist",
                     "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
                 }
             ],

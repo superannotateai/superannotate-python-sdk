@@ -62,7 +62,7 @@ class Attribute(TimedBaseModel):
     name: Optional[StrictStr]
 
     class Config:
-        extra = Extra.allow
+        extra = Extra.ignore
 
     def __hash__(self):
         return hash(f"{self.id}{self.group_id}{self.name}")
@@ -73,12 +73,11 @@ class AttributeGroup(TimedBaseModel):
     group_type: Optional[GroupTypeEnum]
     class_id: Optional[StrictInt]
     name: Optional[StrictStr]
-    is_multiselect: Optional[bool]
     attributes: Optional[List[Attribute]]
     default_value: Any
 
     class Config:
-        extra = Extra.allow
+        extra = Extra.ignore
         use_enum_values = True
 
     def __hash__(self):
@@ -97,7 +96,7 @@ class AnnotationClassEntity(TimedBaseModel):
         return hash(f"{self.id}{self.type}{self.name}")
 
     class Config:
-        extra = Extra.allow
+        extra = Extra.ignore
         json_encoders = {
             HexColor: lambda v: v.__root__,
             BaseTitledEnum: lambda v: v.value,

@@ -8,9 +8,13 @@ LIB_PATH = Path(__file__).parent.parent / "src"
 DATA_SET_PATH = Path(__file__).parent / "data_set"
 sys.path.insert(0, str(LIB_PATH))
 
-__all__ = ["DATA_SET_PATH"]
 
-# from src.superannotate.lib.core import setup_logging
-#
-# logger = get_default_logger()
-# logger.setLevel("DEBUG")
+def compare_result(result: dict, expected: dict, ignore_keys: set = None):
+    for key in result:
+        if ignore_keys and key in ignore_keys:
+            continue
+        assert result[key] == expected[key]
+    return True
+
+
+__all__ = ["DATA_SET_PATH", "compare_result"]
