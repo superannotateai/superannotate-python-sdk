@@ -12,7 +12,7 @@ class FolderEntity(TimedBaseModel):
     status: Optional[FolderStatus]
     project_id: Optional[int]
     team_id: Optional[int]
-    is_root: Optional[bool] = (False,)
+    is_root: Optional[bool] = False
     folder_users: Optional[List[dict]]
     completedCount: Optional[int]
 

@@ -5,7 +5,6 @@ import typing
 
 __version__ = "4.4.12"
 
-
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
 import logging.config  # noqa
