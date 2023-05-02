@@ -28,7 +28,11 @@ class GetAnnotationClassesUseCase(BaseUseCase):
     def execute(self):
         response = self._service_provider.annotation_classes.list(self._condition)
         if response.ok:
-            self._response.data = response.data
+            classes = [
+                entity.dict(by_alias=True, exclude_unset=True)
+                for entity in response.data
+            ]
+            self._response.data = classes
         else:
             self._response.errors = response.error
         return self._response

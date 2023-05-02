@@ -73,7 +73,6 @@ class AttributeGroup(TimedBaseModel):
     group_type: Optional[GroupTypeEnum]
     class_id: Optional[StrictInt]
     name: Optional[StrictStr]
-    is_multiselect: Optional[bool]
     attributes: Optional[List[Attribute]]
     default_value: Any
 
