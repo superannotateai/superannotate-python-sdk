@@ -341,7 +341,7 @@ class AnnotationService(BaseAnnotationService):
                         ),
                         params=params,
                         headers=headers,
-                        data=json.dumps({"data_chunk": chunk}),
+                        data=json.dumps({"data_chunk": chunk}, allow_nan=False),
                     )
                     if not response.ok:
                         raise AppException(str(await response.text()))
