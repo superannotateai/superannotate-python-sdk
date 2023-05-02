@@ -6,6 +6,23 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.12 - April 23, 2023
+______________________
+
+**Updated**
+
+    - ``SAClient.get_annotations_per_frame()`` Added interpolation of polygonal and polyline annotations.
+    
+**Fixed**
+
+    - ``SAClient.add_contributors_to_project()`` method.
+    - ``SAClient.run_prediction()`` method.
+        
+**Removed**
+
+    -  ``SAClient.create_project_from_metadata()`` method.
+    -  ``SAClient.get_project_image_count()`` method.
+
 4.4.11 - April 2, 2023
 ______________________
 
