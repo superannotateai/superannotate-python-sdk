@@ -334,7 +334,11 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 if not processed:
                     try:
                         item_to_upload.file = io.StringIO()
-                        json.dump(item_to_upload.annotation_json, item_to_upload.file)
+                        json.dump(
+                            item_to_upload.annotation_json,
+                            item_to_upload.file,
+                            allow_nan=False,
+                        )
                         item_to_upload.file.seek(0, os.SEEK_END)
                         item_to_upload.file_size = item_to_upload.file.tell()
                         item_to_upload.file.seek(0)
@@ -358,11 +362,13 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                                     break
                                 self._small_files_queue.put_nowait(item_to_upload)
                                 break
-                    except Exception:
-                        logger.debug(traceback.format_exc())
-                        self._report.failed_annotations.append(
-                            item_to_upload.annotation_json["metadata"]["name"]
-                        )
+                    except Exception as e:
+                        name = item_to_upload.annotation_json["metadata"]["name"]
+                        if isinstance(e, ValueError):
+                            logger.debug(f"Invalid annotation {name}: {e}")
+                        else:
+                            logger.debug(traceback.format_exc())
+                        self._report.failed_annotations.append(name)
                         self.reporter.update_progress()
                         data[idx][1] = True  # noqa
                         processed_count += 1
@@ -977,7 +983,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
             )
             if not errors:
                 annotation_file = io.StringIO()
-                json.dump(annotation_json, annotation_file)
+                json.dump(annotation_json, annotation_file, allow_nan=False)
                 size = annotation_file.tell()
                 annotation_file.seek(0)
                 if size > BIG_FILE_THRESHOLD:
@@ -1318,7 +1324,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 ref = _schema.pop("$ref")
                 validators.append(("$ref", ref))
 
-            validators.extend(jsonschema.validators.iteritems(_schema))
+            validators.extend(_schema.items())
 
             for k, v in validators:
                 validator = self.VALIDATORS.get(k)

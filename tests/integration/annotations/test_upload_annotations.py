@@ -15,6 +15,7 @@ class TestAnnotationUploadVector(BaseTestCase):
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_vector_annotations_with_tag_classes"
+    TEST_FOLDER_PATH_NaN = "data_set/sample_vector_annotations_with_NaN"
     TEST_4_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_LARGE_FOLDER_PATH = "sample_large_json_vector"
     IMAGE_NAME = "example_image_1.jpg"
@@ -28,6 +29,12 @@ class TestAnnotationUploadVector(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     @property
+    def folder_NaN(self):
+        return os.path.join(
+            Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH_NaN
+        )
+
+    @property
     def large_annotations_folder_path(self):
         return os.path.join(DATA_SET_PATH, self.TEST_LARGE_FOLDER_PATH)
 
@@ -38,6 +45,15 @@ class TestAnnotationUploadVector(BaseTestCase):
         for i in paths:
             annotations.append(json.load(open(i)))
         return annotations
+
+    def test_upload_NaN_value(self):
+        self._attach_items()
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        annotations = self._get_annotations_from_folder(self.folder_NaN)
+        _, failed, _ = sa.upload_annotations(self.PROJECT_NAME, annotations).values()
+        assert len(failed) == 1
 
     def test_annotation_folder_upload_download(self):
         self._attach_items()

@@ -1,3 +1,4 @@
+import json
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -64,3 +65,28 @@ class TestVectorValidators(TestCase):
 instances[0].createdBy.role                     'dmin' is not one of ['Customer', 'Admin', 'Annotator', 'QA']
 instances[1]                                    'points' is a required property"""
         )
+
+    @patch("builtins.print")
+    def test_validate_NaN(self, mock_print):
+        is_valid = sa.validate_annotations(
+            "Vector",
+            json.loads(
+                """
+                {
+                    "metadata": {"name": "12"},
+                    "instances": [
+                        {
+                            "type": "bbox",
+                            "createdBy": {
+                                "email": "arturn@superannotate.com",
+                                "role": "Admin"
+                            },
+                            "x": NaN,
+                            "y": 2
+                        }
+                    ]
+                }
+                """
+            ),
+        )
+        print(mock_print.call_args_list)
