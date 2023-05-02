@@ -790,7 +790,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         try:
             run_async(self.run_workers(items_to_upload))
         except Exception as e:
-            raise e
             logger.debug(e)
             self._response.errors = AppException("Can't upload annotations.")
         self.reporter.finish_progress()
@@ -1324,7 +1323,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 ref = _schema.pop("$ref")
                 validators.append(("$ref", ref))
 
-            validators.extend(_schema.items())
+            validators.extend(jsonschema.validators.iteritems(_schema))
 
             for k, v in validators:
                 validator = self.VALIDATORS.get(k)
