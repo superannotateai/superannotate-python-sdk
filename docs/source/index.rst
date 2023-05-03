@@ -15,7 +15,6 @@
    User guide <userguide/index>
    API Reference <api_reference/index>
    CLI Reference <cli_client>
-   SA Server <sa_server>
    History <changelog_link>
    LICENSE.rst
 
