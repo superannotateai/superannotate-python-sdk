@@ -1,12 +1,10 @@
 import os
-import shutil
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 from typing import Optional
 
-import lib as sa_lib
 import lib.core as constances
 from lib.app.input_converters.conversion import import_annotation
 from lib.app.interface.sdk_interface import SAClient
@@ -31,9 +29,9 @@ class CLIFacade:
 
     @staticmethod
     def init(
-        token: str,
-        logging_level: str = "INFO",
-        logging_path: str = constances.LOG_FILE_LOCATION,
+            token: str,
+            logging_level: str = "INFO",
+            logging_path: str = constances.LOG_FILE_LOCATION,
     ):
         """
         To initialize CLI (and SDK) with team token
@@ -55,7 +53,7 @@ class CLIFacade:
         if Path(constances.CONFIG_INI_FILE_LOCATION).exists():
             operation = "updated"
             if not input(
-                f"File {constances.CONFIG_INI_FILE_LOCATION} exists. Do you want to overwrite? [y/n] : "
+                    f"File {constances.CONFIG_INI_FILE_LOCATION} exists. Do you want to overwrite? [y/n] : "
             ).lower() in ("y", "yes"):
                 return
         else:
@@ -86,14 +84,14 @@ class CLIFacade:
         sys.exit(0)
 
     def upload_images(
-        self,
-        project: str,
-        folder: str,
-        extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
-        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.name,
-        exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
-        recursive_subfolders=False,
-        image_quality_in_editor=None,
+            self,
+            project: str,
+            folder: str,
+            extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
+            set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.name,
+            exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+            recursive_subfolders=False,
+            image_quality_in_editor=None,
     ):
         """
         To upload images from folder to project use:
@@ -117,12 +115,12 @@ class CLIFacade:
         sys.exit(0)
 
     def export_project(
-        self,
-        project,
-        folder,
-        include_fuse=False,
-        disable_extract_zip_contents=False,
-        annotation_statuses=None,
+            self,
+            project,
+            folder,
+            include_fuse=False,
+            disable_extract_zip_contents=False,
+            annotation_statuses=None,
     ):
         project_name, folder_name = split_project_path(project)
         folders = None
@@ -148,7 +146,7 @@ class CLIFacade:
         sys.exit(0)
 
     def upload_annotations(
-        self, project, folder, dataset_name=None, task=None, format=None
+            self, project, folder, dataset_name=None, task=None, format=None
     ):
         """
         To upload annotations from folder to project use
@@ -198,10 +196,10 @@ class CLIFacade:
         sys.exit(0)
 
     def attach_image_urls(
-        self,
-        project: str,
-        attachments: str,
-        annotation_status: Optional[Any] = "NotStarted",
+            self,
+            project: str,
+            attachments: str,
+            annotation_status: Optional[Any] = "NotStarted",
     ):
         """
         To attach image URLs to project use:
@@ -215,10 +213,10 @@ class CLIFacade:
         sys.exit(0)
 
     def attach_video_urls(
-        self,
-        project: str,
-        attachments: str,
-        annotation_status: Optional[Any] = "NotStarted",
+            self,
+            project: str,
+            attachments: str,
+            annotation_status: Optional[Any] = "NotStarted",
     ):
         SAClient().attach_items(
             project=project,
@@ -229,7 +227,7 @@ class CLIFacade:
 
     @staticmethod
     def attach_document_urls(
-        project: str, attachments: str, annotation_status: Optional[Any] = "NotStarted"
+            project: str, attachments: str, annotation_status: Optional[Any] = "NotStarted"
     ):
         SAClient().attach_items(
             project=project,
@@ -239,15 +237,15 @@ class CLIFacade:
         sys.exit(0)
 
     def upload_videos(
-        self,
-        project,
-        folder,
-        target_fps=None,
-        recursive=False,
-        extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
-        set_annotation_status=constances.AnnotationStatus.NOT_STARTED.name,
-        start_time=0.0,
-        end_time=None,
+            self,
+            project,
+            folder,
+            target_fps=None,
+            recursive=False,
+            extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
+            set_annotation_status=constances.AnnotationStatus.NOT_STARTED.name,
+            start_time=0.0,
+            end_time=None,
     ):
         """
         To upload videos from folder to project use
@@ -273,20 +271,3 @@ class CLIFacade:
             image_quality_in_editor=None,
         )
         sys.exit(0)
-
-    def create_server(self, name: str, path: str = None):
-        """
-        This will create a directory by the given name in your current or provided directory.
-        """
-        path = Path(os.path.expanduser(path if path else ".")) / name
-        if path.exists():
-            raise Exception(f"Directory already exists {str(path.absolute())}")
-        path.mkdir(parents=True)
-        default_files_path = Path(sa_lib.__file__).parent / "app" / "server"
-        shutil.copy(default_files_path / "__app.py", path / "app.py")
-        shutil.copy(default_files_path / "__wsgi.py", path / "wsgi.py")
-        shutil.copy(default_files_path / "Dockerfile", path / "Dockerfile")
-        shutil.copy(default_files_path / "requirements.txt", path / "requirements.txt")
-        shutil.copy(default_files_path / "README.rst", path / "README.rst")
-        shutil.copy(default_files_path / "run.sh", path / "run.sh")
-        shutil.copytree(default_files_path / "deployment", path / "deployment")

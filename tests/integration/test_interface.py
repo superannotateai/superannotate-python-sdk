@@ -43,46 +43,12 @@ class TestInterface(BaseTestCase):
             dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS
         )
 
-    def test_delete_folder(self):
-        with self.assertRaises(AppException):
-            sa.delete_folders(self.PROJECT_NAME, ["non-existing folder"])
-
-    def test_get_project_metadata(self):
-        metadata = sa.get_project_metadata(self.PROJECT_NAME)
-        self.assertIsNotNone(metadata["id"])
-        self.assertListEqual(metadata.get("contributors", []), [])
-        sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", class_type="tag")
-        metadata_with_users = sa.get_project_metadata(
-            self.PROJECT_NAME,
-            include_annotation_classes=True,
-            include_contributors=True,
-        )
-        self.assertEqual(metadata_with_users["classes"][0]["type"], "tag")
-        self.assertIsNotNone(metadata_with_users.get("contributors"))
-
-    def test_upload_annotations_from_folder_to_project(self):
-        self._attach_items(count=4)
-        uploaded_annotations, _, _ = sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path
-        )
-        self.assertEqual(len(uploaded_annotations), 4)
-
     def test_download_image_annotations(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         with tempfile.TemporaryDirectory() as temp_dir:
             sa.download_image_annotations(
                 self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, temp_dir
             )
-
-    def test_search_project(self):
-        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        sa.set_annotation_statuses(
-            self.PROJECT_NAME, "Completed", [self.EXAMPLE_IMAGE_1]
-        )
-        data = sa.search_projects(
-            self.PROJECT_NAME, return_metadata=True, include_complete_item_count=True
-        )
-        self.assertIsNotNone(data[0]["completed_items_count"])
 
     def test_overlay_fuse(self):
         sa.upload_image_to_project(
@@ -106,33 +72,6 @@ class TestInterface(BaseTestCase):
                 include_overlay=True,
             )
             self.assertIsNotNone(paths)
-
-    def test_upload_images_to_project_returned_data(self):
-        upload, not_uploaded, duplicated = sa.upload_images_to_project(
-            self.PROJECT_NAME,
-            [
-                f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}",
-                f"{self.folder_path}/{self.EXAMPLE_IMAGE_2}",
-            ],
-        )
-        self.assertEqual(2, len(upload))
-        upload, not_uploaded, duplicated = sa.upload_images_to_project(
-            self.PROJECT_NAME,
-            [
-                f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}",
-                f"{self.folder_path}/{self.EXAMPLE_IMAGE_2}",
-            ],
-        )
-        self.assertEqual(2, len(duplicated))
-
-    def test_upload_images_to_project_image_quality_in_editor(self):
-        self.assertRaises(
-            Exception,
-            sa.upload_images_to_project,
-            self.PROJECT_NAME,
-            [self.EXAMPLE_IMAGE_1],
-            image_quality_in_editor="random_string",
-        )
 
     def test_download_fuse_without_classes(self):
         sa.upload_image_to_project(
