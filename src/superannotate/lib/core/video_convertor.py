@@ -241,7 +241,7 @@ class VideoFrameGenerator:
                     key = set(frames_mapping.keys()).pop()
                     median = self.get_median(frames_mapping[key])
 
-                    interpolated_frames[1] = Annotation(
+                    interpolated_frames[key] = Annotation(
                         instanceId=instance_id,
                         type=annotation_type,
                         className=class_name,
