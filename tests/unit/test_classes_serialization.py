@@ -50,7 +50,9 @@ class TestClassesSerializers(TestCase):
         annotation_class = AnnotationClassEntity(
             name="asd",
             color="blue",
-            attribute_groups=[AttributeGroup(name="sad", is_multiselect="True")],  # noqa
+            attribute_groups=[
+                AttributeGroup(name="sad", is_multiselect="True")
+            ],  # noqa
         )
         serializer_data = json.loads(json.dumps(annotation_class, cls=PydanticEncoder))
         assert {
@@ -66,7 +68,9 @@ class TestClassesSerializers(TestCase):
                 name="asd",
                 color="blue",
                 attribute_groups=[
-                    AttributeGroup(name="sad", is_multiselect=True, group_type="asd")  # noqa
+                    AttributeGroup(
+                        name="sad", is_multiselect=True, group_type="asd"
+                    )  # noqa
                 ],
             )
         except ValidationError as e:
