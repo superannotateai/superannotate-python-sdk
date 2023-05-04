@@ -61,7 +61,7 @@ URI_THRESHOLD = 4 * 1024 - 120
 
 class AsyncThread(Thread):
     def __init__(
-        self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None
+            self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None
     ):
         super().__init__(
             group=group,
@@ -125,7 +125,7 @@ def divide_to_chunks(it, size):
 
 
 def log_report(
-    report: Report,
+        report: Report,
 ):
     if report.missing_classes:
         logger.warning(
@@ -157,18 +157,18 @@ class ItemToUpload(BaseModel):
 
 
 def set_annotation_statuses_in_progress(
-    service_provider: BaseServiceProvider,
-    project: ProjectEntity,
-    folder: FolderEntity,
-    item_names: List[str],
-    chunk_size=500,
+        service_provider: BaseServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item_names: List[str],
+        chunk_size=500,
 ) -> bool:
     failed_on_chunk = False
     for i in range(0, len(item_names), chunk_size):
         status_changed = service_provider.items.set_statuses(
             project=project,
             folder=folder,
-            item_names=item_names[i : i + chunk_size],  # noqa: E203
+            item_names=item_names[i: i + chunk_size],  # noqa: E203
             annotation_status=constants.AnnotationStatus.IN_PROGRESS.value,
         )
         if not status_changed.ok:
@@ -178,13 +178,13 @@ def set_annotation_statuses_in_progress(
 
 
 async def upload_small_annotations(
-    project: ProjectEntity,
-    folder: FolderEntity,
-    queue: asyncio.Queue,
-    service_provider: BaseServiceProvider,
-    reporter: Reporter,
-    report: Report,
-    callback: Callable = None,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        queue: asyncio.Queue,
+        service_provider: BaseServiceProvider,
+        reporter: Reporter,
+        report: Report,
+        callback: Callable = None,
 ):
     async def upload(_chunk):
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
@@ -229,9 +229,9 @@ async def upload_small_annotations(
             queue.put_nowait(None)
             break
         if (
-            _size + item_data.file_size >= ANNOTATION_CHUNK_SIZE_MB
-            or sum([len(i.item.name) for i in chunk])
-            >= URI_THRESHOLD - (len(chunk) + 1) * 14
+                _size + item_data.file_size >= ANNOTATION_CHUNK_SIZE_MB
+                or sum([len(i.item.name) for i in chunk])
+                >= URI_THRESHOLD - (len(chunk) + 1) * 14
         ):
             await upload(chunk)
             chunk = []
@@ -243,13 +243,13 @@ async def upload_small_annotations(
 
 
 async def upload_big_annotations(
-    project: ProjectEntity,
-    folder: FolderEntity,
-    queue: asyncio.Queue,
-    service_provider: BaseServiceProvider,
-    reporter: Reporter,
-    report: Report,
-    callback: Callable = None,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        queue: asyncio.Queue,
+        service_provider: BaseServiceProvider,
+        reporter: Reporter,
+        report: Report,
+        callback: Callable = None,
 ):
     async def _upload_big_annotation(item_data: ItemToUpload) -> Tuple[str, bool]:
         try:
@@ -285,13 +285,13 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
     URI_THRESHOLD = 4 * 1024 - 120
 
     def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        annotations: List[dict],
-        service_provider: BaseServiceProvider,
-        keep_status: bool = False,
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            annotations: List[dict],
+            service_provider: BaseServiceProvider,
+            keep_status: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -318,7 +318,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
     def list_existing_items(self, item_names: List[str]) -> List[BaseItemEntity]:
         existing_items = []
         for i in range(0, len(item_names), self.CHUNK_SIZE):
-            items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
+            items_to_check = item_names[i: i + self.CHUNK_SIZE]  # noqa: E203
             response = self._service_provider.items.list_by_names(
                 project=self._project, folder=self._folder, names=items_to_check
             )
@@ -484,17 +484,17 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
     URI_THRESHOLD = 4 * 1024 - 120
 
     def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        user: UserEntity,
-        annotation_paths: List[str],
-        service_provider: BaseServiceProvider,
-        pre_annotation: bool = False,
-        client_s3_bucket=None,
-        folder_path: str = None,
-        keep_status=False,
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            user: UserEntity,
+            annotation_paths: List[str],
+            service_provider: BaseServiceProvider,
+            pre_annotation: bool = False,
+            client_s3_bucket=None,
+            folder_path: str = None,
+            keep_status=False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -535,7 +535,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         return name_path_mappings
 
     def _log_report(
-        self,
+            self,
     ):
         if self._report.missing_classes:
             logger.warning(
@@ -592,7 +592,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         return annotation
 
     async def get_annotation(
-        self, path: str
+            self, path: str
     ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
         mask = None
         mask_path = path.replace(
@@ -637,12 +637,12 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         return path
 
     def get_existing_name_item_mapping(
-        self, name_path_mappings: Dict[str, str]
+            self, name_path_mappings: Dict[str, str]
     ) -> dict:
         item_names = list(name_path_mappings.keys())
         existing_name_item_mapping = {}
         for i in range(0, len(item_names), self.CHUNK_SIZE):
-            items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
+            items_to_check = item_names[i: i + self.CHUNK_SIZE]  # noqa: E203
             response = self._service_provider.items.list_by_names(
                 project=self._project, folder=self._folder, names=items_to_check
             )
@@ -663,7 +663,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             tmp = self._service_provider.get_annotation_upload_data(
                 project=self._project,
                 folder=self._folder,
-                item_ids=self._item_ids[i : i + CHUNK_SIZE],
+                item_ids=self._item_ids[i: i + CHUNK_SIZE],
             )
             if not tmp.ok:
                 raise AppException(tmp.error)
@@ -712,7 +712,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                             item_to_upload.file_size,
                         ) = await self.get_annotation(item_to_upload.path)
                         item_to_upload.file = io.StringIO()
-                        json.dump(annotation, item_to_upload.file)
+                        json.dump(annotation, item_to_upload.file, allow_nan=False)
                         item_to_upload.file.seek(0)
                         while True:
                             if item_to_upload.file_size > BIG_FILE_THRESHOLD:
@@ -828,22 +828,22 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
 class UploadAnnotationUseCase(BaseReportableUseCase):
     def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        image: ImageEntity,
-        user: UserEntity,
-        service_provider: BaseServiceProvider,
-        reporter: Reporter,
-        annotation_upload_data: UploadAnnotationAuthData = None,
-        annotations: dict = None,
-        s3_bucket=None,
-        client_s3_bucket=None,
-        mask=None,
-        verbose: bool = True,
-        annotation_path: str = None,
-        pass_validation: bool = False,
-        keep_status: bool = False,
+            self,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            image: ImageEntity,
+            user: UserEntity,
+            service_provider: BaseServiceProvider,
+            reporter: Reporter,
+            annotation_upload_data: UploadAnnotationAuthData = None,
+            annotations: dict = None,
+            s3_bucket=None,
+            client_s3_bucket=None,
+            mask=None,
+            verbose: bool = True,
+            annotation_path: str = None,
+            pass_validation: bool = False,
+            keep_status: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -1025,8 +1025,8 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                             )
 
                         if (
-                            self._project.type == constants.ProjectType.PIXEL.value
-                            and mask
+                                self._project.type == constants.ProjectType.PIXEL.value
+                                and mask
                         ):
                             self.s3_bucket.put_object(
                                 Key=self.annotation_upload_data.images[self._image.id][
@@ -1060,14 +1060,14 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
 
 class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
     def __init__(
-        self,
-        config: ConfigEntity,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        video_name: str,
-        fps: int,
-        service_provider: BaseServiceProvider,
+            self,
+            config: ConfigEntity,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            video_name: str,
+            fps: int,
+            service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._config = config
@@ -1120,13 +1120,13 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 100
 
     def __init__(
-        self,
-        reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        scores: List[PriorityScoreEntity],
-        project_folder_name: str,
-        service_provider: BaseServiceProvider,
+            self,
+            reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            scores: List[PriorityScoreEntity],
+            project_folder_name: str,
+            service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -1182,8 +1182,8 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
             if iterations:
                 for i in iterations:
                     priorities_to_upload = priorities[
-                        i : i + self.CHUNK_SIZE
-                    ]  # noqa: E203
+                                           i: i + self.CHUNK_SIZE
+                                           ]  # noqa: E203
                     res = self._service_provider.projects.upload_priority_scores(
                         project=self._project,
                         folder=self._folder,
@@ -1213,12 +1213,12 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
     }
 
     def __init__(
-        self,
-        reporter: Reporter,
-        team_id: int,
-        project_type: int,
-        annotation: dict,
-        service_provider: BaseServiceProvider,
+            self,
+            reporter: Reporter,
+            team_id: int,
+            project_type: int,
+            annotation: dict,
+            service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._team_id = team_id
@@ -1386,9 +1386,9 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         for sub_error in sorted(error.context, key=lambda e: e.schema_path):
             tmp_path = sub_error.path  # if sub_error.path else real_path
             _path = (
-                f"{''.join(path)}"
-                + ("." if tmp_path else "")
-                + "".join(ValidateAnnotationUseCase.extract_path(tmp_path))
+                    f"{''.join(path)}"
+                    + ("." if tmp_path else "")
+                    + "".join(ValidateAnnotationUseCase.extract_path(tmp_path))
             )
             if sub_error.context:
                 self.extract_messages(_path, sub_error, report)
@@ -1424,13 +1424,13 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
 
 class GetAnnotations(BaseReportableUseCase):
     def __init__(
-        self,
-        config: ConfigEntity,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        item_names: Optional[List[str]],
-        service_provider: BaseServiceProvider,
+            self,
+            config: ConfigEntity,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            item_names: Optional[List[str]],
+            service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
         self._config = config
@@ -1497,9 +1497,9 @@ class GetAnnotations(BaseReportableUseCase):
         )
 
     async def run_workers(
-        self,
-        big_annotations: List[BaseItemEntity],
-        small_annotations: List[List[Dict]],
+            self,
+            big_annotations: List[BaseItemEntity],
+            small_annotations: List[List[Dict]],
     ):
         annotations = []
         if big_annotations:
@@ -1523,7 +1523,7 @@ class GetAnnotations(BaseReportableUseCase):
             )
         if small_annotations:
             for chunks in divide_to_chunks(
-                small_annotations, self._config.MAX_COROUTINE_COUNT
+                    small_annotations, self._config.MAX_COROUTINE_COUNT
             ):
                 tasks = []
                 for chunk in chunks:
@@ -1590,16 +1590,16 @@ class GetAnnotations(BaseReportableUseCase):
 
 class DownloadAnnotations(BaseReportableUseCase):
     def __init__(
-        self,
-        config: ConfigEntity,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        destination: str,
-        recursive: bool,
-        item_names: List[str],
-        service_provider: BaseServiceProvider,
-        callback: Callable = None,
+            self,
+            config: ConfigEntity,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            destination: str,
+            recursive: bool,
+            item_names: List[str],
+            service_provider: BaseServiceProvider,
+            callback: Callable = None,
     ):
         super().__init__(reporter)
         self._config = config
@@ -1626,7 +1626,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         if self._destination:
             destination = str(self._destination)
             if not os.path.exists(destination) or not os.access(
-                destination, os.X_OK | os.W_OK
+                    destination, os.X_OK | os.W_OK
             ):
                 raise AppException(
                     f"Local path {destination} is not an existing directory or access denied."
@@ -1690,7 +1690,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                 break
 
     async def download_small_annotations(
-        self, item_ids: List[int], export_path, folder: FolderEntity
+            self, item_ids: List[int], export_path, folder: FolderEntity
     ):
         postfix = self.get_postfix()
         await self._service_provider.annotations.download_small_annotations(
@@ -1704,11 +1704,11 @@ class DownloadAnnotations(BaseReportableUseCase):
         )
 
     async def run_workers(
-        self,
-        big_annotations: List[BaseItemEntity],
-        small_annotations: List[List[dict]],
-        folder: FolderEntity,
-        export_path,
+            self,
+            big_annotations: List[BaseItemEntity],
+            small_annotations: List[List[dict]],
+            folder: FolderEntity,
+            export_path,
     ):
         if big_annotations:
             self._big_file_queue = asyncio.Queue()
@@ -1724,7 +1724,7 @@ class DownloadAnnotations(BaseReportableUseCase):
 
         if small_annotations:
             for chunks in divide_to_chunks(
-                small_annotations, self._config.MAX_COROUTINE_COUNT
+                    small_annotations, self._config.MAX_COROUTINE_COUNT
             ):
                 tasks = []
                 for chunk in chunks:
