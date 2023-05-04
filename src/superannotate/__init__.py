@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import typing
 
 __version__ = "4.4.12"
 
