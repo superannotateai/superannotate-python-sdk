@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from lib.core import entities
+from lib.core.exceptions import AppException
 from pydantic import BaseModel
 from pydantic import Extra
 from pydantic import Field
@@ -90,12 +91,22 @@ class ServiceResponse(BaseModel):
     status: Optional[int]
     reason: Optional[str]
     content: Optional[Union[bytes, str]] = None
-    data: Optional[Any] = None
+    res_data: Optional[Any] = None  # response data
+    res_error: Optional[str] = None
     count: Optional[int] = 0
-    _error: Optional[str] = None
 
     class Config:
         extra = Extra.allow
+
+    @property
+    def data(self):
+        if self.error:
+            raise AppException(self.error)
+        return self.res_data
+
+    @data.setter
+    def data(self, value):
+        self.res_data = value
 
     @property
     def status_code(self):
@@ -109,53 +120,54 @@ class ServiceResponse(BaseModel):
 
     @property
     def error(self):
-        if self._error:
-            return self._error
-        return self.data
+        if self.res_error:
+            return self.res_error
+        if not self.ok:
+            return self.res_data
 
     def set_error(self, value: Union[dict, str]):
         if isinstance(value, dict) and "error" in value:
-            self._error = value["error"]
-        self._error = value
+            self.res_error = value["error"]
+        self.res_error = value
 
     def __str__(self):
         return f"Status: {self.status_code}, Error {self.error}"
 
 
 class ImageResponse(ServiceResponse):
-    data: entities.ImageEntity = None
+    res_data: entities.ImageEntity = None
 
 
 class VideoResponse(ServiceResponse):
-    data: entities.VideoEntity = None
+    res_data: entities.VideoEntity = None
 
 
 class DocumentResponse(ServiceResponse):
-    data: entities.DocumentEntity = None
+    res_data: entities.DocumentEntity = None
 
 
 class TiledResponse(ServiceResponse):
-    data: entities.TiledEntity = None
+    res_data: entities.TiledEntity = None
 
 
 class ClassificationResponse(ServiceResponse):
-    data: entities.ClassificationEntity = None
+    res_data: entities.ClassificationEntity = None
 
 
 class PointCloudResponse(ServiceResponse):
-    data: entities.PointCloudEntity = None
+    res_data: entities.PointCloudEntity = None
 
 
 class TeamResponse(ServiceResponse):
-    data: entities.TeamEntity = None
+    res_data: entities.TeamEntity = None
 
 
 class UserResponse(ServiceResponse):
-    data: entities.UserEntity = None
+    res_data: entities.UserEntity = None
 
 
 class ModelListResponse(ServiceResponse):
-    data: List[entities.AnnotationClassEntity] = None
+    res_data: List[entities.AnnotationClassEntity] = None
 
 
 class _IntegrationResponse(ServiceResponse):
@@ -163,60 +175,60 @@ class _IntegrationResponse(ServiceResponse):
 
 
 class IntegrationListResponse(ServiceResponse):
-    data: _IntegrationResponse
+    res_data: _IntegrationResponse
 
 
 class AnnotationClassListResponse(ServiceResponse):
-    data: List[entities.AnnotationClassEntity] = None
+    res_data: List[entities.AnnotationClassEntity] = None
 
 
 class SubsetListResponse(ServiceResponse):
-    data: List[entities.SubSetEntity] = None
+    res_data: List[entities.SubSetEntity] = None
 
 
 class SubsetResponse(ServiceResponse):
-    data: entities.SubSetEntity = None
+    res_data: entities.SubSetEntity = None
 
 
 class DownloadMLModelAuthDataResponse(ServiceResponse):
-    data: DownloadMLModelAuthData = None
+    res_data: DownloadMLModelAuthData = None
 
 
 class UploadAnnotationsResponse(ServiceResponse):
-    data: Optional[UploadAnnotations] = None
+    res_data: Optional[UploadAnnotations] = None
 
 
 class UploadAnnotationAuthDataResponse(ServiceResponse):
-    data: UploadAnnotationAuthData = None
+    res_data: UploadAnnotationAuthData = None
 
 
 class UploadCustomFieldValuesResponse(ServiceResponse):
-    data: UploadCustomFieldValues = None
+    res_data: UploadCustomFieldValues = None
 
 
 class UserLimitsResponse(ServiceResponse):
-    data: UserLimits = None
+    res_data: UserLimits = None
 
 
 class ItemListResponse(ServiceResponse):
-    data: List[entities.BaseItemEntity] = None
+    res_data: List[entities.BaseItemEntity] = None
 
 
 class FolderResponse(ServiceResponse):
-    data: entities.FolderEntity = None
+    res_data: entities.FolderEntity = None
 
 
 class FolderListResponse(ServiceResponse):
-    data: List[entities.FolderEntity] = None
+    res_data: List[entities.FolderEntity] = None
 
 
 class ProjectResponse(ServiceResponse):
-    data: entities.ProjectEntity = None
+    res_data: entities.ProjectEntity = None
 
 
 class ProjectListResponse(ServiceResponse):
-    data: List[entities.ProjectEntity] = None
+    res_data: List[entities.ProjectEntity] = None
 
 
 class SettingsListResponse(ServiceResponse):
-    data: List[entities.SettingEntity] = None
+    res_data: List[entities.SettingEntity] = None

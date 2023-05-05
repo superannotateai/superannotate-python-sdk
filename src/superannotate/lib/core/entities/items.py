@@ -30,6 +30,8 @@ class VideoEntity(BaseItemEntity):
 
 
 class DocumentEntity(BaseItemEntity):
+    approval_status: Optional[ApprovalStatus] = Field(None)
+
     class Config:
         extra = Extra.ignore
 

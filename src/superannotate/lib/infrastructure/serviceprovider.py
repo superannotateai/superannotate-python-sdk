@@ -274,10 +274,10 @@ class ServiceProvider(BaseServiceProvider):
             data["image_index"] += self.SAQUL_CHUNK_SIZE
 
         if response:
-            response = ServiceResponse(status=response.status_code, data=items)
+            response = ServiceResponse(status=response.status_code, res_data=items)
             if not response.ok:
                 response.set_error(response.error)
-                response = ServiceResponse(status=response.status_code, data=items)
+                response = ServiceResponse(status=response.status_code, res_data=items)
         else:
-            response = ServiceResponse(status=200, data=[])
+            response = ServiceResponse(status=200, res_data=[])
         return response

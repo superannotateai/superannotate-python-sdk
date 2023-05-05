@@ -47,7 +47,7 @@ class AnnotationClassService(BaseAnnotationClassService):
         )
         if not response.ok or not response.data:
             return response
-        response.data = response.data[0]
+        response.res_data = response.data[0]
         return response
 
     def delete(self, project_id: int, annotation_class_id: int) -> ServiceResponse:

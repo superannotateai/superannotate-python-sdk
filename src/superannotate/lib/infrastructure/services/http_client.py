@@ -166,10 +166,10 @@ class HttpClient(BaseClient):
         if item_type:
             response = ServiceResponse(
                 status=_response.status,
-                data=pydantic.parse_obj_as(List[item_type], total),
+                res_data=pydantic.parse_obj_as(List[item_type], total),
             )
         else:
-            response = ServiceResponse(data=total)
+            response = ServiceResponse(res_data=total)
         if not _response.ok:
             response.set_error(_response.error)
             response.status = _response.status
@@ -191,22 +191,22 @@ class HttpClient(BaseClient):
                     return content_type(**data)
                 else:
                     data_json = response.json()
-                    data["_error"] = data_json.get(
+                    data["res_error"] = data_json.get(
                         "error", data_json.get("errors", "Unknown Error")
                     )
                     return content_type(**data)
             data_json = response.json()
             if dispatcher:
                 if dispatcher in data_json:
-                    data["data"] = data_json.pop(dispatcher)
+                    data["res_data"] = data_json.pop(dispatcher)
                 else:
-                    data["data"] = data_json
+                    data["res_data"] = data_json
                     data_json = {}
                 data.update(data_json)
             else:
-                data["data"] = data_json
+                data["res_data"] = data_json
             return content_type(**data)
         except json.decoder.JSONDecodeError:
-            data["_error"] = response.content
+            data["res_error"] = response.content
             data["reason"] = response.reason
             return content_type(**data)

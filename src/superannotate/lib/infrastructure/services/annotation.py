@@ -293,7 +293,7 @@ class AnnotationService(BaseAnnotationService):
             response.status = _response.status
             response._content = await _response.text()
             #  TODO add error handling
-            response.data = parse_obj_as(UploadAnnotations, data_json)
+            response.res_data = parse_obj_as(UploadAnnotations, data_json)
             return response
 
     async def upload_big_annotation(
