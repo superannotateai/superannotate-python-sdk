@@ -92,7 +92,7 @@ class ServiceResponse(BaseModel):
     reason: Optional[str]
     content: Optional[Union[bytes, str]] = None
     res_data: Optional[Any] = None  # response data
-    res_error: Optional[str] = None
+    res_error: Optional[Union[str, list, dict]] = None
     count: Optional[int] = 0
 
     class Config:
