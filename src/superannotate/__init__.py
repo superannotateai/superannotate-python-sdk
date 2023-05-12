@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-__version__ = "4.4.13.dev1"
+__version__ = "4.4.13dev1"
 
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
