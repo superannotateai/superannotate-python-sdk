@@ -5,12 +5,18 @@ from unittest import TestCase
 
 from pydantic import parse_obj_as
 from pydantic import ValidationError
+from superannotate.lib.app.interface.types import validate_arguments
 from superannotate.lib.app.serializers import BaseSerializer
 from superannotate.lib.core.entities.classes import AnnotationClassEntity
 from superannotate.lib.core.entities.classes import AttributeGroup
 from superannotate.lib.infrastructure.services.http_client import PydanticEncoder
 from superannotate.lib.infrastructure.validators import wrap_error
 from tests import DATA_SET_PATH
+
+
+@validate_arguments
+def dummy_foo(data: List[dict] = None):
+    AnnotationClassEntity(name="asd", color="#0000FF", attribute_groups=data)
 
 
 class TestClassesSerializers(TestCase):
@@ -85,3 +91,20 @@ class TestClassesSerializers(TestCase):
                 "'text',",
                 "'ocr'",
             ] == wrap_error(e).split()
+
+    #  TODO uncomment tests after Pydantic v2 is released
+
+    # def test_pydantic_scenario_1_list_of_list(self):
+    #     with self.assertRaisesRegexp(AppException, r"(\s+)data\[0\](\s+)value is not a valid dict"):
+    #         attribute_groups = [[{"name": "sad"}, {"name": "sad"}]]
+    #         dummy_foo(attribute_groups)  # noqa
+    #
+    # def test_pydantic_scenario_2_invalid_name(self):
+    #     with self.assertRaisesRegexp(AppException, r"(\s+)attribute_groups\[1\].name(\s+)str type expected"):
+    #         attribute_groups = [{"name": "sad"}, {"name": 1}]
+    #         dummy_foo(attribute_groups)
+    #
+    # def test_pydantic_scenario_3_list_of_list(self):
+    #         with self.assertRaisesRegexp(AppException, r"(\s+)attribute_groups\[1\].name(\s+)str type expected"):
+    #             attribute_groups = [[{"name": 122, "attributes": [{"name": "Test_Attribute_1"}, {"name": "aaa"}]}]]
+    #             dummy_foo(attribute_groups)
