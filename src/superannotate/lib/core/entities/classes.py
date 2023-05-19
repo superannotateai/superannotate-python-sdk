@@ -60,6 +60,7 @@ class Attribute(TimedBaseModel):
     group_id: Optional[StrictInt]
     project_id: Optional[StrictInt]
     name: Optional[StrictStr]
+    default: Any
 
     class Config:
         extra = Extra.ignore

@@ -3,7 +3,6 @@ import tempfile
 from os.path import dirname
 
 import pytest
-from src.superannotate import AppException
 from src.superannotate import export_annotation
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase

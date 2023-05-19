@@ -56,13 +56,6 @@ class TestVectorCreateAnnotationClass(BaseTestCase):
         except Exception as e:
             self.assertIn("Couldn't validate annotation classes", str(e))
 
-    def test_create_annotations_classes_is_multiselect(self):
-        classes = sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, self.large_json_path
-        )
-        self.assertEqual(len(classes), 1500)
-        assert "is_multiselect" not in str(classes)
-
     def test_create_annotation_classes_from_s3(self):
         annotation_classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(len(annotation_classes), 0)
@@ -104,7 +97,6 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                                 "id":21448,
                                 "class_id":56820,
                                 "name":"Large",
-                                "is_multiselect":0,
                                 "createdAt":"2020-09-29T10:39:39.000Z",
                                 "updatedAt":"2020-09-29T10:39:39.000Z",
                                 "attributes":[]
@@ -149,7 +141,6 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                                 "class_id":56820,
                                 "name":"Large",
                                 "group_type": "ocr",
-                                "is_multiselect":0,
                                 "createdAt":"2020-09-29T10:39:39.000Z",
                                 "updatedAt":"2020-09-29T10:39:39.000Z",
                                 "attributes":[]
@@ -189,7 +180,6 @@ class TestPixelCreateAnnotationClass(BaseTestCase):
                     {
                         "name": "Personal vehicle",
                         "color": "#ecb65f",
-                        "count": 25,
                         "createdAt": "2020-10-12T11:35:20.000Z",
                         "updatedAt": "2020-10-12T11:48:19.000Z",
                         "attribute_groups": [
