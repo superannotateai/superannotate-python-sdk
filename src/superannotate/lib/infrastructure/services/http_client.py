@@ -169,7 +169,10 @@ class HttpClient(BaseClient):
                 res_data=pydantic.parse_obj_as(List[item_type], total),
             )
         else:
-            response = ServiceResponse(res_data=total)
+            response = ServiceResponse(
+                status=_response.status,
+                res_data=total,
+            )
         if not _response.ok:
             response.set_error(_response.error)
             response.status = _response.status
