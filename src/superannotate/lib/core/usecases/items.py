@@ -865,6 +865,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self.project = project
         self.subset_name = subset_name
         self.items = items
+        self._provided_item_count = len(items)
         self.results = {"succeeded": [], "failed": [], "skipped": []}
         self.item_ids = []
         self.path_separated = defaultdict(dict)
@@ -1077,9 +1078,10 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             response = None
 
             unique_item_ids = list(set(self.item_ids))
-            if len(self.items) > len(unique_item_ids):
+            processed_items = len(unique_item_ids) + len(self.results['skipped'])
+            if self._provided_item_count > processed_items:
                 self.reporter.log_info(
-                    f"Dropping duplicates. Found {len(unique_item_ids)} / {len(self.items)} unique items."
+                    f"Dropping duplicates. Found {processed_items} / {self._provided_item_count} unique items."
                 )
             for i in range(0, len(unique_item_ids), self.CHUNK_SIZE):
                 tmp_response = self._service_provider.subsets.add_items(
