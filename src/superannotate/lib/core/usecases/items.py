@@ -1078,7 +1078,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             response = None
 
             unique_item_ids = list(set(self.item_ids))
-            processed_items = len(unique_item_ids) + len(self.results['skipped'])
+            processed_items = len(unique_item_ids) + len(self.results["skipped"])
             if self._provided_item_count > processed_items:
                 self.reporter.log_info(
                     f"Dropping duplicates. Found {processed_items} / {self._provided_item_count} unique items."

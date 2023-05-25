@@ -38,11 +38,11 @@ class TestDownloadAnnotations(BaseTestCase):
             annotations_path = sa.download_annotations(
                 f"{self.PROJECT_NAME}", temp_dir, [self.IMAGE_NAME]
             )
-            self.assertEqual(len(os.listdir(temp_dir)), 1)
+            self.assertEqual(len(os.listdir(temp_dir)), 2)
             with open(
-                f"{self.folder_path}/{self.IMAGE_NAME}___objects.json"
+                f"{self.folder_path}/example_without_postfixes/{self.IMAGE_NAME}.json"
             ) as pre_annotation_file, open(
-                f"{annotations_path}/{self.IMAGE_NAME}___objects.json"
+                f"{annotations_path}/{self.IMAGE_NAME}.json"
             ) as post_annotation_file:
                 pre_annotation_data = json.load(pre_annotation_file)
                 post_annotation_data = json.load(post_annotation_file)

@@ -177,7 +177,6 @@ class AnnotationService(BaseAnnotationService):
         self,
         project: entities.ProjectEntity,
         download_path: str,
-        postfix: str,
         item: entities.BaseItemEntity,
         callback: Callable = None,
     ):
@@ -208,7 +207,7 @@ class AnnotationService(BaseAnnotationService):
             res = await start_response.json()
             Path(download_path).mkdir(exist_ok=True, parents=True)
 
-            dest_path = Path(download_path) / (item_name + postfix)
+            dest_path = Path(download_path) / (item_name + ".json")
             with open(dest_path, "w") as fp:
                 if callback:
                     res = callback(res)
@@ -220,7 +219,6 @@ class AnnotationService(BaseAnnotationService):
         folder: entities.FolderEntity,
         reporter: Reporter,
         download_path: str,
-        postfix: str,
         item_ids: List[int],
         callback: Callable = None,
     ):
@@ -242,7 +240,6 @@ class AnnotationService(BaseAnnotationService):
             data=item_ids,
             params=query_params,
             download_path=download_path,
-            postfix=postfix,
         )
 
     async def upload_small_annotations(

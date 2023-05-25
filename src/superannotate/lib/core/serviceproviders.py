@@ -345,7 +345,6 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         download_path: str,
-        postfix: str,
         item: entities.BaseItemEntity,
         callback: Callable = None,
     ):
@@ -358,7 +357,6 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         folder: entities.FolderEntity,
         reporter: Reporter,
         download_path: str,
-        postfix: str,
         item_ids: List[int],
         callback: Callable = None,
     ):
