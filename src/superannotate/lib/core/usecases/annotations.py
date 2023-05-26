@@ -11,7 +11,6 @@ import time
 import traceback
 import typing
 from dataclasses import dataclass
-from datetime import datetime
 from itertools import islice
 from operator import itemgetter
 from pathlib import Path
@@ -1637,13 +1636,6 @@ class DownloadAnnotations(BaseReportableUseCase):
     def destination(self) -> Path:
         return Path(self._destination if self._destination else "")
 
-    def get_postfix(self):
-        if self._project.type == constants.ProjectType.VECTOR:
-            return "___objects.json"
-        elif self._project.type == constants.ProjectType.PIXEL.value:
-            return "___pixel.json"
-        return ".json"
-
     def download_annotation_classes(self, path: str):
         response = self._service_provider.annotation_classes.list(
             Condition("project_id", self._project.id, EQ)
@@ -1678,12 +1670,10 @@ class DownloadAnnotations(BaseReportableUseCase):
             item = await self._big_file_queue.get()
             self._big_file_queue.task_done()
             if item:
-                postfix = self.get_postfix()
                 await self._service_provider.annotations.download_big_annotation(
                     project=self._project,
                     item=item,
                     download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-                    postfix=postfix,
                     callback=self._callback,
                 )
             else:
@@ -1693,14 +1683,12 @@ class DownloadAnnotations(BaseReportableUseCase):
     async def download_small_annotations(
         self, item_ids: List[int], export_path, folder: FolderEntity
     ):
-        postfix = self.get_postfix()
         await self._service_provider.annotations.download_small_annotations(
             project=self._project,
             folder=folder,
             item_ids=item_ids,
             reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-            postfix=postfix,
             callback=self._callback,
         )
 
@@ -1738,12 +1726,7 @@ class DownloadAnnotations(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            export_path = str(
-                self.destination
-                / Path(
-                    f"{self._project.name} {datetime.now().strftime('%B %d %Y %H_%M')}"
-                )
-            )
+            export_path = str(self.destination)
             logger.info(
                 f"Downloading the annotations of the requested items to {export_path}\nThis might take a while…"
             )

@@ -9,20 +9,20 @@ sa = SAClient()
 
 
 ATTACHMENT_LIST = [
-        {
-            "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-            "name": "6022a74d5384c50017c366b3",
-        },
-        {
-            "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad",
-        },
-        {"url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU", "name": "123"},
-        {
-            "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
-            "name": "6022a74b5384c50017c366ad",
-        },
-    ]
+    {
+        "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
+        "name": "6022a74d5384c50017c366b3",
+    },
+    {
+        "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
+        "name": "6022a74b5384c50017c366ad",
+    },
+    {"url": "1SfGcn9hdkVM35ZP0S93eStsE7Ti4GtHU", "name": "123"},
+    {
+        "url": "https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V",
+        "name": "6022a74b5384c50017c366ad",
+    },
+]
 
 
 class TestSetApprovalStatuses(BaseTestCase):
