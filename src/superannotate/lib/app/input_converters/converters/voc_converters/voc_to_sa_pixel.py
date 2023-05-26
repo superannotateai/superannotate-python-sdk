@@ -126,7 +126,7 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
             sa_instances.append(sa_obj)
 
         images_converted.append(filename)
-        file_name = "%s.jpg___pixel.json" % (filename.stem)
+        file_name = f"{filename.stem}.json"
         height, width = _get_image_shape_from_xml(annotation_dir / filename.name)
         sa_metadata = {"name": filename.stem, "height": height, "width": width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)

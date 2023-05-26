@@ -53,7 +53,7 @@ def vgg_to_sa(json_data, task, output_dir):
             H = 0
             W = 0
 
-        file_name = "%s___objects.json" % img["filename"]
+        file_name = f"{img['filename']}.json"
         sa_metadata = {"name": img["filename"], "width": W, "height": H}
         sa_instances = []
         instances = img["regions"]

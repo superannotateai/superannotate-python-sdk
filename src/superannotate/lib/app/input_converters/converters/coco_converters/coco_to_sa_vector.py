@@ -57,7 +57,7 @@ def save_sa_jsons(coco_json, img_id_to_annot, output_dir):
             sa_instances = []
         else:
             sa_instances = img_id_to_annot[str(img["id"])]
-        file_name = "%s___objects.json" % image_path
+        file_name = f"{image_path}.json"
 
         sa_metadata = {
             "name": image_path,

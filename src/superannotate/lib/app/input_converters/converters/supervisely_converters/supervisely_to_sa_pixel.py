@@ -34,7 +34,7 @@ def supervisely_instance_segmentation_to_sa_pixel(json_files, class_id_map, outp
     tqdm_thread.start()
 
     for json_file in json_files:
-        file_name = "%s___pixel.json" % Path(json_file).stem
+        file_name = f"{Path(json_file).stem}.json"
 
         json_data = json.load(open(json_file))
         sa_instances = []
@@ -78,7 +78,7 @@ def supervisely_instance_segmentation_to_sa_pixel(json_files, class_id_map, outp
                         cv2.imwrite(
                             str(
                                 output_dir
-                                / file_name.replace("___pixel.json", "___save.png")
+                                / file_name.replace(".json", "___save.png")
                             ),
                             mask,
                         )

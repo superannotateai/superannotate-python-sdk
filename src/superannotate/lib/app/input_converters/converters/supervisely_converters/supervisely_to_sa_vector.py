@@ -36,7 +36,7 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
     tqdm_thread.start()
     for json_file in json_files:
         json_data = json.load(open(json_file))
-        file_name = "%s___objects.json" % Path(json_file).stem
+        file_name = f"{Path(json_file).stem}.json"
         sa_metadata = {
             "name": Path(json_file).stem,
             "width": json_data["size"]["width"],
@@ -140,7 +140,7 @@ def supervisely_keypoint_detection_to_sa_vector(
     logger.info("Converting to SuperAnnotate JSON format")
     tqdm_thread.start()
     for json_file in json_files:
-        file_name = "%s___objects.json" % (Path(json_file).stem)
+        file_name = f"{Path(json_file).stem}.json"
         json_data = json.load(open(json_file))
         sa_metadata = {
             "name": Path(json_file).stem,

@@ -35,7 +35,7 @@ def labelbox_instance_segmentation_to_sa_pixel(json_data, output_dir, input_dir)
     logger.info("Converting to SuperAnnotate JSON format")
     tqdm_thread.start()
     for data in json_data:
-        file_name = data["External ID"] + "___pixel.json"
+        file_name = data["External ID"] + ".json"
         mask_name = data["External ID"] + "___save.png"
         sa_metadata = {"name": data["External ID"]}
         if "objects" not in data["Label"].keys():
