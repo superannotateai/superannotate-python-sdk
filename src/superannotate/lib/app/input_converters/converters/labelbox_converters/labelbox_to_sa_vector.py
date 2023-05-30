@@ -37,7 +37,7 @@ def labelbox_to_sa(json_data, output_dir, task):
     tqdm_thread.start()
     for data in json_data:
         if "objects" not in data["Label"].keys():
-            file_name = data["External ID"] + "___objects.json"
+            file_name = data["External ID"] + ".json"
             write_to_json(
                 output_dir / file_name,
                 {"metadata": {}, "instances": [], "tags": [], "comments": []},
@@ -87,7 +87,7 @@ def labelbox_to_sa(json_data, output_dir, task):
             sa_instances.append(sa_obj)
 
         images_converted.append(data["External ID"])
-        file_name = "%s___objects.json" % data["External ID"]
+        file_name = f"{data['External ID']}.json"
         try:
             img = cv2.imread(str(output_dir / data["External ID"]))
             H, W, _ = img.shape

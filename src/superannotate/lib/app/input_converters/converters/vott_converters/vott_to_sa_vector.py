@@ -34,7 +34,7 @@ def vott_to_sa(file_list, task, output_dir):
     tqdm_thread.start()
     for json_file in file_list:
         json_data = json.load(open(json_file))
-        file_name = "%s___objects.json" % json_data["asset"]["name"]
+        file_name = f"{json_data['asset']['name']}.json"
         sa_metadata = {
             "name": json_data["asset"]["name"],
             "width": json_data["asset"]["size"]["width"],

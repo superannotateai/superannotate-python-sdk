@@ -44,7 +44,7 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
                 raise Exception
 
             manifest = dataset_manifest[int(img["datasetObjectId"])]
-            file_name = "%s___objects.json" % Path(manifest["source-ref"]).name
+            file_name = f"{Path(manifest['source-ref']).name}.json"
 
             classes = img["consolidatedAnnotation"]["content"][main_key + "-metadata"][
                 "class-map"

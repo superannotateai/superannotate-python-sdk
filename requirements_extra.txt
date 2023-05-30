@@ -12,3 +12,4 @@ pytest-xdist==3.2.1
 pytest-parallel==0.1.1
 pytest-cov==4.0.0
 pytest-rerunfailures==11.1.2
+jsoncomparison==1.1.0

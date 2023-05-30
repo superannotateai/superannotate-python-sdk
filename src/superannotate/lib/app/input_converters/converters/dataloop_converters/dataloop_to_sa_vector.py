@@ -105,11 +105,11 @@ def dataloop_to_sa(input_dir, task, output_dir):
                 sa_tags.append(ann["label"])
 
         if "name" in sa_metadata:
-            file_name = "%s___objects.json" % sa_metadata["name"]
+            file_name = f"{sa_metadata['name']}.json"
         else:
-            file_name = "%s___objects.json" % dl_data["filename"][1:]
+            file_name = f"{dl_data['filename'][1:]}.json"
 
-        images_converted.append(file_name.replace("___objects.json ", ""))
+        images_converted.append(file_name.replace(".json", ""))
         json_template = _create_sa_json(sa_instances, sa_metadata, sa_tags, sa_comments)
         write_to_json(output_dir / file_name, json_template)
     finish_event.set()

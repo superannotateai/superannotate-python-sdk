@@ -45,7 +45,7 @@ def googlecloud_to_sa_vector(path, output_dir):
             images_not_converted.append(file_name)
             continue
 
-        sa_file_name = "%s___objects.json" % Path(file_name).name
+        sa_file_name = f"{Path(file_name).name}.json"
 
         points = (row[3] * W, row[4] * H, row[5] * W, row[8] * H)
         sa_instances = _create_vector_instance("bbox", points, {}, [], row[2])
