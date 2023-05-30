@@ -1,6 +1,9 @@
 """
 Main module for input converters
 """
+import os
+import shutil
+import tempfile
 from argparse import Namespace
 from pathlib import Path
 
@@ -135,6 +138,16 @@ def _passes_converter_sanity(args, direction):
         )
 
 
+def change_file_extensions(directory, old_extension, new_extension):
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        if os.path.isfile(file_path) and filename.endswith(old_extension):
+            if file_path.endswith(new_extension):
+                continue
+            new_file_path = os.path.splitext(file_path)[0] + new_extension
+            os.rename(file_path, new_file_path)
+
+
 @Tracker
 def export_annotation(
     input_dir,
@@ -208,19 +221,28 @@ def export_annotation(
         ),
     ]
     _passes_value_sanity(values_info)
-
-    args = Namespace(
-        input_dir=input_dir,
-        output_dir=output_dir,
-        dataset_format=dataset_format,
-        dataset_name=dataset_name,
-        project_type=project_type,
-        task=task,
-    )
-
-    _passes_converter_sanity(args, "export")
-
-    export_from_sa(args)
+    if project_type == "Vector":
+        extension = "___objects.json"
+    elif project_type == "Pixel":
+        extension = "___pixel.json"
+    else:
+        extension = ".json"
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        args = Namespace(
+            input_dir=Path(tmp_dir),
+            output_dir=output_dir,
+            dataset_format=dataset_format,
+            dataset_name=dataset_name,
+            project_type=project_type,
+            task=task,
+        )
+        shutil.copytree(input_dir, tmp_dir, dirs_exist_ok=True)
+        for _path in os.listdir(tmp_dir):
+            if os.path.isdir(_path) and not _path.endswith("classes"):
+                change_file_extensions(_path, ".json", extension)
+            change_file_extensions(tmp_dir, ".json", extension)
+        _passes_converter_sanity(args, "export")
+        export_from_sa(args)
 
 
 @Tracker
