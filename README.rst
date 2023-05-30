@@ -18,7 +18,7 @@ Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enable
 Resources
 ---------------
 
-- API Reference and User Guide available on `Read the Docs <https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html>`__
+- API Reference and User Guide available on `Read the Docs <https://superannotate.readthedocs.io/en/stable/index.html>`__
 - `Platform documentation <https://doc.superannotate.com/>`__
 
 

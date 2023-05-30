@@ -10,22 +10,20 @@ from src.superannotate import import_annotation
 from tests.integration.convertors import DATA_SET_PATH
 
 
-class TestImportInstanceSegmentation(TestCase):
+class TestImportObjectDetection(TestCase):
     DATA_SET_NAME = "TestVectorAnnotationImage"
-    VECTOR_DATA_PATH = (
-        DATA_SET_PATH / "coco_to_sa_instance_segmentation_expected_result"
-    )
-    COCO_INSTANCE_SEGMENTATION = DATA_SET_PATH / "coco_instance_segmentation"
+    VECTOR_DATA_PATH = DATA_SET_PATH / "coco_to_sa_object_detection_expected_result"
+    COCO_OBJECT_DETECTION = DATA_SET_PATH / "coco_object_detection"
 
     def test_convertor(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             import_annotation(
-                self.COCO_INSTANCE_SEGMENTATION,
+                self.COCO_OBJECT_DETECTION,
                 tmp_dir,
                 dataset_name=self.DATA_SET_NAME,
                 dataset_format="COCO",
                 project_type="Vector",
-                task="instance_segmentation",
+                task="object_detection",
             )
             dircmp = filecmp.dircmp(
                 self.VECTOR_DATA_PATH,

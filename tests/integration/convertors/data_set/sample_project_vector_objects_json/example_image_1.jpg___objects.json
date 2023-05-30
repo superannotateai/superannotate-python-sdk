@@ -40,7 +40,7 @@
   "instances": [
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -59,7 +59,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 5,
       "className": "Personal vehicle1",
       "visible": false,
       "locked": false,
@@ -77,7 +77,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -102,7 +102,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -127,7 +127,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -217,11 +217,11 @@
         }
       ],
       "templateName": "HandPose",
-      "templateId": -1
+      "templateId": 4
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -274,7 +274,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -331,7 +331,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -378,7 +378,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -407,7 +407,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -442,7 +442,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -493,7 +493,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -536,7 +536,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -585,7 +585,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -648,7 +648,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -695,7 +695,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -782,7 +782,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -861,7 +861,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -916,7 +916,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 1,
       "className": "Personal vehicle",
       "visible": false,
       "locked": false,
@@ -983,7 +983,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 2,
       "className": "Large vehicle",
       "visible": true,
       "locked": false,
@@ -1005,7 +1005,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,
@@ -1235,11 +1235,11 @@
         }
       ],
       "templateName": "HandPose",
-      "templateId": -1
+      "templateId": 4
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,
@@ -1469,11 +1469,11 @@
         }
       ],
       "templateName": "HandPose",
-      "templateId": -1
+      "templateId": 4
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,
@@ -1703,11 +1703,11 @@
         }
       ],
       "templateName": "HandPose",
-      "templateId": -1
+      "templateId": 4
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,
@@ -1939,11 +1939,11 @@
         }
       ],
       "templateName": "HandPose",
-      "templateId": -1
+      "templateId": 4
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,
@@ -2175,11 +2175,11 @@
         }
       ],
       "templateName": "HandPose",
-      "templateId": -1
+      "templateId": 4
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,
@@ -2411,11 +2411,11 @@
         }
       ],
       "templateName": "HandPose",
-      "templateId": -1
+      "templateId": 4
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,
@@ -2626,7 +2626,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": true,
       "locked": false,
@@ -2786,7 +2786,7 @@
     },
     {
       "creationType": "Preannotation",
-      "classId": -1,
+      "classId": 3,
       "className": "Human",
       "visible": false,
       "locked": false,

@@ -76,10 +76,7 @@ def supervisely_instance_segmentation_to_sa_pixel(json_files, class_id_map, outp
                             parts.append({"color": hex_colors[index]})
                             index += 1
                         cv2.imwrite(
-                            str(
-                                output_dir
-                                / file_name.replace(".json", "___save.png")
-                            ),
+                            str(output_dir / file_name.replace(".json", "___save.png")),
                             mask,
                         )
                         sa_obj = _create_pixel_instance(
