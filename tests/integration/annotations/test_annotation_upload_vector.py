@@ -68,7 +68,7 @@ class TestAnnotationUploadVector(BaseTestCase):
             origin_annotation = replace_item(json.load(open(annotation_path)), "id", -1)
             origin_annotation = replace_item(origin_annotation, "groupId", -1)
             annotation = json.load(
-                open(join(tmp_dir, f"{self.IMAGE_NAME}___objects.json"))
+                open(join(tmp_dir, f"{self.IMAGE_NAME}.json"))
             )
             self.assertEqual(
                 [i["attributes"] for i in annotation["instances"]],
@@ -94,7 +94,7 @@ class TestAnnotationUploadVector(BaseTestCase):
                 sa.download_image_annotations(self.PROJECT_NAME, image_name, tmp_dir)
                 origin_annotation = json.load(open(annotation_path))
                 annotation = json.load(
-                    open(join(tmp_dir, f"{image_name}___objects.json"))
+                    open(join(tmp_dir, f"{image_name}.json"))
                 )
                 self.assertEqual(
                     len([i["attributes"] for i in annotation["instances"]]),
