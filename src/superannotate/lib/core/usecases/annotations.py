@@ -1622,19 +1622,23 @@ class DownloadAnnotations(BaseReportableUseCase):
                 )
                 self._item_names = item_names
 
-    def validate_destination(self):
+    @property
+    def destination(self) -> str:
         if self._destination:
-            destination = str(self._destination)
-            if not os.path.exists(destination) or not os.access(
-                destination, os.X_OK | os.W_OK
-            ):
+            destination = Path(self._destination).expanduser()
+            try:
+                os.makedirs(destination, exist_ok=True)
+            except OSError:
                 raise AppException(
                     f"Local path {destination} is not an existing directory or access denied."
                 )
-
-    @property
-    def destination(self) -> Path:
-        return Path(self._destination if self._destination else "")
+            if not os.access(destination, os.X_OK | os.W_OK):
+                raise AppException(
+                    f"Local path {destination} is not an existing directory or access denied."
+                )
+            return str(destination)
+        else:
+            return os.getcwd()
 
     def download_annotation_classes(self, path: str):
         response = self._service_provider.annotation_classes.list(
@@ -1726,9 +1730,8 @@ class DownloadAnnotations(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            export_path = str(self.destination)
             logger.info(
-                f"Downloading the annotations of the requested items to {export_path}\nThis might take a while…"
+                f"Downloading the annotations of the requested items to {self.destination}\nThis might take a while…"
             )
             self.reporter.start_spinner()
             folders = []
@@ -1752,7 +1755,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                     items = get_or_raise(self._service_provider.items.list(condition))
                 if not items:
                     continue
-                new_export_path = export_path
+                new_export_path = self.destination
                 if not folder.is_root and self._folder.is_root:
                     new_export_path += f"/{folder.name}"
 
@@ -1777,8 +1780,8 @@ class DownloadAnnotations(BaseReportableUseCase):
                     self._response.errors = AppException("Can't get annotations.")
                     return self._response
             self.reporter.stop_spinner()
-            count = self.get_items_count(export_path)
+            count = self.get_items_count(self.destination)
             self.reporter.log_info(f"Downloaded annotations for {count} items.")
-            self.download_annotation_classes(export_path)
-            self._response.data = os.path.abspath(export_path)
+            self.download_annotation_classes(self.destination)
+            self._response.data = os.path.abspath(self.destination)
         return self._response
