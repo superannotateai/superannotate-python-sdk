@@ -33,8 +33,18 @@ Authentication
     # by token
     sa_client = SAClient(token='<team token>')
     # by config file
-    # default path is ~/.superannotate/config.json
-    sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
+    # default path is ~/.superannotate/config.ini
+    sa_client = SAClient(config_path='~/.superannotate/dev_config.ini')
+
+
+config.ini example
+---------------
+.. code-block:: python
+
+    [DEFAULT]
+    SA_TOKEN = <Token>
+    LOGGING_LEVEL = INFO
+
 
 Using superannotate
 -------------------

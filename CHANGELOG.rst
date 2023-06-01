@@ -6,6 +6,21 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.13 - June 04, 2023
+_______________________
+
+**Updated**
+
+    - ``SAClient.download_annotations()`` Replaced `___objects.json` and `___pixel.json` postfixes to `.json`.
+    - ``SAClient.set_approval_statuses()`` Added Document project support.
+    - ``SAClient.convert_project_type()`` Added required argument `convert_to`.
+    - ``SAClient.import_annotation()`` Replaced `___objects.json` and `___pixel.json` postfixes to `.json`.
+    - ``SAClient.download_export()`` Replaced `___objects.json` and `___pixel.json` postfixes to `.json`.
+
+**Removed**
+
+    -  ``SAClient.convert_json_version()`` method.
+
 4.4.12 - April 23, 2023
 _______________________
 
