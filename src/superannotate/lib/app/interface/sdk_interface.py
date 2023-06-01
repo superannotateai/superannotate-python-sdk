@@ -730,10 +730,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.annotation_classes.list(condition)
         if response.errors:
             raise AppException(response.errors)
-        return [
-            i.dict(exclude={"attribute_groups": {"__all__": {"is_multiselect"}}})
-            for i in response.data
-        ]
+        return response.data
 
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status

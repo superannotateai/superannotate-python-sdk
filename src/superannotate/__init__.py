@@ -1,26 +1,20 @@
 import logging
 import os
 import sys
-import typing
 
-__version__ = "4.4.12"
-
+__version__ = "4.4.13dev5"
 
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
 import logging.config  # noqa
 import requests  # noqa
 from packaging.version import parse  # noqa
-from superannotate.lib.app.input_converters import convert_json_version  # noqa
 from superannotate.lib.app.input_converters import convert_project_type  # noqa
 from superannotate.lib.app.exceptions import AppException  # noqa
-from superannotate.lib.app.input_converters import convert_json_version  # noqa
 from superannotate.lib.app.input_converters import convert_project_type  # noqa
 from superannotate.lib.app.input_converters import export_annotation  # noqa
 from superannotate.lib.app.input_converters import import_annotation  # noqa
 from superannotate.lib.app.interface.sdk_interface import SAClient  # noqa
-from superannotate.lib.app.server import SAServer  # noqa
-from superannotate.lib.app.server.utils import setup_app  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
@@ -29,22 +23,13 @@ import superannotate.lib.core.enums as enums  # noqa
 SESSIONS = {}
 
 
-def create_app(apps: typing.List[str] = None) -> SAServer:
-    setup_app(apps)
-    server = SAServer()
-    return server
-
-
 __all__ = [
     "__version__",
     "SAClient",
-    "SAServer",
-    "create_app",
     # Utils
     "enums",
     "AppException",
     # converters
-    "convert_json_version",
     "import_annotation",
     "export_annotation",
     "convert_project_type",

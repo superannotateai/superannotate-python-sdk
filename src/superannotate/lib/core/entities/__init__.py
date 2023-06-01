@@ -19,7 +19,6 @@ from lib.core.entities.project import TeamEntity
 from lib.core.entities.project import UserEntity
 from lib.core.entities.project import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
-from lib.core.entities.project_entities import ImageInfoEntity
 from lib.core.entities.project_entities import S3FileEntity
 
 __all__ = [
@@ -44,7 +43,6 @@ __all__ = [
     "ConfigEntity",
     "WorkflowEntity",
     "FolderEntity",
-    "ImageInfoEntity",
     "S3FileEntity",
     "AnnotationClassEntity",
     "TeamEntity",

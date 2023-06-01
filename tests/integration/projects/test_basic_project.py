@@ -24,12 +24,10 @@ class TestProjectBasic(BaseTestCase):
             [
                 {
                     "name": "tall",
-                    "is_multiselect": 0,
                     "attributes": [{"name": "yes"}, {"name": "no"}],
                 },
                 {
                     "name": "age",
-                    "is_multiselect": 0,
                     "attributes": [{"name": "young"}, {"name": "old"}],
                 },
             ],
@@ -41,12 +39,10 @@ class TestProjectBasic(BaseTestCase):
             [
                 {
                     "name": "tall",
-                    "is_multiselect": 0,
                     "attributes": [{"name": "yes"}, {"name": "no"}],
                 },
                 {
                     "name": "age",
-                    "is_multiselect": 0,
                     "attributes": [{"name": "young"}, {"name": "old"}],
                 },
             ],

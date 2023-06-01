@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Personal vehicle",
+    "color": "#1b066e",
+    "attribute_groups": []
+  },
+  {
+    "name": "Large vehicle",
+    "color": "#2e5ce0",
+    "attribute_groups": []
+  },
+  {
+    "name": "Human",
+    "color": "#4949cc",
+    "attribute_groups": []
+  },
+  {
+    "name": "Plant",
+    "color": "#460f3e",
+    "attribute_groups": []
+  }
+]

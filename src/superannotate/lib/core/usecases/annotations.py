@@ -11,7 +11,6 @@ import time
 import traceback
 import typing
 from dataclasses import dataclass
-from datetime import datetime
 from itertools import islice
 from operator import itemgetter
 from pathlib import Path
@@ -44,6 +43,7 @@ from lib.core.response import Response
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.serviceproviders import ServiceResponse
+from lib.core.serviceproviders import UploadAnnotationsResponse
 from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.video_convertor import VideoFrameGenerator
@@ -334,7 +334,11 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 if not processed:
                     try:
                         item_to_upload.file = io.StringIO()
-                        json.dump(item_to_upload.annotation_json, item_to_upload.file)
+                        json.dump(
+                            item_to_upload.annotation_json,
+                            item_to_upload.file,
+                            allow_nan=False,
+                        )
                         item_to_upload.file.seek(0, os.SEEK_END)
                         item_to_upload.file_size = item_to_upload.file.tell()
                         item_to_upload.file.seek(0)
@@ -358,11 +362,13 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                                     break
                                 self._small_files_queue.put_nowait(item_to_upload)
                                 break
-                    except Exception:
-                        logger.debug(traceback.format_exc())
-                        self._report.failed_annotations.append(
-                            item_to_upload.annotation_json["metadata"]["name"]
-                        )
+                    except Exception as e:
+                        name = item_to_upload.annotation_json["metadata"]["name"]
+                        if isinstance(e, ValueError):
+                            logger.debug(f"Invalid annotation {name}: {e}")
+                        else:
+                            logger.debug(traceback.format_exc())
+                        self._report.failed_annotations.append(name)
                         self.reporter.update_progress()
                         data[idx][1] = True  # noqa
                         processed_count += 1
@@ -706,7 +712,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                             item_to_upload.file_size,
                         ) = await self.get_annotation(item_to_upload.path)
                         item_to_upload.file = io.StringIO()
-                        json.dump(annotation, item_to_upload.file)
+                        json.dump(annotation, item_to_upload.file, allow_nan=False)
                         item_to_upload.file.seek(0)
                         while True:
                             if item_to_upload.file_size > BIG_FILE_THRESHOLD:
@@ -784,7 +790,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         try:
             run_async(self.run_workers(items_to_upload))
         except Exception as e:
-            raise e
             logger.debug(e)
             self._response.errors = AppException("Can't upload annotations.")
         self.reporter.finish_progress()
@@ -977,7 +982,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
             )
             if not errors:
                 annotation_file = io.StringIO()
-                json.dump(annotation_json, annotation_file)
+                json.dump(annotation_json, annotation_file, allow_nan=False)
                 size = annotation_file.tell()
                 annotation_file.seek(0)
                 if size > BIG_FILE_THRESHOLD:
@@ -993,7 +998,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                     if not uploaded:
                         self._response.errors = constants.INVALID_JSON_MESSAGE
                 else:
-                    response = run_async(
+                    response: UploadAnnotationsResponse = run_async(
                         self._service_provider.annotations.upload_small_annotations(
                             project=self._project,
                             folder=self._folder,
@@ -1617,26 +1622,23 @@ class DownloadAnnotations(BaseReportableUseCase):
                 )
                 self._item_names = item_names
 
-    def validate_destination(self):
+    @property
+    def destination(self) -> str:
         if self._destination:
-            destination = str(self._destination)
-            if not os.path.exists(destination) or not os.access(
-                destination, os.X_OK | os.W_OK
-            ):
+            destination = Path(self._destination).expanduser()
+            try:
+                os.makedirs(destination, exist_ok=True)
+            except OSError:
                 raise AppException(
                     f"Local path {destination} is not an existing directory or access denied."
                 )
-
-    @property
-    def destination(self) -> Path:
-        return Path(self._destination if self._destination else "")
-
-    def get_postfix(self):
-        if self._project.type == constants.ProjectType.VECTOR:
-            return "___objects.json"
-        elif self._project.type == constants.ProjectType.PIXEL.value:
-            return "___pixel.json"
-        return ".json"
+            if not os.access(destination, os.X_OK | os.W_OK):
+                raise AppException(
+                    f"Local path {destination} is not an existing directory or access denied."
+                )
+            return str(destination)
+        else:
+            return os.getcwd()
 
     def download_annotation_classes(self, path: str):
         response = self._service_provider.annotation_classes.list(
@@ -1672,12 +1674,10 @@ class DownloadAnnotations(BaseReportableUseCase):
             item = await self._big_file_queue.get()
             self._big_file_queue.task_done()
             if item:
-                postfix = self.get_postfix()
                 await self._service_provider.annotations.download_big_annotation(
                     project=self._project,
                     item=item,
                     download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-                    postfix=postfix,
                     callback=self._callback,
                 )
             else:
@@ -1687,14 +1687,12 @@ class DownloadAnnotations(BaseReportableUseCase):
     async def download_small_annotations(
         self, item_ids: List[int], export_path, folder: FolderEntity
     ):
-        postfix = self.get_postfix()
         await self._service_provider.annotations.download_small_annotations(
             project=self._project,
             folder=folder,
             item_ids=item_ids,
             reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
-            postfix=postfix,
             callback=self._callback,
         )
 
@@ -1732,14 +1730,8 @@ class DownloadAnnotations(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            export_path = str(
-                self.destination
-                / Path(
-                    f"{self._project.name} {datetime.now().strftime('%B %d %Y %H_%M')}"
-                )
-            )
             logger.info(
-                f"Downloading the annotations of the requested items to {export_path}\nThis might take a while…"
+                f"Downloading the annotations of the requested items to {self.destination}\nThis might take a while…"
             )
             self.reporter.start_spinner()
             folders = []
@@ -1763,7 +1755,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                     items = get_or_raise(self._service_provider.items.list(condition))
                 if not items:
                     continue
-                new_export_path = export_path
+                new_export_path = self.destination
                 if not folder.is_root and self._folder.is_root:
                     new_export_path += f"/{folder.name}"
 
@@ -1788,8 +1780,8 @@ class DownloadAnnotations(BaseReportableUseCase):
                     self._response.errors = AppException("Can't get annotations.")
                     return self._response
             self.reporter.stop_spinner()
-            count = self.get_items_count(export_path)
+            count = self.get_items_count(self.destination)
             self.reporter.log_info(f"Downloaded annotations for {count} items.")
-            self.download_annotation_classes(export_path)
-            self._response.data = os.path.abspath(export_path)
+            self.download_annotation_classes(self.destination)
+            self._response.data = os.path.abspath(self.destination)
         return self._response

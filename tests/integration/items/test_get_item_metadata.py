@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from src.superannotate import SAClient
+from tests import compare_result
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -15,6 +16,20 @@ class TestGetEntityMetadataVector(BaseTestCase):
     CSV_PATH = "data_set/attach_urls.csv"
     IMAGE_NAME = "example_image_1.jpg"
     ATTACHED_IMAGE_NAME = "6022a74d5384c50017c366b3"
+    IGNORE_KEYS = {"id", "createdAt", "updatedAt"}
+    EXPECTED_ITEM_METADATA = {
+        "name": "example_image_1.jpg",
+        "path": "TestGetEntityMetadataVector",
+        "url": None,
+        "annotator_email": None,
+        "qa_email": None,
+        "annotation_status": "InProgress",
+        "entropy_value": None,
+        "prediction_status": "NotStarted",
+        "segmentation_status": None,
+        "approval_status": None,
+        "is_pinned": False,
+    }
 
     @property
     def folder_path(self):
@@ -30,10 +45,9 @@ class TestGetEntityMetadataVector(BaseTestCase):
         )
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)
         assert item_metadata["path"] == f"{self.PROJECT_NAME}"
-        assert item_metadata["prediction_status"] == "NotStarted"
-        assert item_metadata["segmentation_status"] is None
-        assert item_metadata["annotation_status"] == "InProgress"
-        assert item_metadata["approval_status"] is None
+        assert compare_result(
+            item_metadata, self.EXPECTED_ITEM_METADATA, self.IGNORE_KEYS
+        )
 
 
 class TestGetEntityMetadataPixel(BaseTestCase):

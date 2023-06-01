@@ -33,7 +33,7 @@ class TestAnnotationUploadVector(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, tmp_dir)
             annotation = json.load(
-                open(join(tmp_dir, f"{self.IMAGE_NAME}___objects.json"))
+                open(join(tmp_dir, f"{self.IMAGE_NAME}.json"))
             )
             for instance in annotation["instances"]:
                 self.assertEqual(instance["creationType"], "Preannotation")

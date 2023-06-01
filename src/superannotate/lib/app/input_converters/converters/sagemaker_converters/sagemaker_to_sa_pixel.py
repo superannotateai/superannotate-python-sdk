@@ -91,7 +91,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
 
             blue_colors = blue_color_generator(num_of_contours)
             idx = 0
-            file_name = "%s___pixel.json" % (img_mapping[mask_name])
+            file_name = f"{img_mapping[mask_name]}.json"
             sa_metadata = {"name": img_mapping[mask_name], "width": W, "height": H}
             sa_instances = []
             sa_mask = np.zeros((H, W, 4))

@@ -95,7 +95,6 @@ class StreamedAnnotations:
         method: str,
         url: str,
         download_path,
-        postfix,
         data: typing.List[int],
         params: dict = None,
     ):
@@ -119,16 +118,15 @@ class StreamedAnnotations:
                 )
                 self._store_annotation(
                     download_path,
-                    postfix,
                     annotation,
                     self._callback,
                 )
                 self._items_downloaded += 1
 
     @staticmethod
-    def _store_annotation(path, postfix, annotation: dict, callback: Callable = None):
+    def _store_annotation(path, annotation: dict, callback: Callable = None):
         os.makedirs(path, exist_ok=True)
-        with open(f"{path}/{annotation['metadata']['name']}{postfix}", "w") as file:
+        with open(f"{path}/{annotation['metadata']['name']}.json", "w") as file:
             annotation = callback(annotation) if callback else annotation
             json.dump(annotation, file)
 

@@ -97,7 +97,7 @@ class ItemService(BaseItemService):
             if not response.ok:
                 return response
             items.extend(response.data)
-        response.data = items
+        response.res_data = items
         return response
 
     def attach(

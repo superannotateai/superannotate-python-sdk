@@ -18,4 +18,25 @@ class TestSubSets(BaseTestCase):
         subset_data = []
         for i in item_names:
             subset_data.append({"name": i["name"], "path": self.PROJECT_NAME})
-        sa.add_items_to_subset(self.PROJECT_NAME, self.SUBSET_NAME, subset_data)
+        result = sa.add_items_to_subset(
+            self.PROJECT_NAME, self.SUBSET_NAME, subset_data
+        )
+        assert len(subset_data) == len(result["succeeded"])
+
+    def test_add_to_subset_with_duplicates_items(self):
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.attach_items(
+                self.PROJECT_NAME, [{"name": "earth_mov_001.jpg", "url": "url_1"}]
+            )  # noqa
+            item_metadata = sa.get_item_metadata(self.PROJECT_NAME, "earth_mov_001.jpg")
+            subset_data = [
+                {"name": "earth_mov_001.jpg", "path": self.PROJECT_NAME},
+                {"id": item_metadata["id"]},
+            ]
+            result = sa.add_items_to_subset(
+                self.PROJECT_NAME, self.SUBSET_NAME, subset_data
+            )
+            assert len(result["succeeded"]) == 1
+            assert (
+                "INFO:sa:Dropping duplicates. Found 1 / 2 unique items." == cm.output[2]
+            )

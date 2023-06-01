@@ -49,9 +49,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
                 }
             ],
         )
-        assert "is_multiselect" not in _class["attribute_groups"][0]
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
-        assert "is_multiselect" not in classes[0]["attribute_groups"][0]
         assert classes[0]["attribute_groups"][0]["default_value"] == "Bus"
 
     @pytest.mark.flaky(reruns=2)
@@ -64,7 +62,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
             attribute_groups=[
                 {
                     "name": "test",
-                    "is_multiselect": 1,
+                    "group_type": "checklist",
                     "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
                 }
             ],
@@ -139,7 +137,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                 {
                     "name": "Personal vehicle",
                     "color": "#ecb65f",
-                    "count": 25,
                     "createdAt": "2020-10-12T11:35:20.000Z",
                     "updatedAt": "2020-10-12T11:48:19.000Z",
                     "attribute_groups": [
@@ -158,7 +155,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
         )
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         assert classes[0]["attribute_groups"][0]["default_value"] is None
-        assert "is_multiselect" not in classes[0]["attribute_groups"][0]
 
     def test_class_creation_type(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -172,7 +168,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                           "project_id":7617,
                           "name":"Personal vehicle",
                           "color":"#547497",
-                          "count":18,
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "type": "tag",
@@ -181,7 +176,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                                 "id":21448,
                                 "class_id":56820,
                                 "name":"Large",
-                                "is_multiselect":0,
                                 "createdAt":"2020-09-29T10:39:39.000Z",
                                 "updatedAt":"2020-09-29T10:39:39.000Z",
                                 "attributes":[
@@ -190,7 +184,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                                       "group_id":21448,
                                       "project_id":7617,
                                       "name":"no",
-                                      "count":0,
                                       "createdAt":"2020-09-29T10:39:39.000Z",
                                       "updatedAt":"2020-09-29T10:39:39.000Z"
                                    },
@@ -199,7 +192,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                                       "group_id":21448,
                                       "project_id":7617,
                                       "name":"yes",
-                                      "count":1,
                                       "createdAt":"2020-09-29T10:39:39.000Z",
                                       "updatedAt":"2020-09-29T10:48:18.000Z"
                                    }
@@ -212,7 +204,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                           "project_id":7617,
                           "name":"Large vehicle",
                           "color":"#2ba36d",
-                          "count":1,
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "attribute_groups":[
@@ -220,7 +211,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                                 "id":21449,
                                 "class_id":56821,
                                 "name":"small",
-                                "is_multiselect":0,
                                 "createdAt":"2020-09-29T10:39:39.000Z",
                                 "updatedAt":"2020-09-29T10:39:39.000Z",
                                 "attributes":[
@@ -229,7 +219,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                                       "group_id":21449,
                                       "project_id":7617,
                                       "name":"yes",
-                                      "count":0,
                                       "createdAt":"2020-09-29T10:39:39.000Z",
                                       "updatedAt":"2020-09-29T10:39:39.000Z"
                                    },
@@ -238,7 +227,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                                       "group_id":21449,
                                       "project_id":7617,
                                       "name":"no",
-                                      "count":1,
                                       "createdAt":"2020-09-29T10:39:39.000Z",
                                       "updatedAt":"2020-09-29T10:48:18.000Z"
                                    }
@@ -251,7 +239,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                           "project_id":7617,
                           "name":"Pedestrian",
                           "color":"#d4da03",
-                          "count":3,
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "attribute_groups":[
@@ -263,7 +250,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                           "project_id":7617,
                           "name":"Two wheeled vehicle",
                           "color":"#f11aec",
-                          "count":1,
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "attribute_groups":[
@@ -275,7 +261,6 @@ class TestVectorAnnotationClasses(BaseTestCase):
                           "project_id":7617,
                           "name":"Traffic sign",
                           "color":"#d8a7fd",
-                          "count":9,
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "attribute_groups":[
@@ -311,7 +296,6 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                           "project_id":7617,
                           "name":"Personal vehicle",
                           "color":"#547497",
-                          "count":18,
                           "createdAt":"2020-09-29T10:39:39.000Z",
                           "updatedAt":"2020-09-29T10:48:18.000Z",
                           "type": "tag",
@@ -320,7 +304,6 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                                 "id":21448,
                                 "class_id":56820,
                                 "name":"Large",
-                                "is_multiselect":0,
                                 "createdAt":"2020-09-29T10:39:39.000Z",
                                 "updatedAt":"2020-09-29T10:39:39.000Z",
                                 "attributes":[]
@@ -354,7 +337,6 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                     "class_id": 56820,
                     "name": "Large",
                     "group_type": "ocr",
-                    "is_multiselect": 0,
                     "createdAt": "2020-09-29T10:39:39.000Z",
                     "updatedAt": "2020-09-29T10:39:39.000Z",
                     "attributes": [],

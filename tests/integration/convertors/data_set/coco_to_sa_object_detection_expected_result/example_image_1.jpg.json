@@ -1,0 +1,76 @@
+{
+  "instances": [
+    {
+      "type": "bbox",
+      "pointLabels": {},
+      "attributes": [],
+      "creationType": "Preannotation",
+      "points": {
+        "x1": 437.16,
+        "y1": 341.5,
+        "x2": 465.23,
+        "y2": 357.09
+      },
+      "className": "Personal vehicle"
+    },
+    {
+      "type": "bbox",
+      "pointLabels": {},
+      "attributes": [],
+      "creationType": "Preannotation",
+      "points": {
+        "x1": 480,
+        "y1": 340,
+        "x2": 490,
+        "y2": 350
+      },
+      "className": "Large vehicle"
+    },
+    {
+      "type": "bbox",
+      "pointLabels": {},
+      "attributes": [],
+      "creationType": "Preannotation",
+      "points": {
+        "x1": 500,
+        "y1": 340,
+        "x2": 510,
+        "y2": 350
+      },
+      "className": "Personal vehicle"
+    },
+    {
+      "type": "bbox",
+      "pointLabels": {},
+      "attributes": [],
+      "creationType": "Preannotation",
+      "points": {
+        "x1": 520,
+        "y1": 340,
+        "x2": 530,
+        "y2": 350
+      },
+      "className": "Personal vehicle"
+    },
+    {
+      "type": "bbox",
+      "pointLabels": {},
+      "attributes": [],
+      "creationType": "Preannotation",
+      "points": {
+        "x1": 240.68,
+        "y1": 378.93,
+        "x2": 304.61,
+        "y2": 410.11
+      },
+      "className": "Large vehicle"
+    }
+  ],
+  "metadata": {
+    "name": "example_image_1.jpg",
+    "width": 1024,
+    "height": 683
+  },
+  "tags": [],
+  "comments": []
+}

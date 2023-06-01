@@ -13,7 +13,6 @@ _________________________________________________________________
 .. autofunction:: superannotate.import_annotation
 .. autofunction:: superannotate.export_annotation
 .. autofunction:: superannotate.convert_project_type
-.. autofunction:: superannotate.convert_json_version
 
 ----------
 

@@ -75,7 +75,7 @@ def yolo_object_detection_to_sa_vector(data_path, output_dir):
             sa_instances.append(sa_obj.copy())
 
         images_converted.append(annotation.name)
-        file_name = "%s___objects.json" % Path(file_name).name
+        file_name = f"{Path(file_name).name}.json"
         sa_metadata = {"name": Path(file_name).name, "width": W, "height": H}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)

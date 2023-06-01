@@ -90,7 +90,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
         cv2.imwrite(str(output_dir / ("%s___save.png" % annot["file_name"])), img)
 
         images_converted.append(annot["file_name"])
-        file_name = "%s___pixel.json" % annot["file_name"]
+        file_name = f"{annot['file_name']}.json"
         sa_metadata = {
             "name": annot_name,
             "width": img_id_to_shape[str(annot["image_id"])]["width"],
@@ -138,7 +138,7 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, output_dir):
     logger.info("Converting to SuperAnnotate JSON format")
     tqdm_thread.start()
     for id_, annotations in images_dict.items():
-        file_name = "%s___pixel.json" % annotations["file_name"]
+        file_name = f"{annotations['file_name']}.json"
         hexcolors = blue_color_generator(len(annotations["annotations"]))
         mask = np.zeros(annotations["shape"])
         H, W, _ = mask.shape

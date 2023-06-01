@@ -1,0 +1,220 @@
+{
+    "info": {
+        "description": "This is dataset.",
+        "url": "https://superannotate.ai",
+        "version": "1.0",
+        "year": 2023,
+        "contributor": "Superannotate AI",
+        "date_created": "25/05/2023"
+    },
+    "licenses": [
+        {
+            "url": "https://superannotate.ai",
+            "id": 1,
+            "name": "Superannotate AI"
+        }
+    ],
+    "images": [
+        {
+            "id": 1,
+            "file_name": "example_image_1.jpg",
+            "height": 683,
+            "width": 1024,
+            "license": 1
+        },
+        {
+            "id": 2,
+            "file_name": "example_image_2.jpg",
+            "height": 1060,
+            "width": 1885,
+            "license": 1
+        },
+        {
+            "id": 3,
+            "file_name": "example_image_3.jpg",
+            "height": 675,
+            "width": 1200,
+            "license": 1
+        },
+        {
+            "id": 4,
+            "file_name": "example_image_4.jpg",
+            "height": 382,
+            "width": 680,
+            "license": 1
+        }
+    ],
+    "annotations": [
+        {
+            "id": 1,
+            "image_id": 1,
+            "segmentation": [
+                [
+                    437.16,
+                    341.5,
+                    437.16,
+                    357.09,
+                    465.23,
+                    357.09,
+                    465.23,
+                    341.5
+                ]
+            ],
+            "iscrowd": 0,
+            "bbox": [
+                437.16,
+                341.5,
+                28.069999999999993,
+                15.589999999999975
+            ],
+            "area": 437,
+            "category_id": 1611841
+        },
+        {
+            "id": 2,
+            "image_id": 1,
+            "segmentation": [
+                [
+                    480,
+                    340,
+                    480,
+                    350,
+                    490,
+                    350,
+                    490,
+                    340
+                ]
+            ],
+            "iscrowd": 0,
+            "bbox": [
+                480,
+                340,
+                10,
+                10
+            ],
+            "area": 100,
+            "category_id": 1611842
+        },
+        {
+            "id": 3,
+            "image_id": 1,
+            "segmentation": [
+                [
+                    500,
+                    340,
+                    500,
+                    350,
+                    510,
+                    350,
+                    510,
+                    340
+                ]
+            ],
+            "iscrowd": 0,
+            "bbox": [
+                500,
+                340,
+                10,
+                10
+            ],
+            "area": 100,
+            "category_id": 1611841
+        },
+        {
+            "id": 4,
+            "image_id": 1,
+            "segmentation": [
+                [
+                    520,
+                    340,
+                    520,
+                    350,
+                    530,
+                    350,
+                    530,
+                    340
+                ]
+            ],
+            "iscrowd": 0,
+            "bbox": [
+                520,
+                340,
+                10,
+                10
+            ],
+            "area": 100,
+            "category_id": 1611841
+        },
+        {
+            "id": 5,
+            "image_id": 1,
+            "segmentation": [
+                [
+                    240.68,
+                    378.93,
+                    240.68,
+                    410.11,
+                    304.61,
+                    410.11,
+                    304.61,
+                    378.93
+                ]
+            ],
+            "iscrowd": 0,
+            "bbox": [
+                240.68,
+                378.93,
+                63.93000000000001,
+                31.180000000000007
+            ],
+            "area": 1993,
+            "category_id": 1611842
+        }
+    ],
+    "categories": [
+        {
+            "id": 1611841,
+            "name": "Personal vehicle",
+            "supercategory": "Personal vehicle",
+            "isthing": 1,
+            "color": [
+                65,
+                152,
+                24
+            ]
+        },
+        {
+            "id": 1611842,
+            "name": "Large vehicle",
+            "supercategory": "Large vehicle",
+            "isthing": 1,
+            "color": [
+                66,
+                152,
+                24
+            ]
+        },
+        {
+            "id": 1611843,
+            "name": "Human",
+            "supercategory": "Human",
+            "isthing": 1,
+            "color": [
+                67,
+                152,
+                24
+            ]
+        },
+        {
+            "id": 1611844,
+            "name": "Plant",
+            "supercategory": "Plant",
+            "isthing": 1,
+            "color": [
+                68,
+                152,
+                24
+            ]
+        }
+    ]
+}
