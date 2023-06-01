@@ -38,7 +38,7 @@ Authentication
 
 
 config.ini example
----------------
+------------------
 .. code-block:: python
 
     [DEFAULT]
