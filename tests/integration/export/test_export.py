@@ -106,4 +106,4 @@ class TestExportImport(TestCase):
             Bucket=self.TEST_S3_BUCKET, Prefix=self.TMP_DIR
         ).get("Contents", []):
             files.append(object_data["Key"])
-        self.assertEqual(13, len(files))
+        self.assertEqual(33, len(files))
