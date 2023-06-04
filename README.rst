@@ -18,7 +18,7 @@ Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enable
 Resources
 ---------------
 
-- API Reference and User Guide available on `Read the Docs <https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html>`__
+- API Reference and User Guide available on `Read the Docs <https://superannotate.readthedocs.io/en/stable/index.html>`__
 - `Platform documentation <https://doc.superannotate.com/>`__
 
 
@@ -33,8 +33,18 @@ Authentication
     # by token
     sa_client = SAClient(token='<team token>')
     # by config file
-    # default path is ~/.superannotate/config.json
-    sa_client = SAClient(config_path='~/.superannotate/dev_config.json')
+    # default path is ~/.superannotate/config.ini
+    sa_client = SAClient(config_path='~/.superannotate/dev_config.ini')
+
+
+config.ini example
+------------------
+.. code-block:: python
+
+    [DEFAULT]
+    SA_TOKEN = <Token>
+    LOGGING_LEVEL = INFO
+
 
 Using superannotate
 -------------------

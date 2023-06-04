@@ -1,20 +1,23 @@
 """
 Main module for input converters
 """
+import os
+import shutil
+import tempfile
 from argparse import Namespace
 from pathlib import Path
+from typing import Union
 
 from lib.app.exceptions import AppException
 from lib.app.interface.base_interface import Tracker
-from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ProjectType
+from typing_extensions import Literal
 
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
-from .sa_conversion import degrade_json
 from .sa_conversion import sa_convert_project_type
-from .sa_conversion import upgrade_json
+
 
 ALLOWED_TASK_TYPES = [
     "panoptic_segmentation",
@@ -135,6 +138,16 @@ def _passes_converter_sanity(args, direction):
         )
 
 
+def change_file_extensions(directory, old_extension, new_extension):
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        if os.path.isfile(file_path) and filename.endswith(old_extension):
+            if file_path.endswith(new_extension):
+                continue
+            new_file_path = os.path.splitext(file_path)[0] + new_extension
+            os.rename(file_path, new_file_path)
+
+
 @Tracker
 def export_annotation(
     input_dir,
@@ -208,19 +221,28 @@ def export_annotation(
         ),
     ]
     _passes_value_sanity(values_info)
-
-    args = Namespace(
-        input_dir=input_dir,
-        output_dir=output_dir,
-        dataset_format=dataset_format,
-        dataset_name=dataset_name,
-        project_type=project_type,
-        task=task,
-    )
-
-    _passes_converter_sanity(args, "export")
-
-    export_from_sa(args)
+    if project_type == "Vector":
+        extension = "___objects.json"
+    elif project_type == "Pixel":
+        extension = "___pixel.json"
+    else:
+        extension = ".json"
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        args = Namespace(
+            input_dir=Path(tmp_dir),
+            output_dir=output_dir,
+            dataset_format=dataset_format,
+            dataset_name=dataset_name,
+            project_type=project_type,
+            task=task,
+        )
+        shutil.copytree(input_dir, tmp_dir, dirs_exist_ok=True)
+        for _path in os.listdir(tmp_dir):
+            if os.path.isdir(_path) and not _path.endswith("classes"):
+                change_file_extensions(_path, ".json", extension)
+            change_file_extensions(tmp_dir, ".json", extension)
+        _passes_converter_sanity(args, "export")
+        export_from_sa(args)
 
 
 @Tracker
@@ -408,63 +430,26 @@ def import_annotation(
 
 
 @Tracker
-def convert_project_type(input_dir, output_dir):
+def convert_project_type(
+    input_dir: Union[str, Path],
+    output_dir: Union[str, Path],
+    convert_to: Literal["Vector", "Pixel"],
+):
     """Converts SuperAnnotate 'Vector' project type to 'Pixel' or reverse.
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: Pathlike(str or Path)
     :param output_dir: Path to the folder where you want to have converted files.
     :type output_dir: Pathlike(str or Path)
-
+    :param convert_to: the project type to which the current project should be converted.
+    :type convert_to: str
     """
     params_info = [
         (input_dir, "input_dir", (str, Path)),
         (output_dir, "output_dir", (str, Path)),
     ]
     _passes_type_sanity(params_info)
-    json_paths = list(Path(str(input_dir)).glob("*.json"))
-    if (
-        json_paths
-        and "___pixel.json" not in json_paths[0].name
-        and "___objects.json" not in json_paths[0].name
-    ):
-        raise AppException(DEPRICATED_DOCUMENT_VIDEO_MESSAGE)
 
     input_dir, output_dir = _change_type(input_dir, output_dir)
 
-    sa_convert_project_type(input_dir, output_dir)
-
-
-@Tracker
-def convert_json_version(input_dir, output_dir, version=2):
-    """
-    Converts SuperAnnotate JSON versions. Newest JSON version is 2.
-
-    :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: Pathlike(str or Path)
-    :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: Pathlike(str or Path)
-    :param version: Output version number. Currently is either 1 or 2. Default value is 2. It will upgrade version 1 to  version 2. Set 1 to degrade from version 2 to version 1.
-    :type version: int
-
-    :return: List of converted files
-    :rtype: list
-    """
-
-    params_info = [
-        (input_dir, "input_dir", (str, Path)),
-        (output_dir, "output_dir", (str, Path)),
-        (version, "version", int),
-    ]
-    _passes_type_sanity(params_info)
-    input_dir, output_dir = _change_type(input_dir, output_dir)
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    if version == 2:
-        converted_files = upgrade_json(input_dir, output_dir)
-    elif version == 1:
-        converted_files = degrade_json(input_dir, output_dir)
-    else:
-        raise AppException("'version' is either 1 or 2.")
-
-    return converted_files
+    sa_convert_project_type(input_dir, output_dir, convert_to)

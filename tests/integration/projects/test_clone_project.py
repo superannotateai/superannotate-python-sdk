@@ -20,12 +20,10 @@ class TestCloneProject(TestCase):
     ANNOTATION_CLASSES = [
         {
             "name": "tall",
-            "is_multiselect": 0,
             "attributes": [{"name": "yes"}, {"name": "no"}],
         },
         {
             "name": "age",
-            "is_multiselect": 0,
             "attributes": [{"name": "young"}, {"name": "old"}],
         },
     ]
@@ -151,12 +149,10 @@ class TestCloneProjectAttachedUrls(TestCase):
             [
                 {
                     "name": "tall",
-                    "is_multiselect": 0,
                     "attributes": [{"name": "yes"}, {"name": "no"}],
                 },
                 {
                     "name": "age",
-                    "is_multiselect": 0,
                     "attributes": [{"name": "young"}, {"name": "old"}],
                 },
             ],

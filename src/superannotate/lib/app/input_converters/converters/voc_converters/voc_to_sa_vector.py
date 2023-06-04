@@ -119,7 +119,7 @@ def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
 
         images_converted.append(filename)
         file_name, height, width = _get_image_metadata(annotation_dir / filename.name)
-        file_path = f"{file_name}___objects.json"
+        file_path = f"{file_name}.json"
         sa_metadata = {"name": str(filename), "height": height, "width": width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_path, sa_json)
@@ -162,7 +162,7 @@ def voc_object_detection_to_sa_vector(voc_root, output_dir):
 
         images_converted.append(filename)
         file_name, height, width = _get_image_metadata(annotation_dir / filename.name)
-        file_path = f"{file_name}___objects.json"
+        file_path = f"{file_name}.json"
         sa_metadata = {"name": str(filename), "height": height, "width": width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_path, sa_json)

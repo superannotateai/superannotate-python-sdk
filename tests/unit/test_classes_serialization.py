@@ -50,14 +50,16 @@ class TestClassesSerializers(TestCase):
         annotation_class = AnnotationClassEntity(
             name="asd",
             color="blue",
-            attribute_groups=[AttributeGroup(name="sad", is_multiselect="True")],
+            attribute_groups=[
+                AttributeGroup(name="sad", is_multiselect="True")
+            ],  # noqa
         )
         serializer_data = json.loads(json.dumps(annotation_class, cls=PydanticEncoder))
         assert {
             "type": 1,
             "name": "asd",
             "color": "#0000FF",
-            "attribute_groups": [{"name": "sad", "is_multiselect": True}],
+            "attribute_groups": [{"name": "sad"}],
         } == serializer_data
 
     def test_group_type_wrong_arg(self):
@@ -66,7 +68,9 @@ class TestClassesSerializers(TestCase):
                 name="asd",
                 color="blue",
                 attribute_groups=[
-                    AttributeGroup(name="sad", is_multiselect=True, group_type="asd")
+                    AttributeGroup(
+                        name="sad", is_multiselect=True, group_type="asd"
+                    )  # noqa
                 ],
             )
         except ValidationError as e:

@@ -1,0 +1,324 @@
+{
+  "metadata": {
+    "name": "5025_9.mp4",
+    "duration": 5000000,
+    "width": 1920,
+    "height": 1080,
+    "lastAction": {
+      "timestamp": 1681813520356,
+      "email": "sa.partner.prp+adm1@gmail.com"
+    },
+    "projectId": 128088,
+    "url": "short/batch_3/5025_9.mp4",
+    "status": "Completed",
+    "error": false,
+    "annotatorEmail": null,
+    "qaEmail": null
+  },
+  "instances": [
+    {
+      "meta": {
+        "type": "polygon",
+        "classId": 1566620,
+        "className": "Ball",
+        "createdBy": {
+          "email": "sa.partner.prp+2@gmail.com",
+          "role": "Annotator"
+        },
+        "createdAt": "2023-04-06T10:07:55.274Z",
+        "updatedBy": {
+          "email": "sa.partner.prp+adm1@gmail.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2023-04-18T10:25:05.287Z",
+        "start": 2000001,
+        "end": 4000001
+      },
+      "parameters": [
+        {
+          "start": 2000001,
+          "end": 4000001,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "id": 2692752,
+                  "groupId": 686902,
+                  "name": "1",
+                  "groupName": "id"
+                },
+                {
+                  "id": 2692780,
+                  "groupId": 686904,
+                  "name": "true",
+                  "groupName": "ball_blur"
+                },
+                {
+                  "id": 2692843,
+                  "groupId": 686915,
+                  "name": "grass",
+                  "groupName": "background"
+                }
+              ],
+              "points": [
+                680.57,
+                364.6,
+                673.09,
+                363.17,
+                666.72,
+                364.05,
+                662.54,
+                368.89,
+                662.1,
+                372.19,
+                662.21,
+                375.71,
+                666.06,
+                380.44,
+                671.45,
+                383.19,
+                680.9,
+                382.86,
+                685.74,
+                380.66,
+                687.61,
+                376.04,
+                687.5,
+                370.65,
+                684.97,
+                366.47
+              ],
+              "timestamp": 2000001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 2692752,
+                  "groupId": 686902,
+                  "name": "1",
+                  "groupName": "id"
+                },
+                {
+                  "id": 2692780,
+                  "groupId": 686904,
+                  "name": "true",
+                  "groupName": "ball_blur"
+                },
+                {
+                  "id": 2692843,
+                  "groupId": 686915,
+                  "name": "grass",
+                  "groupName": "background"
+                }
+              ],
+              "points": [
+                673.18,
+                362.78,
+                665.7,
+                361.35,
+                659.33,
+                362.23,
+                655.15,
+                367.07,
+                654.71,
+                370.37,
+                654.82,
+                373.89,
+                658.67,
+                378.62,
+                664.06,
+                381.37,
+                673.51,
+                381.04,
+                678.35,
+                378.84,
+                680.22,
+                374.22,
+                680.11,
+                368.83,
+                677.58,
+                364.65
+              ],
+              "timestamp": 3000001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 2692752,
+                  "groupId": 686902,
+                  "name": "1",
+                  "groupName": "id"
+                },
+                {
+                  "id": 2692780,
+                  "groupId": 686904,
+                  "name": "true",
+                  "groupName": "ball_blur"
+                },
+                {
+                  "id": 2692843,
+                  "groupId": 686915,
+                  "name": "grass",
+                  "groupName": "background"
+                }
+              ],
+              "points": [
+                665.55,
+                362.2,
+                658.07,
+                360.77,
+                651.7,
+                361.65,
+                647.52,
+                366.49,
+                647.08,
+                369.79,
+                647.89,
+                373.18,
+                651.08,
+                377.14,
+                656.57,
+                380.21,
+                663.5,
+                379.53,
+                668.99,
+                378.19,
+                671.66,
+                374.35,
+                671.96,
+                369.47,
+                669.6,
+                365.11
+              ],
+              "timestamp": 4000001
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "tag",
+        "classId": 1566629,
+        "className": "env_condition",
+        "createdBy": {
+          "email": "sa.partner.prp+2@gmail.com",
+          "role": "Annotator"
+        },
+        "createdAt": "2023-04-06T10:08:26.320Z",
+        "updatedBy": {
+          "email": "sa.partner.prp+2@gmail.com",
+          "role": "Annotator"
+        },
+        "updatedAt": "2023-04-06T10:08:26.320Z",
+        "attributes": []
+      }
+    },
+    {
+      "meta": {
+        "type": "polygon",
+        "classId": 1566621,
+        "className": "Occlusion",
+        "createdBy": {
+          "email": "sa.partner.prp+adm1@gmail.com",
+          "role": "Admin"
+        },
+        "createdAt": "2023-04-18T10:25:10.356Z",
+        "updatedBy": {
+          "email": "sa.partner.prp+adm1@gmail.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2023-04-18T10:25:20.310Z",
+        "start": 4000001,
+        "end": 4000002
+      },
+      "parameters": [
+        {
+          "start": 4000001,
+          "end": 4000002,
+          "timestamps": [
+            {
+              "attributes": [
+                {
+                  "id": 2692782,
+                  "groupId": 686905,
+                  "name": "1",
+                  "groupName": "id"
+                },
+                {
+                  "id": 2692805,
+                  "groupId": 686909,
+                  "name": "true",
+                  "groupName": "1 frame"
+                }
+              ],
+              "points": [
+                654.26,
+                357.05,
+                654.85,
+                361.75,
+                651.91,
+                366.86,
+                651.41,
+                370.38,
+                652.58,
+                371.47,
+                655.68,
+                370.29,
+                659.04,
+                365.18,
+                662.39,
+                361.41,
+                662.39,
+                358.9,
+                661.13,
+                357.56
+              ],
+              "timestamp": 4000001
+            },
+            {
+              "attributes": [
+                {
+                  "id": 2692782,
+                  "groupId": 686905,
+                  "name": "1",
+                  "groupName": "id"
+                },
+                {
+                  "id": 2692805,
+                  "groupId": 686909,
+                  "name": "true",
+                  "groupName": "1 frame"
+                }
+              ],
+              "points": [
+                654.26,
+                357.05,
+                654.85,
+                361.75,
+                651.91,
+                366.86,
+                651.41,
+                370.38,
+                652.58,
+                371.47,
+                655.68,
+                370.29,
+                659.04,
+                365.18,
+                662.39,
+                361.41,
+                662.39,
+                358.9,
+                661.13,
+                357.56
+              ],
+              "timestamp": 4000002
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tags": []
+}

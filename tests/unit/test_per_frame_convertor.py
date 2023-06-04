@@ -8,6 +8,12 @@ from tests import DATA_SET_PATH
 
 class TestConvertor(TestCase):
     ANNOTATION_PATH = os.path.join(DATA_SET_PATH, "unit", "video_annotation.json")
+    CUSTOM_CASE_5_FRAME_ANNOTATION_PATH = os.path.join(
+        DATA_SET_PATH, "unit", "annotation_5_frame.json"
+    )
+    CUSTOM_CASE_5_FRAME_EXPECTED_ANNOTATION_PATH = os.path.join(
+        DATA_SET_PATH, "unit", "annotation_5_frame_expected.json"
+    )
     ONE_FRAME_ANNOTATION_PATH = os.path.join(
         DATA_SET_PATH, "unit", "one_frame_video_annotation.json"
     )
@@ -95,3 +101,10 @@ class TestConvertor(TestCase):
     #     generator = VideoFrameGenerator(payload, fps=10)
     #     data = [i for i in generator]
     #     assert data
+
+    def test_custom_case_5_frame(self):
+        payload = json.load(open(self.CUSTOM_CASE_5_FRAME_ANNOTATION_PATH))
+        generator = VideoFrameGenerator(payload, fps=1)
+        data = [i for i in generator]
+        expected = json.load(open(self.CUSTOM_CASE_5_FRAME_EXPECTED_ANNOTATION_PATH))
+        assert expected == data
