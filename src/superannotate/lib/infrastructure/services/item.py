@@ -50,6 +50,7 @@ class ItemService(BaseItemService):
 
         response = self.client.request(
             url=self.URL_GET_BY_ID.format(image_id=item_id),
+            method="get",
             params=params,
             content_type=content_type,
         )

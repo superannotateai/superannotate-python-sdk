@@ -298,8 +298,7 @@ class FolderManager(BaseManager):
             team_id=team_id,
             service_provider=self.service_provider,
         )
-        result = use_case.execute()
-        return result
+        return use_case.execute()
 
     def list(self, project: ProjectEntity, condition: Condition = None):
         use_case = usecases.SearchFoldersUseCase(
@@ -868,31 +867,26 @@ class Controller(BaseController):
         cls.DEFAULT = obj
         return cls.DEFAULT
 
-    def get_folder_by_id(self, folder_id: int, project_id: int) -> FolderEntity:
+    def get_folder_by_id(self, folder_id: int, project_id: int):
         response = self.folders.get_by_id(
             folder_id=folder_id, project_id=project_id, team_id=self.team_id
         )
+        return response
 
-        if response.errors:
-            raise AppException(response.errors)
-
-        return response.data
-
-    def get_project_by_id(self, project_id: int) -> ProjectEntity:
+    def get_project_by_id(self, project_id: int):
         response = self.projects.get_by_id(project_id=project_id)
         if response.errors:
             raise AppException(response.errors)
 
-        return response.data
+        return response
 
-    def get_item_by_id(self, item_id: int, project_id: int):
-        project = self.get_project_by_id(project_id=project_id)
+    def get_item_by_id(self, item_id: int, project: ProjectEntity):
         response = self.items.get_by_id(item_id=item_id, project=project)
 
         if response.errors:
             raise AppException(response.errors)
 
-        return response.data
+        return response
 
     def get_project_folder_by_path(
         self, path: Union[str, Path]
