@@ -32,12 +32,12 @@ class GetProjectByIDUseCase(BaseUseCase):
 
             self._response.data = self._service_provider.projects.get_by_id(
                 project_id=self._project_id
-            )
+            ).data
 
         except AppException as e:
             self._response.errors = e
         else:
-            if not self._response.data.data:
+            if not self._response.data:
                 self._response.errors = AppException(
                     "Either the specified project does not exist or you do not have permission to view it"
                 )

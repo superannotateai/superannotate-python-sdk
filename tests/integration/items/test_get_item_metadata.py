@@ -49,6 +49,15 @@ class TestGetEntityMetadataVector(BaseTestCase):
             item_metadata, self.EXPECTED_ITEM_METADATA, self.IGNORE_KEYS
         )
 
+    def test_get_item_by_id(self):
+        project_metadata = sa.get_project_metadata(self.PROJECT_NAME)
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)
+        item_by_id = sa.get_item_by_id(project_metadata["id"], item_metadata["id"])
+        assert item_by_id["name"] == self.IMAGE_NAME
+
 
 class TestGetEntityMetadataPixel(BaseTestCase):
     PROJECT_NAME = "TestGetEntityMetadataPixel"

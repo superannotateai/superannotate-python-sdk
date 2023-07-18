@@ -156,8 +156,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.get_folder_by_id(
             folder_id=folder_id, project_id=project_id
         )
-
-        return FolderSerializer(response).serialize(
+        response.raise_for_status()
+        return FolderSerializer(response.data).serialize(
             exclude={"completedCount", "is_root"}
         )
 
@@ -173,12 +173,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: item metadata
         :rtype: dict
         """
-
+        project_response = self.controller.get_project_by_id(project_id=project_id)
+        project_response.raise_for_status()
         response = self.controller.get_item_by_id(
-            item_id=item_id, project_id=project_id
+            item_id=item_id, project=project_response.data
         )
 
-        return ItemSerializer(response).serialize(exclude={"url", "meta"})
+        return ItemSerializer(response.data).serialize(exclude={"url", "meta"})
 
     def get_team_metadata(self):
         """Returns team metadata

@@ -15,7 +15,7 @@ class FolderService(BaseFolderService):
     URL_ASSIGN_FOLDER = "folder/editAssignment"
     URL_GET_BY_ID = "folder/getFolderById"
 
-    def get_by_id(self, folder_id, project_id, team_id):
+    def get_by_id(self, folder_id, project_id, team_id) -> FolderResponse:
         params = {"team_id": team_id, "folder_id": folder_id, "project_id": project_id}
         response = self.client.request(
             self.URL_GET_BY_ID, "get", params=params, content_type=FolderResponse

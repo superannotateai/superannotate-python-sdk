@@ -42,3 +42,8 @@ class TestGetProjectMetadata(BaseTestCase):
         assert compare_result(
             projects[0], self.EXPECTED_PROJECT_METADATA, self.IGNORE_KEYS
         )
+
+    def test_get_project_by_id(self):
+        project_metadata = sa.get_project_metadata(self.PROJECT_NAME)
+        project_by_id = sa.get_project_by_id(project_metadata["id"])
+        assert project_by_id["name"] == self.PROJECT_NAME
