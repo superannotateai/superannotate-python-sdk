@@ -25,13 +25,6 @@ It can be installed on Ubuntu with:
 
    sudo apt-get install ffmpeg
 
-To use the :py:obj:`consensus` function on Windows and Mac platforms, you might also need to install the shapely package
-beforehand. The package works well only under the Anaconda distribution with:
-
-.. code-block:: bash
-
-   conda install shapely
-
 ----------
 
 

@@ -24,8 +24,3 @@ ________________________
 .. automethod:: superannotate.SAClient.aggregate_annotations_as_df
 
 ----------
-
-Utility functions
---------------------------------
-
-.. autofunction:: superannotate.SAClient.consensus
