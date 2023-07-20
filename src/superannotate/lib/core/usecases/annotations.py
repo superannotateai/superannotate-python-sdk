@@ -591,13 +591,20 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         )
         return annotation
 
+    @staticmethod
+    def get_mask_path(path: str) -> str:
+        if path.endswith(constants.PIXEL_ANNOTATION_POSTFIX):
+            replacement = constants.PIXEL_ANNOTATION_POSTFIX
+        else:
+            replacement = ".json"
+        parts = path.rsplit(replacement, 1)
+        return constants.ANNOTATION_MASK_POSTFIX.join(parts)
+
     async def get_annotation(
         self, path: str
     ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
         mask = None
-        mask_path = path.replace(
-            constants.PIXEL_ANNOTATION_POSTFIX, constants.ANNOTATION_MASK_POSTFIX
-        )
+        mask_path = self.get_mask_path(path)
         if self._client_s3_bucket:
             content = self.get_annotation_from_s3(self._client_s3_bucket, path).read()
             if self._project.type == constants.ProjectType.PIXEL.value:

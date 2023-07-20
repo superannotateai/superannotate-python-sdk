@@ -22,5 +22,3 @@ ________________________
 .. _ref_aggregate_annotations_as_df:
 .. automethod:: superannotate.SAClient.validate_annotations
 .. automethod:: superannotate.SAClient.aggregate_annotations_as_df
-
-----------
