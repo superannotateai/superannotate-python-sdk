@@ -756,6 +756,7 @@ class UploadImageToProject(BaseUseCase):
             self._auth_data.data["secretAccessKey"],
             self._auth_data.data["sessionToken"],
             self._auth_data.data["bucket"],
+            self._auth_data.data["region"],
         )
 
     def validate_project_type(self):
@@ -952,6 +953,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 self.auth_data["secretAccessKey"],
                 self.auth_data["sessionToken"],
                 self.auth_data["bucket"],
+                self.auth_data["region"],
             )
         return self._s3_repo_instance
 
