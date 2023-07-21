@@ -153,6 +153,36 @@ USE_VALIDATE_MESSAGE = (
 
 INVALID_JSON_MESSAGE = "Invalid json"
 
+PROJECT_SETTINGS_VALID_ATTRIBUTES = [
+    "Brightness",
+    "Fill",
+    "Contrast",
+    "ShowLabels",
+    "ShowComments",
+    "Image",
+    "Lines",
+    "AnnotatorFinish",
+    "PointSize",
+    "FontSize",
+    "WorkflowEnable",
+    "ClassChange",
+    "ShowEntropy",
+    "UploadImages",
+    "DeleteImages",
+    "Download",
+    "RunPredictions",
+    "RunSegmentations",
+    "ImageQuality",
+    "ImageAutoAssignCount",
+    "FrameMode",
+    "FrameRate",
+    "JumpBackward",
+    "JumpForward",
+    "UploadFileType",
+    "Tokenization",
+    "ImageAutoAssignEnable",
+]
+
 __alL__ = (
     FolderStatus,
     ProjectStatus,

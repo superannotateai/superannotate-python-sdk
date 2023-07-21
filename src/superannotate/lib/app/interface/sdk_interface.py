@@ -1514,10 +1514,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         to_s3_bucket=None,
     ):
         """Download prepared export.
-
-        WARNING: Starting from version 1.9.0 :ref:`download_export <ref_download_export>` additionally
-        requires :py:obj:`project` as first argument.
-
         :param project: project name
         :type project: str
         :param export: export name

@@ -36,11 +36,13 @@ class BaseS3Repository(BaseManageableRepository):
         secret_key: str,
         session_token: str,
         bucket: str,
+        region: str,
     ):
         self._session = boto3.Session(
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             aws_session_token=session_token,
+            region_name=region,
         )
 
         self._resource = self._session.resource("s3")

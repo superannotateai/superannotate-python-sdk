@@ -214,6 +214,7 @@ class AnnotationClassManager(BaseManager):
             auth_data["secretAccessKey"],
             auth_data["sessionToken"],
             auth_data["bucket"],
+            auth_data["region"],
         )
 
     def create(self, project: ProjectEntity, annotation_class: AnnotationClassEntity):
