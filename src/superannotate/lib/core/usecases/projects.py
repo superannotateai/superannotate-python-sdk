@@ -32,12 +32,12 @@ class GetProjectByIDUseCase(BaseUseCase):
 
             self._response.data = self._service_provider.projects.get_by_id(
                 project_id=self._project_id
-            )
+            ).data
 
         except AppException as e:
             self._response.errors = e
         else:
-            if not self._response.data.data:
+            if not self._response.data:
                 self._response.errors = AppException(
                     "Either the specified project does not exist or you do not have permission to view it"
                 )
@@ -177,7 +177,7 @@ class CreateProjectUseCase(BaseUseCase):
 
     def validate_settings(self):
         for setting in self._project.settings[:]:
-            if setting.attribute == "WorkflowType":
+            if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
                 self._project.settings.remove(setting)
             if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
                 setting.value = constances.ImageQuality.get_value(setting.value)
@@ -335,6 +335,39 @@ class UpdateProjectUseCase(BaseUseCase):
         self._project = project
         self._service_provider = service_provider
 
+    def validate_settings(self):
+        for setting in self._project.settings[:]:
+            if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
+                self._project.settings.remove(setting)
+            if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
+                setting.value = constances.ImageQuality.get_value(setting.value)
+            elif setting.attribute == "FrameRate":
+                if not self._project.type == constances.ProjectType.VIDEO.value:
+                    raise AppValidationException(
+                        "FrameRate is available only for Video projects"
+                    )
+                try:
+                    setting.value = float(setting.value)
+                    if (
+                        not (0.0001 < setting.value < 120)
+                        or decimal.Decimal(str(setting.value)).as_tuple().exponent < -3
+                    ):
+                        raise AppValidationException(
+                            "The FrameRate value range is between 0.001 - 120"
+                        )
+                    frame_mode = next(
+                        filter(
+                            lambda x: x.attribute == "FrameMode", self._project.settings
+                        ),
+                        None,
+                    )
+                    if not frame_mode:
+                        self._project.settings.append(
+                            SettingEntity(attribute="FrameMode", value=1)
+                        )
+                except ValueError:
+                    raise AppValidationException("The FrameRate value should be float")
+
     def validate_project_name(self):
         if self._project.name:
             if (
@@ -488,13 +521,17 @@ class UpdateSettingsUseCase(BaseUseCase):
 
             new_settings_to_update = []
             for new_setting in self._to_update:
-                new_settings_to_update.append(
-                    SettingEntity(
-                        id=attr_id_mapping[new_setting["attribute"]],
-                        attribute=new_setting["attribute"],
-                        value=new_setting["value"],
+                if (
+                    new_setting["attribute"]
+                    in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES
+                ):
+                    new_settings_to_update.append(
+                        SettingEntity(
+                            id=attr_id_mapping[new_setting["attribute"]],
+                            attribute=new_setting["attribute"],
+                            value=new_setting["value"],
+                        )
                     )
-                )
 
             response = self._service_provider.projects.set_settings(
                 project=self._project,
