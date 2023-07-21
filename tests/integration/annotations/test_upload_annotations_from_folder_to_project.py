@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 
 from src.superannotate import SAClient
@@ -122,3 +123,48 @@ class TestExportUploadVector(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
         assert len(uploaded) == 1
+
+
+class TestExportUploadPixel(BaseTestCase):
+    PROJECT_NAME = "Test-TestExportUploadPixel"
+    PROJECT_DESCRIPTION = "Desc"
+    PROJECT_TYPE = "PIXEL"
+    TEST_FOLDER_PATH = "data_set/sample_explore_export_pixel"
+    ITEM_NAME = "file_example.jpg"
+
+    @property
+    def data_set(self):
+        return Path(__file__).parent.parent.parent
+
+    @property
+    def folder_path(self):
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
+
+    def test_annotation_folder_upload_download(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sa.attach_items(
+                self.PROJECT_NAME,
+                [{"name": self.ITEM_NAME, "url": "url_"}],
+            )
+            sa.create_annotation_classes_from_classes_json(
+                self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+            )
+            uploaded, _, _ = sa.upload_annotations_from_folder_to_project(
+                self.PROJECT_NAME, self.folder_path
+            )
+            assert len(uploaded) == 1
+            export_name = sa.prepare_export(self.PROJECT_NAME)["name"]
+            sa.download_export(
+                project=self.PROJECT_NAME, export=export_name, folder_path=tmpdir
+            )
+            list_dir = os.listdir(tmpdir)
+            assert f"{self.ITEM_NAME}___save.png" in list_dir
+            assert f"{self.ITEM_NAME}.json" in list_dir
+            assert "classes" in list_dir
+
+            with open(f"{tmpdir}/{self.ITEM_NAME}___save.png", "rb") as f1, open(
+                f"{self.folder_path}/{self.ITEM_NAME}___save.png", "rb"
+            ) as f2:
+                contents1 = f1.read()
+                contents2 = f2.read()
+                assert contents1 == contents2
