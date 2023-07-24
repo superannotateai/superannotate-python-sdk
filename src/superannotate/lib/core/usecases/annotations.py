@@ -707,6 +707,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                     "annotation_bluemap_path"
                 ],
                 Body=item_data.mask,
+                ContentType="image/jpeg",
             )
 
     async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
