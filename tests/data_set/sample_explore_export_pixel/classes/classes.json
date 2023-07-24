@@ -1,1 +1,35 @@
-[{"id": 4991071, "project_id": 533166, "name": "cat3", "color": "#d08e91", "count": 0, "type": "object", "createdAt": "2023-07-20T12:58:35.000Z", "updatedAt": "2023-07-20T12:58:35.000Z", "attribute_groups": []}, {"id": 4991070, "project_id": 533166, "name": "cat2", "color": "#1c09ea", "count": 0, "type": "object", "createdAt": "2023-07-20T12:58:30.000Z", "updatedAt": "2023-07-20T12:58:30.000Z", "attribute_groups": []}, {"id": 4991069, "project_id": 533166, "name": "cat 1", "color": "#e23787", "count": 0, "type": "object", "createdAt": "2023-07-20T12:58:24.000Z", "updatedAt": "2023-07-20T12:58:24.000Z", "attribute_groups": []}]
+[
+  {
+    "id": 4991071,
+    "project_id": 533166,
+    "name": "cat3",
+    "color": "#d08e91",
+    "count": 0,
+    "type": "object",
+    "createdAt": "2023-07-20T12:58:35.000Z",
+    "updatedAt": "2023-07-20T12:58:35.000Z",
+    "attribute_groups": []
+  },
+  {
+    "id": 4991070,
+    "project_id": 533166,
+    "name": "cat2",
+    "color": "#1c09ea",
+    "count": 0,
+    "type": "object",
+    "createdAt": "2023-07-20T12:58:30.000Z",
+    "updatedAt": "2023-07-20T12:58:30.000Z",
+    "attribute_groups": []
+  },
+  {
+    "id": 4991069,
+    "project_id": 533166,
+    "name": "cat 1",
+    "color": "#e23787",
+    "count": 0,
+    "type": "object",
+    "createdAt": "2023-07-20T12:58:24.000Z",
+    "updatedAt": "2023-07-20T12:58:24.000Z",
+    "attribute_groups": []
+  }
+]

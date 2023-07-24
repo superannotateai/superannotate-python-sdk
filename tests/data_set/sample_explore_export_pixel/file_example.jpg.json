@@ -1,1 +1,81 @@
-{"metadata": {"height": 560, "width": 1440, "name": "Hero Pedigree Cats.jpg", "lastAction": {"email": "narekm@superannotate.com", "timestamp": 1689857925400}, "projectId": 533166, "isPredicted": false, "isSegmented": false, "status": "Completed", "pinned": false, "annotatorEmail": null, "qaEmail": null}, "instances": [{"classId": 4991070, "probability": 100, "visible": true, "attributes": [], "parts": [{"color": "#00005a"}], "error": null, "locked": false, "createdAt": "2023-07-20T12:59:49.061Z", "createdBy": {"email": "narekm@superannotate.com", "role": "Admin"}, "creationType": "Manual", "updatedAt": "2023-07-20T13:00:00.234Z", "updatedBy": {"email": "narekm@superannotate.com", "role": "Admin"}, "className": "cat2"}, {"classId": 4991069, "probability": 100, "visible": true, "attributes": [], "parts": [{"color": "#00000f"}, {"color": "#00001e"}, {"color": "#00002d"}, {"color": "#00003c"}], "error": null, "locked": false, "createdAt": "2023-07-20T12:59:02.464Z", "createdBy": {"email": "narekm@superannotate.com", "role": "Admin"}, "creationType": "Manual", "updatedAt": "2023-07-20T12:59:38.786Z", "updatedBy": {"email": "narekm@superannotate.com", "role": "Admin"}, "className": "cat 1"}], "comments": [], "tags": []}
+{
+  "metadata": {
+    "height": 560,
+    "width": 1440,
+    "name": "Hero Pedigree Cats.jpg",
+    "lastAction": {
+      "email": "narekm@superannotate.com",
+      "timestamp": 1689857925400
+    },
+    "projectId": 533166,
+    "isPredicted": false,
+    "isSegmented": false,
+    "status": "Completed",
+    "pinned": false,
+    "annotatorEmail": null,
+    "qaEmail": null
+  },
+  "instances": [
+    {
+      "classId": 4991070,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00005a"
+        }
+      ],
+      "error": null,
+      "locked": false,
+      "createdAt": "2023-07-20T12:59:49.061Z",
+      "createdBy": {
+        "email": "narekm@superannotate.com",
+        "role": "Admin"
+      },
+      "creationType": "Manual",
+      "updatedAt": "2023-07-20T13:00:00.234Z",
+      "updatedBy": {
+        "email": "narekm@superannotate.com",
+        "role": "Admin"
+      },
+      "className": "cat2"
+    },
+    {
+      "classId": 4991069,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00000f"
+        },
+        {
+          "color": "#00001e"
+        },
+        {
+          "color": "#00002d"
+        },
+        {
+          "color": "#00003c"
+        }
+      ],
+      "error": null,
+      "locked": false,
+      "createdAt": "2023-07-20T12:59:02.464Z",
+      "createdBy": {
+        "email": "narekm@superannotate.com",
+        "role": "Admin"
+      },
+      "creationType": "Manual",
+      "updatedAt": "2023-07-20T12:59:38.786Z",
+      "updatedBy": {
+        "email": "narekm@superannotate.com",
+        "role": "Admin"
+      },
+      "className": "cat 1"
+    }
+  ],
+  "comments": [],
+  "tags": []
+}
