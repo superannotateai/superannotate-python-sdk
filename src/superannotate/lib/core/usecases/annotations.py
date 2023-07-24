@@ -612,7 +612,10 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         else:
             async with aiofiles.open(path, encoding="utf-8") as file:
                 content = await file.read()
-            if self._project.type == constants.ProjectType.PIXEL.value:
+            if (
+                self._project.type == constants.ProjectType.PIXEL.value
+                and os.path.exists(mask_path)
+            ):
                 async with aiofiles.open(mask_path, "rb") as mask:
                     mask = await mask.read()
         if not isinstance(content, bytes):
@@ -698,7 +701,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         return self._s3_bucket
 
     def _upload_mask(self, item_data: ItemToUpload):
-        if self._project.type == constants.ProjectType.PIXEL.value:
+        if self._project.type == constants.ProjectType.PIXEL.value and item_data.mask:
             self.s3_bucket.put_object(
                 Key=self.annotation_upload_data.images[item_data.item.id][
                     "annotation_bluemap_path"
