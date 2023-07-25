@@ -306,6 +306,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             raise ValidationError("Unsupported project type.")
 
     def _validate_json(self, json_data: dict) -> list:
+        if self._project.type >= constants.ProjectType.PIXEL.value:
+            return []
         use_case = ValidateAnnotationUseCase(
             reporter=self.reporter,
             team_id=self._project.team_id,
@@ -571,7 +573,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     def prepare_annotation(self, annotation: dict, size) -> dict:
         errors = None
-        if size < BIG_FILE_THRESHOLD:
+        if size < BIG_FILE_THRESHOLD and self._project.type < constants.ProjectType.PIXEL.value:
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
                 team_id=self._project.team_id,
