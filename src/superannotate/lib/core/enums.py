@@ -93,6 +93,7 @@ class ProjectType(BaseTitledEnum):
     TILED = "Tiled", 5
     OTHER = "Other", 6
     POINT_CLOUD = "PointCloud", 7
+    CUSTOM_EDITOR = "CustomEditor", 8
 
     @classproperty
     def images(self):
