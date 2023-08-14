@@ -72,7 +72,7 @@ NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 PROJECT_TYPE = Literal[
-    "Vector", "Pixel", "Video", "Document", "Tiled", "Other", "PointCloud"
+    "Vector", "Pixel", "Video", "Document", "Tiled", "Other", "PointCloud", "CustomEditor"
 ]
 
 CLASS_TYPE = Literal["object", "tag"]

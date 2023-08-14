@@ -94,6 +94,8 @@ class ProjectType(BaseTitledEnum):
     OTHER = "Other", 6
     POINT_CLOUD = "PointCloud", 7
     CUSTOM_EDITOR = "CustomEditor", 8
+    UNSUPPORTED_TYPE_1 = "UnsupportedType", 9
+    UNSUPPORTED_TYPE_2 = "UnsupportedType", 10
 
     @classproperty
     def images(self):
