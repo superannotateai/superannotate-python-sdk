@@ -176,7 +176,10 @@ class TestProject(BaseTestCase):
             for json_in_folder in self.folder_path.glob("*.json"):
                 found = False
                 for json_in_project in Path(temp_dir).glob("*.json"):
-                    if json_in_folder.name == json_in_project.name:
+                    if (
+                        json_in_folder.name.replace("___pixel", "")
+                        == json_in_project.name
+                    ):
                         found = True
                         break
                 assert found, json_in_folder

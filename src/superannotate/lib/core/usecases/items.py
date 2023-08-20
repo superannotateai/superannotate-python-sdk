@@ -45,21 +45,18 @@ class GetItemByIDUseCase(BaseUseCase):
     def execute(
         self,
     ):
-
         try:
             response = self._service_provider.items.get_by_id(
                 item_id=self._item_id,
                 project_id=self._project.id,
                 project_type=self._project.type,
             )
+            if not response.ok:
+                self._response.errors = response.error
         except AppException as e:
             self._response.errors = e
         else:
             self._response.data = response.data
-
-        if not response.ok:
-            self._response.errors = response.error
-
         return self._response
 
 

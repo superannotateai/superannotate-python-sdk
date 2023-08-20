@@ -306,6 +306,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             raise ValidationError("Unsupported project type.")
 
     def _validate_json(self, json_data: dict) -> list:
+        if self._project.type >= constants.ProjectType.PIXEL.value:
+            return []
         use_case = ValidateAnnotationUseCase(
             reporter=self.reporter,
             team_id=self._project.team_id,
@@ -571,7 +573,10 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     def prepare_annotation(self, annotation: dict, size) -> dict:
         errors = None
-        if size < BIG_FILE_THRESHOLD:
+        if (
+            size < BIG_FILE_THRESHOLD
+            and self._project.type < constants.ProjectType.PIXEL.value
+        ):
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
                 team_id=self._project.team_id,
@@ -591,13 +596,20 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         )
         return annotation
 
+    @staticmethod
+    def get_mask_path(path: str) -> str:
+        if path.endswith(constants.PIXEL_ANNOTATION_POSTFIX):
+            replacement = constants.PIXEL_ANNOTATION_POSTFIX
+        else:
+            replacement = ".json"
+        parts = path.rsplit(replacement, 1)
+        return constants.ANNOTATION_MASK_POSTFIX.join(parts)
+
     async def get_annotation(
         self, path: str
     ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
         mask = None
-        mask_path = path.replace(
-            constants.PIXEL_ANNOTATION_POSTFIX, constants.ANNOTATION_MASK_POSTFIX
-        )
+        mask_path = self.get_mask_path(path)
         if self._client_s3_bucket:
             content = self.get_annotation_from_s3(self._client_s3_bucket, path).read()
             if self._project.type == constants.ProjectType.PIXEL.value:
@@ -605,7 +617,10 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         else:
             async with aiofiles.open(path, encoding="utf-8") as file:
                 content = await file.read()
-            if self._project.type == constants.ProjectType.PIXEL.value:
+            if (
+                self._project.type == constants.ProjectType.PIXEL.value
+                and os.path.exists(mask_path)
+            ):
                 async with aiofiles.open(mask_path, "rb") as mask:
                     mask = await mask.read()
         if not isinstance(content, bytes):
@@ -691,12 +706,13 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         return self._s3_bucket
 
     def _upload_mask(self, item_data: ItemToUpload):
-        if self._project.type == constants.ProjectType.PIXEL.value:
+        if self._project.type == constants.ProjectType.PIXEL.value and item_data.mask:
             self.s3_bucket.put_object(
                 Key=self.annotation_upload_data.images[item_data.item.id][
                     "annotation_bluemap_path"
                 ],
                 Body=item_data.mask,
+                ContentType="image/jpeg",
             )
 
     async def distribute_queues(self, items_to_upload: List[ItemToUpload]):

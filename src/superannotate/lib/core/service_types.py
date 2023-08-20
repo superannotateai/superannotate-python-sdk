@@ -15,11 +15,17 @@ class Limit(BaseModel):
     max_image_count: Optional[int]
     remaining_image_count: int
 
+    class Config:
+        extra = Extra.ignore
+
 
 class UserLimits(BaseModel):
     user_limit: Optional[Limit]
     project_limit: Limit
     folder_limit: Limit
+
+    class Config:
+        extra = Extra.ignore
 
 
 class UploadAnnotationAuthData(BaseModel):
@@ -80,11 +86,17 @@ class UploadAnnotations(BaseModel):
     failed_items: List[str] = Field([], alias="failedItems")
     missing_resources: Resource = Field({}, alias="missingResources")
 
+    class Config:
+        extra = Extra.ignore
+
 
 class UploadCustomFieldValues(BaseModel):
     succeeded_items: Optional[List[Any]]
     failed_items: Optional[List[str]]
     error: Optional[Any]
+
+    class Config:
+        extra = Extra.ignore
 
 
 class ServiceResponse(BaseModel):
