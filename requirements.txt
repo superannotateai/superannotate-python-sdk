@@ -10,7 +10,7 @@ ffmpeg-python~=0.2
 pillow~=9.5
 aiofiles==23.1.0
 requests==2.31.0
-tqdm==4.64.0
+tqdm~=4.64.0
 fire==0.4.0
 mixpanel==4.8.3
 jsonschema==3.2.0
