@@ -157,6 +157,7 @@ class AnnotationStatus(BaseTitledEnum):
 class ClassTypeEnum(BaseTitledEnum):
     OBJECT = "object", 1
     TAG = "tag", 2
+    RELATIONSHIP = "relationship", 3
 
     @classmethod
     def get_value(cls, name):

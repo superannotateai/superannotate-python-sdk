@@ -573,7 +573,10 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     def prepare_annotation(self, annotation: dict, size) -> dict:
         errors = None
-        if size < BIG_FILE_THRESHOLD and self._project.type < constants.ProjectType.PIXEL.value:
+        if (
+            size < BIG_FILE_THRESHOLD
+            and self._project.type < constants.ProjectType.PIXEL.value
+        ):
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
                 team_id=self._project.team_id,

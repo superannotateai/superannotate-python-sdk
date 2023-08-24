@@ -28,5 +28,16 @@
         ]
       }
     ]
+  },
+  {
+    "id": 5175192,
+    "project_id": 555040,
+    "name": "apple",
+    "color": "#bafbcd",
+    "count": 0,
+    "type": "relationship",
+    "createdAt": "2023-08-24T14:45:13.000Z",
+    "updatedAt": "2023-08-24T14:45:13.000Z",
+    "attribute_groups": []
   }
 ]
