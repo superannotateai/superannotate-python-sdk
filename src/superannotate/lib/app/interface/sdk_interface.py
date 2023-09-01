@@ -55,6 +55,8 @@ from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.enums import ImageQuality
+from lib.core.enums import ProjectType
+from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
 from lib.core.types import MLModel
 from lib.core.types import PriorityScoreEntity
@@ -72,10 +74,15 @@ NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 PROJECT_TYPE = Literal[
-    "Vector", "Pixel", "Video", "Document", "Tiled", "Other", "PointCloud", "CustomEditor"
+    "Vector",
+    "Pixel",
+    "Video",
+    "Document",
+    "Tiled",
+    "Other",
+    "PointCloud",
+    "CustomEditor",
 ]
-
-CLASS_TYPE = Literal["object", "tag"]
 
 ANNOTATION_STATUS = Literal[
     "NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"
@@ -1310,7 +1317,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         name: NotEmptyStr,
         color: NotEmptyStr,
         attribute_groups: Optional[List[AttributeGroup]] = None,
-        class_type: CLASS_TYPE = "object",
+        class_type: str = "object",
     ):
         """Create annotation class in project
 
@@ -1331,7 +1338,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
               -  "name"
         :type attribute_groups: list of dicts
 
-        :param class_type: class type. Should be either "object" or "tag"
+        :param class_type: class type. Should be either "object" or "tag". Document project type can also have "relationship" type of classes.
         :type class_type: str
 
         :return: new class metadata
@@ -1405,6 +1412,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         except ValidationError as e:
             raise AppException(wrap_error(e))
         project = self.controller.projects.get_by_name(project).data
+        if (
+            project.type != ProjectType.DOCUMENT
+            and annotation_class.type == ClassTypeEnum.RELATIONSHIP
+        ):
+            raise AppException(
+                f"{annotation_class.type.name} class type is not supported in {project.type.name} project."
+            )
         response = self.controller.annotation_classes.create(
             project=project, annotation_class=annotation_class
         )
