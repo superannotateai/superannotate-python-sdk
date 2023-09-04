@@ -19,12 +19,13 @@ from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.serviceproviders import BaseAnnotationService
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from pydantic import parse_obj_as
+from superannotate.lib.infrastructure.services.http_client import AIOHttpSession
 
 logger = logging.getLogger("sa")
 
 
 class AnnotationService(BaseAnnotationService):
-    ASSETS_PROVIDER_VERSION = "v2.01"
+    ASSETS_PROVIDER_VERSION = "v3.01"
     DEFAULT_CHUNK_SIZE = 5000
 
     URL_GET_ANNOTATIONS = "items/annotations/download"
@@ -71,13 +72,12 @@ class AnnotationService(BaseAnnotationService):
             self.assets_provider_url,
             self.URL_START_FILE_SYNC.format(item_id=item_id),
         )
-        async with aiohttp.ClientSession(
+        async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,
-            raise_for_status=True,
         ) as session:
-            await session.post(sync_url, params=sync_params)
-
+            _response = await session.request("post", sync_url, params=sync_params)
+            _response.raise_for_status()
             sync_params.pop("current_source")
             sync_params.pop("desired_source")
 
@@ -115,12 +115,12 @@ class AnnotationService(BaseAnnotationService):
             team_id=project.team_id, project_id=project.id, item_id=item.id
         )
 
-        async with aiohttp.ClientSession(
+        async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,
-            raise_for_status=True,
         ) as session:
-            start_response = await session.post(url, params=query_params)
+            start_response = await session.request("post", url, params=query_params)
+            start_response.raise_for_status()
             large_annotation = await start_response.json()
 
         reporter.update_progress()
@@ -198,12 +198,12 @@ class AnnotationService(BaseAnnotationService):
             team_id=project.team_id, project_id=project.id, item_id=item_id
         )
 
-        async with aiohttp.ClientSession(
+        async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,
-            raise_for_status=True,
         ) as session:
-            start_response = await session.post(url, params=query_params)
+            start_response = await session.request("post", url, params=query_params)
+            start_response.raise_for_status()
             res = await start_response.json()
             Path(download_path).mkdir(exist_ok=True, parents=True)
 
@@ -257,10 +257,9 @@ class AnnotationService(BaseAnnotationService):
 
         headers = copy.copy(self.client.default_headers)
         del headers["Content-Type"]
-        async with aiohttp.ClientSession(
+        async with AIOHttpSession(
             headers=headers,
             connector=aiohttp.TCPConnector(ssl=False),
-            raise_for_status=True,
         ) as session:
             data = aiohttp.FormData(quote_fields=False)
             for key, file in items_name_file_map.items():
@@ -272,15 +271,12 @@ class AnnotationService(BaseAnnotationService):
                     content_type="application/json",
                 )
 
-            _response = await session.post(
-                url,
-                params={
-                    "team_id": project.team_id,
-                    "project_id": project.id,
-                    "folder_id": folder.id,
-                },
-                data=data,
-            )
+            params = {
+                "team_id": project.team_id,
+                "project_id": project.id,
+                "folder_id": folder.id,
+            }
+            _response = await session.request("post", url, params=params, data=data)
             if not _response.ok:
                 logger.debug(f"Status code {str(_response.status)}")
                 logger.debug(await _response.text())
@@ -301,23 +297,20 @@ class AnnotationService(BaseAnnotationService):
         data: io.StringIO,
         chunk_size: int,
     ) -> bool:
-        async with aiohttp.ClientSession(
+        async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,
-            raise_for_status=True,
         ) as session:
             params = {
                 "team_id": project.team_id,
                 "project_id": project.id,
                 "folder_id": folder.id,
             }
-            start_response = await session.post(
-                urljoin(
-                    self.assets_provider_url,
-                    self.URL_START_FILE_UPLOAD_PROCESS.format(item_id=item_id),
-                ),
-                params=params,
+            url = urljoin(
+                self.assets_provider_url,
+                self.URL_START_FILE_UPLOAD_PROCESS.format(item_id=item_id),
             )
+            start_response = await session.request("post", url, params=params)
             if not start_response.ok:
                 raise AppException(str(await start_response.text()))
             process_info = await start_response.json()
