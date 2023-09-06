@@ -1528,6 +1528,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         to_s3_bucket=None,
     ):
         """Download prepared export.
+
         :param project: project name
         :type project: str
         :param export: export name
@@ -1535,7 +1536,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param folder_path: where to download the export
         :type folder_path: Path-like (str or Path)
         :param extract_zip_contents: if False then a zip file will be downloaded,
-        if True the zip file will be extracted at folder_path
+         if True the zip file will be extracted at folder_path
         :type extract_zip_contents: bool
         :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
         :type to_s3_bucket: Bucket object
