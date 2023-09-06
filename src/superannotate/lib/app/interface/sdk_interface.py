@@ -1535,7 +1535,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param folder_path: where to download the export
         :type folder_path: Path-like (str or Path)
         :param extract_zip_contents: if False then a zip file will be downloaded,
-         if True the zip file will be extracted at folder_path
+        if True the zip file will be extracted at folder_path
         :type extract_zip_contents: bool
         :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
         :type to_s3_bucket: Bucket object
@@ -2534,6 +2534,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                    “Completed”
                                    “Skipped”
         :type annotation_status: str
+
+        :return: uploaded, failed and duplicated item names
+        :rtype: tuple of list of strs
         """
 
         project_name, folder_name = extract_project_folder(project)
