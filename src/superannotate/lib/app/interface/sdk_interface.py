@@ -2520,6 +2520,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                    “Completed”
                                    “Skipped”
         :type annotation_status: str
+
+        :return: uploaded, failed and duplicated item names
+        :rtype: tuple of list of strs
         """
 
         project_name, folder_name = extract_project_folder(project)
