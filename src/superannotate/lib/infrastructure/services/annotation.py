@@ -162,8 +162,8 @@ class AnnotationService(BaseAnnotationService):
         response = self.client.request(
             url=urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE),
             method="POST",
-            params={"project_id": project.id, "limit": len(item_ids)},
-            data={"item_ids": item_ids},
+            params={"limit": len(item_ids)},
+            data={"project_id": project.id, "item_ids": item_ids},
         )
         if not response.ok:
             raise AppException(response.error)
@@ -246,12 +246,12 @@ class AnnotationService(BaseAnnotationService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items_name_file_map: Dict[str, io.StringIO],
+        items_name_data_map: Dict[str, dict],
     ) -> UploadAnnotationsResponse:
         url = urljoin(
             self.assets_provider_url,
             (
-                f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_file_map.keys())}"
+                f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_data_map.keys())}"
             ),
         )
 
@@ -261,12 +261,19 @@ class AnnotationService(BaseAnnotationService):
             headers=headers,
             connector=aiohttp.TCPConnector(ssl=False),
         ) as session:
-            data = aiohttp.FormData(quote_fields=False)
-            for key, file in items_name_file_map.items():
-                file.seek(0)
-                data.add_field(
+            form_data = aiohttp.FormData(
+                quote_fields=False,
+            )
+            tmp = {}
+            for name, data in items_name_data_map.items():
+                tmp[name] = io.StringIO()
+                json.dump({"data": data}, tmp[name], allow_nan=False)
+                tmp[name].seek(0)
+
+            for key, data in tmp.items():
+                form_data.add_field(
                     key,
-                    bytes(file.read(), "ascii"),
+                    data,
                     filename=key,
                     content_type="application/json",
                 )
@@ -276,7 +283,9 @@ class AnnotationService(BaseAnnotationService):
                 "project_id": project.id,
                 "folder_id": folder.id,
             }
-            _response = await session.request("post", url, params=params, data=data)
+            _response = await session.request(
+                "post", url, params=params, data=form_data
+            )
             if not _response.ok:
                 logger.debug(f"Status code {str(_response.status)}")
                 logger.debug(await _response.text())
@@ -324,7 +333,8 @@ class AnnotationService(BaseAnnotationService):
                 params["chunk_id"] = chunk_id
                 if chunk:
                     data_sent = True
-                    response = await session.post(
+                    response = await session.request(
+                        "post",
                         urljoin(
                             self.assets_provider_url,
                             self.URL_START_FILE_SEND_PART.format(item_id=item_id),
@@ -341,7 +351,8 @@ class AnnotationService(BaseAnnotationService):
                 if len(chunk) < chunk_size:
                     break
             del params["chunk_id"]
-            response = await session.post(
+            response = await session.request(
+                "post",
                 urljoin(
                     self.assets_provider_url,
                     self.URL_START_FILE_SEND_FINISH.format(item_id=item_id),
@@ -352,7 +363,8 @@ class AnnotationService(BaseAnnotationService):
             if not response.ok:
                 raise AppException(str(await response.text()))
             del params["path"]
-            response = await session.post(
+            response = await session.request(
+                "post",
                 urljoin(
                     self.assets_provider_url,
                     self.URL_START_FILE_SYNC.format(item_id=item_id),
@@ -363,7 +375,8 @@ class AnnotationService(BaseAnnotationService):
             if not response.ok:
                 raise AppException(str(await response.text()))
             while True:
-                response = await session.get(
+                response = await session.request(
+                    "get",
                     urljoin(
                         self.assets_provider_url,
                         self.URL_START_FILE_SYNC_STATUS.format(item_id=item_id),
