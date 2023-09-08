@@ -382,3 +382,24 @@ class TestPixelCreateAnnotationClass(BaseTestCase):
                     }
                 ],
             )
+
+
+class TestDocumentAnnotationClasses(BaseTestCase):
+    PROJECT_NAME = "TestDocumentAnnotationClasses"
+    PROJECT_DESCRIPTION = "desc"
+    PROJECT_TYPE = "Document"
+
+    def test_document_project_create_annotation_class_search(self):
+        sa.create_annotation_class(
+            self.PROJECT_NAME, name="tt", color="#FFFFFF", class_type="relationship"
+        )
+        classes = sa.search_annotation_classes(self.PROJECT_NAME)
+        self.assertEqual(len(classes), 1)
+        self.assertEqual(classes[0]["type"], "relationship")
+        self.assertEqual(classes[0]["color"], "#FFFFFF")
+        sa.create_annotation_class(self.PROJECT_NAME, name="tb", color="#FFFFFF")
+        #  test search
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "bb")
+        self.assertEqual(len(classes), 0)
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "tt")
+        self.assertEqual(len(classes), 1)

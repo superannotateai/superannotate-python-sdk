@@ -1,9 +1,15 @@
+from itertools import islice
 from pathlib import Path
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
 from superannotate.lib.app.exceptions import PathError
+
+
+def divide_to_chunks(it, size):
+    it = iter(it)
+    return iter(lambda: tuple(islice(it, size)), ())
 
 
 def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:

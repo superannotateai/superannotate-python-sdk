@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import platform
@@ -10,6 +11,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 
+import aiohttp
 import pydantic
 import requests
 from lib.core.exceptions import AppException
@@ -213,3 +215,20 @@ class HttpClient(BaseClient):
             data["res_error"] = response.content
             data["reason"] = response.reason
             return content_type(**data)
+
+
+class AIOHttpSession(aiohttp.ClientSession):
+    RETRY_STATUS_CODES = [401, 403, 502, 503, 504]
+    RETRY_LIMIT = 3
+    BACKOFF_FACTOR = 0.3
+
+    async def request(self, *args, **kwargs) -> aiohttp.ClientResponse:
+        attempts = self.RETRY_LIMIT
+        delay = 0
+        for _ in range(attempts):
+            delay += self.BACKOFF_FACTOR
+            attempts -= 1
+            response = await super()._request(*args, **kwargs)
+            if response.status not in self.RETRY_STATUS_CODES or not attempts:
+                return response
+            await asyncio.sleep(delay)
