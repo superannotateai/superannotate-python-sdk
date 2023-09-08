@@ -6,6 +6,7 @@ from typing import Callable
 
 import aiohttp
 from lib.core.reporter import Reporter
+from superannotate.lib.infrastructure.services.http_client import AIOHttpSession
 
 _seconds = 2**10
 TIMEOUT = aiohttp.ClientTimeout(
@@ -39,7 +40,7 @@ class StreamedAnnotations:
     async def fetch(
         self,
         method: str,
-        session: aiohttp.ClientSession,
+        session: AIOHttpSession,
         url: str,
         data: dict = None,
         params: dict = None,
@@ -47,9 +48,7 @@ class StreamedAnnotations:
         kwargs = {"params": params, "json": {"folder_id": params.pop("folder_id")}}
         if data:
             kwargs["json"].update(data)
-        response = await session._request(  # noqa
-            method, url, **kwargs, timeout=TIMEOUT
-        )
+        response = await session.request(method, url, **kwargs, timeout=TIMEOUT)  # noqa
         buffer = b""
         async for line in response.content.iter_any():
             slices = (buffer + line).split(self.DELIMITER)
@@ -71,7 +70,7 @@ class StreamedAnnotations:
         params = copy.copy(params)
         params["limit"] = len(data)
         annotations = []
-        async with aiohttp.ClientSession(
+        async with AIOHttpSession(
             headers=self._headers,
             timeout=TIMEOUT,
             connector=aiohttp.TCPConnector(ssl=verify_ssl, keepalive_timeout=2**32),
@@ -100,7 +99,7 @@ class StreamedAnnotations:
     ):
         params = copy.copy(params)
         params["limit"] = len(data)
-        async with aiohttp.ClientSession(
+        async with AIOHttpSession(
             headers=self._headers,
             timeout=TIMEOUT,
             connector=aiohttp.TCPConnector(ssl=False, keepalive_timeout=2**32),

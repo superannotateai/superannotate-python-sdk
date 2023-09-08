@@ -47,6 +47,7 @@ from lib.core.serviceproviders import UploadAnnotationsResponse
 from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.video_convertor import VideoFrameGenerator
+from lib.infrastructure.utils import divide_to_chunks
 from pydantic import BaseModel
 
 logger = logging.getLogger("sa")
@@ -119,11 +120,6 @@ def get_or_raise(response: ServiceResponse):
         raise AppException(response.error)
 
 
-def divide_to_chunks(it, size):
-    it = iter(it)
-    return iter(lambda: tuple(islice(it, size)), ())
-
-
 def log_report(
     report: Report,
 ):
@@ -148,7 +144,6 @@ class ItemToUpload(BaseModel):
     item: BaseItemEntity
     annotation_json: Optional[dict]
     path: Optional[str]
-    file: Optional[io.StringIO]
     file_size: Optional[int]
     mask: Optional[io.BytesIO]
 
@@ -186,7 +181,7 @@ async def upload_small_annotations(
     report: Report,
     callback: Callable = None,
 ):
-    async def upload(_chunk):
+    async def upload(_chunk: List[ItemToUpload]):
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
             [],
             [],
@@ -197,7 +192,7 @@ async def upload_small_annotations(
             response = await service_provider.annotations.upload_small_annotations(
                 project=project,
                 folder=folder,
-                items_name_file_map={i.item.name: i.file for i in chunk},
+                items_name_data_map={i.item.name: i.annotation_json for i in chunk},
             )
             if response.ok:
                 if response.data.failed_items:  # noqa
@@ -221,9 +216,9 @@ async def upload_small_annotations(
             reporter.update_progress(len(chunk))
 
     _size = 0
-    chunk = []
+    chunk: List[ItemToUpload] = []
     while True:
-        item_data = await queue.get()
+        item_data: ItemToUpload = await queue.get()
         queue.task_done()
         if not item_data:
             queue.put_nowait(None)
@@ -253,11 +248,14 @@ async def upload_big_annotations(
 ):
     async def _upload_big_annotation(item_data: ItemToUpload) -> Tuple[str, bool]:
         try:
+            buff = io.StringIO()
+            json.dump(item_data.annotation_json, buff, allow_nan=False)
+            buff.seek(0)
             is_uploaded = await service_provider.annotations.upload_big_annotation(
                 project=project,
                 folder=folder,
                 item_id=item_data.item.id,
-                data=item_data.file,
+                data=buff,
                 chunk_size=5 * 1024 * 1024,
             )
             if is_uploaded and callback:
@@ -335,15 +333,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             for idx, (item_to_upload, processed) in enumerate(data):
                 if not processed:
                     try:
-                        item_to_upload.file = io.StringIO()
+                        file = io.StringIO()
                         json.dump(
                             item_to_upload.annotation_json,
-                            item_to_upload.file,
+                            file,
                             allow_nan=False,
                         )
-                        item_to_upload.file.seek(0, os.SEEK_END)
-                        item_to_upload.file_size = item_to_upload.file.tell()
-                        item_to_upload.file.seek(0)
+                        file.seek(0, os.SEEK_END)
+                        item_to_upload.file_size = file.tell()
                         while True:
                             if item_to_upload.file_size > BIG_FILE_THRESHOLD:
                                 if self._big_files_queue.qsize() > 32:
@@ -723,13 +720,10 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 if not processed:
                     try:
                         (
-                            annotation,
+                            item_to_upload.annotation_json,
                             item_to_upload.mask,
                             item_to_upload.file_size,
                         ) = await self.get_annotation(item_to_upload.path)
-                        item_to_upload.file = io.StringIO()
-                        json.dump(annotation, item_to_upload.file, allow_nan=False)
-                        item_to_upload.file.seek(0)
                         while True:
                             if item_to_upload.file_size > BIG_FILE_THRESHOLD:
                                 if self._big_files_queue.qsize() > 32:
@@ -1018,7 +1012,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                         self._service_provider.annotations.upload_small_annotations(
                             project=self._project,
                             folder=self._folder,
-                            items_name_file_map={self._image.name: annotation_file},
+                            items_name_data_map={self._image.name: annotation_json},
                         )
                     )
                     if response.ok:
