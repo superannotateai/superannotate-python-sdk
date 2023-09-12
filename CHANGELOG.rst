@@ -11,6 +11,14 @@ _______________________
 
 **Added**
 
+    - Support for `relationship` class types in the document project.
+
+
+4.4.14 - August 20, 2023
+_______________________
+
+**Added**
+
     - New project type support `CustomEditor`.
 
 **Updated**
