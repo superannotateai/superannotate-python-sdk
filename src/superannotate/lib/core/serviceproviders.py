@@ -367,7 +367,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items_name_file_map: Dict[str, io.StringIO],
+        items_name_data_map: Dict[str, dict],
     ) -> UploadAnnotationsResponse:
         raise NotImplementedError
 
