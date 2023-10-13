@@ -18,6 +18,8 @@ class TestAnnotationUploadVector(BaseTestCase):
     TEST_FOLDER_PATH = "data_set/sample_vector_annotations_with_tag_classes"
     TEST_4_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_BIG_FOLDER_PATH = "sample_big_json_vector"
+    TEST_BIG_ANNOTATION_NAME = "aearth_mov_001.jpg"
+    TEST_BIG_ANNOTATION_PATH = os.path.join(DATA_SET_PATH, f"sample_big_json_vector/{TEST_BIG_ANNOTATION_NAME}.json")
 
     IMAGE_NAME = "example_image_1.jpg"
 
@@ -36,6 +38,26 @@ class TestAnnotationUploadVector(BaseTestCase):
         for i in paths:
             annotations.append(json.load(open(i)))
         return annotations
+
+    def test_large_annotation_upload(self):
+        sa.attach_items(
+            self.PROJECT_NAME,
+            [{"name": self.TEST_BIG_ANNOTATION_NAME, "url": f"url_"}]
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME,
+            f"{self.big_annotations_folder_path}/classes/classes.json",
+        )
+        annotation = json.load(open(self.TEST_BIG_ANNOTATION_PATH))
+        with self.assertLogs("sa", level="INFO") as cm:
+            uploaded, _, _ = sa.upload_annotations(
+                self.PROJECT_NAME, [annotation]
+            ).values()
+            assert (
+                "INFO:sa:Uploading 1/1 annotations to the project Test-upload_annotations."
+                == cm.output[0]
+            )
+            assert len(uploaded) == 1
 
     def test_large_annotations_upload_get_download(self):
         items_to_attach = [

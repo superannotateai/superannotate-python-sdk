@@ -231,6 +231,8 @@ async def upload_small_annotations(
             await upload(chunk)
             chunk = []
             _size = 0
+        if not chunk:
+            queue.put_nowait(None)
         chunk.append(item_data)
         _size += item_data.file_size
     if chunk:

@@ -90,7 +90,7 @@ class AnnotationService(BaseAnnotationService):
                 synced = await session.get(sync_status_url, params=sync_params)
                 synced = await synced.json()
                 synced = synced["status"]
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
         return synced
 
     async def get_big_annotation(

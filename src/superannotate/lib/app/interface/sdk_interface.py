@@ -2095,7 +2095,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param item_names:  item names. If None, all the items in the specified directory will be deleted.
+        :param item_names:  item names. If None, all the annotations in the specified directory will be deleted.
         :type item_names: list of strs
         """
 
@@ -2538,6 +2538,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :return: uploaded, failed and duplicated item names
         :rtype: tuple of list of strs
+
+        Example:
+        ::
+            client = SAClient()
+            client.attach_items(
+                project = "Medical Annotations",
+                attachments = [{"name": "item", "url": "https://..."}]
+            )
+
         """
 
         project_name, folder_name = extract_project_folder(project)
