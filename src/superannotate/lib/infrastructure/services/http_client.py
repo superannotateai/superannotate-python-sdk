@@ -12,7 +12,6 @@ from typing import Dict
 from typing import List
 
 import aiohttp
-import pydantic
 import requests
 from lib.core.exceptions import AppException
 from lib.core.service_types import ServiceResponse
@@ -21,12 +20,19 @@ from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
 from superannotate import __version__
 
+try:
+    from pydantic.v1 import BaseModel
+    from pydantic.v1 import parse_obj_as
+except ImportError:
+    from pydantic import BaseModel
+    from pydantic import parse_obj_as
+
 logger = logging.getLogger("sa")
 
 
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, pydantic.BaseModel):
+        if isinstance(obj, BaseModel):
             return json.loads(obj.json(exclude_none=True))
         return json.JSONEncoder.default(self, obj)
 
@@ -168,7 +174,7 @@ class HttpClient(BaseClient):
         if item_type:
             response = ServiceResponse(
                 status=_response.status,
-                res_data=pydantic.parse_obj_as(List[item_type], total),
+                res_data=parse_obj_as(List[item_type], total),
             )
         else:
             response = ServiceResponse(

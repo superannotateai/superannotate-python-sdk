@@ -45,6 +45,7 @@ class PrepareExportUseCase(BaseUseCase):
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
+        integration_id: int = None,
     ):
         super().__init__(),
         self._project = project
@@ -53,6 +54,7 @@ class PrepareExportUseCase(BaseUseCase):
         self._annotation_statuses = annotation_statuses
         self._include_fuse = include_fuse
         self._only_pinned = only_pinned
+        self._integration_id = integration_id
 
     def validate_only_pinned(self):
         if (
@@ -107,6 +109,7 @@ class PrepareExportUseCase(BaseUseCase):
                 annotation_statuses=self._annotation_statuses,
                 include_fuse=self._include_fuse,
                 only_pinned=self._only_pinned,
+                integration_id=self._integration_id,
             )
             if not response.ok:
                 raise AppException(response.error)

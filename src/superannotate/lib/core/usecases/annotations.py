@@ -48,7 +48,11 @@ from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
-from pydantic import BaseModel
+
+try:
+    from pydantic.v1 import BaseModel
+except ImportError:
+    from pydantic import BaseModel
 
 logger = logging.getLogger("sa")
 

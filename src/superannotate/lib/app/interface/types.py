@@ -3,14 +3,14 @@ from typing import Union
 
 from lib.core.enums import BaseTitledEnum
 from lib.core.exceptions import AppException
+from lib.core.pydantic_v1 import constr
+from lib.core.pydantic_v1 import errors
+from lib.core.pydantic_v1 import pydantic_validate_arguments
+from lib.core.pydantic_v1 import PydanticTypeError
+from lib.core.pydantic_v1 import StrictStr
+from lib.core.pydantic_v1 import StrRegexError
+from lib.core.pydantic_v1 import ValidationError
 from lib.infrastructure.validators import wrap_error
-from pydantic import constr
-from pydantic import errors
-from pydantic import StrictStr
-from pydantic import validate_arguments as pydantic_validate_arguments
-from pydantic import ValidationError
-from pydantic.errors import PydanticTypeError
-from pydantic.errors import StrRegexError
 
 
 class EnumMemberError(PydanticTypeError):

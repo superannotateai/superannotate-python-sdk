@@ -19,7 +19,9 @@ class TestAnnotationUploadVector(BaseTestCase):
     TEST_4_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_BIG_FOLDER_PATH = "sample_big_json_vector"
     TEST_BIG_ANNOTATION_NAME = "aearth_mov_001.jpg"
-    TEST_BIG_ANNOTATION_PATH = os.path.join(DATA_SET_PATH, f"sample_big_json_vector/{TEST_BIG_ANNOTATION_NAME}.json")
+    TEST_BIG_ANNOTATION_PATH = os.path.join(
+        DATA_SET_PATH, f"sample_big_json_vector/{TEST_BIG_ANNOTATION_NAME}.json"
+    )
 
     IMAGE_NAME = "example_image_1.jpg"
 
@@ -41,8 +43,7 @@ class TestAnnotationUploadVector(BaseTestCase):
 
     def test_large_annotation_upload(self):
         sa.attach_items(
-            self.PROJECT_NAME,
-            [{"name": self.TEST_BIG_ANNOTATION_NAME, "url": f"url_"}]
+            self.PROJECT_NAME, [{"name": self.TEST_BIG_ANNOTATION_NAME, "url": "url_"}]
         )
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME,

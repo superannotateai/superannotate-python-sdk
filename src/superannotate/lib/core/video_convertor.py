@@ -6,7 +6,11 @@ from typing import List
 from typing import Optional
 
 from lib.core.enums import AnnotationTypes
-from pydantic import BaseModel
+
+try:
+    from pydantic.v1 import BaseModel
+except ImportError:
+    from pydantic import BaseModel
 
 
 class Annotation(BaseModel):
