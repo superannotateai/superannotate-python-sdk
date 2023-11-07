@@ -1,0 +1,3 @@
+Install with `poetry install`
+
+Run tests with `poetry run python sensorum_tests/test_sensorum_superannotate_flows.py`
