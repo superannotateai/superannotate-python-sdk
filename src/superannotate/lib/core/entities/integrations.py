@@ -1,7 +1,7 @@
 from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import IntegrationTypeEnum
-from pydantic import Extra
-from pydantic import Field
+from pydantic1 import Extra
+from pydantic1 import Field
 
 
 class IntegrationEntity(TimedBaseModel):

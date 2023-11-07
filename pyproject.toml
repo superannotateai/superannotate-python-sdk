@@ -12,7 +12,6 @@ homepage = "https://github.com/superannotateai/superannotate-python-sdk"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
-pydantic = "^1.10"
 aiohttp = "^3.8"
 boto3 = "^1.26"
 opencv-python = "^4.7"
@@ -28,6 +27,7 @@ aiofiles = "^23.1"
 fire = "^0.4"
 mixpanel = "^4.8"
 jsonschema = "^4.0"
+pydantic = "^2.4.2"
 
 [tool.poetry.dev-dependencies]
 wheel = "*"

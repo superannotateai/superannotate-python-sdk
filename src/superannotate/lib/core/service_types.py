@@ -6,9 +6,9 @@ from typing import Union
 
 from lib.core import entities
 from lib.core.exceptions import AppException
-from pydantic import BaseModel
-from pydantic import Extra
-from pydantic import Field
+from pydantic1 import BaseModel
+from pydantic1 import Extra
+from pydantic1 import Field
 
 
 class Limit(BaseModel):

@@ -1,0 +1,3 @@
+[submodule "pydantic"]
+	path = pydantic
+	url = https://github.com/pydantic/pydantic.git

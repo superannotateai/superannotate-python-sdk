@@ -7,7 +7,7 @@ from typing import Union
 import boto3
 from lib.core.conditions import Condition
 from lib.core.entities import BaseEntity
-from pydantic import BaseModel
+from pydantic1 import BaseModel
 
 
 class BaseReadOnlyRepository(ABC):

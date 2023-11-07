@@ -13,15 +13,15 @@ from lib.core import BACKEND_URL
 from lib.core import LOG_FILE_LOCATION
 from lib.core.enums import AnnotationStatus
 from lib.core.enums import BaseTitledEnum
-from pydantic import BaseModel as PydanticBaseModel
-from pydantic import Extra
-from pydantic import Field
-from pydantic import StrictStr
-from pydantic.datetime_parse import parse_datetime
-from pydantic.typing import is_namedtuple
-from pydantic.utils import ROOT_KEY
-from pydantic.utils import sequence_like
-from pydantic.utils import ValueItems
+from pydantic1 import BaseModel as PydanticBaseModel
+from pydantic1 import Extra
+from pydantic1 import Field
+from pydantic1 import StrictStr
+from pydantic1.datetime_parse import parse_datetime
+from pydantic1.typing import is_namedtuple
+from pydantic1.utils import ROOT_KEY
+from pydantic1.utils import sequence_like
+from pydantic1.utils import ValueItems
 from typing_extensions import Literal
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
@@ -30,8 +30,8 @@ DATE_TIME_FORMAT_ERROR_MESSAGE = (
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
 try:
-    from pydantic import AbstractSetIntStr  # noqa
-    from pydantic import MappingIntStrAny  # noqa
+    from pydantic1 import AbstractSetIntStr  # noqa
+    from pydantic1 import MappingIntStrAny  # noqa
 except ImportError:
     pass
 _missing = object()

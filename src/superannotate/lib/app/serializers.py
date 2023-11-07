@@ -5,7 +5,7 @@ from typing import Set
 from typing import Union
 
 import superannotate.lib.core as constance
-from pydantic import BaseModel
+from pydantic1 import BaseModel
 from superannotate.lib.core.entities import BaseEntity
 
 

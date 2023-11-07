@@ -1,8 +1,8 @@
 from typing import Optional
 
-from pydantic import BaseModel
-from pydantic import constr
-from pydantic import Extra
+from pydantic1 import BaseModel
+from pydantic1 import constr
+from pydantic1 import Extra
 
 NotEmptyStr = constr(strict=True, min_length=1)
 

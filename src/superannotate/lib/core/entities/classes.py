@@ -7,15 +7,15 @@ from typing import Optional
 from lib.core.entities.base import BaseModel
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
-from pydantic import BaseModel as BasePydanticModel
-from pydantic import Extra
-from pydantic import Field
-from pydantic import StrictInt
-from pydantic import StrictStr
-from pydantic import validator
-from pydantic.color import Color
-from pydantic.color import ColorType
-from pydantic.datetime_parse import parse_datetime
+from pydantic1 import BaseModel as BasePydanticModel
+from pydantic1 import Extra
+from pydantic1 import Field
+from pydantic1 import StrictInt
+from pydantic1 import StrictStr
+from pydantic1 import validator
+from pydantic1.color import Color
+from pydantic1.color import ColorType
+from pydantic1.datetime_parse import parse_datetime
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 DATE_TIME_FORMAT_ERROR_MESSAGE = (

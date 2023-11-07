@@ -11,7 +11,7 @@ from typing import Iterable
 from typing import Sized
 
 import lib.core as constants
-import pydantic
+import pydantic1
 from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
 from lib.core import setup_logging
@@ -61,7 +61,7 @@ class BaseInterfaceFacade:
                         raise AppException(
                             f"SuperAnnotate config file {constants.CONFIG_INI_FILE_LOCATION} not found."
                         )
-        except pydantic.ValidationError as e:
+        except pydantic1.ValidationError as e:
             raise AppException(wrap_error(e))
         except KeyError:
             raise
@@ -78,10 +78,10 @@ class BaseInterfaceFacade:
         token = json_data["token"]
         try:
             config = ConfigEntity(SA_TOKEN=token)
-        except pydantic.ValidationError:
-            raise pydantic.ValidationError(
+        except pydantic1.ValidationError:
+            raise pydantic1.ValidationError(
                 [
-                    pydantic.error_wrappers.ErrorWrapper(
+                    pydantic1.error_wrappers.ErrorWrapper(
                         ValueError("Invalid token."), loc="token"
                     )
                 ],

@@ -3,7 +3,7 @@ from typing import Optional
 
 from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import FolderStatus
-from pydantic import Extra
+from pydantic1 import Extra
 
 
 class FolderEntity(TimedBaseModel):

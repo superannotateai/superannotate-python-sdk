@@ -12,7 +12,7 @@ from typing import Dict
 from typing import List
 
 import aiohttp
-import pydantic
+import pydantic1
 import requests
 from lib.core.exceptions import AppException
 from lib.core.service_types import ServiceResponse
@@ -26,7 +26,7 @@ logger = logging.getLogger("sa")
 
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, pydantic.BaseModel):
+        if isinstance(obj, pydantic1.BaseModel):
             return json.loads(obj.json(exclude_none=True))
         return json.JSONEncoder.default(self, obj)
 
@@ -168,7 +168,7 @@ class HttpClient(BaseClient):
         if item_type:
             response = ServiceResponse(
                 status=_response.status,
-                res_data=pydantic.parse_obj_as(List[item_type], total),
+                res_data=pydantic1.parse_obj_as(List[item_type], total),
             )
         else:
             response = ServiceResponse(

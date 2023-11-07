@@ -18,7 +18,7 @@ from lib.core.service_types import UploadAnnotations
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.serviceproviders import BaseAnnotationService
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
-from pydantic import parse_obj_as
+from pydantic1 import parse_obj_as
 from superannotate.lib.infrastructure.services.http_client import AIOHttpSession
 
 logger = logging.getLogger("sa")

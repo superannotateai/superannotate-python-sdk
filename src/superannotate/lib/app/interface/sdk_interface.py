@@ -15,7 +15,7 @@ from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
-import pydantic
+import pydantic1
 from typing_extensions import Literal
 
 if sys.version_info < (3, 11):
@@ -24,10 +24,10 @@ else:
     from typing import TypedDict, NotRequired, Required  # noqa
 
 import boto3
-from pydantic import conlist
-from pydantic import constr
-from pydantic import parse_obj_as
-from pydantic.error_wrappers import ValidationError
+from pydantic1 import conlist
+from pydantic1 import constr
+from pydantic1 import parse_obj_as
+from pydantic1.error_wrappers import ValidationError
 from tqdm import tqdm
 
 import lib.core as constants
@@ -2549,7 +2549,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 for item, count in collections.Counter(attachments).items()
                 if count > 1
             ]
-        except pydantic.ValidationError:
+        except pydantic1.ValidationError:
             (
                 unique_attachments,
                 duplicate_attachments,
