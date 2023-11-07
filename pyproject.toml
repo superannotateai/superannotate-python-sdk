@@ -27,7 +27,7 @@ requests = "^2.31"
 aiofiles = "^23.1"
 fire = "^0.4"
 mixpanel = "^4.8"
-jsonschema = "^3.2"
+jsonschema = "^4.0"
 
 [tool.poetry.dev-dependencies]
 wheel = "*"
