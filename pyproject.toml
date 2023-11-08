@@ -27,7 +27,7 @@ aiofiles = "^23.1"
 fire = "^0.4"
 mixpanel = "^4.8"
 jsonschema = "^4.0"
-pydantic = "^2.4.2"
+typing-extensions = "^4.8.0"
 
 [tool.poetry.dev-dependencies]
 wheel = "*"
