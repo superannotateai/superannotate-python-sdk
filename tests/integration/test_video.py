@@ -48,7 +48,7 @@ class TestVideo(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, target_fps=1
         )
 
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NeAME)
         sa.upload_videos_from_folder_to_project(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}",
             self.folder_path,

@@ -151,6 +151,7 @@ class ServiceProvider(BaseServiceProvider):
         annotation_statuses: List[str],
         include_fuse: bool,
         only_pinned: bool,
+        integration_id: int = None,
     ):
         annotation_statuses = ",".join(
             [str(constants.AnnotationStatus.get_value(i)) for i in annotation_statuses]
@@ -165,7 +166,8 @@ class ServiceProvider(BaseServiceProvider):
         }
         if folders:
             data["folder_names"] = folders
-
+        if integration_id is not None:
+            data["integration_id"] = integration_id
         return self.client.request(
             self.URL_PREPARE_EXPORT,
             "post",

@@ -1,7 +1,12 @@
 from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import IntegrationTypeEnum
-from pydantic import Extra
-from pydantic import Field
+
+try:
+    from pydantic.v1 import Extra
+    from pydantic.v1 import Field
+except ImportError:
+    from pydantic import Extra
+    from pydantic import Field
 
 
 class IntegrationEntity(TimedBaseModel):

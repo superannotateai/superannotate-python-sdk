@@ -562,6 +562,7 @@ class BaseServiceProvider:
         annotation_statuses: List[str],
         include_fuse: bool,
         only_pinned: bool,
+        integration_id: int,
     ) -> ServiceResponse:
         raise NotImplementedError
 
