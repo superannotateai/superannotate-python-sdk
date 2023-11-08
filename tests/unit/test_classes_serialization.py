@@ -3,8 +3,8 @@ import os
 from typing import List
 from unittest import TestCase
 
-from pydantic.v1 import parse_obj_as
-from pydantic.v1 import ValidationError
+from lib.core.pydantic_v1 import parse_obj_as
+from lib.core.pydantic_v1 import ValidationError
 from superannotate.lib.app.serializers import BaseSerializer
 from superannotate.lib.core.entities.classes import AnnotationClassEntity
 from superannotate.lib.core.entities.classes import AttributeGroup
