@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "superannotate"
-version = "0.1.0"  # Replace with dynamic versioning if needed
+version = "0.2.0" 
 description = "Python SDK to SuperAnnotate platform"
 authors = ["SuperAnnotate AI <support@superannotate.com>"]
 license = "MIT"
