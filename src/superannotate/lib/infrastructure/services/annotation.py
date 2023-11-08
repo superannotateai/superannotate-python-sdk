@@ -253,13 +253,13 @@ class AnnotationService(BaseAnnotationService):
         folder: entities.FolderEntity,
         items_name_data_map: Dict[str, dict],
     ) -> UploadAnnotationsResponse:
-        url = urljoin(
-            self.assets_provider_url,
-            (
-                f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_data_map.keys())}"
-            ),
-        )
-
+        params = [
+            ("team_id", project.team_id),
+            ("project_id", project.id),
+            ("folder_id", folder.id),
+            *[("image_names[]", item_name) for item_name in items_name_data_map.keys()],
+        ]
+        url = urljoin(self.assets_provider_url, f"{self.URL_UPLOAD_ANNOTATIONS}")
         headers = copy.copy(self.client.default_headers)
         del headers["Content-Type"]
         async with AIOHttpSession(
@@ -282,12 +282,6 @@ class AnnotationService(BaseAnnotationService):
                     filename=key,
                     content_type="application/json",
                 )
-
-            params = {
-                "team_id": project.team_id,
-                "project_id": project.id,
-                "folder_id": folder.id,
-            }
             _response = await session.request(
                 "post", url, params=params, data=form_data
             )
