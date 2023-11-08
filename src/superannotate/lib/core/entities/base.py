@@ -13,16 +13,16 @@ from lib.core import BACKEND_URL
 from lib.core import LOG_FILE_LOCATION
 from lib.core.enums import AnnotationStatus
 from lib.core.enums import BaseTitledEnum
-from pydantic import BaseModel as PydanticBaseModel
-from pydantic import Extra
-from pydantic import Field
-from pydantic import StrictStr
-from pydantic.datetime_parse import parse_datetime
-from pydantic.typing import is_namedtuple
-from pydantic.utils import ROOT_KEY
-from pydantic.utils import sequence_like
-from pydantic.utils import ValueItems
-from typing_extensions import Literal
+from lib.core.pydantic_v1 import BaseModel
+from lib.core.pydantic_v1 import Extra
+from lib.core.pydantic_v1 import Field
+from lib.core.pydantic_v1 import is_namedtuple
+from lib.core.pydantic_v1 import Literal
+from lib.core.pydantic_v1 import parse_datetime
+from lib.core.pydantic_v1 import ROOT_KEY
+from lib.core.pydantic_v1 import sequence_like
+from lib.core.pydantic_v1 import StrictStr
+from lib.core.pydantic_v1 import ValueItems
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
@@ -37,7 +37,7 @@ except ImportError:
 _missing = object()
 
 
-class BaseModel(PydanticBaseModel):
+class BaseModel(BaseModel):
     """
     Added new extra keys
     - use_enum_names: that's for BaseTitledEnum to use names instead of enum objects
@@ -121,7 +121,7 @@ class BaseModel(PydanticBaseModel):
         exclude_none: bool,
     ) -> Any:
 
-        if isinstance(v, PydanticBaseModel):
+        if isinstance(v, BaseModel):
             v_dict = v.dict(
                 by_alias=by_alias,
                 exclude_unset=exclude_unset,

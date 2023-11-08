@@ -18,7 +18,12 @@ from lib.core.service_types import UploadAnnotations
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.serviceproviders import BaseAnnotationService
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
-from pydantic import parse_obj_as
+
+try:
+    from pydantic.v1 import parse_obj_as
+except ImportError:
+    from pydantic import parse_obj_as
+
 from superannotate.lib.infrastructure.services.http_client import AIOHttpSession
 
 logger = logging.getLogger("sa")
@@ -90,7 +95,7 @@ class AnnotationService(BaseAnnotationService):
                 synced = await session.get(sync_status_url, params=sync_params)
                 synced = await synced.json()
                 synced = synced["status"]
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
         return synced
 
     async def get_big_annotation(
@@ -248,13 +253,13 @@ class AnnotationService(BaseAnnotationService):
         folder: entities.FolderEntity,
         items_name_data_map: Dict[str, dict],
     ) -> UploadAnnotationsResponse:
-        url = urljoin(
-            self.assets_provider_url,
-            (
-                f"{self.URL_UPLOAD_ANNOTATIONS}?{'&'.join(f'image_names[]={item_name}' for item_name in items_name_data_map.keys())}"
-            ),
-        )
-
+        params = [
+            ("team_id", project.team_id),
+            ("project_id", project.id),
+            ("folder_id", folder.id),
+            *[("image_names[]", item_name) for item_name in items_name_data_map.keys()],
+        ]
+        url = urljoin(self.assets_provider_url, f"{self.URL_UPLOAD_ANNOTATIONS}")
         headers = copy.copy(self.client.default_headers)
         del headers["Content-Type"]
         async with AIOHttpSession(
@@ -277,12 +282,6 @@ class AnnotationService(BaseAnnotationService):
                     filename=key,
                     content_type="application/json",
                 )
-
-            params = {
-                "team_id": project.team_id,
-                "project_id": project.id,
-                "folder_id": folder.id,
-            }
             _response = await session.request(
                 "post", url, params=params, data=form_data
             )

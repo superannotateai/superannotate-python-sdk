@@ -5,17 +5,16 @@ from typing import List
 from typing import Optional
 
 from lib.core.entities.base import BaseModel
+from lib.core.entities.base import parse_datetime
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
-from pydantic import BaseModel as BasePydanticModel
-from pydantic import Extra
-from pydantic import Field
-from pydantic import StrictInt
-from pydantic import StrictStr
-from pydantic import validator
-from pydantic.color import Color
-from pydantic.color import ColorType
-from pydantic.datetime_parse import parse_datetime
+from lib.core.pydantic_v1 import Color
+from lib.core.pydantic_v1 import ColorType
+from lib.core.pydantic_v1 import Extra
+from lib.core.pydantic_v1 import Field
+from lib.core.pydantic_v1 import StrictInt
+from lib.core.pydantic_v1 import StrictStr
+from lib.core.pydantic_v1 import validator
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
@@ -23,7 +22,7 @@ DATE_TIME_FORMAT_ERROR_MESSAGE = (
 )
 
 
-class HexColor(BasePydanticModel):
+class HexColor(BaseModel):
     __root__: ColorType
 
     @validator("__root__", pre=True)

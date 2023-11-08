@@ -2,9 +2,9 @@ import os
 import typing
 from collections import defaultdict
 
-from pydantic import ValidationError
-from pydantic import validators
-from pydantic.errors import WrongConstantError
+from lib.core.pydantic_v1 import ValidationError
+from lib.core.pydantic_v1 import validators
+from lib.core.pydantic_v1 import WrongConstantError
 
 
 def wrong_constant_error(self):
@@ -39,12 +39,14 @@ def make_typeddict_validator(
     """
     Wrapping to ignore extra keys
     """
-    from pydantic.annotated_types import create_model_from_typeddict
-    from pydantic import Extra
+    from lib.core.pydantic_v1 import Extra
+    from lib.core.pydantic_v1 import create_model_from_typeddict
+
+    create_model_from_typeddict = create_model_from_typeddict
 
     config.extra = Extra.ignore
 
-    TypedDictModel = create_model_from_typeddict(
+    TypedDictModel = create_model_from_typeddict(  # noqa
         typeddict_cls,
         __config__=config,
         __module__=typeddict_cls.__module__,

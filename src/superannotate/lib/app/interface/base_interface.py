@@ -11,13 +11,14 @@ from typing import Iterable
 from typing import Sized
 
 import lib.core as constants
-import pydantic
 from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
 from lib.core import setup_logging
 from lib.core.entities.base import ConfigEntity
 from lib.core.entities.base import TokenStr
 from lib.core.exceptions import AppException
+from lib.core.pydantic_v1 import ErrorWrapper
+from lib.core.pydantic_v1 import ValidationError
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
@@ -61,7 +62,7 @@ class BaseInterfaceFacade:
                         raise AppException(
                             f"SuperAnnotate config file {constants.CONFIG_INI_FILE_LOCATION} not found."
                         )
-        except pydantic.ValidationError as e:
+        except ValidationError as e:
             raise AppException(wrap_error(e))
         except KeyError:
             raise
@@ -78,13 +79,9 @@ class BaseInterfaceFacade:
         token = json_data["token"]
         try:
             config = ConfigEntity(SA_TOKEN=token)
-        except pydantic.ValidationError:
-            raise pydantic.ValidationError(
-                [
-                    pydantic.error_wrappers.ErrorWrapper(
-                        ValueError("Invalid token."), loc="token"
-                    )
-                ],
+        except ValidationError:
+            raise ValidationError(
+                [ErrorWrapper(ValueError("Invalid token."), loc="token")],
                 model=ConfigEntity,
             )
         host = json_data.get("main_endpoint")

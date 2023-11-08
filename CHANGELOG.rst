@@ -6,6 +6,26 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.15 - August 20, 2023
+________________________
+
+**Added**
+
+    - Support for `relationship` class types in the document project.
+
+
+4.4.14 - August 20, 2023
+________________________
+
+**Added**
+
+    - New project type support `CustomEditor`.
+
+**Updated**
+
+    - ``SAClient.get_item_by_id()`` Fixed.
+    - ``SAClient.consensus()`` Deprecation.
+
 4.4.13 - June 04, 2023
 _______________________
 
