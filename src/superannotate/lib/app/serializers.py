@@ -5,8 +5,8 @@ from typing import Set
 from typing import Union
 
 import superannotate.lib.core as constance
-from pydantic import BaseModel
 from superannotate.lib.core.entities import BaseEntity
+from superannotate.lib.core.pydantic_v1 import BaseModel
 
 
 class BaseSerializer(ABC):

@@ -6,8 +6,22 @@ History
 
 All release highlights of this project will be documented in this file.
 
-4.4.15 - August 20, 2023
+4.4.16 - November 12, 2023
 _______________________
+
+**Added**
+
+    - ``SAClient.download_annotations()`` support for integrated storages.
+
+**Updated**
+
+    - Documentation updates
+    - pillow dependency ``pillow>=9.5,~=10.0``.
+    - opencv dependency  replaced by ``opencv-python-headless~=4.7``.
+    - pydantic dependency ``pydantic>=1.10,!=2.0.*``.
+
+4.4.15 - August 20, 2023
+________________________
 
 **Added**
 
@@ -15,7 +29,7 @@ _______________________
 
 
 4.4.14 - August 20, 2023
-_______________________
+________________________
 
 **Added**
 

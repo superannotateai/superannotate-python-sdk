@@ -1011,6 +1011,7 @@ class Controller(BaseController):
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
+        integration_id: int = None,
     ):
         project = self.get_project(project_name)
         use_case = usecases.PrepareExportUseCase(
@@ -1020,6 +1021,7 @@ class Controller(BaseController):
             include_fuse=include_fuse,
             only_pinned=only_pinned,
             annotation_statuses=annotation_statuses,
+            integration_id=integration_id,
         )
         return use_case.execute()
 

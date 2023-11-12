@@ -11,13 +11,13 @@ from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
 from lib.core.enums import UserRole
-from pydantic import Extra
-from pydantic import Field
-from pydantic import StrictBool
-from pydantic import StrictFloat
-from pydantic import StrictInt
-from pydantic import StrictStr
-from pydantic.datetime_parse import parse_datetime
+from lib.core.pydantic_v1 import Extra
+from lib.core.pydantic_v1 import Field
+from lib.core.pydantic_v1 import parse_datetime
+from lib.core.pydantic_v1 import StrictBool
+from lib.core.pydantic_v1 import StrictFloat
+from lib.core.pydantic_v1 import StrictInt
+from lib.core.pydantic_v1 import StrictStr
 
 
 class StringDate(datetime.datetime):

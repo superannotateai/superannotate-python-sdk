@@ -15,7 +15,6 @@ from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
-import pydantic
 from typing_extensions import Literal
 
 if sys.version_info < (3, 11):
@@ -24,10 +23,7 @@ else:
     from typing import TypedDict, NotRequired, Required  # noqa
 
 import boto3
-from pydantic import conlist
-from pydantic import constr
-from pydantic import parse_obj_as
-from pydantic.error_wrappers import ValidationError
+
 from tqdm import tqdm
 
 import lib.core as constants
@@ -61,15 +57,17 @@ from lib.core.exceptions import AppException
 from lib.core.types import MLModel
 from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
+from lib.core.pydantic_v1 import ValidationError
+from lib.core.pydantic_v1 import constr
+from lib.core.pydantic_v1 import conlist
+from lib.core.pydantic_v1 import parse_obj_as
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 
 
 logger = logging.getLogger("sa")
 
-
 NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
-
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
@@ -1131,6 +1129,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_statuses: Optional[List[ANNOTATION_STATUS]] = None,
         include_fuse: Optional[bool] = False,
         only_pinned=False,
+        **kwargs,
     ):
         """Prepare annotations and classes.json for export. Original and fused images for images with
         annotations can be included with include_fuse flag.
@@ -1147,6 +1146,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type include_fuse: bool
         :param only_pinned: enable only pinned output in export. This option disables all other types of output.
         :type only_pinned: bool
+        :param kwargs: Arbitrary kwarg ``integration_name``
+            can be provided which will be used as a storage to store export file
 
         :return: metadata object of the prepared export
         :rtype: dict
@@ -1165,12 +1166,22 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 constants.AnnotationStatus.COMPLETED.name,
                 constants.AnnotationStatus.SKIPPED.name,
             ]
+        integration_name = kwargs.get("integration_name")
+        integration_id = None
+        if integration_name:
+            for integration in self.controller.integrations.list().data:
+                if integration.name == integration_name:
+                    integration_id = integration.id
+                    break
+            else:
+                raise AppException("Integration not found.")
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,
             include_fuse=include_fuse,
             only_pinned=only_pinned,
             annotation_statuses=annotation_statuses,
+            integration_id=integration_id,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2095,7 +2106,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param item_names:  item names. If None, all the items in the specified directory will be deleted.
+        :param item_names:  item names. If None, all the annotations in the specified directory will be deleted.
         :type item_names: list of strs
         """
 
@@ -2538,6 +2549,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :return: uploaded, failed and duplicated item names
         :rtype: tuple of list of strs
+
+        Example:
+        ::
+            client = SAClient()
+            client.attach_items(
+                project = "Medical Annotations",
+                attachments = [{"name": "item", "url": "https://..."}]
+            )
+
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -2549,7 +2569,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 for item, count in collections.Counter(attachments).items()
                 if count > 1
             ]
-        except pydantic.ValidationError:
+        except ValidationError:
             (
                 unique_attachments,
                 duplicate_attachments,

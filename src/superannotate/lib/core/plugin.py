@@ -82,7 +82,7 @@ class ImagePlugin:
 
         thumbnail_size = (128, 96)
         background = Image.new("RGB", thumbnail_size, "black")
-        image.thumbnail(thumbnail_size, Image.ANTIALIAS)
+        image.thumbnail(thumbnail_size, Image.LANCZOS)
         (w, h) = image.size
         background.paste(
             image, ((thumbnail_size[0] - w) // 2, (thumbnail_size[1] - h) // 2)
@@ -99,7 +99,7 @@ class ImagePlugin:
         width, height = im.size
         buffer = io.BytesIO()
         h_size = int(height * base_width / width)
-        im.resize((base_width, h_size), Image.ANTIALIAS).convert("RGB").save(
+        im.resize((base_width, h_size), Image.LANCZOS).convert("RGB").save(
             buffer, "JPEG"
         )
         buffer.seek(0)
