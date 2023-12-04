@@ -71,6 +71,8 @@ class TestAnnotationUploadVector(BaseTestCase):
                 assert i["annotation_status"] == "InProgress"
         assert annotation["instances"][-1]["type"] == "tag"
         assert annotation["instances"][-2]["type"] == "tag"
+        assert annotation["instances"][-2]["probability"] == 100
+        assert annotation["instances"][-2]["creationType"] == "Preannotation"
 
     def test_upload_keep_true(self):
         self._attach_items()
