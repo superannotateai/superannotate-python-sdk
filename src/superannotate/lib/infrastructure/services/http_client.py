@@ -13,6 +13,7 @@ from typing import List
 
 import aiohttp
 import requests
+from aiohttp.client_exceptions import ClientError
 from lib.core.exceptions import AppException
 from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseClient
@@ -197,7 +198,7 @@ class HttpClient(BaseClient):
             if not response.ok:
                 if response.status_code in (502, 504):
                     data[
-                        "_error"
+                        "res_error"
                     ] = "Our service is currently unavailable, please try again later."
                     return content_type(**data)
                 else:
@@ -234,7 +235,13 @@ class AIOHttpSession(aiohttp.ClientSession):
         for _ in range(attempts):
             delay += self.BACKOFF_FACTOR
             attempts -= 1
-            response = await super()._request(*args, **kwargs)
+            try:
+                response = await super()._request(*args, **kwargs)
+            except ClientError:
+                if not attempts:
+                    raise
+                await asyncio.sleep(delay)
+                continue
             if response.status not in self.RETRY_STATUS_CODES or not attempts:
                 return response
             await asyncio.sleep(delay)
