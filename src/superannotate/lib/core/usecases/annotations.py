@@ -295,6 +295,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         folder: FolderEntity,
         annotations: List[dict],
         service_provider: BaseServiceProvider,
+        user: UserEntity,
         keep_status: bool = False,
     ):
         super().__init__(reporter)
@@ -304,6 +305,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._service_provider = service_provider
         self._keep_status = keep_status
         self._report = Report([], [], [], [])
+        self._user = user
 
     def validate_project_type(self):
         if self._project.type == constants.ProjectType.PIXEL.value:
@@ -439,6 +441,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 annotation_name = annotation["metadata"]["name"]
                 item = name_item_map.get(annotation_name)
                 if item:
+                    annotation = UploadAnnotationUseCase.set_defaults(
+                        self._user.email, annotation, self._project.type
+                    )
                     items_to_upload.append(
                         ItemToUpload(item=item, annotation_json=annotation)
                     )

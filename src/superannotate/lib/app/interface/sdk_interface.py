@@ -1668,6 +1668,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder=folder,
             annotations=annotations,
             keep_status=keep_status,
+            user=self.controller.current_user,
         )
         if response.errors:
             raise AppException(response.errors)

@@ -44,9 +44,8 @@ class ProjectService(BaseProjectService):
 
     def list(self, condition: Condition = None):
         return self.client.paginate(
-            url=f"{self.URL_LIST}?{condition.build_query()}"
-            if condition
-            else self.URL_LIST,
+            url=self.URL_LIST,
+            query_params=condition.get_as_params_dict(),
             item_type=entities.ProjectEntity,
         )
 

@@ -6,8 +6,20 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.17 - December 21, 2023
+__________________________
+
+**Added**
+
+    - ``SAClient.upload_annotations()`` added default values to the annotations during the upload.
+
+**Updated**
+
+    - Fixed `SAClient.search_project() search with special characters.`
+    - ``pandas`` dependency  ``pandas~=2.0``
+
 4.4.16 - November 12, 2023
-_______________________
+__________________________
 
 **Added**
 
@@ -16,9 +28,9 @@ _______________________
 **Updated**
 
     - Documentation updates
-    - pillow dependency ``pillow>=9.5,~=10.0``.
-    - opencv dependency  replaced by ``opencv-python-headless~=4.7``.
-    - pydantic dependency ``pydantic>=1.10,!=2.0.*``.
+    - ``pillow`` dependency ``pillow>=9.5,~=10.0``.
+    - ``opencv`` dependency  replaced by ``opencv-python-headless~=4.7``.
+    - ``pydantic`` dependency ``pydantic>=1.10,!=2.0.*``.
 
 4.4.15 - August 20, 2023
 ________________________

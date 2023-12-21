@@ -568,6 +568,7 @@ class AnnotationManager(BaseManager):
         folder: FolderEntity,
         annotations: List[dict],
         keep_status: bool,
+        user: UserEntity,
     ):
         use_case = usecases.UploadAnnotationsUseCase(
             reporter=Reporter(),
@@ -576,6 +577,7 @@ class AnnotationManager(BaseManager):
             annotations=annotations,
             service_provider=self.service_provider,
             keep_status=keep_status,
+            user=user,
         )
         return use_case.execute()
 
