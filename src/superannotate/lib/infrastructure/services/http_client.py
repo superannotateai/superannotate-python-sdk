@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import logging
 import platform
@@ -13,7 +14,6 @@ from typing import List
 
 import aiohttp
 import requests
-from aiohttp.client_exceptions import ClientError
 from lib.core.exceptions import AppException
 from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseClient
@@ -229,19 +229,39 @@ class AIOHttpSession(aiohttp.ClientSession):
     RETRY_LIMIT = 3
     BACKOFF_FACTOR = 0.3
 
-    async def request(self, *args, **kwargs) -> aiohttp.ClientResponse:
-        attempts = self.RETRY_LIMIT
-        delay = 0
-        for _ in range(attempts):
-            delay += self.BACKOFF_FACTOR
-            attempts -= 1
-            try:
-                response = await super()._request(*args, **kwargs)
-            except ClientError:
-                if not attempts:
-                    raise
+    class AIOHttpSession(aiohttp.ClientSession):
+        RETRY_STATUS_CODES = [401, 403, 502, 503, 504]
+        RETRY_LIMIT = 3
+        BACKOFF_FACTOR = 0.3
+
+        @staticmethod
+        def _copy_form_data(data: aiohttp.FormData) -> aiohttp.FormData:
+            form_data = aiohttp.FormData(quote_fields=False)
+            for field in data._fields:  # noqa
+                if isinstance(field[2], io.IOBase):
+                    field[2].seek(0)
+                form_data.add_field(
+                    value=field[2],
+                    content_type=field[1].get("Content-Type", ""),
+                    **field[0],
+                )
+            return form_data
+
+        async def request(self, *args, **kwargs) -> aiohttp.ClientResponse:
+            attempts = self.RETRY_LIMIT
+            delay = 0
+            for _ in range(attempts):
+                delay += self.BACKOFF_FACTOR
+                try:
+                    response = await super()._request(*args, **kwargs)
+                    if attempts <= 1 or response.status not in self.RETRY_STATUS_CODES:
+                        return response
+                except (aiohttp.ClientError, RuntimeError) as e:
+                    if attempts <= 1:
+                        raise
+                    if isinstance(e, RuntimeError):
+                        data = kwargs["data"]
+                        if isinstance(data, aiohttp.FormData):
+                            kwargs["data"] = self._copy_form_data(data)
+                attempts -= 1
                 await asyncio.sleep(delay)
-                continue
-            if response.status not in self.RETRY_STATUS_CODES or not attempts:
-                return response
-            await asyncio.sleep(delay)
