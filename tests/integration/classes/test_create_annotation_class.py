@@ -44,7 +44,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
             attribute_groups=[
                 {
                     "name": "test",
-                    "required": False,
+                    "isRequired:": False,
                     "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
                     "default_value": "Bus",
                 }
