@@ -122,7 +122,10 @@ class ProjectSerializer(BaseSerializer):
         if exclude:
             for field in exclude:
                 to_exclude[field] = True
-
+        if self._entity.classes:
+            self._entity.classes = [
+                i.dict(by_alias=True, exclude_unset=True) for i in self._entity.classes
+            ]
         data = super().serialize(fields, by_alias, flat, to_exclude)
         if data.get("settings"):
             data["settings"] = [
