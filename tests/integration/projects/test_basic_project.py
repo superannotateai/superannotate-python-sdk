@@ -11,6 +11,16 @@ from tests.integration.base import BaseTestCase
 sa = SAClient()
 
 
+class TestGenAIProjectBasic(BaseTestCase):
+    PROJECT_NAME = "TestGenAICreate"
+    PROJECT_TYPE = "GenAI"
+    PROJECT_DESCRIPTION = "DESCRIPTION"
+
+    def test_search(self):
+        projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
+        assert projects
+
+
 class TestProjectBasic(BaseTestCase):
     PROJECT_NAME = "TestWorkflowGet"
     PROJECT_TYPE = "Vector"
