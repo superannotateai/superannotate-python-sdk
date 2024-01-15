@@ -13,4 +13,4 @@ requests==2.*
 aiofiles==23.*
 fire==0.4.0
 mixpanel==4.8.3
-superannotate-schemas==1.0.47b4
+superannotate-schemas==1.0.47b5
