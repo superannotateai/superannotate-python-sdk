@@ -251,12 +251,13 @@ class AIOHttpSession(aiohttp.ClientSession):
                 response = await super()._request(*args, **kwargs)
                 if attempts <= 1 or response.status not in self.RETRY_STATUS_CODES:
                     return response
+                if isinstance(kwargs["data"], aiohttp.FormData):
+                    raise RuntimeError(await response.text())
             except (aiohttp.ClientError, RuntimeError) as e:
                 if attempts <= 1:
                     raise
-                if isinstance(e, RuntimeError):
-                    data = kwargs["data"]
-                    if isinstance(data, aiohttp.FormData):
-                        kwargs["data"] = self._copy_form_data(data)
+                data = kwargs["data"]
+                if isinstance(data, aiohttp.FormData):
+                    kwargs["data"] = self._copy_form_data(data)
             attempts -= 1
             await asyncio.sleep(delay)

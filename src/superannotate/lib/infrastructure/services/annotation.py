@@ -80,9 +80,9 @@ class AnnotationService(BaseAnnotationService):
         async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,
+            raise_for_status=True,
         ) as session:
             _response = await session.request("post", sync_url, params=sync_params)
-            _response.raise_for_status()
             sync_params.pop("current_source")
             sync_params.pop("desired_source")
 
@@ -123,9 +123,9 @@ class AnnotationService(BaseAnnotationService):
         async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,
+            raise_for_status=True,
         ) as session:
             start_response = await session.request("post", url, params=query_params)
-            start_response.raise_for_status()
             large_annotation = await start_response.json()
 
         reporter.update_progress()
@@ -206,9 +206,9 @@ class AnnotationService(BaseAnnotationService):
         async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,
+            raise_for_status=True,
         ) as session:
             start_response = await session.request("post", url, params=query_params)
-            start_response.raise_for_status()
             res = await start_response.json()
             Path(download_path).mkdir(exist_ok=True, parents=True)
 
