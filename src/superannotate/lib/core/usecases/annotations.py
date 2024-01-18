@@ -25,10 +25,8 @@ from typing import Tuple
 
 import aiofiles
 import boto3
-import jsonschema.validators
 import lib.core as constants
-from jsonschema import Draft7Validator
-from jsonschema import ValidationError
+import superannotate_schemas
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import BaseItemEntity
@@ -309,7 +307,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
 
     def validate_project_type(self):
         if self._project.type == constants.ProjectType.PIXEL.value:
-            raise ValidationError("Unsupported project type.")
+            raise AppException("Unsupported project type.")
 
     def _validate_json(self, json_data: dict) -> list:
         if self._project.type >= constants.ProjectType.PIXEL.value:
@@ -1227,7 +1225,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
 
 class ValidateAnnotationUseCase(BaseReportableUseCase):
     DEFAULT_VERSION = "V1.00"
-    SCHEMAS: Dict[str, Draft7Validator] = {}
+    SCHEMAS: Dict[str, superannotate_schemas.Draft7Validator] = {}
     PATTERN_MAP = {
         "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "does not match YYYY-MM-DDTHH:MM:SS.fffZ",
         "^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$": "invalid email",
@@ -1278,7 +1276,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                     const_key, instance
                 )
                 if not instance_type:
-                    yield ValidationError("type required")
+                    yield superannotate_schemas.ValidationError("type required")
                     return
                 if const_key and instance_type == _type:
                     errs = list(
@@ -1286,7 +1284,9 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                     )
                     if not errs:
                         return
-                    yield ValidationError("invalid instance", context=errs)
+                    yield superannotate_schemas.ValidationError(
+                        "invalid instance", context=errs
+                    )
                     return
             else:
                 subschemas = enumerate(oneOf)
@@ -1299,24 +1299,25 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                         break
                     all_errors.extend(errs)
                 else:
-                    yield ValidationError(
+                    yield superannotate_schemas.ValidationError(
                         f"{instance!r} is not valid under any of the given schemas",
                         context=all_errors[:1],
                     )
-                # yield from jsonschema._validators.oneOf(  # noqa
-                #     validator, oneOf, instance, schema
-                # )
         if const_key:
-            yield ValidationError(f"invalid {'.'.join(const_key)}")
+            yield superannotate_schemas.ValidationError(
+                f"invalid {'.'.join(const_key)}"
+            )
 
     @staticmethod
     def _pattern(validator, patrn, instance, schema):
         if validator.is_type(instance, "string") and not re.search(patrn, instance):
             _patrn = ValidateAnnotationUseCase.PATTERN_MAP.get(patrn)
             if _patrn:
-                yield ValidationError(f"{instance}  {_patrn}")
+                yield superannotate_schemas.ValidationError(f"{instance}  {_patrn}")
             else:
-                yield ValidationError(f"{instance} does not match {patrn}")
+                yield superannotate_schemas.ValidationError(
+                    f"{instance} does not match {patrn}"
+                )
 
     @staticmethod
     def iter_errors(self, instance, _schema=None):
@@ -1325,7 +1326,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         if _schema is True:
             return
         elif _schema is False:
-            yield jsonschema.exceptions.ValidationError(
+            yield superannotate_schemas.ValidationError(
                 f"False schema does not allow {instance!r}",
                 validator=None,
                 validator_value=None,
@@ -1334,7 +1335,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             )
             return
 
-        scope = jsonschema.validators._id_of(_schema)  # noqa
+        scope = superannotate_schemas.validators._id_of(_schema)  # noqa
         _schema = copy.copy(_schema)
         if scope:
             self.resolver.push_scope(scope)
@@ -1344,7 +1345,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 ref = _schema.pop("$ref")
                 validators.append(("$ref", ref))
 
-            validators.extend(jsonschema.validators.iteritems(_schema))
+            validators.extend(superannotate_schemas.validators.iteritems(_schema))
 
             for k, v in validators:
                 validator = self.VALIDATORS.get(k)
@@ -1381,7 +1382,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                     real_path.append(item)
         return real_path
 
-    def _get_validator(self, version: str) -> Draft7Validator:
+    def _get_validator(self, version: str) -> superannotate_schemas.Draft7Validator:
         key = f"{self._project_type}__{version}"
         validator = ValidateAnnotationUseCase.SCHEMAS.get(key)
         if not validator:
@@ -1393,7 +1394,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             if not schema_response.data:
                 ValidateAnnotationUseCase.SCHEMAS[key] = lambda x: x
                 return ValidateAnnotationUseCase.SCHEMAS[key]
-            validator = jsonschema.Draft7Validator(schema_response.data)
+            validator = superannotate_schemas.Draft7Validator(schema_response.data)
             from functools import partial
 
             iter_errors = partial(self.iter_errors, validator)

@@ -79,7 +79,7 @@ PROJECT_TYPE = Literal[
     "Tiled",
     "Other",
     "PointCloud",
-    "CustomEditor",
+    "GenAI",
 ]
 
 ANNOTATION_STATUS = Literal[

@@ -43,7 +43,7 @@ class TestClassesSerializers(TestCase):
             "type": 1,
             "name": "asd",
             "color": "#0000FF",
-            "attribute_groups": [{"name": "sad"}],
+            "attribute_groups": [{"name": "sad", "isRequired": False}],
         } == serializer_data
 
     def test_empty_multiselect_bool_serializer(self):
@@ -59,7 +59,7 @@ class TestClassesSerializers(TestCase):
             "type": 1,
             "name": "asd",
             "color": "#0000FF",
-            "attribute_groups": [{"name": "sad"}],
+            "attribute_groups": [{"name": "sad", "isRequired": False}],
         } == serializer_data
 
     def test_group_type_wrong_arg(self):

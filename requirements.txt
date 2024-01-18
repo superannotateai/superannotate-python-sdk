@@ -9,8 +9,8 @@ pandas~=2.0
 ffmpeg-python~=0.2
 pillow>=9.5,~=10.0
 tqdm~=4.66.1
-requests~=2.31.0
-aiofiles==23.1.0
+requests==2.*
+aiofiles==23.*
 fire==0.4.0
 mixpanel==4.8.3
-jsonschema==3.2.0
+superannotate-schemas==1.0.47b5

@@ -11,6 +11,45 @@ from tests.integration.base import BaseTestCase
 sa = SAClient()
 
 
+class TestGenAIProjectBasic(BaseTestCase):
+    PROJECT_NAME = "TestGenAICreate"
+    PROJECT_TYPE = "GenAI"
+    PROJECT_DESCRIPTION = "DESCRIPTION"
+    ANNOTATION_PATH = (
+        "data_set/sample_project_vector/example_image_1.jpg___objects.json"
+    )
+
+    @property
+    def annotation_path(self):
+        return os.path.join(Path(__file__).parent.parent.parent, self.ANNOTATION_PATH)
+
+    def test_search(self):
+        projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
+        assert projects
+
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "class1",
+            "#FFAAFF",
+            [
+                {
+                    "name": "Human",
+                    "attributes": [{"name": "yes"}, {"name": "no"}],
+                },
+                {
+                    "name": "age",
+                    "attributes": [{"name": "young"}, {"name": "old"}],
+                },
+            ],
+        )
+        sa.attach_items(self.PROJECT_NAME, attachments=[{"url": "", "name": "name"}])
+        annotation = json.load(open(self.annotation_path))
+        annotation["metadata"]["name"] = "name"
+        sa.upload_annotations(self.PROJECT_NAME, annotations=[annotation])
+        data = sa.get_annotations(self.PROJECT_NAME)
+        assert data
+
+
 class TestProjectBasic(BaseTestCase):
     PROJECT_NAME = "TestWorkflowGet"
     PROJECT_TYPE = "Vector"
