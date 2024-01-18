@@ -6,6 +6,18 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.18 - January 18, 2024
+__________________________
+
+
+**Updated**
+
+    - Improved error handling.
+
+**Removed**
+
+    -  dependency from ``jsonschema``.
+
 4.4.17 - December 21, 2023
 __________________________
 
