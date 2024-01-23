@@ -50,6 +50,7 @@ from lib.core.entities import SettingEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
@@ -63,7 +64,6 @@ from lib.core.pydantic_v1 import conlist
 from lib.core.pydantic_v1 import parse_obj_as
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
-
 
 logger = logging.getLogger("sa")
 
@@ -110,6 +110,7 @@ class PriorityScore(TypedDict):
 class Attachment(TypedDict, total=False):
     url: Required[str]  # noqa
     name: NotRequired[str]  # noqa
+    integration: NotRequired[str]  # noqa
 
 
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
@@ -2579,9 +2580,32 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             logger.info("Dropping duplicates.")
         unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
         uploaded, fails, duplicated = [], [], []
-        if unique_attachments:
+        _unique_attachments = []
+        if any(i.integration for i in unique_attachments):
+            integtation_item_map = {
+                i.name: i
+                for i in self.controller.integrations.list().data
+                if i.type == IntegrationTypeEnum.CUSTOM
+            }
+            invalid_integrations = set()
+            for attachment in unique_attachments:
+                if attachment.integration:
+                    if attachment.integration in integtation_item_map:
+                        attachment.integration_id = integtation_item_map[
+                            attachment.integration
+                        ].id
+                    else:
+                        invalid_integrations.add(attachment.integration)
+                        continue
+                _unique_attachments.append(attachment)
+            if invalid_integrations:
+                logger.error(
+                    f"The ['{','.join(invalid_integrations)}'] integrations specified for the items doesn't exist in the "
+                    "list of integrations on the platform. Any associated items will be skipped."
+                )
+        if _unique_attachments:
             logger.info(
-                f"Attaching {len(unique_attachments)} file(s) to project {project}."
+                f"Attaching {len(_unique_attachments)} file(s) to project {project}."
             )
             project, folder = self.controller.get_project_folder(
                 project_name, folder_name
@@ -2589,7 +2613,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             response = self.controller.items.attach(
                 project=project,
                 folder=folder,
-                attachments=unique_attachments,
+                attachments=_unique_attachments,
                 annotation_status=annotation_status,
             )
             if response.errors:
@@ -2597,7 +2621,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             uploaded, duplicated = response.data
             fails = [
                 attachment.name
-                for attachment in unique_attachments
+                for attachment in _unique_attachments
                 if attachment.name not in uploaded and attachment.name not in duplicated
             ]
         return uploaded, fails, duplicated

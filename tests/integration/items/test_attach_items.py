@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from unittest import TestCase
 
+import pytest
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
@@ -15,6 +16,7 @@ class TestAttachItemsVector(BaseTestCase):
     PROJECT_TYPE = "Vector"
     FOLDER_NAME = "test_folder"
     CSV_PATH = "data_set/attach_urls.csv"
+    CSV_PATH_WITH_INTEGRATIONS = "data_set/attach_urls_integration.csv"
     PATH_TO_50K_URLS = "data_set/501_urls.csv"
     ATTACHED_IMAGE_NAME = "6022a74d5384c50017c366b3"
     ATTACHMENT_LIST = [
@@ -38,6 +40,12 @@ class TestAttachItemsVector(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent.parent, self.CSV_PATH)
 
     @property
+    def integrations_scv_path(self):
+        return os.path.join(
+            Path(__file__).parent.parent.parent, self.CSV_PATH_WITH_INTEGRATIONS
+        )
+
+    @property
     def scv_path_50k(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.PATH_TO_50K_URLS)
 
@@ -47,6 +55,11 @@ class TestAttachItemsVector(BaseTestCase):
         uploaded, _, duplicated = sa.attach_items(self.PROJECT_NAME, self.scv_path)
         assert len(uploaded) == 2
         assert len(duplicated) == 5
+
+    @pytest.mark.skip(reason="Need to have a custom integrations")
+    def test_attached_items_with_integration_csv(self):
+        uploaded, _, _ = sa.attach_items(self.PROJECT_NAME, self.integrations_scv_path)
+        assert len(uploaded) == 5
 
     def test_attached_items_list_of_dict(self):
         uploaded, _, _ = sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST)

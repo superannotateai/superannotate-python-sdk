@@ -410,8 +410,8 @@ class AttachItems(BaseReportableUseCase):
             raise AppValidationException(constants.ATTACHING_UPLOAD_STATE_ERROR)
 
     @staticmethod
-    def generate_meta() -> AttachmentMeta:
-        return AttachmentMeta(width=None, height=None)
+    def generate_meta(integration_id=None) -> AttachmentMeta:
+        return AttachmentMeta(width=None, height=None, integration_id=integration_id)
 
     def execute(self) -> Response:
         if self.is_valid():
@@ -436,7 +436,9 @@ class AttachItems(BaseReportableUseCase):
                         to_upload.append(
                             Attachment(name=attachment.name, path=attachment.url)
                         )
-                        to_upload_meta[attachment.name] = self.generate_meta()
+                        to_upload_meta[attachment.name] = self.generate_meta(
+                            attachment.integration_id
+                        )
                 if to_upload:
                     backend_response = self._service_provider.items.attach(
                         project=self._project,

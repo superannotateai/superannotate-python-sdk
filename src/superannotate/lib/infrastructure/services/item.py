@@ -40,7 +40,7 @@ class ItemService(BaseItemService):
         ProjectType.PIXEL: ImageResponse,
         ProjectType.DOCUMENT: DocumentResponse,
         ProjectType.POINT_CLOUD: PointCloudResponse,
-        ProjectType.GEN_AI: ImageResponse
+        ProjectType.GEN_AI: ImageResponse,
     }
 
     def get_by_id(self, item_id, project_id, project_type):
