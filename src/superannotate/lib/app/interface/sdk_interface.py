@@ -77,7 +77,6 @@ PROJECT_TYPE = Literal[
     "Video",
     "Document",
     "Tiled",
-    "Other",
     "PointCloud",
     "GenAI",
 ]
@@ -312,7 +311,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_description: the new project's description
         :type project_description: str
 
-        :param project_type: the new project type, Vector, Pixel, Video, Document, Tiled, PointCloud, Other.
+        :param project_type: the new project type, Vector, Pixel, Video, Document, Tiled, PointCloud, GenAI.
         :type project_type: str
 
         :param settings: list of settings objects
