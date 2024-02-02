@@ -2559,6 +2559,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 attachments = [{"name": "item", "url": "https://..."}]
             )
 
+        Example of attaching items from custom integration:
+        ::
+            client = SAClient()
+            client.attach_items(
+                project = "Medical Annotations",
+                attachments =  [
+                    {
+                        "name": "item",
+                        "url": "https://sa-public-files.s3.../text_file_example_1.jpeg"
+                        "integration": "custom-integration"
+                        }
+                    ]
+            )
+
         """
 
         project_name, folder_name = extract_project_folder(project)
