@@ -6,6 +6,7 @@ from typing import Tuple
 from typing import Union
 
 import boto3
+import numpy as np
 import pandas as pd
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
@@ -92,6 +93,7 @@ def get_name_url_duplicated_from_csv(csv_path):
         image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
 
     image_data = pd.DataFrame(image_data, columns=["name", "url", "integration"])
+    image_data = image_data.replace(np.nan, None)
     img_names_urls = image_data.to_dict(orient="records")
     duplicate_images = []
     seen = []

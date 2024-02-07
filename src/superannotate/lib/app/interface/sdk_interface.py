@@ -2616,6 +2616,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     f"The ['{','.join(invalid_integrations)}'] integrations specified for the items doesn't exist in the "
                     "list of integrations on the platform. Any associated items will be skipped."
                 )
+        else:
+            _unique_attachments = unique_attachments
+
         if _unique_attachments:
             logger.info(
                 f"Attaching {len(_unique_attachments)} file(s) to project {project}."
