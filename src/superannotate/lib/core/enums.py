@@ -171,6 +171,7 @@ class IntegrationTypeEnum(BaseTitledEnum):
     AWS = "aws", 1
     GCP = "gcp", 2
     AZURE = "azure", 3
+    CUSTOM = "custom", 4
 
 
 class TrainingStatus(BaseTitledEnum):

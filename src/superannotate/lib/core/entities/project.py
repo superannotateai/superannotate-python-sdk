@@ -40,6 +40,8 @@ class TimedBaseModel(BaseModel):
 class AttachmentEntity(BaseModel):
     name: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
     url: str
+    integration: Optional[str] = None
+    integration_id: Optional[int] = None
 
     class Config:
         extra = Extra.ignore
