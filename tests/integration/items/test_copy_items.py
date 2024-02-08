@@ -7,8 +7,8 @@ from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
-print()
-sa.set_item_coponnet_value(639042, 39565701, 'component_id_1', 'value_0')
+
+
 class TestCopyItems(BaseTestCase):
     PROJECT_NAME = "TestCopyItemsVector"
     PROJECT_DESCRIPTION = "TestCopyItemsVector"

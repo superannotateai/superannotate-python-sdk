@@ -354,7 +354,6 @@ class ItemManager(BaseManager):
         )
         return use_case.execute()
 
-
     def get_by_id(self, item_id: int, project: ProjectEntity):
         use_case = usecases.GetItemByIDUseCase(
             item_id=item_id,

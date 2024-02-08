@@ -47,7 +47,7 @@ class StreamedAnnotations:
     ):
         kwargs = {"params": params}
         folder_id = params.pop("folder_id", None)
-        if folder_id :
+        if folder_id:
             kwargs["json"] = {"folder_id": folder_id}
         else:
             kwargs["json"] = dict()

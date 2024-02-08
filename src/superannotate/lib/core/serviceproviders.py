@@ -322,11 +322,11 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     def upload_annotation(
-            self,
-            project_id: int,
-            item_id: int,
-            payload: dict,
-            transform_version: str = None
+        self,
+        project_id: int,
+        item_id: int,
+        payload: dict,
+        transform_version: str = None,
     ):
         raise NotImplementedError
 
@@ -337,7 +337,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         item_ids: List[int],
         reporter: Reporter,
         callback: Callable = None,
-        transform_version: str = None
+        transform_version: str = None,
     ) -> List[dict]:
         raise NotImplementedError
 

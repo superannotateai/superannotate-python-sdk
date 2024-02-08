@@ -137,12 +137,9 @@ class AnnotationService(BaseAnnotationService):
         item_ids: List[int],
         reporter: Reporter,
         callback: Callable = None,
-        transform_version: str = None
+        transform_version: str = None,
     ) -> List[dict]:
-        query_params = {
-            "team_id": self.client.team_id,
-            "project_id": project_id,
-        }
+        query_params = {"team_id": self.client.team_id, "project_id": project_id}
         if transform_version is not None:
             query_params["transform_version"] = transform_version
         handler = StreamedAnnotations(
@@ -248,11 +245,11 @@ class AnnotationService(BaseAnnotationService):
         )
 
     def upload_annotation(
-            self,
-            project_id: int,
-            item_id: int,
-            payload: dict,
-            transform_version: str = None
+        self,
+        project_id: int,
+        item_id: int,
+        payload: dict,
+        transform_version: str = None,
     ):
         params = [
             ("team_id", self.client.team_id),
@@ -261,7 +258,6 @@ class AnnotationService(BaseAnnotationService):
         ]
         if transform_version is not None:
             params.append(("transform_version", transform_version))
-            payload = {"data": payload}
 
         name = str(item_id)
         buffer = io.BytesIO(json.dumps(payload).encode())
