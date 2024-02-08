@@ -6,6 +6,15 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.19 - February 08, 2024
+__________________________
+
+
+**Updated**
+
+    - ``SAClient.attach_items()`` added the ability to attach items from custom integrated storage.
+
+
 4.4.18 - January 18, 2024
 __________________________
 
