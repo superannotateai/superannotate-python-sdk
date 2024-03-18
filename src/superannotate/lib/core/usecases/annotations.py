@@ -1512,8 +1512,7 @@ class GetAnnotations(BaseReportableUseCase):
 
     async def get_small_annotations(self, item_ids: List[int]):
         return await self._service_provider.annotations.list_small_annotations(
-            project=self._project,
-            folder=self._folder,
+            project_id=self._project.id,
             item_ids=item_ids,
             reporter=self.reporter,
         )

@@ -139,7 +139,7 @@ class HttpClient(BaseClient):
         if files and session.headers.get("Content-Type"):
             del session.headers["Content-Type"]
         session.headers.update(headers if headers else {})
-        response = self._request(_url, method, session=session, retried=0, **kwargs)
+        response = self._request(_url, method, session=session, retried=0, files=files, **kwargs)
         if files:
             session.headers.update(self.default_headers)
         return self.serialize_response(response, content_type, dispatcher)

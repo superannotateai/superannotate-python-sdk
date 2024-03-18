@@ -133,18 +133,18 @@ class AnnotationService(BaseAnnotationService):
 
     async def list_small_annotations(
         self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
+        project_id: int,
         item_ids: List[int],
         reporter: Reporter,
         callback: Callable = None,
+        transform_version: str = None
     ) -> List[dict]:
         query_params = {
-            "team_id": project.team_id,
-            "project_id": project.id,
-            "folder_id": folder.id,
+            "team_id": self.client.team_id,
+            "project_id": project_id,
         }
-
+        if transform_version is not None:
+            query_params["transform_version"] = transform_version
         handler = StreamedAnnotations(
             self.client.default_headers,
             reporter,
@@ -245,6 +245,33 @@ class AnnotationService(BaseAnnotationService):
             data=item_ids,
             params=query_params,
             download_path=download_path,
+        )
+
+    def upload_annotation(
+            self,
+            project_id: int,
+            item_id: int,
+            payload: dict,
+            transform_version: str = None
+    ):
+        params = [
+            ("team_id", self.client.team_id),
+            ("project_id", project_id),
+            ("image_ids[]", item_id),
+        ]
+        if transform_version is not None:
+            params.append(("transform_version", transform_version))
+            payload = {"data": payload}
+
+        name = str(item_id)
+        buffer = io.BytesIO(json.dumps(payload).encode())
+        buffer.seek(0)
+        return self.client.request(
+            method="post",
+            params=params,
+            url=urljoin(self.assets_provider_url, self.URL_UPLOAD_ANNOTATIONS),
+            # url="https://311e-178-160-196-42.ngrok-free.app",
+            files=[(name, (name, buffer, "application/json"))],
         )
 
     async def upload_small_annotations(

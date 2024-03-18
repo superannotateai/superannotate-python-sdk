@@ -321,14 +321,23 @@ class BaseAnnotationService(SuperannotateServiceProvider):
     ) -> dict:
         raise NotImplementedError
 
+    def upload_annotation(
+            self,
+            project_id: int,
+            item_id: int,
+            payload: dict,
+            transform_version: str = None
+    ):
+        raise NotImplementedError
+
     @abstractmethod
     async def list_small_annotations(
         self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
+        project_id: int,
         item_ids: List[int],
         reporter: Reporter,
         callback: Callable = None,
+        transform_version: str = None
     ) -> List[dict]:
         raise NotImplementedError
 
