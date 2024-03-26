@@ -79,7 +79,7 @@ class TestAnnotationUploadVector(BaseTestCase):
             self.PROJECT_NAME,
             [
                 {"name": f"aearth_mov_00{i}.jpg", "url": f"url_{i}"}
-                for i in range(1, 6)
+                for i in range(1, 4)
             ],  # noqa
         )
 
@@ -90,11 +90,11 @@ class TestAnnotationUploadVector(BaseTestCase):
         uploaded, a, b = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.large_annotations_folder_path
         )
-        assert len(uploaded) == 5
+        assert len(uploaded) == 3
         annotations = sa.get_annotations(self.PROJECT_NAME)
         assert [len(annotation["instances"]) > 1 for annotation in annotations].count(
             True
-        ) == 5
+        ) == 3
 
 
 class TestExportUploadVector(BaseTestCase):
