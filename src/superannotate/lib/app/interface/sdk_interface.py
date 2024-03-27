@@ -2205,20 +2205,28 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def get_annotations(
-        self, project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None
+        self,
+        project: Union[NotEmptyStr, int],
+        items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
     ):
         """Returns annotations for the given list of items.
 
-        :param project: project name or folder path (e.g., “project1/folder1”).
-        :type project: str
+        :param project: project id or project name or folder path (e.g., “project1/folder1”).
+        :type project: str or int
 
         :param items:  item names. If None, all the items in the specified directory will be used.
-        :type items: list of strs
+        :type items: list of strs or list of ints
 
         :return: list of annotations
-        :rtype: list of strs
+        :rtype: list of dict
         """
-        project, folder = self.controller.get_project_folder_by_path(project)
+        if isinstance(project, str):
+            project, folder = self.controller.get_project_folder_by_path(project)
+        else:
+            project, folder = (
+                self.controller.get_project_by_id(project_id=project).data,
+                None,
+            )
         response = self.controller.annotations.list(project, folder, items)
         if response.errors:
             raise AppException(response.errors)

@@ -247,6 +247,14 @@ class BaseItemService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def list_by_ids(
+        self,
+        project: entities.ProjectEntity,
+        ids: List[int],
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def attach(
         self,
         project: entities.ProjectEntity,

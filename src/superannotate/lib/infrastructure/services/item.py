@@ -4,6 +4,7 @@ from typing import List
 
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.entities import BaseItemEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
@@ -12,6 +13,7 @@ from lib.core.service_types import DocumentResponse
 from lib.core.service_types import ImageResponse
 from lib.core.service_types import ItemListResponse
 from lib.core.service_types import PointCloudResponse
+from lib.core.service_types import ServiceResponse
 from lib.core.service_types import TiledResponse
 from lib.core.service_types import VideoResponse
 from lib.core.serviceproviders import BaseItemService
@@ -27,6 +29,7 @@ class ItemService(BaseItemService):
     URL_MOVE_MULTIPLE = "image/move"
     URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
     URL_LIST_BY_NAMES = "images/getBulk"
+    URL_LIST_BY_IDS = "images/getImagesByIds"
     URL_COPY_MULTIPLE = "images/copy-image-or-folders"
     URL_COPY_PROGRESS = "images/copy-image-progress"
     URL_DELETE_ITEMS = "image/delete/images"
@@ -74,6 +77,30 @@ class ItemService(BaseItemService):
             data=item.dict(),
             params={"project_id": project.id},
         )
+
+    def list_by_ids(
+        self,
+        project: entities.ProjectEntity,
+        ids: List[int],
+    ):
+        chunk_size = 2000
+        items = []
+        response = None
+        for i in range(0, len(ids), chunk_size):
+            response = self.client.request(
+                self.URL_LIST_BY_IDS,
+                "post",
+                data={
+                    "image_ids": ids[i : i + chunk_size],  # noqa
+                },
+                params={"project_id": project.id},
+                content_type=ServiceResponse,
+            )
+            if not response.ok:
+                return response
+            items.extend(response.data["images"])
+        response.res_data = [BaseItemEntity(**i) for i in items]
+        return response
 
     def list_by_names(
         self,
