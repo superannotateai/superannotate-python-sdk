@@ -496,8 +496,8 @@ class AnnotationManager(BaseManager):
     def list(
         self,
         project: ProjectEntity,
-        folder: FolderEntity,
-        item_names: List[str],
+        folder: FolderEntity = None,
+        items: Union[List[str], List[int]] = None,
         verbose=True,
     ):
         use_case = usecases.GetAnnotations(
@@ -505,7 +505,7 @@ class AnnotationManager(BaseManager):
             reporter=Reporter(log_info=verbose, log_warning=verbose),
             project=project,
             folder=folder,
-            item_names=item_names,
+            items=items,
             service_provider=self.service_provider,
         )
         return use_case.execute()
@@ -879,8 +879,7 @@ class Controller(BaseController):
     def get_project_by_id(self, project_id: int):
         response = self.projects.get_by_id(project_id=project_id)
         if response.errors:
-            raise AppException(response.errors)
-
+            raise AppException("Project not found.")
         return response
 
     def get_item_by_id(self, item_id: int, project: ProjectEntity):

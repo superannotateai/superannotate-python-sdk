@@ -45,7 +45,9 @@ class StreamedAnnotations:
         data: dict = None,
         params: dict = None,
     ):
-        kwargs = {"params": params, "json": {"folder_id": params.pop("folder_id")}}
+        kwargs = {"params": params, "json": {}}
+        if "folder_id" in kwargs["params"]:
+            kwargs["json"] = {"folder_id": kwargs["params"].pop("folder_id")}
         if data:
             kwargs["json"].update(data)
         response = await session.request(method, url, **kwargs, timeout=TIMEOUT)  # noqa

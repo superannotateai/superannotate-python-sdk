@@ -22,6 +22,7 @@ from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 import aiofiles
 import boto3
@@ -191,10 +192,13 @@ async def upload_small_annotations(
             [],
         )
         try:
+            items_name_data_map = {i.item.name: i.annotation_json for i in chunk}
+            if not items_name_data_map:
+                return
             response = await service_provider.annotations.upload_small_annotations(
                 project=project,
                 folder=folder,
-                items_name_data_map={i.item.name: i.annotation_json for i in chunk},
+                items_name_data_map=items_name_data_map,
             )
             if response.ok:
                 if response.data.failed_items:  # noqa
@@ -1450,16 +1454,17 @@ class GetAnnotations(BaseReportableUseCase):
         config: ConfigEntity,
         reporter: Reporter,
         project: ProjectEntity,
-        folder: FolderEntity,
-        item_names: Optional[List[str]],
         service_provider: BaseServiceProvider,
+        folder: FolderEntity = None,
+        items: Optional[Union[List[str], List[int]]] = None,
     ):
         super().__init__(reporter)
         self._config = config
         self._project = project
         self._folder = folder
         self._service_provider = service_provider
-        self._item_names = item_names
+        self._items = items
+        self._item_name_id_map = {}
         self._item_names_provided = True
         self._big_annotations_queue = None
 
@@ -1467,27 +1472,38 @@ class GetAnnotations(BaseReportableUseCase):
         if self._project.type == constants.ProjectType.PIXEL.value:
             raise AppException("The function is not supported for Pixel projects.")
 
-    def validate_item_names(self):
-        if self._item_names:  # if names provided
-            unique_item_names = list(set(self._item_names))
-            len_unique_items, len_items = len(unique_item_names), len(self._item_names)
-            if len_unique_items < len_items:
-                self.reporter.log_info(
-                    f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
-                )
+    @staticmethod
+    def items_duplication_validation(
+        reporter, items: Union[List[str], List[int]]
+    ) -> Union[List[str], List[int]]:
+        unique_items = list(set(items))
+        len_unique_items, len_items = len(unique_items), len(items)
+        if len_unique_items < len_items:
+            reporter.log_info(
+                f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
+            )
+        return unique_items
+
+    def validate_items(self):
+        if self._items:  # if items provided:
+            self.items_duplication_validation(self.reporter, self._items)
             #  Keep order required
             seen = set()
-            self._item_names = [
-                i for i in self._item_names if not (i in seen or seen.add(i))
-            ]
+            self._items = [i for i in self._items if not (i in seen or seen.add(i))]
 
     def _prettify_annotations(self, annotations: List[dict]):
         re_struct = {}
-        if self._item_names:
+        if self._items:
+            names_provided = isinstance(self._items[0], str)
             for annotation in annotations:
-                re_struct[annotation["metadata"]["name"]] = annotation
+                if names_provided:
+                    re_struct[annotation["metadata"]["name"]] = annotation
+                else:
+                    re_struct[
+                        self._item_name_id_map[annotation["metadata"]["name"]]
+                    ] = annotation
             try:
-                return [re_struct[x] for x in self._item_names if x in re_struct]
+                return [re_struct[x] for x in self._items if x in re_struct]
             except KeyError:
                 raise AppException("Broken data.")
 
@@ -1558,18 +1574,28 @@ class GetAnnotations(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            if self._item_names:
-                items = get_or_raise(
-                    self._service_provider.items.list_by_names(
-                        self._project, self._folder, self._item_names
+            if self._items:
+                if isinstance(self._items[0], str):
+                    items: List[BaseItemEntity] = get_or_raise(
+                        self._service_provider.items.list_by_names(
+                            self._project, self._folder, self._items
+                        )
                     )
-                )
-                len_items, len_provided_items = len(items), len(self._item_names)
+                else:
+                    response = self._service_provider.items.list_by_ids(
+                        project=self._project,
+                        ids=self._items,
+                    )
+                    if not response.ok:
+                        raise AppException(response.error)
+                    items: List[BaseItemEntity] = response.data
+                    self._item_name_id_map = {i.name: i.id for i in items}
+                len_items, len_provided_items = len(items), len(self._items)
                 if len_items != len_provided_items:
                     self.reporter.log_warning(
                         f"Could not find annotations for {len_provided_items - len_items}/{len_provided_items} items."
                     )
-            elif self._item_names is None:
+            elif self._items is None:
                 condition = Condition("project_id", self._project.id, EQ) & Condition(
                     "folder_id", self._folder.id, EQ
                 )
@@ -1583,7 +1609,7 @@ class GetAnnotations(BaseReportableUseCase):
             items_count = len(items)
             self.reporter.log_info(
                 f"Getting {items_count} annotations from "
-                f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}."
+                f"{self._project.name}{f'/{self._folder.name}' if self._folder and self._folder.name != 'root' else ''}."
             )
             id_item_map = {i.id: i for i in items}
             self.reporter.start_progress(
@@ -1602,11 +1628,13 @@ class GetAnnotations(BaseReportableUseCase):
             try:
                 annotations = run_async(self.run_workers(large_items, small_items))
             except Exception as e:
+                # todo remove
+                raise e
                 logger.error(e)
                 self._response.errors = AppException("Can't get annotations.")
                 return self._response
             self.reporter.finish_progress()
-            self._response.data = self._prettify_annotations(annotations)
+            self._response.data = self._prettify_annotations(annotations)  # noqa
         return self._response
 
 
@@ -1634,15 +1662,10 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._callback = callback
         self._big_file_queue = None
 
-    def validate_item_names(self):
-        if self._item_names:
-            item_names = list(dict.fromkeys(self._item_names))
-            len_unique_items, len_items = len(item_names), len(self._item_names)
-            if len_unique_items < len_items:
-                self.reporter.log_info(
-                    f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
-                )
-                self._item_names = item_names
+    def validate_items(self):
+        self._item_names = GetAnnotations.items_duplication_validation(
+            self.reporter, self._item_names
+        )
 
     @property
     def destination(self) -> str:
