@@ -142,7 +142,7 @@ class AnnotationService(BaseAnnotationService):
         query_params = {
             "team_id": project.team_id,
             "project_id": project.id,
-            "folder_id": folder.id,
+            # "folder_id": folder.id,
         }
 
         handler = StreamedAnnotations(
