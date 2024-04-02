@@ -1024,7 +1024,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         duplicated_paths = []
         for file_name in name_path_map:
             if len(name_path_map[file_name]) > 1:
-                duplicated_paths.append(name_path_map[file_name][1:])
+                duplicated_paths.extend(name_path_map[file_name][1:])
             filtered_paths.append(name_path_map[file_name][0])
 
         image_list = []
