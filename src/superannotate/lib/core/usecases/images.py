@@ -1020,11 +1020,12 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             name_path_map[Path(path).name].append(path)
 
         CHUNK_SIZE = UploadImagesToProject.LIST_NAME_CHUNK_SIZE
+
         filtered_paths = []
         duplicated_paths = []
         for file_name in name_path_map:
             if len(name_path_map[file_name]) > 1:
-                duplicated_paths.append(name_path_map[file_name][1:])
+                duplicated_paths.extend(name_path_map[file_name][1:])
             filtered_paths.append(name_path_map[file_name][0])
 
         image_list = []
@@ -1059,7 +1060,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
 
     def execute(self):
         if self.is_valid():
-            images_to_upload, duplications = self.images_to_upload
+            images_to_upload, _ = self.images_to_upload
             images_to_upload = images_to_upload[: self.auth_data["availableImageCount"]]
             if not images_to_upload:
                 return self._response
@@ -1082,6 +1083,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     yield
 
             uploaded = []
+            duplications = []  # existing items
             for i in range(0, len(uploaded_images), 100):
                 response = AttachFileUrlsUseCase(
                     project=self._project,
