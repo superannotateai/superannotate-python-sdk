@@ -2048,25 +2048,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             from_s3_bucket=from_s3_bucket,
         )
 
-        images_to_upload, duplicates = use_case.images_to_upload
-        if len(duplicates):
-            logger.warning(
-                f"{len(duplicates)} duplicated images found that won't be uploaded."
-            )
+        images_to_upload, existing_items = use_case.images_to_upload
         logger.info(f"Uploading {len(images_to_upload)} images to project {project}.")
-        uploaded, failed_images, duplications = [], [], duplicates
+        uploaded, failed_images = [], []
         if not images_to_upload:
-            return uploaded, failed_images, duplications
+            return uploaded, failed_images, existing_items
         if use_case.is_valid():
             with tqdm(
                 total=len(images_to_upload), desc="Uploading images"
             ) as progress_bar:
                 for _ in use_case.execute():
                     progress_bar.update(1)
-            uploaded, failed_images, duplications = use_case.data
-            if duplications:
-                logger.info(f"Duplicated images {', '.join(duplications)}")
-            return uploaded, failed_images, duplications
+            uploaded, failed_images, existing_items = use_case.data
+            if existing_items:
+                logger.info(f"Existing images {', '.join(existing_items)}")
+            return uploaded, failed_images, existing_items
         raise AppException(use_case.response.errors)
 
     def aggregate_annotations_as_df(
