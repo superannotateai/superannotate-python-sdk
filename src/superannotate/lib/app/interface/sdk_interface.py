@@ -2051,8 +2051,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         images_to_upload, duplicates = use_case.images_to_upload
         if len(duplicates):
             logger.warning(
-                "%s already existing images found that won't be uploaded.",
-                len(duplicates),
+                f"{len(duplicates)} duplicated images found that won't be uploaded."
             )
         logger.info(f"Uploading {len(images_to_upload)} images to project {project}.")
         uploaded, failed_images, duplications = [], [], duplicates
