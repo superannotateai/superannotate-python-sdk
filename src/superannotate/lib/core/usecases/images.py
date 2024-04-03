@@ -1023,10 +1023,16 @@ class UploadImagesToProject(BaseInteractiveUseCase):
 
         filtered_paths = []
         duplicated_paths = []
+        existing_items = []
         for file_name in name_path_map:
             if len(name_path_map[file_name]) > 1:
                 duplicated_paths.extend(name_path_map[file_name][1:])
             filtered_paths.append(name_path_map[file_name][0])
+
+        if duplicated_paths:
+            logger.warning(
+                f"{len(duplicated_paths)} duplicate paths found that won't be uploaded."
+            )
 
         image_list = []
         for i in range(0, len(filtered_paths), CHUNK_SIZE):
@@ -1046,11 +1052,12 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         images_to_upload = []
 
         for path in filtered_paths:
-            if Path(path).name not in image_list:
+            image_name = Path(path).name
+            if image_name not in image_list:
                 images_to_upload.append(path)
             else:
-                duplicated_paths.append(path)
-        return list(set(images_to_upload)), duplicated_paths
+                existing_items.append(image_name)
+        return list(set(images_to_upload)), existing_items
 
     @property
     def images_to_upload(self):
@@ -1060,7 +1067,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
 
     def execute(self):
         if self.is_valid():
-            images_to_upload, _ = self.images_to_upload
+            images_to_upload, existing_items = self.images_to_upload
             images_to_upload = images_to_upload[: self.auth_data["availableImageCount"]]
             if not images_to_upload:
                 return self._response
@@ -1083,7 +1090,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     yield
 
             uploaded = []
-            duplications = []  # existing items
+            attach_duplications_list = []
             for i in range(0, len(uploaded_images), 100):
                 response = AttachFileUrlsUseCase(
                     project=self._project,
@@ -1101,10 +1108,14 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     continue
                 attachments, attach_duplications = response.data
                 uploaded.extend(attachments)
-                duplications.extend(attach_duplications)
+                attach_duplications_list.extend(attach_duplications)
+            if attach_duplications_list:
+                logger.debug(
+                    f"{len(attach_duplications_list)} item attachments duplicates found."
+                )
             uploaded = [image["name"] for image in uploaded]
             failed_images = [image.split("/")[-1] for image in failed_images]
-            self._response.data = uploaded, failed_images, duplications
+            self._response.data = uploaded, failed_images, existing_items
         return self._response
 
 

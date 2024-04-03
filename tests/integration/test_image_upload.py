@@ -67,11 +67,10 @@ class TestMultipleImageUpload(BaseTestCase):
                 f"{self.folder_path}/example_image_1.jpg",
                 f"{self.folder_path}/example_image_2.jpg",
                 f"{self.folder_path}/example_image_3.jpg",
-                f"{self.folder_path}/example_image_4.jpg",
             ],
             annotation_status="InProgress",
         )
-        self.assertEqual(len(uploaded), 4)
+        self.assertEqual(len(uploaded), 3)
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 0)
 
@@ -85,9 +84,9 @@ class TestMultipleImageUpload(BaseTestCase):
             ],
             annotation_status="InProgress",
         )
-        self.assertEqual(len(uploaded), 0)
+        self.assertEqual(len(uploaded), 1)
         self.assertEqual(len(could_not_upload), 0)
-        self.assertEqual(len(existing_images), 4)
+        self.assertEqual(len(existing_images), 3)
 
         uploaded, could_not_upload, existing_images = sa.upload_images_to_project(
             self.PROJECT_NAME, [f"{self.folder_path}/dd.jpg"]
@@ -115,7 +114,7 @@ class TestMultipleImageUpload(BaseTestCase):
             )
             assert (
                 mock_log.records[0].msg
-                == "2 duplicated images found that won't be uploaded."
+                == "2 duplicate paths found that won't be uploaded."
             )
             assert (
                 mock_log.records[1].msg
@@ -123,4 +122,4 @@ class TestMultipleImageUpload(BaseTestCase):
             )
             self.assertEqual(len(uploaded), 3)
             self.assertEqual(len(could_not_upload), 0)
-            self.assertEqual(len(existing_images), 2)
+            self.assertEqual(len(existing_images), 0)
