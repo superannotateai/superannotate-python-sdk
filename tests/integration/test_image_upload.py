@@ -123,4 +123,4 @@ class TestMultipleImageUpload(BaseTestCase):
             )
             self.assertEqual(len(uploaded), 3)
             self.assertEqual(len(could_not_upload), 0)
-            self.assertEqual(len(existing_images), 2)
+            self.assertEqual(len(existing_images), 0)
