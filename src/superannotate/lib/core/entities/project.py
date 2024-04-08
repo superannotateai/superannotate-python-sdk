@@ -70,7 +70,7 @@ class SettingEntity(BaseModel):
     id: Optional[int]
     project_id: Optional[int]
     attribute: str
-    value: Union[StrictStr, StrictInt, StrictFloat, StrictBool]
+    value: Union[StrictStr, StrictInt, StrictFloat, StrictBool]  # todo set any
 
     class Config:
         extra = Extra.ignore
