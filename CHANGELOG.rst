@@ -13,7 +13,7 @@ _______________________
 
 **Updated**
 
-    - ``SAClient.get_annotations()`` added the ability to retrieve data by project/item IDS.
+    - ``SAClient.get_annotations()`` added the ability to retrieve data by project/item IDs.
     - ``SAClient.upload_images_to_project()`` fixed an issue with providing two paths with the same image name.
 
 
