@@ -2317,10 +2317,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if isinstance(project, str):
             project, folder = self.controller.get_project_folder_by_path(project)
         else:
-            project, folder = (
-                self.controller.get_project_by_id(project_id=project).data,
-                None,
-            )
+            project = self.controller.get_project_by_id(project_id=project).data
+            folder = self.controller.get_folder_by_id(
+                project_id=project.id, folder_id=project.folder_id
+            ).data
         response = self.controller.annotations.list(project, folder, items)
         if response.errors:
             raise AppException(response.errors)

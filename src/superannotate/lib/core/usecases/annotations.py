@@ -1114,7 +1114,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
                 reporter=Reporter(log_info=False),
                 project=self._project,
                 folder=self._folder,
-                item_names=[self._video_name],
+                items=[self._video_name],
                 service_provider=self._service_provider,
             ).execute()
             if response.data:
@@ -1628,8 +1628,6 @@ class GetAnnotations(BaseReportableUseCase):
             try:
                 annotations = run_async(self.run_workers(large_items, small_items))
             except Exception as e:
-                # todo remove
-                raise e
                 logger.error(e)
                 self._response.errors = AppException("Can't get annotations.")
                 return self._response
@@ -1663,9 +1661,10 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._big_file_queue = None
 
     def validate_items(self):
-        self._item_names = GetAnnotations.items_duplication_validation(
-            self.reporter, self._item_names
-        )
+        if self._item_names:
+            self._item_names = GetAnnotations.items_duplication_validation(
+                self.reporter, self._item_names
+            )
 
     @property
     def destination(self) -> str:
