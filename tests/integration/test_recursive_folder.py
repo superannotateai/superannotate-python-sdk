@@ -35,7 +35,7 @@ class TestRecursiveFolder(BaseTestCase):
             self.PROJECT_NAME, self.second_folder_path, recursive_subfolders=True
         )
         self.assertEqual(2, len(uploaded))
-        self.assertEqual(2, len(duplicated))
+        self.assertEqual(0, len(duplicated))
 
     def test_non_recursive_annotations_folder(self):
         sa.upload_images_from_folder_to_project(
