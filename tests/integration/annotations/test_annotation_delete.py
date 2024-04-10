@@ -40,6 +40,7 @@ class TestAnnotationDelete(BaseTestCase):
         sa.delete_annotations(self.PROJECT_NAME)
         annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
         del annotations[0]["metadata"]["projectId"]
+        del annotations[0]["metadata"]["id"]
         assert annotations == [
             {
                 "metadata": {
@@ -69,6 +70,7 @@ class TestAnnotationDelete(BaseTestCase):
         sa.delete_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
         annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
         del annotations[0]["metadata"]["projectId"]
+        del annotations[0]["metadata"]["id"]
         assert annotations == [
             {
                 "metadata": {
