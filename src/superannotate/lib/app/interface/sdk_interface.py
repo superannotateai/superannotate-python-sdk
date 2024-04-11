@@ -402,17 +402,23 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project_name: new project's name
         :type project_name: str
+
         :param from_project: the name of the project being used for duplication
         :type from_project: str
+
         :param project_description: the new project's description. If None, from_project's
                                     description will be used
         :type project_description: str
+
         :param copy_annotation_classes: enables copying annotation classes
         :type copy_annotation_classes: bool
+
         :param copy_settings: enables copying project settings
         :type copy_settings: bool
+
         :param copy_workflow: enables copying project workflow
         :type copy_workflow: bool
+
         :param copy_contributors: enables copying project contributors
         :type copy_contributors: bool
 
@@ -493,6 +499,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param folder_name: the new folder's name
         :type folder_name: str
 
@@ -515,7 +522,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_project(self, project: Union[NotEmptyStr, dict]):
         """Deletes the project
 
-        :param project: project name or folder path (e.g., "project1/folder1")
+        :param project: project name
         :type project: str
         """
         name = project
@@ -526,8 +533,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def rename_project(self, project: NotEmptyStr, new_name: NotEmptyStr):
         """Renames the project
 
-        :param project: project name or folder path (e.g., "project1/folder1")
+        :param project: project name
         :type project: str
+
         :param new_name: project's new name
         :type new_name: str
         """
@@ -547,6 +555,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param folder_name: folder's name
         :type folder_name: str
 
@@ -563,6 +572,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param folder_names: to be deleted folders' names
         :type folder_names: list of strs
         """
@@ -593,14 +603,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param folder_name: the new folder's name
         :type folder_name: str. If  None, all the folders in the project will be returned.
 
-        :param status:  search folders via status. If None, all folders will be returned. Available statuses are:
-        :type status:
+        :param status:  search folders via status. If None, all folders will be returned. \n
+            Available statuses are::
+
+                     * NotStarted
+                     * InProgress
+                     * Completed
+                     * OnHold
+        :type status: str or list of str
 
         :param return_metadata: return metadata of folders instead of names
         :type return_metadata: bool
 
         :return: folder names or metadatas
         :rtype: list of strs or dicts
+
         """
 
         project = self.controller.get_project(project)
@@ -640,15 +657,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param include_annotation_classes: enables project annotation classes output under
                                            the key "annotation_classes"
         :type include_annotation_classes: bool
+
         :param include_settings: enables project settings output under
                                  the key "settings"
         :type include_settings: bool
+
         :param include_workflow: enables project workflow output under
                                  the key "workflow"
         :type include_workflow: bool
+
         :param include_contributors: enables project contributors output under
                                  the key "contributors"
         :type include_contributors: bool
@@ -743,11 +764,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
-        :param status: status to set, should be one of. \n
-                                    ♦ “NotStarted” \n
-                                    ♦ “InProgress” \n
-                                    ♦ “Completed” \n
-                                    ♦ “OnHold” \n
+
+        :param status: status to set.
+
+            Available statuses are::
+
+                 * NotStarted
+                 * InProgress
+                 * Returned
+                 * Completed
+                 * OnHold
+
         :type status: str
         """
         project = self.controller.get_project(name=project)
@@ -764,13 +791,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param folder: folder name
         :type folder: str
-        :param status: status to set, should be one of. \n
-                                    ♦ “NotStarted” \n
-                                    ♦ “InProgress” \n
-                                    ♦ “Completed” \n
-                                    ♦ “OnHold” \n
+
+        :param status: status to set. \n
+            Available statuses are::
+
+                     * NotStarted
+                     * InProgress
+                     * Completed
+                     * OnHold
         :type status: str
         """
         project, folder = self.controller.get_project_folder(
@@ -1084,8 +1115,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param image_name: image name
         :type image_name: str
+
         :param local_dir_path: local directory path to download to
         :type local_dir_path: Path-like (str or Path)
 
@@ -1111,6 +1144,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param return_metadata: return metadata of images instead of names
         :type return_metadata: bool
 
@@ -1136,16 +1170,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param folder_names: names of folders to include in the export. If None, whole project will be exported
         :type folder_names: list of str
+
         :param annotation_statuses: images with which status to include, if None,
-               ["NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"]  will be chose
+               ["NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"]  will be chosen
                list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
         :type annotation_statuses: list of strs
+
         :param include_fuse: enables fuse images in the export
         :type include_fuse: bool
+
         :param only_pinned: enable only pinned output in export. This option disables all other types of output.
         :type only_pinned: bool
+
         :param kwargs: Arbitrary kwarg ``integration_name``
             can be provided which will be used as a storage to store export file
 
@@ -1207,26 +1246,36 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param folder_path: from which folder to upload the videos
         :type folder_path: Path-like (str or Path)
+
         :param extensions: tuple or list of filename extensions to include from folder
         :type extensions: tuple or list of strs
+
         :param exclude_file_patterns: filename patterns to exclude from uploading
         :type exclude_file_patterns: listlike of strs
+
         :param recursive_subfolders: enable recursive subfolder parsing
         :type recursive_subfolders: bool
+
         :param target_fps: how many frames per second need to extract from the video (approximate).
                            If None, all frames will be uploaded
         :type target_fps: float
+
         :param start_time: Time (in seconds) from which to start extracting frames
         :type start_time: float
+
         :param end_time: Time (in seconds) up to which to extract frames. If None up to end
         :type end_time: float
+
         :param annotation_status: value to set the annotation statuses of the uploaded images
             NotStarted InProgress QualityCheck Returned Completed Skipped
         :type annotation_status: str
+
         :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-               Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+            Can be either "compressed" or "original".
+            If None then the default value in project settings will be used.
         :type image_quality_in_editor: str
 
         :return: uploaded and not-uploaded video frame images' filenames
@@ -1285,18 +1334,24 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param video_path: video to upload
         :type video_path: Path-like (str or Path)
+
         :param target_fps: how many frames per second need to extract from the video (approximate).
                            If None, all frames will be uploaded
         :type target_fps: float
+
         :param start_time: Time (in seconds) from which to start extracting frames
         :type start_time: float
+
         :param end_time: Time (in seconds) up to which to extract frames. If None up to end
         :type end_time: float
+
         :param annotation_status: value to set the annotation statuses of the uploaded
                                   video frames NotStarted InProgress QualityCheck Returned Completed Skipped
         :type annotation_status: str
+
         :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
                 Can be either "compressed" or "original".
                 If None then the default value in project settings will be used.
@@ -1342,11 +1397,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type color: str
 
         :param attribute_groups:  list of attribute group dicts.
-            The values for the "group_type" key are "radio"|"checklist"|"text"|"numeric"|"ocr".
-            "ocr "group_type" key is only available for Vector projects.
-            Mandatory keys for each attribute group are
+            The values for the "group_type" key are
+            ::
 
-              -  "name"
+                * radio
+                * checklist
+                * checklist
+                * text
+                * numeric
+                * ocr
+
+            `ocr` and `group_type` keys are only available for Vector projects.
+            Mandatory keys for each attribute group are::
+
+              - "name"
         :type attribute_groups: list of dicts
 
         :param class_type: class type. Should be either "object" or "tag". Document project type can also have "relationship" type of classes.
@@ -1444,6 +1508,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param annotation_class: annotation class name or  metadata
         :type annotation_class: str or dict
         """
@@ -1471,6 +1536,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param folder: folder to download to
         :type folder: Path-like (str or Path)
 
@@ -1497,8 +1563,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param classes_json: JSON itself or path to the JSON file
         :type classes_json: list or Path-like (str or Path)
+
         :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
         :type from_s3_bucket: str
 
@@ -1542,13 +1610,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name
         :type project: str
+
         :param export: export name
-        :type export: str, dict
+        :type export: str or dict
+
         :param folder_path: where to download the export
         :type folder_path: Path-like (str or Path)
+
         :param extract_zip_contents: if False then a zip file will be downloaded,
          if True the zip file will be extracted at folder_path
         :type extract_zip_contents: bool
+
         :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
         :type to_s3_bucket: Bucket object
         """
@@ -1572,11 +1644,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>,
           "attribute":[{"attribute" : {"name" : <attribute_value>, "attribute_group" : {"name": <attribute_group>}}},
-          ...]
-          },...]
+          ...]},...]
 
         :param project: project name or metadata
         :type project: str or dict
+
         :param new_workflow: new workflow list of dicts
         :type new_workflow: list of dicts
         """
@@ -1600,16 +1672,22 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param image_name: image name
         :type image_name: str
+
         :param local_dir_path: where to download the image
         :type local_dir_path: Path-like (str or Path)
+
         :param include_annotations: enables annotation download with the image
         :type include_annotations: bool
+
         :param include_fuse: enables fuse image download with the image
         :type include_fuse: bool
+
         :param include_overlay: enables overlay image download with the image
         :type include_overlay: bool
+
         :param variant: which resolution to download, can be 'original' or 'lores'
          (low resolution used in web editor)
         :type variant: str
@@ -1828,8 +1906,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param model: the model that needs to be downloaded
         :type  model: dict
+
         :param output_dir: the directory in which the files will be saved
         :type output_dir: str
+
         :return: the metadata of the model
         :rtype: dict
         """
@@ -1891,10 +1971,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: the project in which the target images are uploaded.
         :type project: str or dict
+
         :param images_list: the list of image names on which smart prediction has to be run
         :type images_list: list of str
+
         :param model: the name of the model that should be used for running smart prediction
         :type model: str or dict
+
         :return: tuple of two lists, list of images on which the prediction has succeeded and failed respectively
         :rtype: tuple
         """
@@ -1933,16 +2016,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param img: image to upload
         :type img: io.BytesIO() or Path-like (str or Path)
+
         :param image_name: image name to set on platform. If None and img is filepath,
                            image name will be set to filename of the path
         :type image_name: str
+
         :param annotation_status: value to set the annotation statuses of the uploaded image
                 NotStarted InProgress QualityCheck Returned Completed Skipped
         :type annotation_status: str
+
         :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
         :type from_s3_bucket: str
+
         :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
                 Can be either "compressed" or "original".
                 If None then the default value in project settings will be used.
@@ -2022,13 +2110,24 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param img_paths: list of Path-like (str or Path) objects to upload
         :type img_paths: list
+
         :param annotation_status: value to set the annotation statuses of the uploaded images
-                NotStarted InProgress QualityCheck Returned Completed Skipped
+            Available statuses are::
+
+                     * NotStarted
+                     * InProgress
+                     * QualityCheck
+                     * Returned
+                     * Completed
+                     * Skipped
         :type annotation_status: str
+
         :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
         :type from_s3_bucket: str
+
         :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
                 Can be either "compressed" or "original".
                 If None then the default value in project settings will be used.
@@ -2048,26 +2147,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             from_s3_bucket=from_s3_bucket,
         )
 
-        images_to_upload, duplicates = use_case.images_to_upload
-        if len(duplicates):
-            logger.warning(
-                "%s already existing images found that won't be uploaded.",
-                len(duplicates),
-            )
+        images_to_upload, existing_items = use_case.images_to_upload
         logger.info(f"Uploading {len(images_to_upload)} images to project {project}.")
-        uploaded, failed_images, duplications = [], [], duplicates
+        uploaded, failed_images = [], []
         if not images_to_upload:
-            return uploaded, failed_images, duplications
+            return uploaded, failed_images, existing_items
         if use_case.is_valid():
             with tqdm(
                 total=len(images_to_upload), desc="Uploading images"
             ) as progress_bar:
                 for _ in use_case.execute():
                     progress_bar.update(1)
-            uploaded, failed_images, duplications = use_case.data
-            if duplications:
-                logger.info(f"Duplicated images {', '.join(duplications)}")
-            return uploaded, failed_images, duplications
+            uploaded, failed_images, existing_items = use_case.data
+            if existing_items:
+                logger.info(f"Existing images {', '.join(existing_items)}")
+            return uploaded, failed_images, existing_items
         raise AppException(use_case.response.errors)
 
     def aggregate_annotations_as_df(
@@ -2085,7 +2179,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type project_type: str
 
         :param folder_names: Aggregate the specified folders from project_root.
-         If None aggregate all folders in the project_root
+         If None aggregates all folders in the project_root
         :type folder_names: list of Pathlike (str or Path) objects
 
         :return: DataFrame on annotations
@@ -2205,20 +2299,28 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def get_annotations(
-        self, project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None
+        self,
+        project: Union[NotEmptyStr, int],
+        items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
     ):
         """Returns annotations for the given list of items.
 
-        :param project: project name or folder path (e.g., “project1/folder1”).
-        :type project: str
+        :param project: project id or project name or folder path (e.g., “project1/folder1”).
+        :type project: str or int
 
         :param items:  item names. If None, all the items in the specified directory will be used.
-        :type items: list of strs
+        :type items: list of strs or list of ints
 
         :return: list of annotations
-        :rtype: list of strs
+        :rtype: list of dict
         """
-        project, folder = self.controller.get_project_folder_by_path(project)
+        if isinstance(project, str):
+            project, folder = self.controller.get_project_folder_by_path(project)
+        else:
+            project = self.controller.get_project_by_id(project_id=project).data
+            folder = self.controller.get_folder_by_id(
+                project_id=project.id, folder_id=project.folder_id
+            ).data
         response = self.controller.annotations.list(project, folder, items)
         if response.errors:
             raise AppException(response.errors)
@@ -2436,15 +2538,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             If None, all items returned, in accordance with the recursive=False parameter.
         :type name_contains: str
 
-        :param annotation_status: if not None, filters items by annotation status.
-            Values are:
+        :param annotation_status: if not None, filters items by annotation status. \n
+            Available statuses are::
 
-                ♦ “NotStarted” \n
-                ♦ “InProgress” \n
-                ♦ “QualityCheck” \n
-                ♦ “Returned” \n
-                ♦ “Completed” \n
-                ♦ “Skip” \n
+                     * NotStarted
+                     * InProgress
+                     * QualityCheck
+                     * Returned
+                     * Completed
+                     * Skipped
         :type annotation_status: str
 
         :param annotator_email: returns those items’ names that are assigned to the specified annotator.
@@ -2539,13 +2641,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param attachments: path to CSV file or list of dicts containing attachments URLs.
         :type attachments: path-like (str or Path) or list of dicts
 
-        :param annotation_status: value to set the annotation statuses of the linked items
-                                   “NotStarted”
-                                   “InProgress”
-                                   “QualityCheck”
-                                   “Returned”
-                                   “Completed”
-                                   “Skipped”
+        :param annotation_status: value to set the annotation statuses of the linked items. \n
+                Available statuses are::
+
+                 * NotStarted
+                 * InProgress
+                 * QualityCheck
+                 * Returned
+                 * Completed
+                 * Skipped
         :type annotation_status: str
 
         :return: uploaded, failed and duplicated item names
@@ -2553,26 +2657,27 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Example:
         ::
+
             client = SAClient()
             client.attach_items(
-                project = "Medical Annotations",
-                attachments = [{"name": "item", "url": "https://..."}]
-            )
+                project="Medical Annotations",
+                attachments=[{"name": "item", "url": "https://..."}]
+             )
 
         Example of attaching items from custom integration:
         ::
+
             client = SAClient()
             client.attach_items(
-                project = "Medical Annotations",
-                attachments =  [
+                project="Medical Annotations",
+                attachments=[
                     {
                         "name": "item",
-                        "url": "https://sa-public-files.s3.../text_file_example_1.jpeg"
-                        "integration": "custom-integration"
+                        "url": "https://bucket-name.s3…/example.png"
+                        "integration": "custom-integration-name"
                         }
                     ]
             )
-
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -2736,13 +2841,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., “project1/folder1”).
         :type project: str
 
-        :param annotation_status: annotation status to set, should be one of. \n
-                                    ♦ “NotStarted” \n
-                                    ♦ “InProgress” \n
-                                    ♦ “QualityCheck” \n
-                                    ♦ “Returned” \n
-                                    ♦ “Completed” \n
-                                    ♦ “Skipped” \n
+        :param annotation_status: annotation status to set. \n
+            Available statuses are::
+
+                 * NotStarted
+                 * InProgress
+                 * QualityCheck
+                 * Returned
+                 * Completed
+                 * Skipped
         :type annotation_status: str
 
         :param items:  item names. If None, all the items in the specified directory will be used.
@@ -3214,10 +3321,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., “project1/folder1”).
         :type project: str
 
-        :param approval_status: approval status to set, should be one of. \n
-                                ♦ None \n
-                                ♦ “Approved” \n
-                                ♦ “Disapproved” \n
+        :param approval_status: approval status to set. \n
+            Available statuses are::
+
+                     * None
+                     * Approved
+                     * Disapproved
         :type approval_status: str
 
         :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.

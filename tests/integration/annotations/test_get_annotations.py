@@ -42,6 +42,32 @@ class TestGetAnnotations(BaseTestCase):
                 len(annotation_data["instances"]), len(annotations[0]["instances"])
             )
 
+    def test_get_annotations_by_ids(self):
+        self._attach_items(count=4)  # noqa
+
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        _, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        items = sa.search_items(self.PROJECT_NAME)
+
+        annotations = sa.get_annotations(self._project["id"], [i["id"] for i in items])
+
+        self.assertEqual(len(annotations), 4)
+
+    def test_get_annotations_by_wrong_item_ids(self):
+        annotations = sa.get_annotations(self._project["id"], [1, 2, 3])
+
+        self.assertEqual(len(annotations), 0)
+
+    def test_get_annotations_by_wrong_project_ids(self):
+        try:
+            sa.get_annotations(1, [1, 2, 3])
+        except Exception as e:
+            self.assertEqual(str(e), "Project not found.")
+
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_order(self):
         sa.upload_images_from_folder_to_project(

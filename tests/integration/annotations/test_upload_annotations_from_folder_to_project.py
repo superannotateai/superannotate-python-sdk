@@ -74,7 +74,7 @@ class TestAnnotationUploadVector(BaseTestCase):
         )
         assert len(uploaded) == 4
 
-    def test_upload_large_annotations(self):
+    def test_upload_small_annotations_7_4_MB(self):
         sa.attach_items(
             self.PROJECT_NAME,
             [

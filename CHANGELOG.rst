@@ -6,6 +6,18 @@ History
 
 All release highlights of this project will be documented in this file.
 
+
+4.4.20 - April 11, 2024
+_______________________
+
+
+**Updated**
+
+    - ``SAClient.get_annotations()`` added the ability to retrieve data by project/item IDs.
+    - ``SAClient.upload_images_to_project()`` fixed an issue with providing two paths with the same image name.
+
+
+
 4.4.19 - February 08, 2024
 __________________________
 
