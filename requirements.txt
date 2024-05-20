@@ -4,7 +4,6 @@ boto3~=1.26
 opencv-python-headless~=4.7
 packaging~=23.1
 plotly~=5.14
-email-validator~=2.0
 pandas~=2.0
 ffmpeg-python~=0.2
 pillow>=9.5,~=10.0
