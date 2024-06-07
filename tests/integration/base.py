@@ -31,6 +31,7 @@ class BaseTestCase(TestCase):
                 except Exception:
                     pass
         except Exception as e:
+            raise e
             print(str(e))
 
     def _attach_items(self, count=5, folder=None):

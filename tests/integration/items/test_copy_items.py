@@ -2,8 +2,8 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from src.superannotate import AppException
 from src.superannotate import SAClient
+from superannotate_core.core.exceptions import SAInvalidInput
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -33,11 +33,11 @@ class TestCopyItems(BaseTestCase):
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 7
 
     def test_copy_items_from_not_existing_folder(self):
-        with self.assertRaisesRegexp(AppException, "Folder not found."):
+        with self.assertRaisesRegexp(SAInvalidInput, "Folder not found."):
             sa.copy_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}", self.PROJECT_NAME)
 
     def test_copy_items_to_not_existing_folder(self):
-        with self.assertRaisesRegexp(AppException, "Folder not found."):
+        with self.assertRaisesRegexp(SAInvalidInput, "Folder not found."):
             sa.copy_items(self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}")
 
     def test_copy_items_from_folder(self):

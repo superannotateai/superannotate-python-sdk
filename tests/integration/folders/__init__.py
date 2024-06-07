@@ -1,10 +1,10 @@
 FOLDER_KEYS = [
-    "createdAt",
-    "updatedAt",
     "id",
+    "project_id",
     "name",
     "status",
-    "project_id",
     "team_id",
     "folder_users",
+    "createdAt",
+    "updatedAt",
 ]

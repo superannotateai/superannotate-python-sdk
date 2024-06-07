@@ -24,6 +24,7 @@ from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 from mixpanel import Mixpanel
 from superannotate import __version__
+from superannotate_core.infrastructure import Session
 
 
 class BaseInterfaceFacade:
@@ -70,6 +71,12 @@ class BaseInterfaceFacade:
             raise AppException("Credentials not provided.")
         setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)
         self.controller = Controller(config)
+        self.session = Session(
+            token=config.API_TOKEN,
+            api_url=config.API_URL,
+            team_id=self.controller.team_id,
+        )
+
         BaseInterfaceFacade.REGISTRY.append(self)
 
     @staticmethod

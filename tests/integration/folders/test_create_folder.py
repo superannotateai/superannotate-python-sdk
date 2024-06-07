@@ -1,5 +1,5 @@
-from src.superannotate import AppException
 from src.superannotate import SAClient
+from superannotate_core.core.exceptions import SAValidationException
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -14,7 +14,7 @@ class TestCreateFolder(BaseTestCase):
 
     def test_create_long_name(self):
         err_msg = "The folder name is too long. The maximum length for this field is 80 characters."
-        with self.assertRaisesRegexp(AppException, err_msg):
+        with self.assertRaisesRegexp(SAValidationException, err_msg):
             sa.create_folder(
                 self.PROJECT_NAME,
                 "A while back I needed to count the amount of letters that "

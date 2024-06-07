@@ -16,7 +16,8 @@ from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
-
+from superannotate_core.app import Project
+from superannotate_core.infrastructure.session import Session
 
 logger = logging.getLogger("sa")
 
@@ -49,19 +50,19 @@ class GetProjectsUseCase(BaseUseCase):
     def __init__(
         self,
         condition: Condition,
+        session: Session,
         service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._condition = condition
+        self._session = session
         self._service_provider = service_provider
 
     def execute(self):
         if self.is_valid():
-            response = self._service_provider.projects.list(self._condition)
-            if response.ok:
-                self._response.data = response.data
-            else:
-                self._response.errors = response.error
+            # response = self._service_provider.projects.list(self._condition)
+            projects = Project.list(self._session, self._condition)
+            self._response.data = projects
         return self._response
 
 
@@ -92,7 +93,7 @@ class GetProjectByNameUseCase(BaseUseCase):
                         None,
                     )
                     if not project:
-                        self._response.errors = AppException("Project not found")
+                        self._response.errors = AppException("Project not found.")
                     self._response.data = project
 
         return self._response

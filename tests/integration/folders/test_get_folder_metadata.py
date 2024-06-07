@@ -26,7 +26,7 @@ class TestGetFolderMetadata(BaseTestCase):
             self.PROJECT_NAME, self.TEST_FOLDER_NAME
         )
         assert "is_root" not in folder_metadata
-        self.assertListEqual(list(folder_metadata.keys()), FOLDER_KEYS)
+        self.assertSetEqual(set(folder_metadata.keys()), set(FOLDER_KEYS))
         assert compare_result(
             folder_metadata, self.EXPECTED_FOLDER_METADATA, self.IGNORE_KEYS
         )

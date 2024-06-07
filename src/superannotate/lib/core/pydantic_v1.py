@@ -32,5 +32,6 @@ WrongConstantError = pydantic.errors.WrongConstantError
 errors = pydantic.errors
 PydanticTypeError = pydantic.errors.PydanticTypeError
 pydantic_validate_arguments = pydantic.validate_arguments
+ConfigDict = pydantic.ConfigDict
 StrRegexError = pydantic.errors.StrRegexError
 create_model_from_typeddict = pydantic.annotated_types.create_model_from_typeddict
