@@ -627,9 +627,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if return_metadata:
             condition &= Condition("includeUsers", return_metadata, EQ)
         if status:
-            condition &= Condition(
-                "status", constants.FolderStatus.get_value(status), EQ
-            )
+            if isinstance(status, list):
+                status_condition = [constants.FolderStatus.get_value(i) for i in status]
+            else:
+                status_condition = constants.FolderStatus.get_value(status)
+            condition &= Condition("status", status_condition, EQ)
         response = self.controller.folders.list(project, condition)
         if response.errors:
             raise AppException(response.errors)

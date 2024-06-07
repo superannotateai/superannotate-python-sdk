@@ -13,6 +13,7 @@ class TestSearchFolders(BaseTestCase):
     SPECIAL_CHARS = r"/\:*?“<>|"
     TEST_FOLDER_NAME_1 = "folder_1"
     TEST_FOLDER_NAME_2 = "folder_2"
+    TEST_FOLDER_NAME_3 = "folder_3"
 
     def test_search_folders(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
@@ -28,6 +29,26 @@ class TestSearchFolders(BaseTestCase):
         # with status
         folders = sa.search_folders(self.PROJECT_NAME, status="NotStarted")
         assert len(folders) == 2
+
+        # with status list
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_3)
+        sa.set_folder_status(
+            self.PROJECT_NAME, self.TEST_FOLDER_NAME_3, status="InProgress"
+        )
+        folders_2 = sa.search_folders(
+            self.PROJECT_NAME, status=["NotStarted", "InProgress", "Completed"]
+        )
+        assert len(folders_2) == 3
+
+        folders_3 = sa.search_folders(
+            self.PROJECT_NAME, status=["InProgress", "Completed"]
+        )
+        assert len(folders_3) == 1
+
+        folders_4 = sa.search_folders(
+            self.PROJECT_NAME, status=["NotStarted", "Completed"]
+        )
+        assert len(folders_4) == 2
 
         # with invalid status
         pattern = (
