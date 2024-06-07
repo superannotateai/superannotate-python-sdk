@@ -529,7 +529,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = self.controller.get_project(project)
 
         folder = project.create_folder(folder_name)
-        return folder
+        return folder.dict(exclude={"completedCount", "is_root"})
 
         # if res.data:
         #     folder = res.data
@@ -586,7 +586,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project, folder = self.controller.get_project_folder(project, folder_name)
         if not folder:
             raise AppException("Folder not found.")
-        return BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
+        return folder.dict(exclude={"completedCount", "is_root"})
 
     def delete_folders(self, project: NotEmptyStr, folder_names: List[NotEmptyStr]):
         """Delete folder in project.
@@ -601,15 +601,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         deleted_folders = project.delete_folders(folder_names)
         if deleted_folders == 0:
             raise AppException("There is no folder to delete.")
-        # folders = self.controller.folders.list(project).data
-        # folders_to_delete = [
-        #     folder for folder in folders if folder.name in folder_names
-        # ]
-        # res = self.controller.folders.delete_multiple(
-        #     project=project, folders=folders_to_delete
-        # )
-        # if res.errors:
-        #     raise AppException(res.errors)
         logger.info(f"Folders {folder_names} deleted in project {project.name}")
 
     def search_folders(
@@ -655,10 +646,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "status", constants.FolderStatus.get_value(status), EQ
             )
         folders = project.list_folders(condition)
-        # response = self.controller.folders.list(project, condition)
-        # if response.errors:
-        #     raise AppException(response.errors)
-        # data = response.data
         if return_metadata:
             return [
                 folder.dict(exclude={"completedCount", "is_root"})

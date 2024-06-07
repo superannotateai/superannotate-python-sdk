@@ -11,8 +11,6 @@ from lib.core.conditions import Condition
 from lib.core.reporter import Reporter
 from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import DownloadMLModelAuthDataResponse
-from lib.core.service_types import FolderListResponse
-from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
 from lib.core.service_types import ItemListResponse
 from lib.core.service_types import ModelListResponse
@@ -151,55 +149,6 @@ class BaseProjectService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         priorities: list,
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-
-class BaseFolderService(SuperannotateServiceProvider):
-    @abstractmethod
-    def get_by_id(self, folder_id: int, project_id: int, team_id: int):
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_by_name(self, project: entities.ProjectEntity, name: str) -> FolderResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def create(
-        self, project: entities.ProjectEntity, folder: entities.FolderEntity
-    ) -> FolderResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def list(self, condition: Condition = None) -> FolderListResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def delete_multiple(
-        self, project: entities.ProjectEntity, folders: List[entities.FolderEntity]
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def un_assign_all(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def assign(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        users: list,
-    ):
-        raise NotImplementedError
-
-    @abstractmethod
-    def update(
-        self, project: entities.ProjectEntity, folder: entities.FolderEntity
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -501,7 +450,6 @@ class BaseIntegrationService(SuperannotateServiceProvider):
 
 class BaseServiceProvider:
     projects: BaseProjectService
-    folders: BaseFolderService
     items: BaseItemService
     annotations: BaseAnnotationService
     custom_fields: BaseCustomFieldService

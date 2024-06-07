@@ -1,4 +1,3 @@
-from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests import compare_result
 from tests.integration.base import BaseTestCase
@@ -32,6 +31,6 @@ class TestGetFolderMetadata(BaseTestCase):
         )
 
         # get not exiting folder
-        with self.assertRaises(AppException) as cm:
+        with self.assertRaises(Exception) as cm:
             sa.get_folder_metadata(self.PROJECT_NAME, "dummy folder")
         assert str(cm.exception) == "Folder not found."

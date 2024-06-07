@@ -68,7 +68,7 @@ class BaseSerializer(ABC):
                     include=fields, by_alias=by_alias, exclude=exclude, **kwargs
                 )
             return entity.dict(by_alias=by_alias, exclude=exclude, **kwargs)
-        return entity.to_dict()
+        return entity.dict()
 
     @classmethod
     def serialize_iterable(

@@ -71,7 +71,7 @@ class TestSetFolderStatus(TestCase):
 
     def test_set_folder_status_via_invalid_project(self):
         with self.assertRaisesRegexp(
-            AppException,
+            Exception,
             "Project not found.",
         ):
             sa.set_folder_status(

@@ -288,59 +288,6 @@ class AnnotationClassManager(BaseManager):
         return use_case.execute()
 
 
-class FolderManager(BaseManager):
-    def create(self, project: ProjectEntity, folder: FolderEntity):
-        use_case = usecases.CreateFolderUseCase(
-            project=project,
-            folder=folder,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def get_by_id(self, folder_id, project_id, team_id):
-        use_case = usecases.GetFolderByIDUseCase(
-            folder_id=folder_id,
-            project_id=project_id,
-            team_id=team_id,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def list(self, project: ProjectEntity, condition: Condition = None):
-        use_case = usecases.SearchFoldersUseCase(
-            project=project, service_provider=self.service_provider, condition=condition
-        )
-        return use_case.execute()
-
-    def delete_multiple(self, project: ProjectEntity, folders: List[FolderEntity]):
-        use_case = usecases.DeleteFolderUseCase(
-            project=project,
-            folders=folders,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def get_by_name(self, project: ProjectEntity, name: str = None):
-        name = Controller.get_folder_name(name)
-        use_case = usecases.GetFolderUseCase(
-            project=project,
-            folder_name=name,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def assign_users(
-        self, project: ProjectEntity, folder: FolderEntity, users: List[str]
-    ):
-        use_case = usecases.AssignFolderUseCase(
-            service_provider=self.service_provider,
-            project=project,
-            folder=folder,
-            users=users,
-        )
-        return use_case.execute()
-
-
 class ItemManager(BaseManager):
     def get_by_name(
         self,
@@ -790,7 +737,6 @@ class BaseController(metaclass=ABCMeta):
         self._team_data = None
         self._s3_upload_auth_data = None
         self._projects = None
-        self._folders = None
         self._teams = None
         self._images = None
         self._items = None
@@ -813,7 +759,6 @@ class BaseController(metaclass=ABCMeta):
             self.service_provider, self._session
         )
         self.projects = ProjectManager(self.service_provider, self._session)
-        self.folders = FolderManager(self.service_provider, self._session)
         self.items = ItemManager(self.service_provider, self._session)
         self.annotations = AnnotationManager(
             self.service_provider, config, self._session
