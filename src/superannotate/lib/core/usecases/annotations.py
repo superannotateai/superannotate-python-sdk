@@ -1467,7 +1467,7 @@ class GetAnnotations(BaseReportableUseCase):
         self._folder = folder
         self._service_provider = service_provider
         self._items = items
-        self._item_name_id_map = {}
+        self._item_id_name_map = {}
         self._item_names_provided = True
         self._big_annotations_queue = None
 
@@ -1502,9 +1502,8 @@ class GetAnnotations(BaseReportableUseCase):
                 if names_provided:
                     re_struct[annotation["metadata"]["name"]] = annotation
                 else:
-                    re_struct[
-                        self._item_name_id_map[annotation["metadata"]["name"]]
-                    ] = annotation
+                    if annotation["metadata"]["id"] in self._item_id_name_map.keys():
+                        re_struct[annotation["metadata"]["id"]] = annotation
             try:
                 return [re_struct[x] for x in self._items if x in re_struct]
             except KeyError:

@@ -13,6 +13,7 @@ sa = SAClient()
 class TestGetAnnotations(BaseTestCase):
     PROJECT_NAME = "Test-get_annotations"
     FOLDER_NAME = "Test-get_annotations"
+    FOLDER_NAME_2 = "Test-get_annotations_2"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
@@ -56,6 +57,30 @@ class TestGetAnnotations(BaseTestCase):
         annotations = sa.get_annotations(self._project["id"], [i["id"] for i in items])
 
         self.assertEqual(len(annotations), 4)
+
+    def test_get_annotations_by_ids_with_duplicate_names(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
+        self._attach_items(count=4, folder=self.FOLDER_NAME_2)  # noqa
+        self._attach_items(count=4)  # noqa
+
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        _, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        _, _, _ = sa.upload_annotations_from_folder_to_project(
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}", self.folder_path
+        )
+        items = sa.search_items(self.PROJECT_NAME)
+        folder_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}")
+        all_items = items + folder_items
+
+        annotations = sa.get_annotations(
+            self._project["id"], [i["id"] for i in all_items]
+        )
+
+        self.assertEqual(len(annotations), 8)
 
     def test_get_annotations_by_wrong_item_ids(self):
         annotations = sa.get_annotations(self._project["id"], [1, 2, 3])

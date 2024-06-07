@@ -6,6 +6,16 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.21 - May 23, 2024
+_______________________
+
+
+**Updated**
+
+    - Dependencies, removed ``email-validator``.
+    - ``add_items_to_subset`` added GenAI projects support.
+
+
 
 4.4.20 - April 11, 2024
 _______________________

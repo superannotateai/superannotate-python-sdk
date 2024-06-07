@@ -971,7 +971,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         _, folder = extract_project_folder(path)
         if not folder:
             folder = "root"
-        query_str = f"metadata(name IN {str(item_names)}) AND folder={folder}"
+        query_str = f"metadata(name IN {str(item_names)}) AND folderName={folder}"
 
         return query_str
 
