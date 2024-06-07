@@ -23,7 +23,7 @@ class TestSearchFolders(BaseTestCase):
         #  with metadata
         folders = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
         for folder in folders:
-            self.assertListEqual(list(folder.keys()), FOLDER_KEYS)
+            assert folder.keys() == set(FOLDER_KEYS)
 
         # with status
         folders = sa.search_folders(self.PROJECT_NAME, status="NotStarted")

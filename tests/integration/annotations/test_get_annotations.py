@@ -87,6 +87,7 @@ class TestGetAnnotations(BaseTestCase):
 
         self.assertEqual(len(annotations), 0)
 
+    # todo update the implementation
     def test_get_annotations_by_wrong_project_ids(self):
         try:
             sa.get_annotations(1, [1, 2, 3])

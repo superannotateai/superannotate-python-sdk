@@ -64,6 +64,7 @@ class TestSetAnnotationStatuses(BaseTestCase):
             metadata = sa.get_item_metadata(self.PROJECT_NAME, image_name)
             self.assertEqual(metadata["annotation_status"], "QualityCheck")
 
+    # todo update excpected message maybe
     def test_image_annotation_status_via_invalid_names(self):
         sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress")
         with self.assertRaisesRegexp(AppException, SetAnnotationStatues.ERROR_MESSAGE):

@@ -31,7 +31,7 @@ from lib.core.usecases.annotations import DownloadAnnotations
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.classes import DownloadAnnotationClassesUseCase
-from lib.core.usecases.folders import GetFolderUseCase
+
 
 logger = logging.getLogger("sa")
 

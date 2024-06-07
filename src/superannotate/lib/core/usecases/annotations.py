@@ -47,6 +47,9 @@ from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
+from superannotate_core.app import Folder
+from superannotate_core.app import Project
+from superannotate_core.infrastructure.repositories import AnnotationRepository
 
 try:
     from pydantic.v1 import BaseModel
@@ -1453,9 +1456,9 @@ class GetAnnotations(BaseReportableUseCase):
         self,
         config: ConfigEntity,
         reporter: Reporter,
-        project: ProjectEntity,
+        project: Project,
         service_provider: BaseServiceProvider,
-        folder: FolderEntity = None,
+        folder: Folder = None,
         items: Optional[Union[List[str], List[int]]] = None,
     ):
         super().__init__(reporter)
@@ -1469,7 +1472,7 @@ class GetAnnotations(BaseReportableUseCase):
         self._big_annotations_queue = None
 
     def validate_project_type(self):
-        if self._project.type == constants.ProjectType.PIXEL.value:
+        if self._project.type == constants.ProjectType.PIXEL:
             raise AppException("The function is not supported for Pixel projects.")
 
     @staticmethod
@@ -1514,23 +1517,25 @@ class GetAnnotations(BaseReportableUseCase):
             item: BaseItemEntity = await self._big_annotations_queue.get()
             if item:
                 large_annotations.append(
-                    await self._service_provider.annotations.get_big_annotation(
-                        project=self._project,
-                        item=item,
-                        reporter=self.reporter,
+                    await AnnotationRepository(
+                        session=self._project.session
+                    ).get_large_annotation(
+                        project_id=self._project.id,
+                        folder_id=self._folder.id,
+                        item_id=item.id,
                     )
                 )
+                self.reporter.update_progress()
             else:
                 await self._big_annotations_queue.put(None)
                 break
         return large_annotations
 
     async def get_small_annotations(self, item_ids: List[int]):
-        return await self._service_provider.annotations.list_small_annotations(
-            project=self._project,
-            folder=self._folder,
-            item_ids=item_ids,
-            reporter=self.reporter,
+        return await AnnotationRepository(
+            session=self._project.session
+        ).list_annotations(
+            project_id=self._project.id, folder_id=self._folder.id, item_ids=item_ids
         )
 
     async def run_workers(
@@ -1573,22 +1578,13 @@ class GetAnnotations(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
+            if not self._folder:
+                self._folder = self._project.get_folder("root")
             if self._items:
                 if isinstance(self._items[0], str):
-                    items: List[BaseItemEntity] = get_or_raise(
-                        self._service_provider.items.list_by_names(
-                            self._project, self._folder, self._items
-                        )
-                    )
+                    items = self._folder.list_items()
                 else:
-                    response = self._service_provider.items.list_by_ids(
-                        project=self._project,
-                        ids=self._items,
-                    )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    items: List[BaseItemEntity] = response.data
-                    self._item_id_name_map = {i.id: i.name for i in items}
+                    items = self._folder.list_items(item_ids=self._items)
                 len_items, len_provided_items = len(items), len(self._items)
                 if len_items != len_provided_items:
                     self.reporter.log_warning(
@@ -1598,26 +1594,29 @@ class GetAnnotations(BaseReportableUseCase):
                 condition = Condition("project_id", self._project.id, EQ) & Condition(
                     "folder_id", self._folder.id, EQ
                 )
-                items = get_or_raise(self._service_provider.items.list(condition))
+                items = self._folder.list_items(condition=condition)
             else:
                 items = []
             if not items:
                 logger.info("No annotations to download.")
                 self._response.data = []
                 return self._response
+            self._item_name_id_map = {i.name: i.id for i in items}
             items_count = len(items)
             self.reporter.log_info(
                 f"Getting {items_count} annotations from "
                 f"{self._project.name}{f'/{self._folder.name}' if self._folder and self._folder.name != 'root' else ''}."
             )
-            id_item_map = {i.id: i for i in items}
             self.reporter.start_progress(
                 items_count,
                 disable=logger.level > logging.INFO or self.reporter.log_enabled,
             )
-            sort_response = self._service_provider.annotations.get_upload_chunks(
-                project=self._project,
-                item_ids=list(id_item_map),
+            sort_response = AnnotationRepository(
+                session=self._project.session
+            ).sort_annotatoins_by_size(
+                project_id=self._project.id,
+                folder_id=self._folder.id,
+                item_ids=list(self._item_name_id_map.values()),
             )
             large_item_ids = set(map(itemgetter("id"), sort_response["large"]))
             large_items: List[BaseItemEntity] = list(

@@ -29,7 +29,6 @@ from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.usecases.folders import SearchFoldersUseCase
 from lib.infrastructure.utils import extract_project_folder
 
 logger = logging.getLogger("sa")

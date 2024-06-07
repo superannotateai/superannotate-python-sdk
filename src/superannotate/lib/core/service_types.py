@@ -226,14 +226,6 @@ class ItemListResponse(ServiceResponse):
     res_data: List[entities.BaseItemEntity] = None
 
 
-class FolderResponse(ServiceResponse):
-    res_data: entities.FolderEntity = None
-
-
-class FolderListResponse(ServiceResponse):
-    res_data: List[entities.FolderEntity] = None
-
-
 class ProjectResponse(ServiceResponse):
     res_data: entities.ProjectEntity = None
 

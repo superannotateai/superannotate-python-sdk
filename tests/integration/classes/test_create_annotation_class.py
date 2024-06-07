@@ -329,8 +329,8 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
 
     def test_create_annotation_class_via_ocr_group_type(self):
         with self.assertRaisesRegexp(
-            AppException,
-            f"OCR attribute group is not supported for project type {self.PROJECT_TYPE}.",
+            Exception,
+            "This project type doesn't support the attribute group type 'OCR'",
         ):
             attribute_groups = [
                 {

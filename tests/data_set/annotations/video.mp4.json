@@ -208,7 +208,9 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "element_path": ['1', 12, '2323'],
+            "component_id": '2323'
         },
         {
             "meta": {
@@ -245,7 +247,9 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "element_path": ['r_p66kcg', 12, '2323'],
+            "component_id": '2323'
         },
         {
             "meta": {
@@ -288,10 +292,15 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "element_path": ['1', 12, '2323'],
+            "component_id": 56
         }
     ],
     "tags": [
         "some tag"
     ]
 }
+
+
+sa.set_component_value('$elemt_path==[1,2]', 56)

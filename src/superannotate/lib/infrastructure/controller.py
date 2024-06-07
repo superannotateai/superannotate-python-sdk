@@ -34,6 +34,9 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import extract_project_folder
+from superannotate_core.app import Folder
+from superannotate_core.app import Project
+from superannotate_core.infrastructure.session import Session
 
 
 def build_condition(**kwargs) -> Condition:
@@ -45,7 +48,8 @@ def build_condition(**kwargs) -> Condition:
 
 
 class BaseManager:
-    def __init__(self, service_provider: ServiceProvider):
+    def __init__(self, service_provider: ServiceProvider, session: Session):
+        self.session = session
         self.service_provider = service_provider
 
 
@@ -95,6 +99,7 @@ class ProjectManager(BaseManager):
     def list(self, condition: Condition):
         use_case = usecases.GetProjectsUseCase(
             condition=condition,
+            session=self.session,
             service_provider=self.service_provider,
         )
         return use_case.execute()
@@ -283,59 +288,6 @@ class AnnotationClassManager(BaseManager):
         return use_case.execute()
 
 
-class FolderManager(BaseManager):
-    def create(self, project: ProjectEntity, folder: FolderEntity):
-        use_case = usecases.CreateFolderUseCase(
-            project=project,
-            folder=folder,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def get_by_id(self, folder_id, project_id, team_id):
-        use_case = usecases.GetFolderByIDUseCase(
-            folder_id=folder_id,
-            project_id=project_id,
-            team_id=team_id,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def list(self, project: ProjectEntity, condition: Condition = None):
-        use_case = usecases.SearchFoldersUseCase(
-            project=project, service_provider=self.service_provider, condition=condition
-        )
-        return use_case.execute()
-
-    def delete_multiple(self, project: ProjectEntity, folders: List[FolderEntity]):
-        use_case = usecases.DeleteFolderUseCase(
-            project=project,
-            folders=folders,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def get_by_name(self, project: ProjectEntity, name: str = None):
-        name = Controller.get_folder_name(name)
-        use_case = usecases.GetFolderUseCase(
-            project=project,
-            folder_name=name,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def assign_users(
-        self, project: ProjectEntity, folder: FolderEntity, users: List[str]
-    ):
-        use_case = usecases.AssignFolderUseCase(
-            service_provider=self.service_provider,
-            project=project,
-            folder=folder,
-            users=users,
-        )
-        return use_case.execute()
-
-
 class ItemManager(BaseManager):
     def get_by_name(
         self,
@@ -489,14 +441,16 @@ class ItemManager(BaseManager):
 
 
 class AnnotationManager(BaseManager):
-    def __init__(self, service_provider: ServiceProvider, config: ConfigEntity):
-        super().__init__(service_provider)
+    def __init__(
+        self, service_provider: ServiceProvider, config: ConfigEntity, session: Session
+    ):
+        super().__init__(service_provider, session)
         self._config = config
 
     def list(
         self,
-        project: ProjectEntity,
-        folder: FolderEntity = None,
+        project: Project,
+        folder: Folder = None,
         items: Union[List[str], List[int]] = None,
         verbose=True,
     ):
@@ -783,7 +737,6 @@ class BaseController(metaclass=ABCMeta):
         self._team_data = None
         self._s3_upload_auth_data = None
         self._projects = None
-        self._folders = None
         self._teams = None
         self._images = None
         self._items = None
@@ -797,17 +750,23 @@ class BaseController(metaclass=ABCMeta):
         )
 
         self.service_provider = ServiceProvider(http_client)
+        self._session = Session(
+            token=config.API_TOKEN, api_url=config.API_URL, team_id=self.team_id
+        )
         self._user = self.get_current_user()
         self._team = self.get_team().data
-        self.annotation_classes = AnnotationClassManager(self.service_provider)
-        self.projects = ProjectManager(self.service_provider)
-        self.folders = FolderManager(self.service_provider)
-        self.items = ItemManager(self.service_provider)
-        self.annotations = AnnotationManager(self.service_provider, config)
-        self.custom_fields = CustomFieldManager(self.service_provider)
-        self.subsets = SubsetManager(self.service_provider)
-        self.models = ModelManager(self.service_provider)
-        self.integrations = IntegrationManager(self.service_provider)
+        self.annotation_classes = AnnotationClassManager(
+            self.service_provider, self._session
+        )
+        self.projects = ProjectManager(self.service_provider, self._session)
+        self.items = ItemManager(self.service_provider, self._session)
+        self.annotations = AnnotationManager(
+            self.service_provider, config, self._session
+        )
+        self.custom_fields = CustomFieldManager(self.service_provider, self._session)
+        self.subsets = SubsetManager(self.service_provider, self._session)
+        self.models = ModelManager(self.service_provider, self._session)
+        self.integrations = IntegrationManager(self.service_provider, self._session)
 
     @property
     def current_user(self):
@@ -903,17 +862,11 @@ class Controller(BaseController):
         folder = self.get_folder(project, folder_name)
         return project, folder
 
-    def get_project(self, name: str) -> ProjectEntity:
-        project = self.projects.get_by_name(name).data
-        if not project:
-            raise AppException("Project not found.")
-        return project
+    def get_project(self, pk: Union[str, int]) -> Project:
+        return Project.get(self._session, pk=pk)
 
-    def get_folder(self, project: ProjectEntity, name: str = None) -> FolderEntity:
-        folder = self.folders.get_by_name(project, name).data
-        if not folder:
-            raise AppException("Folder not found.")
-        return folder
+    def get_folder(self, project: Project, name: str = None) -> Folder:
+        return project.get_folder(name)
 
     @staticmethod
     def get_folder_name(name: str = None):

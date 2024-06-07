@@ -3,6 +3,7 @@ from typing import Union
 
 from lib.core.enums import BaseTitledEnum
 from lib.core.exceptions import AppException
+from lib.core.pydantic_v1 import ConfigDict
 from lib.core.pydantic_v1 import constr
 from lib.core.pydantic_v1 import errors
 from lib.core.pydantic_v1 import pydantic_validate_arguments
@@ -48,7 +49,9 @@ def validate_arguments(func):
     @wraps(func)
     def wrapped(self, *args, **kwargs):
         try:
-            return pydantic_validate_arguments(func)(self, *args, **kwargs)
+            return pydantic_validate_arguments(
+                func, config=ConfigDict(arbitrary_types_allowed=True)
+            )(self, *args, **kwargs)
         except ValidationError as e:
             raise AppException(wrap_error(e)) from e
 
