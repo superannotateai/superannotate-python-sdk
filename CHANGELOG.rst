@@ -6,6 +6,16 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.22 - Jun 13, 2024
+_______________________
+
+
+**Updated**
+
+    - Dependencies, updated ``packaging``, ``superannotate-schemas``.
+    - ``search_folders`` by multiple statuses.
+
+
 4.4.21 - May 23, 2024
 _______________________
 
