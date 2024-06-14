@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from unittest import TestCase
 
 import pytest
 from src.superannotate import AppException
@@ -88,10 +87,11 @@ class TestAttachItemsVector(BaseTestCase):
         )
 
 
-class TestAttachItemsVectorArguments(TestCase):
+class TestAttachItemsVectorArguments(BaseTestCase):
     PROJECT_NAME = "TestAttachItemsVectorArguments"
 
     def test_attach_items_invalid_payload(self):
+        # todo update
         error_msg = [
             "attachments",
             "str type expected",

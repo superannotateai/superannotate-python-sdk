@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import uuid
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -879,12 +880,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param items: to be deleted items' names. If None, all the items will be deleted
         :type items: list of str
         """
-        project, folder = self.controller.get_project_folder_by_path(project)
-        response = self.controller.items.delete(
-            project=project, folder=folder, item_names=items
-        )
-        if response.errors:
-            raise AppException(response.errors)
+        project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        folder.delete_items(item_names=items)
 
     def assign_items(
         self, project: Union[NotEmptyStr, dict], items: List[str], user: str
@@ -904,13 +903,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type user: str
         """
 
-        project, folder = self.controller.get_project_folder_by_path(project)
-        response = self.controller.projects.assign_items(
-            project, folder, item_names=items, user=user
-        )
-
-        if response.errors:
-            raise AppException(response.errors)
+        project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        folder.assign_items(user=user, item_names=items)
 
     def unassign_items(
         self, project: Union[NotEmptyStr, dict], items: List[NotEmptyStr]
@@ -924,12 +920,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param items: list of items to unassign
         :type items: list of str
         """
-        project, folder = self.controller.get_project_folder_by_path(project)
-        response = self.controller.projects.un_assign_items(
-            project, folder, item_names=items
-        )
-        if response.errors:
-            raise AppException(response.errors)
+        project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        folder.assign_items(item_names=items)
 
     def unassign_folder(self, project_name: NotEmptyStr, folder_name: NotEmptyStr):
         """Removes assignment of given folder for all assignees.
@@ -2676,8 +2670,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = self.controller.get_project(project_name)
         folder = project.get_folder(folder_name)
         # todo validate Attachment
-        names = []
-        import uuid
 
         seen_names = set()
         unique_attachments = []
