@@ -935,11 +935,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param folder_name: folder name to remove assignees
         :type folder_name: str
         """
-        response = self.controller.un_assign_folder(
-            project_name=project_name, folder_name=folder_name
-        )
-        if response.errors:
-            raise AppException(response.errors)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        folder.unassign()
 
     def assign_folder(
         self,

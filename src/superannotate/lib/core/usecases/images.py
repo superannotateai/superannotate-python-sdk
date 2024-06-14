@@ -1530,27 +1530,6 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         return self._response
 
 
-class UnAssignFolderUseCase(BaseUseCase):
-    def __init__(
-        self,
-        service_provider: BaseServiceProvider,
-        project: ProjectEntity,
-        folder: FolderEntity,
-    ):
-        super().__init__()
-        self._service_provider = service_provider
-        self._project = project
-        self._folder = folder
-
-    def execute(self):
-        is_un_assigned = self._service_provider.folders.un_assign_all(
-            project=self._project, folder=self._folder
-        ).ok
-        if not is_un_assigned:
-            self._response.errors = AppException(f"Cant un assign {self._folder.name}")
-        return self._response
-
-
 class DeleteAnnotationClassUseCase(BaseUseCase):
     def __init__(
         self,
