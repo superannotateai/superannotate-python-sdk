@@ -36,6 +36,7 @@ from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import extract_project_folder
 from superannotate_core.app import Folder
 from superannotate_core.app import Project
+from superannotate_core.infrastructure.repositories import AnnotationClassesRepository
 from superannotate_core.infrastructure.session import Session
 
 
@@ -204,6 +205,7 @@ class ProjectManager(BaseManager):
         return use_case.execute()
 
 
+# TODO delete
 class AnnotationClassManager(BaseManager):
     @timed_lru_cache(seconds=3600)
     def __get_auth_data(self, project: ProjectEntity, folder: FolderEntity):
@@ -828,6 +830,32 @@ class Controller(BaseController):
     def set_default(cls, obj):
         cls.DEFAULT = obj
         return cls.DEFAULT
+
+    @staticmethod
+    def setup_destination_dir(path: Union[Path, str] = None) -> str:
+        if path:
+            path = Path(path).expanduser()
+            try:
+                os.makedirs(path, exist_ok=True)
+            except OSError:
+                raise AppException(
+                    f"Local path {path} is not an existing directory or access denied."
+                )
+            if not os.access(path, os.X_OK | os.W_OK):
+                raise AppException(
+                    f"Local path {path} is not an existing directory or access denied."
+                )
+            return str(path)
+        else:
+            return os.getcwd()
+
+    def download_annotation_classes(
+        self, project_id: int, path: Union[Path, str] = None
+    ):
+        download_path = self.setup_destination_dir(path)
+        AnnotationClassesRepository(session=self._session).download(
+            project_id, download_path
+        )
 
     def get_folder_by_id(self, folder_id: int, project_id: int):
         response = self.folders.get_by_id(

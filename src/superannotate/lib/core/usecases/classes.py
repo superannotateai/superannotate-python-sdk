@@ -190,6 +190,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         return self._response
 
 
+# TODO delete
 class DownloadAnnotationClassesUseCase(BaseUseCase):
     def __init__(
         self,

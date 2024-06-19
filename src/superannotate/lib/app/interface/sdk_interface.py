@@ -56,7 +56,6 @@ from lib.core.entities import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
-from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
 from lib.core.types import MLModel
 from lib.core.types import PriorityScoreEntity
@@ -2877,18 +2876,23 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: str
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
-        response = self.controller.annotations.download(
-            project=project,
-            folder=folder,
-            destination=path,
-            recursive=recursive,
-            item_names=items,
-            callback=callback,
+        project = self.controller.get_project(project_name)
+
+        download_path = self.controller.setup_destination_dir(path)
+        classes_download_path = f"{download_path}/classes"
+        self.controller.download_annotation_classes(
+            project_id=project.id, path=classes_download_path
         )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        if recursive:
+            project.download_annotations(
+                download_path=download_path, item_names=items, callback=callback
+            )
+        else:
+            folder = project.get_folder(folder_name)
+            folder.download_annotations(
+                download_path=download_path, item_names=items, callback=callback
+            )
+        return download_path
 
     def get_subsets(self, project: Union[NotEmptyStr, dict]):
         """Get Subsets
