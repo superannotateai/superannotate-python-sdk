@@ -52,7 +52,7 @@ class TestEntitiesSearchVector(BaseTestCase):
         except Exception as e:
             self.assertEqual(
                 str(e),
-                "Subset not found. Use the superannotate.get_subsets() function to get a list of the available subsets.",
+                "Subset not found.",  # todo removed "Use the superannotate.get_subsets() function to get a list of the available subsets.",
             )
 
     def test_query_on_100(self):

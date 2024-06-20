@@ -30,7 +30,7 @@ class SubsetService(BaseSubsetService):
     def add_items(
         self,
         project: entities.ProjectEntity,
-        subset: entities.SubSetEntity,
+        lis: entities.SubSetEntity,
         item_ids: List[int],
     ):
         data = {"action": "ATTACH", "item_ids": item_ids}

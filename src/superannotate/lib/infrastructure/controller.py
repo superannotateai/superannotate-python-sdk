@@ -306,14 +306,6 @@ class ItemManager(BaseManager):
         )
         return use_case.execute()
 
-    def get_by_id(self, item_id: int, project: ProjectEntity):
-        use_case = usecases.GetItemByIDUseCase(
-            item_id=item_id,
-            project=project,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
     def list(
         self,
         project: ProjectEntity,
@@ -1164,22 +1156,6 @@ class Controller(BaseController):
             folder=folder,
             video_name=video_name,
             fps=fps,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def query_entities(
-        self, project_name: str, folder_name: str, query: str = None, subset: str = None
-    ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
-
-        use_case = usecases.QueryEntitiesUseCase(
-            reporter=self.get_default_reporter(),
-            project=project,
-            folder=folder,
-            query=query,
-            subset=subset,
             service_provider=self.service_provider,
         )
         return use_case.execute()
