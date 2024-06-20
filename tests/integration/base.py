@@ -29,6 +29,7 @@ class BaseTestCase(TestCase):
                 try:
                     sa.delete_project(project)
                 except Exception:
+                    raise
                     pass
         except Exception as e:
             raise e

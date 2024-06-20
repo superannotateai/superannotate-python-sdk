@@ -2426,12 +2426,22 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of dicts
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.query_entities(
-            project_name, folder_name, query, subset
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data, exclude={"meta"})
+        project = self.controller.get_project(project_name)
+        subset_id = None
+        if subset:
+            subset = next(
+                (i for i in project.list_subsets() if i["name"] == subset), None
+            )
+            if not subset:
+                raise AppException("Subset not found")
+            subset_id = subset["id"]
+        if folder_name:
+            folder = project.get_folder(folder_name)
+            _items = folder.list_items(query=query, subset_id=subset_id)
+        else:
+            _items = project.list_items(query=query, subset_id=subset_id)
+        exclude = {"custom_metadata", "meta"}
+        return [serialize_item(i, project).dict(exclude=exclude) for i in _items]
 
     def get_item_metadata(
         self,
@@ -3207,6 +3217,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def add_items_to_subset(
         self, project: NotEmptyStr, subset: NotEmptyStr, items: List[dict]
     ):
+
+        # todo we can update the interface because there has been no usage since may 26
         """
 
         Associates selected items with a given subset. Non-existing subset will be automatically created.
@@ -3279,13 +3291,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
 
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
-        response = self.controller.subsets.add_items(project, subset, items)
-        if response.errors:
-            raise AppException(response.errors)
-
-        return response.data
+        project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        item_ids = [i["id"] for i in items]
+        successed, skipped, failed = project.add_items_to_subset(subset, item_ids)
+        return {"successed": successed, "skipped": skipped, "failed": failed}
 
     def set_approval_statuses(
         self,

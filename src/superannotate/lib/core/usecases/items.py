@@ -6,7 +6,6 @@ from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 from typing import List
-from typing import Optional
 
 import superannotate.lib.core as constants
 from lib.core.conditions import Condition
@@ -17,7 +16,6 @@ from lib.core.entities import DocumentEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import SubSetEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
@@ -32,31 +30,6 @@ from lib.core.usecases.base import BaseUseCase
 from lib.infrastructure.utils import extract_project_folder
 
 logger = logging.getLogger("sa")
-
-
-class GetItemByIDUseCase(BaseUseCase):
-    def __init__(self, item_id, project, service_provider):
-        self._item_id = item_id
-        self._project = project
-        self._service_provider = service_provider
-        super().__init__()
-
-    def execute(
-        self,
-    ):
-        try:
-            response = self._service_provider.items.get_by_id(
-                item_id=self._item_id,
-                project_id=self._project.id,
-                project_type=self._project.type,
-            )
-            if not response.ok:
-                self._response.errors = response.error
-        except AppException as e:
-            self._response.errors = e
-        else:
-            self._response.data = response.data
-        return self._response
 
 
 class GetItem(BaseReportableUseCase):
@@ -121,94 +94,6 @@ class GetItem(BaseReportableUseCase):
                 self._response.data = entity
             else:
                 self._response.errors = AppException("Item not found.")
-        return self._response
-
-
-class QueryEntitiesUseCase(BaseReportableUseCase):
-    def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        service_provider: BaseServiceProvider,
-        query: str,
-        subset: str = None,
-    ):
-        super().__init__(reporter)
-        self._project = project
-        self._folder = folder
-        self._service_provider = service_provider
-        self._query = query
-        self._subset = subset
-
-    def validate_arguments(self):
-        if self._query:
-            response = self._service_provider.validate_saqul_query(
-                project=self._project, query=self._query
-            )
-
-            if not response.ok:
-                raise AppException(response.error)
-            if response.data["isValidQuery"]:
-                self._query = response.data["parsedQuery"]
-            else:
-                raise AppException("Incorrect query.")
-        else:
-            response = self._service_provider.validate_saqul_query(self._project, "-")
-            if not response.ok:
-                raise AppException(response.error)
-
-        if not any([self._query, self._subset]):
-            raise AppException(
-                "The query and subset params cannot have the value None at the same time."
-            )
-        if self._subset and not self._folder.is_root:
-            raise AppException(
-                "The folder name should be specified in the query string."
-            )
-
-    def execute(self) -> Response:
-        if self.is_valid():
-            query_kwargs = {}
-            if self._subset:
-                subset: Optional[SubSetEntity] = None
-                response = self._service_provider.subsets.list(self._project)
-                if response.ok:
-                    subset = next(
-                        (_sub for _sub in response.data if _sub.name == self._subset),
-                        None,
-                    )
-                else:
-                    self._response.errors = response.error
-                    return self._response
-                if not subset:
-                    self._response.errors = AppException(
-                        "Subset not found. Use the superannotate."
-                        "get_subsets() function to get a list of the available subsets."
-                    )
-                    return self._response
-                query_kwargs["subset_id"] = subset.id
-            if self._query:
-                query_kwargs["query"] = self._query
-            query_kwargs["folder"] = (
-                None if self._folder.name == "root" else self._folder
-            )
-            service_response = self._service_provider.saqul_query(
-                self._project,
-                **query_kwargs,
-            )
-            if service_response.ok:
-                data = []
-                for i, item in enumerate(service_response.data):
-                    tmp_item = GetItem.serialize_entity(
-                        BaseItemEntity(**item), self._project
-                    )
-                    folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
-                    tmp_item.path = f"{self._project.name}" + folder_path
-                    data.append(tmp_item)
-                self._response.data = data
-            else:
-                self._response.errors = service_response.data
         return self._response
 
 
