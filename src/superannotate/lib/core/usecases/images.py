@@ -46,6 +46,9 @@ from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from PIL import UnidentifiedImageError
+from superannotate_core.app import Folder
+from superannotate_core.app import Item
+from superannotate_core.app import Project
 
 logger = logging.getLogger("sa")
 
@@ -1381,8 +1384,8 @@ class DeleteAnnotations(BaseUseCase):
 class DownloadImageAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        project: ProjectEntity,
-        folder: FolderEntity,
+        project: Project,
+        folder: Folder,
         image_name: str,
         service_provider: BaseServiceProvider,
         destination: str,
@@ -1393,15 +1396,6 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         self._image_name = image_name
         self._service_provider = service_provider
         self._destination = destination
-
-    @property
-    def image_use_case(self):
-        return GetImageUseCase(
-            service_provider=self._service_provider,
-            project=self._project,
-            folder=self._folder,
-            image_name=self._image_name,
-        )
 
     def validate_project_type(self):
         if self._project.type in constances.LIMITED_FUNCTIONS:
@@ -1476,56 +1470,32 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            data = {
-                "annotation_json": None,
-                "annotation_json_filename": None,
-                "annotation_mask": None,
-                "annotation_mask_filename": None,
-            }
-            image_response = self.image_use_case.execute()
-            token = self._service_provider.get_download_token(
-                project=self._project,
-                folder=self._folder,
-                image_id=image_response.data.id,
-            ).data
-            credentials = token["annotations"]["MAIN"][0]
-
-            annotation_json_creds = credentials["annotation_json_path"]
-
-            response = requests.get(
-                url=annotation_json_creds["url"],
-                headers=annotation_json_creds["headers"],
-            )
-            if not response.ok:
-                # TODO remove
-                logger.warning("Couldn't load annotations.")
-                self._response.data = (None, None)
-                return self._response
-            data["annotation_json"] = response.json()
-            data["annotation_json_filename"] = f"{self._image_name}.json"
             mask_path = None
-            if self._project.type == constances.ProjectType.PIXEL.value:
-                annotation_blue_map_creds = credentials["annotation_bluemap_path"]
+            if self._project.type.value == constances.ProjectType.PIXEL.value:
+                image: Item = self._folder.list_items(item_names=[self._image_name])[0]
+                token = self._service_provider.get_download_token(
+                    project_id=self._project.id,
+                    folder_id=self._folder.id,
+                    image_id=image.id,
+                ).data
+                annotation_blue_map_creds = token["annotations"]["MAIN"][0][
+                    "annotation_bluemap_path"
+                ]
                 response = requests.get(
                     url=annotation_blue_map_creds["url"],
                     headers=annotation_blue_map_creds["headers"],
                 )
-                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
+                annotation_mask_filename = f"{self._image_name}___save.png"
                 if response.ok:
-                    data["annotation_mask"] = io.BytesIO(response.content).getbuffer()
-                    mask_path = (
-                        Path(self._destination) / data["annotation_mask_filename"]
-                    )
+                    mask_path = Path(self._destination) / annotation_mask_filename
                     with open(mask_path, "wb") as f:
-                        f.write(data["annotation_mask"])
+                        f.write(io.BytesIO(response.content).getbuffer())
                 else:
                     logger.info("There is no blue-map for the image.")
-
-            json_path = Path(self._destination) / data["annotation_json_filename"]
-            self.fill_classes_data(data["annotation_json"])
-            with open(json_path, "w") as f:
-                json.dump(data["annotation_json"], f, indent=4)
-
+            self._folder.download_annotations(
+                download_path=self._destination, item_names=[self._image_name]
+            )
+            json_path = f"{self._destination}/{self._image_name}"
             self._response.data = (str(json_path), str(mask_path))
         return self._response
 

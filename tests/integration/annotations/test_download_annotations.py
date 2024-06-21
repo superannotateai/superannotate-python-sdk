@@ -121,6 +121,7 @@ class TestDownloadAnnotations(BaseTestCase):
             )
             assert count == 31 + 5  # folder names and classes
 
+    # TODO failed after SDK_core integration (check logging in future)
     def test_download_annotations_duplicated_names(self):
         self._attach_items(count=4)
         with tempfile.TemporaryDirectory() as temp_dir:

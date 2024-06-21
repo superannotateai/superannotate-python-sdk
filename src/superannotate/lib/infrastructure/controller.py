@@ -490,8 +490,8 @@ class AnnotationManager(BaseManager):
 
     def download_image_annotations(
         self,
-        project: ProjectEntity,
-        folder: FolderEntity,
+        project: Project,
+        folder: Folder,
         image_name: str,
         destination: str,
     ):

@@ -19,7 +19,7 @@ class TestVectorAnnotationImage(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     def test_pre_annotation_folder_upload_download(self):
-        self._attach_items()
+        self._attach_items(count=4)
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )

@@ -79,8 +79,8 @@ class ServiceProvider(BaseServiceProvider):
 
     def get_download_token(
         self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
+        project_id: int,
+        folder_id: int,
         image_id: int,
         include_original: int = 1,
     ):
@@ -92,8 +92,8 @@ class ServiceProvider(BaseServiceProvider):
             download_token_url,
             "get",
             params={
-                "project_id": project.id,
-                "folder_id": folder.id,
+                "project_id": project_id,
+                "folder_id": folder_id,
                 "include_original": include_original,
             },
         )
