@@ -1097,12 +1097,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: tuple
         """
 
-        project, folder = self.controller.get_project_folder_by_path(project)
+        project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        download_path = self.controller.setup_destination_dir(local_dir_path)
         res = self.controller.annotations.download_image_annotations(
             project=project,
             folder=folder,
             image_name=image_name,
-            destination=local_dir_path,
+            destination=download_path,
         )
         if res.errors:
             raise AppException(res.errors)

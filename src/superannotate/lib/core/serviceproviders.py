@@ -479,8 +479,8 @@ class BaseServiceProvider:
     @abstractmethod
     def get_download_token(
         self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
+        project_id: int,
+        folder_id: int,
         image_id: int,
         include_original: int = 1,
     ) -> ServiceResponse:
