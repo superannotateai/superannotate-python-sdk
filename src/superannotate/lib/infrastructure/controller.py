@@ -1013,6 +1013,7 @@ class Controller(BaseController):
         only_pinned: bool,
         annotation_statuses: List[str] = None,
         integration_id: int = None,
+        export_type: int = None,
     ):
         project = self.get_project(project_name)
         use_case = usecases.PrepareExportUseCase(
@@ -1023,6 +1024,7 @@ class Controller(BaseController):
             only_pinned=only_pinned,
             annotation_statuses=annotation_statuses,
             integration_id=integration_id,
+            export_type=export_type,
         )
         return use_case.execute()
 

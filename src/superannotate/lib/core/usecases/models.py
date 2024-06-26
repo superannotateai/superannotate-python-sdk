@@ -46,6 +46,7 @@ class PrepareExportUseCase(BaseUseCase):
         only_pinned: bool,
         annotation_statuses: List[str] = None,
         integration_id: int = None,
+        export_type: int = None,
     ):
         super().__init__(),
         self._project = project
@@ -55,6 +56,7 @@ class PrepareExportUseCase(BaseUseCase):
         self._include_fuse = include_fuse
         self._only_pinned = only_pinned
         self._integration_id = integration_id
+        self._export_type = export_type
 
     def validate_only_pinned(self):
         if (
@@ -102,8 +104,7 @@ class PrepareExportUseCase(BaseUseCase):
                     constances.AnnotationStatus.NOT_STARTED.name,
                     constances.AnnotationStatus.SKIPPED.name,
                 ]
-
-            response = self._service_provider.prepare_export(
+            kwargs = dict(
                 project=self._project,
                 folders=self._folder_names,
                 annotation_statuses=self._annotation_statuses,
@@ -111,6 +112,9 @@ class PrepareExportUseCase(BaseUseCase):
                 only_pinned=self._only_pinned,
                 integration_id=self._integration_id,
             )
+            if self._export_type:
+                kwargs["export_type"] = self._export_type
+            response = self._service_provider.prepare_export(**kwargs)
             if not response.ok:
                 raise AppException(response.error)
 
