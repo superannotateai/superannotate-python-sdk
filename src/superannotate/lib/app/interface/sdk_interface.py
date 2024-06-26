@@ -1187,8 +1187,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param only_pinned: enable only pinned output in export. This option disables all other types of output.
         :type only_pinned: bool
 
-        :param kwargs: Arbitrary kwarg ``integration_name``
-            can be provided which will be used as a storage to store export file
+        :param kwargs:
+            Arbitrary kwargs::
+                 * integration_name: can be provided which will be used as a storage to store export file
+                 * export_type: can be CSV for the Gen AI projects
 
         :return: metadata object of the prepared export
         :rtype: dict
@@ -1216,6 +1218,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     break
             else:
                 raise AppException("Integration not found.")
+        _export_type = None
+        export_type = kwargs.get("export_type")
+        if export_type and export_type == "csv":
+            _export_type = 3
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,
@@ -1223,6 +1229,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             only_pinned=only_pinned,
             annotation_statuses=annotation_statuses,
             integration_id=integration_id,
+            export_type=_export_type,
         )
         if response.errors:
             raise AppException(response.errors)
