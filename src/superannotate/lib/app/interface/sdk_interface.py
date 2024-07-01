@@ -1190,7 +1190,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param kwargs:
             Arbitrary kwargs::
                  * integration_name: can be provided which will be used as a storage to store export file
-                 * format: can be CSV for the Gen AI projects and can be COCO for Vector projects
+                 * format: can be CSV for the Gen AI projects
 
         :return: metadata object of the prepared export
         :rtype: dict
@@ -1224,8 +1224,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             export_type = export_type.lower()
             if export_type == "csv":
                 _export_type = 3
-            elif export_type == "coco":
-                _export_type = 2
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,
