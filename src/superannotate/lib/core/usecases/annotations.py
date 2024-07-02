@@ -1223,7 +1223,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
                 )
                 self._response.data = (uploaded_score_names, skipped_score_names)
             else:
-                self.reporter.warning_messages("Empty scores.")
+                self.reporter.warning_messages.append("Empty scores.")
         return self._response
 
 

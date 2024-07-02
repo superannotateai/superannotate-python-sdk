@@ -152,6 +152,7 @@ class ServiceProvider(BaseServiceProvider):
         include_fuse: bool,
         only_pinned: bool,
         integration_id: int = None,
+        export_type: int = None,
     ):
         annotation_statuses = ",".join(
             [str(constants.AnnotationStatus.get_value(i)) for i in annotation_statuses]
@@ -164,6 +165,8 @@ class ServiceProvider(BaseServiceProvider):
             "coco": 0,
             "time": datetime.datetime.now().strftime("%b %d %Y %H:%M"),
         }
+        if export_type:
+            data["export_format"] = export_type
         if folders:
             data["folder_names"] = folders
         if integration_id is not None:
