@@ -1190,7 +1190,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param kwargs:
             Arbitrary kwargs::
                  * integration_name: can be provided which will be used as a storage to store export file
-                 * export_type: can be CSV for the Gen AI projects
+                 * format: can be CSV for the Gen AI projects
 
         :return: metadata object of the prepared export
         :rtype: dict
@@ -1219,9 +1219,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             else:
                 raise AppException("Integration not found.")
         _export_type = None
-        export_type = kwargs.get("export_type")
-        if export_type and export_type == "csv":
-            _export_type = 3
+        export_type = kwargs.get("format")
+        if export_type:
+            export_type = export_type.lower()
+            if export_type == "csv":
+                _export_type = 3
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,

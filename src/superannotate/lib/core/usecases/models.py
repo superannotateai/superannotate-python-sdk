@@ -77,6 +77,20 @@ class PrepareExportUseCase(BaseUseCase):
                 f"{ProjectType.get_name(self._project.type)} attached with URLs"
             )
 
+    def validate_export_type(self):
+        if self._export_type == 2:
+            if (
+                self._project.type != ProjectType.VECTOR.value
+                or self._project.upload_state != constances.UploadState.EXTERNAL.value
+            ):
+                raise AppValidationException(
+                    "COCO format is not supported for this project."
+                )
+        elif self._export_type == 3 and self._project.type != ProjectType.GEN_AI.value:
+            raise AppValidationException(
+                "CSV format is not supported for this project."
+            )
+
     def validate_folder_names(self):
         if self._folder_names:
             condition = Condition("project_id", self._project.id, EQ)
