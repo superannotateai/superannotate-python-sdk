@@ -2440,7 +2440,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             _items = folder.list_items(query=query, subset_id=subset_id)
         else:
             _items = project.list_items(query=query, subset_id=subset_id)
-        exclude = {"custom_metadata", "meta"}
+        exclude = {"meta"}
         return [serialize_item(i, project).dict(exclude=exclude) for i in _items]
 
     def get_item_metadata(
@@ -2609,14 +2609,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 items.extend(
                     [
                         serialize_item(i, project, folder).dict(exclude=exclude)
-                        for i in folder.list_items(condition=search_condition)
+                        for i in folder.list_items(
+                            condition=search_condition,
+                            include_custom_metadata=include_custom_metadata,
+                        )
                     ]
                 )
         else:
             folder = project.get_folder(folder_name)
             items = [
                 serialize_item(i, project, folder).dict(exclude=exclude)
-                for i in folder.list_items(condition=search_condition)
+                for i in folder.list_items(
+                    condition=search_condition,
+                    include_custom_metadata=include_custom_metadata,
+                )
             ]
         return items
 
@@ -2994,13 +3000,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         """
         project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
-        response = self.controller.custom_fields.create_schema(
-            project=project, schema=fields
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        project = self.controller.get_project(project_name)
+        return project.create_custom_fields(fields)
 
     def get_custom_fields(self, project: NotEmptyStr):
         """Get the schema of the custom fields defined for the project
@@ -3042,11 +3043,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
         project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
-        response = self.controller.custom_fields.get_schema(project=project)
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        project = self.controller.get_project(project_name)
+        return project.get_custom_fields()
 
     def delete_custom_fields(
         self, project: NotEmptyStr, fields: conlist(str, min_items=1)
@@ -3096,13 +3094,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         """
         project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
-        response = self.controller.custom_fields.delete_schema(
-            project=project, fields=fields
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        project = self.controller.get_project(project_name)
+        project.delete_custom_field(fields)
+        return project.get_custom_fields()
 
     def upload_custom_values(
         self, project: NotEmptyStr, items: conlist(Dict[str, dict], min_items=1)
@@ -3164,19 +3158,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             {
-               "successful_items_count": 2,
-               "failed_items_names": ["image_3.png"]
+               "succeeded": ["image_1.png", "image_2.png"],
+               "failed": ["image_3.png"]
             }
         """
 
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
-        response = self.controller.custom_fields.upload_values(
-            project=project, folder=folder, items=items
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        _item_fields_mapping = {}
+        for i in items:
+            _item_fields_mapping.update(i)
+        _items = folder.list_items(item_names=list(_item_fields_mapping.keys()))
+        item_fields_map = {i: _item_fields_mapping[i.name] for i in _items}
+        succeeded_items, failed_items = folder.set_custom_field_values(item_fields_map)
+        return {"succeeded": succeeded_items, "failed": failed_items}
 
     def delete_custom_values(
         self, project: NotEmptyStr, items: conlist(Dict[str, List[str]], min_items=1)
@@ -3207,12 +3203,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
-        response = self.controller.custom_fields.delete_values(
-            project=project, folder=folder, items=items
-        )
-        if response.errors:
-            raise AppException(response.errors)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        _item_fields_mapping = {}
+        for i in items:
+            _item_fields_mapping.update(i)
+        _items = folder.list_items(item_names=list(_item_fields_mapping.keys()))
+        item_fields_map = {i: _item_fields_mapping[i.name] for i in _items}
+        return folder.delete_custom_field_values(item_fields_map)
 
     def add_items_to_subset(
         self, project: NotEmptyStr, subset: NotEmptyStr, items: List[dict]

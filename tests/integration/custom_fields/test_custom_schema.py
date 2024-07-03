@@ -2,6 +2,7 @@ import copy
 
 from src.superannotate import AppException
 from src.superannotate import SAClient
+from superannotate_core.core.exceptions import SAException
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -180,5 +181,5 @@ class TestCustomSchema(BaseTestCase):
             "-Minimum spec value of age_range can not be higher than maximum value.\n"
             "-Spec value type of age_enum is not valid."
         )
-        with self.assertRaisesRegexp(AppException, error_msg):
+        with self.assertRaisesRegexp(SAException, error_msg):
             sa.create_custom_fields(self.PROJECT_NAME, INVALID_SCHEMA)

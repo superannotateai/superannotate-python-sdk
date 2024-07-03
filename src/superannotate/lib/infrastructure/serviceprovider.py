@@ -13,7 +13,6 @@ from lib.core.service_types import UserResponse
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.infrastructure.services.annotation import AnnotationService
 from lib.infrastructure.services.annotation_class import AnnotationClassService
-from lib.infrastructure.services.custom_field import CustomFieldService
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
@@ -49,7 +48,6 @@ class ServiceProvider(BaseServiceProvider):
         self.items = ItemService(client)
         self.annotations = AnnotationService(client)
         self.annotation_classes = AnnotationClassService(client)
-        self.custom_fields = CustomFieldService(client)
         self.subsets = SubsetService(client)
         self.models = ModelsService(client)
         self.integrations = IntegrationService(client)
