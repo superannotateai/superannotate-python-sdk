@@ -2657,13 +2657,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: uploaded, failed and duplicated item names
         :rtype: tuple of list of strs
 
-        Example:
+        Example for Vector, Video, Document, PointCloud projects:
         ::
 
             client = SAClient()
             client.attach_items(
                 project="Medical Annotations",
                 attachments=[{"name": "item", "url": "https://..."}]
+             )
+
+        Example for GenAI projects:
+        ::
+
+            client = SAClient()
+            client.attach_items(
+                project="Medical Annotations",
+                attachments=[
+                    {
+                        "_item_name": "item",
+                        "_folder": "QA1",
+                        "_item_category": "karyology",
+                         "component_id_0": "val",
+                         ...
+                    }
+                ]
              )
 
         Example of attaching items from custom integration:
