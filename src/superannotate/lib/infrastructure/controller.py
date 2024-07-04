@@ -580,58 +580,6 @@ class AnnotationManager(BaseManager):
         return use_case.execute()
 
 
-class CustomFieldManager(BaseManager):
-    def create_schema(self, project: ProjectEntity, schema: dict):
-        use_case = usecases.CreateCustomSchemaUseCase(
-            reporter=Reporter(),
-            project=project,
-            schema=schema,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def get_schema(self, project: ProjectEntity):
-        use_case = usecases.GetCustomSchemaUseCase(
-            reporter=Reporter(),
-            project=project,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def delete_schema(self, project: ProjectEntity, fields: List[str]):
-        use_case = usecases.DeleteCustomSchemaUseCase(
-            reporter=Reporter(),
-            project=project,
-            fields=fields,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def upload_values(
-        self, project: ProjectEntity, folder: FolderEntity, items: List[dict]
-    ):
-        use_case = usecases.UploadCustomValuesUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            items=items,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def delete_values(
-        self, project: ProjectEntity, folder: FolderEntity, items: List[dict]
-    ):
-        use_case = usecases.DeleteCustomValuesUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            items=items,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-
 class ModelManager(BaseManager):
     def list(self, condition: Condition):
         use_case = usecases.SearchMLModels(
@@ -757,7 +705,6 @@ class BaseController(metaclass=ABCMeta):
         self.annotations = AnnotationManager(
             self.service_provider, config, self._session
         )
-        self.custom_fields = CustomFieldManager(self.service_provider, self._session)
         self.subsets = SubsetManager(self.service_provider, self._session)
         self.models = ModelManager(self.service_provider, self._session)
         self.integrations = IntegrationManager(self.service_provider, self._session)
