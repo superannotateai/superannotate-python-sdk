@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from unittest import mock
 
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
@@ -21,7 +20,10 @@ class TestUploadPriorityScores(BaseTestCase):
     def test_upload_empty_list(self):
         with self.assertLogs("sa", level="INFO") as cm:
             sa.upload_priority_scores(self.PROJECT_NAME, scores=[])
-            assert cm.output[0] == 'INFO:sa:Uploading  priority scores for 0 item(s) to TestUploadPriorityScores.'
+            assert (
+                cm.output[0]
+                == "INFO:sa:Uploading  priority scores for 0 item(s) to TestUploadPriorityScores."
+            )
 
     def test_upload_priority_scores(self):
 

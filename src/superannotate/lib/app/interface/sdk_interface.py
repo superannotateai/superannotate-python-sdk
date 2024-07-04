@@ -1188,9 +1188,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type only_pinned: bool
 
         :param kwargs:
-            Arbitrary kwargs::
+            Arbitrary kwargs:
                  * integration_name: can be provided which will be used as a storage to store export file
                  * format: can be CSV for the Gen AI projects
+
+        Request Example:
+        ::
+            client = SAClient()
+
+            export = client.prepare_export(
+                project = "Project Name",
+                folder_names = ["Folder 1", "Folder 2"],
+                annotation_statuses = ["Completed","QualityCheck"],
+                export_type = "CSV")
+
+            client.download_export("Project Name", export, "path_to_download")
 
         :return: metadata object of the prepared export
         :rtype: dict
