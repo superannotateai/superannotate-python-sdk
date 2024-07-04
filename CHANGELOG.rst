@@ -14,7 +14,7 @@ _______________________
 
     - ``SAClient.prepare_export`` added the ability to export GenAI project data to a CSV file..
 
-**Fiexed**
+**Fixed**
 
     - ``SAClient.upload_priority_scores`` fixed an issue arising from empty arguments
 
