@@ -17,6 +17,14 @@ class TestUploadPriorityScores(BaseTestCase):
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent, self.TEST_FOLDER_PATH)
 
+    def test_upload_empty_list(self):
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.upload_priority_scores(self.PROJECT_NAME, scores=[])
+            assert (
+                cm.output[0]
+                == "INFO:sa:Uploading  priority scores for 0 item(s) to TestUploadPriorityScores."
+            )
+
     def test_upload_priority_scores(self):
 
         self._attach_items(count=4)

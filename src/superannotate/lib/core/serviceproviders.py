@@ -571,6 +571,7 @@ class BaseServiceProvider:
         include_fuse: bool,
         only_pinned: bool,
         integration_id: int,
+        export_type: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
