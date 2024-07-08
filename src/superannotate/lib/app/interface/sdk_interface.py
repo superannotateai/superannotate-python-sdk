@@ -1712,17 +1712,67 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
 
         """
-        project, folder = self.controller.get_project_folder_by_path(project)
-        response = self.controller.annotations.upload_multiple(
-            project=project,
-            folder=folder,
-            annotations=annotations,
-            keep_status=keep_status,
-            user=self.controller.current_user,
+        project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+
+        failed, skipped = [], []
+        name_annotation_map = {}
+        for annotation in annotations:
+            try:
+                name = annotation["metadata"]["name"]
+                name_annotation_map[name] = annotation
+            except KeyError:
+                failed.append(annotation)
+        logger.info(
+            f"Uploading {len(name_annotation_map)}/{len(annotations)} "
+            f"annotations to the project {project.name}."
         )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+
+        folder_items = folder.list_items(item_names=list(name_annotation_map.keys()))
+        name_item_map = {i.name: i for i in folder_items}
+        len_existing, len_provided = len(folder_items), len(name_annotation_map)
+        if len_existing < len_provided:
+            logger.warning(
+                f"Couldn't find {len_provided - len_existing}/{len_provided} "
+                "items in the given directory that match the annotations."
+            )
+        item_id_annotation_pairs = []
+        item_id_name_map = {}
+        for annotation_name, annotation in name_annotation_map.items():
+            item = name_item_map.get(annotation_name)
+            if item:
+                # Verifies value is not NaN for data integrity
+                try:
+                    json.dumps(annotation, allow_nan=False)
+                except ValueError:
+                    failed.append(annotation_name)
+                    continue
+
+                item_id_annotation_pairs.append((item.id, annotation))
+                item_id_name_map[item.id] = annotation_name
+            else:
+                skipped.append(annotation_name)
+
+        failed_ids = folder.upload_annotations(item_id_annotation_pairs)
+        failed.extend(item_id_name_map[i] for i in failed_ids)
+        uploaded_annotations = list(
+            set(item_id_name_map.values()) - set(failed).union(set(skipped))
+        )
+        if uploaded_annotations and not keep_status:
+            try:
+                folder.set_items_annotation_statuses(
+                    items=uploaded_annotations,
+                    annotation_status=constants.AnnotationStatus.IN_PROGRESS,
+                )
+            except Exception:
+                raise AppException("Failed to change status.")
+
+        return {
+            "succeeded": uploaded_annotations,
+            "failed": failed,
+            "skipped": skipped,
+        }
 
     def upload_annotations_from_folder_to_project(
         self,
@@ -1764,6 +1814,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
         project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
         if recursive_subfolders:
@@ -1783,11 +1835,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
         )
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
         response = self.controller.annotations.upload_from_folder(
             project=project,
             folder=folder,
-            user=self.controller.current_user,
             annotation_paths=annotation_paths,  # noqa: E203
             client_s3_bucket=from_s3_bucket,
             folder_path=folder_path,
@@ -1831,8 +1881,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
         if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
@@ -1851,7 +1901,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if verbose:
                 logger.info("Uploading annotations from %s.", annotation_json)
             annotation_json = json.load(open(annotation_json))
-        folder = self.controller.get_folder(project, folder_name)
         if not folder:
             raise AppException("Folder not found.")
 
