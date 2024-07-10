@@ -383,7 +383,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         parts = path.rsplit(replacement, 1)
         return constants.ANNOTATION_MASK_POSTFIX.join(parts)
 
-    def get_item_id_annotation_pairs(self, items_to_upload: List[ItemToUpload]):
+    def get_item_id_annotation_pairs(self, items_to_upload: List[ItemToUpload]) -> Tuple[int, dict]:
         for item_to_upload in items_to_upload:
             try:
                 if self._client_s3_bucket:

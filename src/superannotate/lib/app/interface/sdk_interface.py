@@ -1737,7 +1737,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 f"Couldn't find {len_provided - len_existing}/{len_provided} "
                 "items in the given directory that match the annotations."
             )
-        item_id_annotation_pairs = []
+        item_id_annotation_pairs: List[Tuple[int, dict]] = []
         item_id_name_map = {}
         for annotation_name, annotation in name_annotation_map.items():
             item = name_item_map.get(annotation_name)
