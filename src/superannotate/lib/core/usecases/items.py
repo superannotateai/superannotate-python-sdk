@@ -623,7 +623,7 @@ class AttachGenAIItems(BaseReportableUseCase):
                             [i["annotation"] for i in id_annotation_map.values()]
                         ),
                         service_provider=self._service_provider,
-                        reporter=Reporter(log_info=False),
+                        reporter=Reporter(log_info=False, log_debug=False),
                         user=self._user,
                         keep_status=True,
                         transform_version="llmJson",
