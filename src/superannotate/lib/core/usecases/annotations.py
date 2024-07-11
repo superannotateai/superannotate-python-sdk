@@ -383,7 +383,9 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         parts = path.rsplit(replacement, 1)
         return constants.ANNOTATION_MASK_POSTFIX.join(parts)
 
-    def get_item_id_annotation_pairs(self, items_to_upload: List[ItemToUpload]) -> Tuple[int, dict]:
+    def get_item_id_annotation_pairs(
+        self, items_to_upload: List[ItemToUpload]
+    ) -> Tuple[int, dict]:
         for item_to_upload in items_to_upload:
             try:
                 if self._client_s3_bucket:
@@ -455,18 +457,23 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
     def get_annotation_upload_auth_data(
         self, item_ids: List[int]
     ) -> UploadAnnotationAuthData:
-        upload_data = None
+        images = {}
+        upload_auth_data_res = None
         for i in range(0, len(item_ids), self.CHUNK_SIZE_PATHS):
-            upload_data = self._service_provider.get_annotation_upload_data(
+            upload_auth_data_res = self._service_provider.get_annotation_upload_data(
                 project=self._project,
                 folder=self._folder,
                 item_ids=item_ids[i : i + self.CHUNK_SIZE_PATHS],
             )
-            if not upload_data.ok:
-                raise AppException(upload_data.error)
-            else:
-                upload_data.images.update(upload_data.data.images)
-        return upload_data
+            if not upload_auth_data_res.ok:
+                raise AppException(upload_auth_data_res.error)
+            images.update(upload_auth_data_res.data.images)
+        if upload_auth_data_res:
+            upload_auth_data_res.res_data.images = images
+            upload_auth_data = upload_auth_data_res.res_data
+            return upload_auth_data
+        else:
+            raise AppException("Can't upload annotation masks")
 
     @staticmethod
     def get_s3_bucket(auth_data: UploadAnnotationAuthData):
@@ -515,7 +522,9 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             self._report.failed_annotations = [
                 item_id_name_mapping[i] for i in failed_ids
             ]
-            uploaded_item_ids = set(item_id_name_mapping.keys()) ^ failed_ids
+            uploaded_item_ids: List[int] = list(
+                set(item_id_name_mapping.keys()) ^ set(failed_ids)
+            )
 
             # upload masks
             if self._project.type == constants.ProjectType.PIXEL.value:
