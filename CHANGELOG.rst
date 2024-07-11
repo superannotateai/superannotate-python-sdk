@@ -6,6 +6,18 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.23 - July 4, 2024
+_______________________
+
+
+**Updated**
+
+    - ``SAClient.prepare_export`` added the ability to export GenAI project data to a CSV file..
+
+**Fixed**
+
+    - ``SAClient.upload_priority_scores`` fixed an issue arising from empty arguments
+
 4.4.22 - Jun 13, 2024
 _______________________
 
@@ -13,7 +25,7 @@ _______________________
 **Updated**
 
     - Dependencies, updated ``packaging``, ``superannotate-schemas``.
-    - ``search_folders`` by multiple statuses.
+    - ``SAClient.search_folders`` by multiple statuses.
 
 
 4.4.21 - May 23, 2024
@@ -22,8 +34,8 @@ _______________________
 
 **Updated**
 
-    - Dependencies, removed ``email-validator``.
-    - ``add_items_to_subset`` added GenAI projects support.
+    - Dependencies, removed ``SAClientemail-validator``.
+    - ``SAClient.add_items_to_subset`` added GenAI projects support.
 
 
 
