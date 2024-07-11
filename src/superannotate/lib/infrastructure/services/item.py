@@ -18,7 +18,6 @@ from lib.core.service_types import TiledResponse
 from lib.core.service_types import VideoResponse
 from lib.core.serviceproviders import BaseItemService
 from lib.core.types import Attachment
-from lib.core.types import AttachmentMeta
 
 
 class ItemService(BaseItemService):
@@ -136,7 +135,7 @@ class ItemService(BaseItemService):
         attachments: List[Attachment],
         annotation_status_code,
         upload_state_code,
-        meta: Dict[str, AttachmentMeta],
+        meta: Dict[str, dict],
     ):
         data = {
             "project_id": project.id,

@@ -1,5 +1,10 @@
+import base64
+import json
+from typing import Dict
 from typing import List
+from urllib.parse import urljoin
 
+import lib.core as constants
 from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.service_types import ProjectResponse
@@ -9,6 +14,7 @@ from lib.core.serviceproviders import BaseProjectService
 
 
 class ProjectService(BaseProjectService):
+    WORK_MANAGAMENT_VERSION = "v1"
     URL = "project"
     URL_LIST = "projects"
     URL_GET = "project/{}"
@@ -20,6 +26,15 @@ class ProjectService(BaseProjectService):
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
     URL_GET_BY_ID = "project/{project_id}"
+    URL_ATTACH_CATEGORIES = "items/bulk/setcategory"
+    URL_LIST_CATEGORIES = "categories"
+    URL_CREATE_CATEGORIES = "categories/bulk"
+
+    @property
+    def assets_work_management_url(self):
+        if self.client.api_url != constants.BACKEND_URL:
+            return f"https://work-management-api.devsuperannotate.com/api/{self.WORK_MANAGAMENT_VERSION}/"
+        return f"https://work-management-api.superannotate.com/api/{self.WORK_MANAGAMENT_VERSION}/"
 
     def get_by_id(self, project_id: int):
         params = {}
@@ -172,3 +187,64 @@ class ProjectService(BaseProjectService):
             },
             data={"image_entropies": priorities},
         )
+
+    def get_entitiy_context(self, project_id: int):
+        return base64.b64encode(
+            json.dumps(
+                {
+                    "team_id": self.client.team_id,
+                    "project_id": project_id,
+                }
+            ).encode()
+        )
+
+    def list_categories(
+        self,
+        project_id: int,
+    ):
+        params = [
+            ("project_id", project_id),
+        ]
+        return self.client.request(
+            urljoin(self.assets_work_management_url, self.URL_LIST_CATEGORIES),
+            "get",
+            params=params,
+            headers={"x-sa-entity-context": self.get_entitiy_context(project_id)},
+        )
+
+    def create_categories(self, project_id: int, categories: List[str]):
+        params = [
+            ("project_id", project_id),
+        ]
+        res = self.client.request(
+            urljoin(self.assets_work_management_url, self.URL_CREATE_CATEGORIES),
+            "post",
+            params=params,
+            data={"bulk": [{"name": i} for i in categories]},
+            headers={"x-sa-entity-context": self.get_entitiy_context(project_id)},
+        )
+        return res.data
+
+    def attach_categories(
+        self,
+        project_id: int,
+        folder_id: int,
+        item_id_category_id_map: Dict[int, dict],
+    ):
+        params = [
+            ("project_id", project_id),
+            ("folder_id", folder_id),
+        ]
+
+        res = self.client.request(
+            self.URL_ATTACH_CATEGORIES,
+            "post",
+            params=params,
+            data={
+                "bulk": [
+                    {"item_id": item_id, "categories": [category]}
+                    for item_id, category in item_id_category_id_map.items()
+                ]
+            },
+        )
+        return res

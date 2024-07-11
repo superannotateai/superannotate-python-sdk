@@ -77,6 +77,50 @@ def get_s3_annotation_paths(folder_path, s3_bucket, annotation_paths, recursive)
     return list(set(annotation_paths))
 
 
+def convert_column_to_lowercase(df, column_name):
+    actual_column_name = next(
+        (col for col in df.columns if col.lower() == column_name.lower()), None
+    )
+    if actual_column_name:
+        df = df.rename(columns={actual_column_name: column_name})
+    else:
+        raise Exception(f"Column '{column_name}' not found.")
+    return df
+
+
+def truncate_long_names(name, length=120):
+    if len(name) > length:
+        return name[:length]
+    else:
+        return name
+
+
+def get_gen_ai_csv_data(csv_path):
+    def serializer_name(val):
+        if not str(val).strip():
+            val = str(uuid.uuid4())
+        val = truncate_long_names(val)
+        return val
+
+    def df_preprocessing(df):
+        """
+        Convert the name column to lowercase
+        Fill all empty cells with empty strings
+        Truncating the name column or generating UUID for empties
+        :param df:
+        :return: df
+        """
+        df = convert_column_to_lowercase(df, "_item_name")
+        df = df.fillna("")
+        df["_item_name"] = df["_item_name"].apply(serializer_name)
+        return df
+
+    df = pd.read_csv(csv_path, engine="python", quotechar='"', dtype=str)
+    df = df.drop(columns=["_folder"], errors="ignore")
+    df = df_preprocessing(df)
+    return df.to_dict(orient="records")
+
+
 def get_name_url_duplicated_from_csv(csv_path):
     image_data = pd.read_csv(csv_path, dtype=str)
     image_data.replace({pd.NA: None}, inplace=True)

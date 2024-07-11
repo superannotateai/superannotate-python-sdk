@@ -183,6 +183,7 @@ async def upload_small_annotations(
     reporter: Reporter,
     report: Report,
     callback: Callable = None,
+    transform_version: str = None,
 ):
     async def upload(_chunk: List[ItemToUpload]):
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
@@ -199,6 +200,7 @@ async def upload_small_annotations(
                 project=project,
                 folder=folder,
                 items_name_data_map=items_name_data_map,
+                transform_version=transform_version,
             )
             if response.ok:
                 if response.data.failed_items:  # noqa
@@ -299,6 +301,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         service_provider: BaseServiceProvider,
         user: UserEntity,
         keep_status: bool = False,
+        transform_version: str = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -308,6 +311,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._keep_status = keep_status
         self._report = Report([], [], [], [])
         self._user = user
+        self._transform_version = transform_version
 
     def validate_project_type(self):
         if self._project.type == constants.ProjectType.PIXEL.value:
@@ -413,6 +417,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 service_provider=self._service_provider,
                 reporter=self.reporter,
                 report=self._report,
+                transform_version=self._transform_version,
             )
         )
 

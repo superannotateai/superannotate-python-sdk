@@ -29,6 +29,7 @@ from tqdm import tqdm
 import lib.core as constants
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
+from lib.app.helpers import get_gen_ai_csv_data
 from lib.app.helpers import wrap_error as wrap_validation_errors
 from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
@@ -45,6 +46,7 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
 from lib.core.conditions import EmptyCondition
 from lib.core.entities import AttachmentEntity
+from lib.core.entities import GenAIAttachmentEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities.classes import AnnotationClassEntity
@@ -110,6 +112,12 @@ class Attachment(TypedDict, total=False):
     url: Required[str]  # noqa
     name: NotRequired[str]  # noqa
     integration: NotRequired[str]  # noqa
+
+
+class GenAIAttachment(TypedDict, total=False):
+    _item_name: Optional[str]
+    _item_category: Optional[str]
+    # compoenmt id value map
 
 
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
@@ -1187,8 +1195,22 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param only_pinned: enable only pinned output in export. This option disables all other types of output.
         :type only_pinned: bool
 
-        :param kwargs: Arbitrary kwarg ``integration_name``
-            can be provided which will be used as a storage to store export file
+        :param kwargs:
+            Arbitrary kwargs:
+                 * integration_name: can be provided which will be used as a storage to store export file
+                 * format: can be CSV for the Gen AI projects
+
+        Request Example:
+        ::
+            client = SAClient()
+
+            export = client.prepare_export(
+                project = "Project Name",
+                folder_names = ["Folder 1", "Folder 2"],
+                annotation_statuses = ["Completed","QualityCheck"],
+                export_type = "CSV")
+
+            client.download_export("Project Name", export, "path_to_download")
 
         :return: metadata object of the prepared export
         :rtype: dict
@@ -1216,6 +1238,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     break
             else:
                 raise AppException("Integration not found.")
+        _export_type = None
+        export_type = kwargs.get("format")
+        if export_type:
+            export_type = export_type.lower()
+            if export_type == "csv":
+                _export_type = 3
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,
@@ -1223,6 +1251,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             only_pinned=only_pinned,
             annotation_statuses=annotation_statuses,
             integration_id=integration_id,
+            export_type=_export_type,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2632,7 +2661,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def attach_items(
         self,
         project: Union[NotEmptyStr, dict],
-        attachments: Union[NotEmptyStr, Path, conlist(Attachment, min_items=1)],
+        attachments: Union[NotEmptyStr, Path, List[dict]],
         annotation_status: Optional[ANNOTATION_STATUS] = "NotStarted",
     ):
         """Link items from external storage to SuperAnnotate using URLs.
@@ -2657,30 +2686,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: uploaded, failed and duplicated item names
         :rtype: tuple of list of strs
 
-        Example for Vector, Video, Document, PointCloud projects:
+        Example:
         ::
 
             client = SAClient()
             client.attach_items(
                 project="Medical Annotations",
                 attachments=[{"name": "item", "url": "https://..."}]
-             )
-
-        Example for GenAI projects:
-        ::
-
-            client = SAClient()
-            client.attach_items(
-                project="Medical Annotations",
-                attachments=[
-                    {
-                        "_item_name": "item",
-                        "_folder": "QA1",
-                        "_item_category": "karyology",
-                         "component_id_0": "val",
-                         ...
-                    }
-                ]
              )
 
         Example of attaching items from custom integration:
@@ -2697,65 +2709,106 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         }
                     ]
             )
+
+        Example of attaching items for GenAI projects:
+        ::
+
+            client = SAClient()
+            client.attach_items(
+                project="Medical Annotations",
+                attachments=[
+                    {
+                        "_item_name": "item",
+                        "_category": "heart",
+                        "category_text_input": "value1",
+                        "category_numeric_input": "value1",
+                        "category_approve_input": 0,
+                        "category_rating_input": 4,
+                        "category_slider_input": 23,
+                        "category_multiselect": ["Option 1"]
+                        "category_checkbox_input": ["Option 1","Option 3"],
+                        }
+                    ]
+            )
         """
 
         project_name, folder_name = extract_project_folder(project)
-        try:
-            attachments = parse_obj_as(List[AttachmentEntity], attachments)
-            unique_attachments = set(attachments)
-            duplicate_attachments = [
-                item
-                for item, count in collections.Counter(attachments).items()
-                if count > 1
-            ]
-        except ValidationError:
-            (
-                unique_attachments,
-                duplicate_attachments,
-            ) = get_name_url_duplicated_from_csv(attachments)
-        if duplicate_attachments:
-            logger.info("Dropping duplicates.")
-        unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
+        project, folder = self.controller.get_project_folder(project_name, folder_name)
         uploaded, fails, duplicated = [], [], []
-        _unique_attachments = []
-        if any(i.integration for i in unique_attachments):
-            integtation_item_map = {
-                i.name: i
-                for i in self.controller.integrations.list().data
-                if i.type == IntegrationTypeEnum.CUSTOM
-            }
-            invalid_integrations = set()
-            for attachment in unique_attachments:
-                if attachment.integration:
-                    if attachment.integration in integtation_item_map:
-                        attachment.integration_id = integtation_item_map[
-                            attachment.integration
-                        ].id
-                    else:
-                        invalid_integrations.add(attachment.integration)
-                        continue
-                _unique_attachments.append(attachment)
-            if invalid_integrations:
-                logger.error(
-                    f"The ['{','.join(invalid_integrations)}'] integrations specified for the items doesn't exist in the "
-                    "list of integrations on the platform. Any associated items will be skipped."
+        if project.type == ProjectType.GEN_AI.value:
+            if isinstance(attachments, (str, Path)):
+                attachments = parse_obj_as(
+                    List[GenAIAttachmentEntity],
+                    get_gen_ai_csv_data(csv_path=attachments),
                 )
-        else:
-            _unique_attachments = unique_attachments
-
-        if _unique_attachments:
-            logger.info(
-                f"Attaching {len(_unique_attachments)} file(s) to project {project}."
-            )
-            project, folder = self.controller.get_project_folder(
-                project_name, folder_name
-            )
-            response = self.controller.items.attach(
+            else:
+                attachments = parse_obj_as(List[GenAIAttachmentEntity], attachments)
+            response = self.controller.items.attach_gen_ai_data(
                 project=project,
                 folder=folder,
-                attachments=_unique_attachments,
+                attachments=attachments,
                 annotation_status=annotation_status,
+                user=self.controller.current_user,
             )
+            uploaded, duplicated, failed = response.data
+        else:
+            try:
+                attachments = parse_obj_as(List[AttachmentEntity], attachments)
+                unique_attachments = set(attachments)
+                duplicate_attachments = [
+                    item
+                    for item, count in collections.Counter(attachments).items()
+                    if count > 1
+                ]
+            except ValidationError:
+                (
+                    unique_attachments,
+                    duplicate_attachments,
+                ) = get_name_url_duplicated_from_csv(attachments)
+            if duplicate_attachments:
+                logger.info("Dropping duplicates.")
+            unique_attachments = parse_obj_as(
+                List[AttachmentEntity], unique_attachments
+            )
+            _unique_attachments = []
+            if any(i.integration for i in unique_attachments):
+                integtation_item_map = {
+                    i.name: i
+                    for i in self.controller.integrations.list().data
+                    if i.type == IntegrationTypeEnum.CUSTOM
+                }
+                invalid_integrations = set()
+                for attachment in unique_attachments:
+                    if attachment.integration:
+                        if attachment.integration in integtation_item_map:
+                            attachment.integration_id = integtation_item_map[
+                                attachment.integration
+                            ].id
+                        else:
+                            invalid_integrations.add(attachment.integration)
+                            continue
+                    _unique_attachments.append(attachment)
+                if invalid_integrations:
+                    logger.error(
+                        f"The ['{','.join(invalid_integrations)}'] integrations specified for the items doesn't exist in the "
+                        "list of integrations on the platform. Any associated items will be skipped."
+                    )
+            else:
+                _unique_attachments = unique_attachments
+
+            if _unique_attachments:
+                logger.info(
+                    f"Attaching {len(_unique_attachments)} file(s) to project {project}."
+                )
+                project, folder = self.controller.get_project_folder(
+                    project_name, folder_name
+                )
+                response = self.controller.items.attach(
+                    project=project,
+                    folder=folder,
+                    attachments=_unique_attachments,
+                    annotation_status=annotation_status,
+                )
             if response.errors:
                 raise AppException(response.errors)
             uploaded, duplicated = response.data

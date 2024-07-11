@@ -28,7 +28,6 @@ from lib.core.service_types import UploadCustomFieldValuesResponse
 from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
 from lib.core.types import Attachment
-from lib.core.types import AttachmentMeta
 
 
 class BaseClient(ABC):
@@ -154,6 +153,26 @@ class BaseProjectService(SuperannotateServiceProvider):
     ) -> ServiceResponse:
         raise NotImplementedError
 
+    @abstractmethod
+    def list_categories(
+        self,
+        project_id: int,
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_categories(self, project_id: int, categories: List[str]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def attach_categories(
+        self,
+        project_id: int,
+        folder_id: int,
+        item_id_category_id_map: Dict[int, dict],
+    ):
+        raise NotImplementedError
+
 
 class BaseFolderService(SuperannotateServiceProvider):
     @abstractmethod
@@ -262,7 +281,7 @@ class BaseItemService(SuperannotateServiceProvider):
         attachments: List[Attachment],
         annotation_status_code,
         upload_state_code,
-        meta: Dict[str, AttachmentMeta],
+        meta: Dict[str, dict],
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -376,6 +395,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         items_name_data_map: Dict[str, dict],
+        transform_version: str = None,
     ) -> UploadAnnotationsResponse:
         raise NotImplementedError
 
@@ -571,6 +591,7 @@ class BaseServiceProvider:
         include_fuse: bool,
         only_pinned: bool,
         integration_id: int,
+        export_type: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 

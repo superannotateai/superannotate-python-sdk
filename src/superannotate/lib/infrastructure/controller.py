@@ -18,6 +18,7 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
+from lib.core.entities import GenAIAttachmentEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
@@ -394,6 +395,25 @@ class ItemManager(BaseManager):
             attachments=attachments,
             annotation_status=annotation_status,
             service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def attach_gen_ai_data(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        attachments: List[GenAIAttachmentEntity],
+        annotation_status: str,
+        user: UserEntity,
+    ):
+        use_case = usecases.AttachGenAIItems(
+            reporter=Reporter(),
+            project=project,
+            folder=folder,
+            attachments=attachments,
+            annotation_status=annotation_status,
+            service_provider=self.service_provider,
+            user=user,
         )
         return use_case.execute()
 
@@ -1013,6 +1033,7 @@ class Controller(BaseController):
         only_pinned: bool,
         annotation_statuses: List[str] = None,
         integration_id: int = None,
+        export_type: int = None,
     ):
         project = self.get_project(project_name)
         use_case = usecases.PrepareExportUseCase(
@@ -1023,6 +1044,7 @@ class Controller(BaseController):
             only_pinned=only_pinned,
             annotation_statuses=annotation_statuses,
             integration_id=integration_id,
+            export_type=export_type,
         )
         return use_case.execute()
 
