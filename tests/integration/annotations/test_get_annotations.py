@@ -4,6 +4,7 @@ from os.path import dirname
 from pathlib import Path
 
 import pytest
+from requests.exceptions import HTTPError
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -58,6 +59,7 @@ class TestGetAnnotations(BaseTestCase):
 
         self.assertEqual(len(annotations), 4)
 
+    # TODO check the behavior of get_annotations in case of item_ids in the future
     def test_get_annotations_by_ids_with_duplicate_names(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
         self._attach_items(count=4, folder=self.FOLDER_NAME_2)  # noqa
@@ -87,12 +89,9 @@ class TestGetAnnotations(BaseTestCase):
 
         self.assertEqual(len(annotations), 0)
 
-    # todo update the implementation
+    # TODO update the implementation
     def test_get_annotations_by_wrong_project_ids(self):
-        try:
-            sa.get_annotations(1, [1, 2, 3])
-        except Exception as e:
-            self.assertEqual(str(e), "Project not found.")
+        self.assertRaises(HTTPError, sa.get_annotations, 1, [1, 2, 3])
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_order(self):
@@ -177,6 +176,7 @@ class TestGetAnnotations(BaseTestCase):
         a = sa.get_annotations(self.PROJECT_NAME)
         assert len(a) == count
 
+    # TODO failed after SDK_core integration (check logging in future)
     def test_get_annotations_logs(self):
         self._attach_items(count=4)
         items_names = [self.IMAGE_NAME] * 4

@@ -482,8 +482,8 @@ class AnnotationManager(BaseManager):
 
     def download_image_annotations(
         self,
-        project: ProjectEntity,
-        folder: FolderEntity,
+        project: Project,
+        folder: Folder,
         image_name: str,
         destination: str,
     ):
@@ -510,31 +510,11 @@ class AnnotationManager(BaseManager):
         )
         return use_case.execute()
 
-    def upload_multiple(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        annotations: List[dict],
-        keep_status: bool,
-        user: UserEntity,
-    ):
-        use_case = usecases.UploadAnnotationsUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            annotations=annotations,
-            service_provider=self.service_provider,
-            keep_status=keep_status,
-            user=user,
-        )
-        return use_case.execute()
-
     def upload_from_folder(
         self,
         project: ProjectEntity,
         folder: FolderEntity,
         annotation_paths: List[str],
-        user: UserEntity,
         keep_status: bool = False,
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
@@ -543,7 +523,6 @@ class AnnotationManager(BaseManager):
         use_case = usecases.UploadAnnotationsFromFolderUseCase(
             project=project,
             folder=folder,
-            user=user,
             annotation_paths=annotation_paths,
             service_provider=self.service_provider,
             pre_annotation=is_pre_annotations,

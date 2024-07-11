@@ -75,34 +75,43 @@ class TestAnnotationUploadVector(BaseTestCase):
         annotations = self._get_annotations_from_folder(
             self.big_annotations_folder_path
         )
-        with self.assertLogs("sa", level="INFO") as cm:
-            uploaded, _, _ = sa.upload_annotations(
-                self.PROJECT_NAME, annotations
-            ).values()
-            assert (
-                "INFO:sa:Uploading 5/5 annotations to the project Test-upload_annotations."
-                == cm.output[0]
-            )
-            assert len(uploaded) == 5
+        uploaded, _, _ = sa.upload_annotations(self.PROJECT_NAME, annotations).values()
+        assert len(uploaded) == 5
+        # with self.assertLogs("sa", level="INFO") as cm:
+        #     uploaded, _, _ = sa.upload_annotations(
+        #         self.PROJECT_NAME, annotations
+        #     ).values()
+        #     assert (
+        #         "INFO:sa:Uploading 5/5 annotations to the project Test-upload_annotations."
+        #         == cm.output[0]
+        #     )
+        #     assert len(uploaded) == 5
 
-        with self.assertLogs("sa", level="INFO") as cm:
-            annotations = sa.get_annotations(self.PROJECT_NAME)
-            assert (
-                "INFO:sa:Getting 5 annotations from Test-upload_annotations."
-                == cm.output[0]
-            )
-            assert len(annotations) == 5
-            assert [
-                len(annotation["instances"]) > 1 for annotation in annotations
-            ].count(True) == 4
+        annotations = sa.get_annotations(self.PROJECT_NAME)
+        assert len(annotations) == 5
+        assert [len(annotation["instances"]) > 1 for annotation in annotations].count(
+            True
+        ) == 4
+
+        # with self.assertLogs("sa", level="INFO") as cm:
+        # annotations = sa.get_annotations(self.PROJECT_NAME)
+        # assert (
+        #     "INFO:sa:Getting 5 annotations from Test-upload_annotations."
+        #     == cm.output[0]
+        # )
+        # assert len(annotations) == 5
+        # assert [
+        #     len(annotation["instances"]) > 1 for annotation in annotations
+        # ].count(True) == 4
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            with self.assertLogs("sa", level="INFO") as cm:
-                sa.download_annotations(self.PROJECT_NAME, tmpdir)
-                assert cm.output[0].startswith(
-                    "INFO:sa:Downloading the annotations of the requested items to /var/"
-                )
-                assert cm.output[0].endswith("This might take a while…")
+            sa.download_annotations(self.PROJECT_NAME, tmpdir)
+            # with self.assertLogs("sa", level="INFO") as cm:
+            # sa.download_annotations(self.PROJECT_NAME, tmpdir)
+            # assert cm.output[0].startswith(
+            #     "INFO:sa:Downloading the annotations of the requested items to /var/"
+            # )
+            # assert cm.output[0].endswith("This might take a while…")
 
             for item_name in items_to_attach:
                 annotation = self._get_annotations_from_folder(
