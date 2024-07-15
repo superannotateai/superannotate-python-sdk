@@ -50,6 +50,29 @@ class AttachmentEntity(BaseModel):
         return hash(self.name)
 
 
+class GenAIAttachmentEntity(BaseModel):
+    _item_name: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
+    _item_category: Optional[str] = Field(default=None)
+
+    integration: Optional[str] = None
+    integration_id: Optional[int] = None
+
+    @property
+    def name(self):
+        return self._item_name
+
+    @property
+    def item_categoty(self):
+        return self._item_category
+
+    class Config:
+        include_private_fields = True
+        extra = Extra.allow
+
+    def __hash__(self):
+        return hash(self.name)
+
+
 class WorkflowEntity(BaseModel):
     id: Optional[int]
     project_id: Optional[int]

@@ -1,13 +1,17 @@
 import copy
+import json
 import logging
 import traceback
 from collections import defaultdict
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import TypedDict
 
+import requests
 import superannotate.lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
@@ -15,9 +19,11 @@ from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import DocumentEntity
 from lib.core.entities import FolderEntity
+from lib.core.entities import GenAIAttachmentEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SubSetEntity
+from lib.core.entities import UserEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
@@ -27,10 +33,13 @@ from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
+from lib.core.usecases import UploadAnnotationsUseCase
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.folders import SearchFoldersUseCase
+from lib.core.utils import chunkify
 from lib.infrastructure.utils import extract_project_folder
+
 
 logger = logging.getLogger("sa")
 
@@ -418,12 +427,11 @@ class AttachItems(BaseReportableUseCase):
             duplications = []
             attached = []
             self.reporter.start_progress(self.attachments_count, "Attaching URLs")
-            for i in range(0, self.attachments_count, self.CHUNK_SIZE):
-                attachments = self._attachments[i : i + self.CHUNK_SIZE]  # noqa: E203
+            for chunk in chunkify(self._attachments, self.CHUNK_SIZE):
                 response = self._service_provider.items.list_by_names(
                     project=self._project,
                     folder=self._folder,
-                    names=[attachment.name for attachment in attachments],
+                    names=[attachment.name for attachment in chunk],
                 )
                 if not response.ok:
                     raise AppException(response.error)
@@ -431,7 +439,7 @@ class AttachItems(BaseReportableUseCase):
                 duplications.extend([image.name for image in response.data])
                 to_upload: List[Attachment] = []
                 to_upload_meta: Dict[str, AttachmentMeta] = {}
-                for attachment in attachments:
+                for attachment in chunk:
                     if attachment.name not in duplications:
                         to_upload.append(
                             Attachment(name=attachment.name, path=attachment.url)
@@ -452,9 +460,241 @@ class AttachItems(BaseReportableUseCase):
                         self._response.errors = AppException(backend_response.error)
                     else:
                         attached.extend([i.name for i in to_upload])
-                self.reporter.update_progress(len(attachments))
+                self.reporter.update_progress(len(chunk))
             self.reporter.finish_progress()
             self._response.data = attached, duplications
+        return self._response
+
+
+class ItemPayload(TypedDict):
+    category: Optional["str"]
+    data: dict
+
+
+class AttachGenAIItems(BaseReportableUseCase):
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        attachments: List[GenAIAttachmentEntity],
+        annotation_status: str,
+        service_provider: BaseServiceProvider,
+        user: UserEntity,
+        upload_state_code: int = constants.UploadState.EXTERNAL.value,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._attachments = attachments
+        self._user = user
+        self._annotation_status_code = constants.AnnotationStatus.get_value(
+            annotation_status
+        )
+        self._upload_state_code = upload_state_code
+        self._service_provider = service_provider
+        self._attachments_count = None
+
+    @property
+    def attachments_count(self):
+        if not self._attachments_count:
+            self._attachments_count = len(self._attachments)
+        return self._attachments_count
+
+    def validate_limitations(self):
+        attachments_count = self.attachments_count
+        response = self._service_provider.get_limitations(
+            project=self._project, folder=self._folder
+        )
+        if not response.ok:
+            raise AppValidationException(response.error)
+        if attachments_count > response.data.folder_limit.remaining_image_count:
+            raise AppValidationException(constants.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
+        elif attachments_count > response.data.project_limit.remaining_image_count:
+            raise AppValidationException(constants.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
+        elif (
+            response.data.user_limit
+            and attachments_count > response.data.user_limit.remaining_image_count
+        ):
+            raise AppValidationException(constants.ATTACH_USER_LIMIT_ERROR_MESSAGE)
+
+    def validate_upload_state(self):
+        if self._project.upload_state == constants.UploadState.BASIC.value:
+            raise AppValidationException(constants.ATTACHING_UPLOAD_STATE_ERROR)
+
+    @staticmethod
+    def get_dummy_meta():
+        return {
+            "width": None,
+            "height": None,
+            "annotation_json_path": None,
+        }
+
+    @staticmethod
+    def generate_annotation_json(row_data: GenAIAttachmentEntity) -> dict:
+        def serialzie_value(val):
+            if isinstance(val, str) and val.startswith("[") and val.endswith("]"):
+                try:
+                    val = json.loads(val)
+                except json.JSONDecodeError:
+                    pass
+            return val
+
+        data = {"data": {}}
+        for class_name, attr_value in row_data.dict().items():
+            if class_name == "_item_name":
+                data["metadata"] = {"name": attr_value}
+            elif class_name in ["_folder", "_item_category"]:
+                continue
+            data["data"][class_name] = {"value": serialzie_value(attr_value)}
+        return data
+
+    def get_name_item_map(self, data: List[GenAIAttachmentEntity]) -> Dict[str, dict]:
+        name_item_map = {}
+        for item_data in data:
+            name_item_map[item_data.name] = {
+                "category": item_data.item_categoty,
+                "data": self.generate_annotation_json(item_data),
+            }
+        return name_item_map
+
+    def execute(self) -> Response:
+        category_name_id_map: Dict[str, int] = {}
+        existing_categories = self._service_provider.projects.list_categories(
+            project_id=self._project.id
+        ).data
+        category_name_id_map.update(
+            {i["name"]: i["id"] for i in existing_categories["data"]}
+        )
+        if self.is_valid():
+            duplicated_item_names: List[str] = []
+            attached_item_names: List[str] = []
+            self.reporter.start_progress(self.attachments_count, "Attaching URLs")
+            for chunk in chunkify(self._attachments, self.CHUNK_SIZE):
+                response = self._service_provider.items.list_by_names(
+                    project=self._project,
+                    folder=self._folder,
+                    names=[attachment.name for attachment in chunk],
+                )
+                if not response.ok:
+                    raise AppException(response.error)
+
+                duplicated_item_names.extend([image.name for image in response.data])
+                to_upload: List[Attachment] = []
+                to_upload_meta: Dict[str, dict] = {}
+                for attachment in chunk:
+                    if attachment.name not in duplicated_item_names:
+                        to_upload.append(
+                            Attachment(
+                                name=attachment._item_name, path="custom_llm"
+                            )  # noqa
+                        )
+                        to_upload_meta[attachment.name] = self.get_dummy_meta()
+                if to_upload:
+                    attach_response = self._service_provider.items.attach(
+                        project=self._project,
+                        folder=self._folder,
+                        attachments=to_upload,
+                        annotation_status_code=self._annotation_status_code,
+                        upload_state_code=self._upload_state_code,
+                        meta=to_upload_meta,
+                    )
+
+                    if not attach_response.ok:
+                        raise AppException(attach_response.error)
+                    else:
+                        attached_items = attach_response.data
+                        attached_item_names.extend([i["name"] for i in attached_items])
+                    name_item_map = self.get_name_item_map(chunk)
+                    id_annotation_map = {}
+                    for _item in attached_items:
+                        _annotation = name_item_map[_item["name"]]["data"]
+                        if _annotation:
+                            id_annotation_map[_item["id"]] = {
+                                "annotation": _annotation,
+                                "item_name": _item["name"],
+                            }
+                    upload_use_case = UploadAnnotationsUseCase(
+                        project=self._project,
+                        folder=self._folder,
+                        annotations=list(
+                            [i["annotation"] for i in id_annotation_map.values()]
+                        ),
+                        service_provider=self._service_provider,
+                        reporter=Reporter(log_info=False, log_debug=False),
+                        user=self._user,
+                        keep_status=True,
+                        transform_version="llmJson",
+                    )
+                    annotations_response = upload_use_case.execute()
+                    if annotations_response.errors:
+                        raise AppException(annotations_response.errors)
+                    failed_annotations = annotations_response.data["failed"]
+                    if failed_annotations:
+                        self._service_provider.items.delete_multiple(
+                            project=self._project,
+                            item_ids=list(map(int, failed_annotations)),
+                        )
+                        logger.warning(
+                            f"Failed annotations [{','.join(failed_annotations)}]"
+                        )
+                    item_id_category_id_map = {}
+                    item_id_category_name_map = {}
+                    for item in attached_items:
+                        _category = name_item_map[item["name"]]["category"]
+                        if _category:
+                            item_id_category_name_map[item["id"]] = _category
+                    for _id, category in item_id_category_name_map.items():
+                        try:
+                            item_id_category_id_map[_id] = category_name_id_map[
+                                category
+                            ]
+                        except KeyError:
+                            continue
+                    categories_to_create_item_id_map = {}
+                    for item_id, category in item_id_category_name_map.items():
+                        if item_id not in item_id_category_id_map:
+                            categories_to_create_item_id_map[category] = item_id
+                    if categories_to_create_item_id_map:
+                        with suppress(requests.HTTPError):
+                            _categories = (
+                                self._service_provider.projects.create_categories(
+                                    project_id=self._project.id,
+                                    categories=list(
+                                        categories_to_create_item_id_map.keys()
+                                    ),
+                                )["data"]
+                            )
+                            for data in _categories:
+                                item_id_category_id_map[
+                                    categories_to_create_item_id_map[data["name"]]
+                                ] = data["id"]
+                                category_name_id_map[data["name"]] = data["id"]
+                    for item_id in item_id_category_name_map:
+                        with suppress(KeyError):
+                            item_id_category_id_map[item_id] = category_name_id_map[
+                                item_id_category_name_map[item_id]
+                            ]
+                    if item_id_category_id_map:
+                        self._service_provider.projects.attach_categories(
+                            project_id=self._project.id,
+                            folder_id=self._folder.id,
+                            item_id_category_id_map=item_id_category_id_map,
+                        )
+                self.reporter.update_progress(len(chunk))
+            self.reporter.finish_progress()
+            failed_item_names = (
+                {i._item_name for i in self._attachments}
+                - set(attached_item_names)
+                - set(duplicated_item_names)
+            )
+            self._response.data = (
+                attached_item_names,
+                duplicated_item_names,
+                failed_item_names,
+            )
         return self._response
 
 

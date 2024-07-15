@@ -18,6 +18,7 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
+from lib.core.entities import GenAIAttachmentEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
@@ -394,6 +395,25 @@ class ItemManager(BaseManager):
             attachments=attachments,
             annotation_status=annotation_status,
             service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def attach_gen_ai_data(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        attachments: List[GenAIAttachmentEntity],
+        annotation_status: str,
+        user: UserEntity,
+    ):
+        use_case = usecases.AttachGenAIItems(
+            reporter=Reporter(),
+            project=project,
+            folder=folder,
+            attachments=attachments,
+            annotation_status=annotation_status,
+            service_provider=self.service_provider,
+            user=user,
         )
         return use_case.execute()
 

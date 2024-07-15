@@ -252,6 +252,7 @@ class AnnotationService(BaseAnnotationService):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         items_name_data_map: Dict[str, dict],
+        transform_version: str = None,
     ) -> UploadAnnotationsResponse:
         params = [
             ("team_id", project.team_id),
@@ -259,6 +260,8 @@ class AnnotationService(BaseAnnotationService):
             ("folder_id", folder.id),
             *[("image_names[]", item_name) for item_name in items_name_data_map.keys()],
         ]
+        if transform_version:
+            params.append(("transform_version", transform_version))
         url = urljoin(self.assets_provider_url, f"{self.URL_UPLOAD_ANNOTATIONS}")
         headers = copy.copy(self.client.default_headers)
         del headers["Content-Type"]

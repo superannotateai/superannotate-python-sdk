@@ -12,6 +12,7 @@ from lib.core.entities.items import TiledEntity
 from lib.core.entities.items import VideoEntity
 from lib.core.entities.project import AttachmentEntity
 from lib.core.entities.project import ContributorEntity
+from lib.core.entities.project import GenAIAttachmentEntity
 from lib.core.entities.project import MLModelEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
@@ -37,6 +38,7 @@ __all__ = [
     "DocumentEntity",
     # Utils
     "AttachmentEntity",
+    "GenAIAttachmentEntity",
     # project
     "ProjectEntity",
     "ContributorEntity",

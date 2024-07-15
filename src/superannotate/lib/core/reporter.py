@@ -107,6 +107,7 @@ class Reporter:
         description: str = "Processing",
         disable=False,
     ):
+        disable = disable or not self._log_info
         self.progress_bar = self.get_progress_bar(iterations, description, disable)
 
     @staticmethod
