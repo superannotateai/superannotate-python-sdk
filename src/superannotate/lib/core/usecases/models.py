@@ -1,6 +1,5 @@
 import concurrent.futures
 import logging
-import os.path
 import platform
 import tempfile
 import time
@@ -13,13 +12,10 @@ import boto3
 import lib.core as constances
 import pandas as pd
 import requests
-from botocore.exceptions import ClientError
 from lib.app.analytics.aggregators import DataAggregator
 from lib.app.analytics.common import consensus
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
-from lib.core.entities import FolderEntity
-from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ExportStatus
 from lib.core.enums import ProjectType
@@ -273,72 +269,6 @@ class DownloadExportUseCase(BaseReportableUseCase):
         return self._response
 
 
-class DownloadMLModelUseCase(BaseUseCase):
-    def __init__(
-        self,
-        model: MLModelEntity,
-        download_path: str,
-        service_provider: BaseServiceProvider,
-    ):
-        super().__init__()
-        self._model = model
-        self._download_path = download_path
-        self._service_provider = service_provider
-
-    def validate_training_status(self):
-        if self._model.training_status not in [
-            constances.TrainingStatus.COMPLETED.value,
-            constances.TrainingStatus.FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL.value,
-        ]:
-            raise AppException("Unable to download.")
-
-    def execute(self):
-        if self.is_valid():
-            metrics_name = os.path.basename(self._model.path).replace(".pth", ".json")
-            mapper_path = self._model.config_path.replace(
-                os.path.basename(self._model.config_path), "classes_mapper.json"
-            )
-            metrics_path = self._model.config_path.replace(
-                os.path.basename(self._model.config_path), metrics_name
-            )
-
-            auth_response = self._service_provider.get_ml_model_download_tokens(
-                self._model.id
-            )
-            if not auth_response.ok:
-                raise AppException(auth_response.error)
-            s3_session = boto3.Session(
-                aws_access_key_id=auth_response.data.access_key,
-                aws_secret_access_key=auth_response.data.secret_key,
-                aws_session_token=auth_response.data.session_token,
-                region_name=auth_response.data.region,
-            )
-            bucket = s3_session.resource("s3").Bucket(auth_response.data.bucket)
-
-            bucket.download_file(
-                self._model.config_path,
-                os.path.join(self._download_path, "config.yaml"),
-            )
-            bucket.download_file(
-                self._model.path,
-                os.path.join(self._download_path, os.path.basename(self._model.path)),
-            )
-            try:
-                bucket.download_file(
-                    metrics_path, os.path.join(self._download_path, metrics_name)
-                )
-                bucket.download_file(
-                    mapper_path,
-                    os.path.join(self._download_path, "classes_mapper.json"),
-                )
-            except ClientError:
-                logger.info(
-                    "The specified model does not contain a classes_mapper and/or a metrics file."
-                )
-            self._response.data = self._model
-        return self._response
-
-
 class ConsensusUseCase(BaseUseCase):
     def __init__(
         self,
@@ -470,102 +400,4 @@ class ConsensusUseCase(BaseUseCase):
             consensus_df["score"] /= len(self._folder_names) - 1
 
         self._response.data = consensus_df
-        return self._response
-
-
-class RunPredictionUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        ml_model_name: str,
-        images_list: list,
-        service_provider: BaseServiceProvider,
-        folder: FolderEntity,
-    ):
-        super().__init__()
-        self._project = project
-        self._ml_model_name = ml_model_name
-        self._images_list = images_list
-        self._service_provider = service_provider
-        self._folder = folder
-
-    def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
-            )
-
-    def execute(self):
-        if self.is_valid():
-            images = self._service_provider.items.list_by_names(
-                project=self._project, folder=self._folder, names=self._images_list
-            ).data
-            image_ids = [image.id for image in images]
-            image_names = [image.name for image in images]
-
-            if not len(image_names):
-                self._response.errors = AppException(
-                    "No valid image names were provided."
-                )
-                return self._response
-
-            ml_models = self._service_provider.models.list(
-                condition=Condition("name", self._ml_model_name, EQ)
-                & Condition("include_global", True, EQ)
-            ).data
-            ml_model = None
-            for model in ml_models:
-                if model.name == self._ml_model_name:
-                    ml_model = model
-
-            res = self._service_provider.run_prediction(
-                project=self._project,
-                ml_model_id=ml_model.id,
-                image_ids=image_ids,
-            )
-            if res.ok:
-                success_images = []
-                failed_images = []
-                while len(success_images) + len(failed_images) != len(image_ids):
-                    images_metadata = self._service_provider.items.list_by_names(
-                        project=self._project,
-                        folder=self._folder,
-                        names=self._images_list,
-                    ).data
-
-                    success_images = [
-                        img.name
-                        for img in images_metadata
-                        if img.prediction_status
-                        == constances.SegmentationStatus.COMPLETED.value
-                    ]
-                    failed_images = [
-                        img.name
-                        for img in images_metadata
-                        if img.prediction_status
-                        == constances.SegmentationStatus.FAILED.value
-                    ]
-
-                    complete_images = success_images + failed_images
-                    logger.info(
-                        f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
-                    )
-                    time.sleep(5)
-
-                self._response.data = (success_images, failed_images)
-            else:
-                self._response.errors = res.error
-        return self._response
-
-
-class SearchMLModels(BaseUseCase):
-    def __init__(self, condition: Condition, service_provider: BaseServiceProvider):
-        super().__init__()
-        self._condition = condition
-        self._service_provider = service_provider
-
-    def execute(self):
-        ml_models = self._service_provider.models.list(self._condition).data
-        ml_models = [ml_model.dict() for ml_model in ml_models]
-        self._response.data = ml_models
         return self._response

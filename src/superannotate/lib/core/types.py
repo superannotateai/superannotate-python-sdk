@@ -14,17 +14,6 @@ class Project(BaseModel):
         extra = Extra.allow
 
 
-class MLModel(BaseModel):
-    name: NotEmptyStr
-    id: Optional[int]
-    path: NotEmptyStr
-    config_path: NotEmptyStr
-    team_id: Optional[int]
-
-    class Config:
-        extra = Extra.allow
-
-
 class PriorityScoreEntity(BaseModel):
     name: NotEmptyStr
     priority: float

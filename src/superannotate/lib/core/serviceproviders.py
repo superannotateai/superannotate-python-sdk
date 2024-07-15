@@ -10,12 +10,10 @@ from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.reporter import Reporter
 from lib.core.service_types import AnnotationClassListResponse
-from lib.core.service_types import DownloadMLModelAuthDataResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
 from lib.core.service_types import ItemListResponse
-from lib.core.service_types import ModelListResponse
 from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
@@ -469,20 +467,6 @@ class BaseSubsetService(SuperannotateServiceProvider):
         raise NotImplementedError
 
 
-class BaseModelsService(SuperannotateServiceProvider):
-    @abstractmethod
-    def delete(self, model_id: int) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def start_training(self, model_id: int) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def list(self, condition: Condition = None) -> ModelListResponse:
-        raise NotImplementedError
-
-
 class BaseIntegrationService(SuperannotateServiceProvider):
     @abstractmethod
     def list(self) -> IntegrationListResponse:
@@ -507,7 +491,6 @@ class BaseServiceProvider:
     custom_fields: BaseCustomFieldService
     annotation_classes: BaseAnnotationClassService
     subsets: BaseSubsetService
-    models: BaseModelsService
     integrations: BaseIntegrationService
 
     @abstractmethod
@@ -580,24 +563,8 @@ class BaseServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
-    def get_model_metrics(self, model_id: int) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
     def get_export(
         self, project: entities.ProjectEntity, export_id: int
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_ml_model_download_tokens(
-        self, model_id: int
-    ) -> DownloadMLModelAuthDataResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def run_prediction(
-        self, project: entities.ProjectEntity, ml_model_id: int, image_ids: list
     ) -> ServiceResponse:
         raise NotImplementedError
 

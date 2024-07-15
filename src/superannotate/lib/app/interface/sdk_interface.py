@@ -55,7 +55,6 @@ from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
-from lib.core.types import MLModel
 from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
 from lib.core.pydantic_v1 import ValidationError
@@ -1923,27 +1922,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors and not response.errors == constants.INVALID_JSON_MESSAGE:
             raise AppException(response.errors)
 
-    def download_model(self, model: MLModel, output_dir: Union[str, Path]):
-        """Downloads the neural network and related files
-        which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
-
-        :param model: the model that needs to be downloaded
-        :type  model: dict
-
-        :param output_dir: the directory in which the files will be saved
-        :type output_dir: str
-
-        :return: the metadata of the model
-        :rtype: dict
-        """
-        res = self.controller.models.download(
-            model_data=model.dict(), download_path=output_dir
-        )
-        if res.errors:
-            logger.error("\n".join([str(error) for error in res.errors]))
-        else:
-            return BaseSerializer(res.data).serialize()
-
     def consensus(
         self,
         project: NotEmptyStr,
@@ -1978,48 +1956,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder_names=folder_names,
             image_list=image_list,
             annot_type=annotation_type,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
-
-    def run_prediction(
-        self,
-        project: Union[NotEmptyStr, dict],
-        images_list: List[NotEmptyStr],
-        model: Union[NotEmptyStr, dict],
-    ):
-        """This function runs smart prediction on given list of images from a given project
-            using the neural network of your choice
-
-        :param project: the project in which the target images are uploaded.
-        :type project: str or dict
-
-        :param images_list: the list of image names on which smart prediction has to be run
-        :type images_list: list of str
-
-        :param model: the name of the model that should be used for running smart prediction
-        :type model: str or dict
-
-        :return: tuple of two lists, list of images on which the prediction has succeeded and failed respectively
-        :rtype: tuple
-        """
-        project_name = None
-        folder_name = None
-        if isinstance(project, dict):
-            project_name = project["name"]
-        if isinstance(project, str):
-            project_name, folder_name = extract_project_folder(project)
-
-        model_name = model
-        if isinstance(model, dict):
-            model_name = model["name"]
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
-        response = self.controller.models.run_prediction(
-            project=project,
-            folder=folder,
-            items_list=images_list,
-            model_name=model_name,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2072,49 +2008,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-
-    def search_models(
-        self,
-        name: Optional[NotEmptyStr] = None,
-        type_: Optional[NotEmptyStr] = None,  # noqa
-        project_id: Optional[int] = None,
-        task: Optional[NotEmptyStr] = None,
-        include_global: Optional[bool] = True,
-    ):
-        r"""Search for ML models.
-
-        :param name: search string
-        :type name: str
-
-        :param type\_: ml model type string
-        :type type\_: str
-
-        :param project_id: project id
-        :type project_id: int
-
-        :param task: training task
-        :type task: str
-
-        :param include_global: include global ml models
-        :type include_global: bool
-
-        :return: ml model metadata
-        :rtype: list of dicts
-        """
-        condition = EmptyCondition()
-        if name:
-            condition &= Condition("name", name, EQ)
-        if type_:
-            condition &= Condition("type", type_, EQ)
-        if project_id:
-            condition &= Condition("project_id", project_id, EQ)
-        if task:
-            condition &= Condition("task", task, EQ)
-        if include_global:
-            condition &= Condition("include_global", include_global, EQ)
-
-        res = self.controller.models.list(condition)
-        return res.data
 
     def upload_images_to_project(
         self,

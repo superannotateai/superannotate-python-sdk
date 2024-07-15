@@ -52,30 +52,6 @@ class UploadAnnotationAuthData(BaseModel):
         super().__init__(**data)
 
 
-class DownloadMLModelAuthData(BaseModel):
-    access_key: str
-    secret_key: str
-    session_token: str
-    region: str
-    bucket: str
-    paths: List[str]
-
-    class Config:
-        extra = Extra.allow
-        fields = {
-            "access_key": "accessKeyId",
-            "secret_key": "secretAccessKey",
-            "session_token": "sessionToken",
-            "region": "region",
-        }
-
-    def __init__(self, **data):
-        credentials = data["tokens"]
-        data.update(credentials)
-        del data["tokens"]
-        super().__init__(**data)
-
-
 class UploadAnnotations(BaseModel):
     class Resource(BaseModel):
         classes: List[str] = Field([], alias="class")
@@ -200,10 +176,6 @@ class SubsetListResponse(ServiceResponse):
 
 class SubsetResponse(ServiceResponse):
     res_data: entities.SubSetEntity = None
-
-
-class DownloadMLModelAuthDataResponse(ServiceResponse):
-    res_data: DownloadMLModelAuthData = None
 
 
 class UploadAnnotationsResponse(ServiceResponse):
