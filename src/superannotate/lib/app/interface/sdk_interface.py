@@ -2721,7 +2721,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "_item_name": "item",
                         "_category": "heart",
                         "category_text_input": "value1",
-                        "category_numeric_input": "value1",
+                        "category_numeric_input": 5,
                         "category_approve_input": 0,
                         "category_rating_input": 4,
                         "category_slider_input": 23,
