@@ -51,5 +51,5 @@ class TestAnnotationUploadVectorWithoutClasses(BaseTestCase):
                 classes_path = sa.download_annotation_classes_json(
                     self.PROJECT_NAME, classes_dir
                 )
-                classes_json = json.load(open(classes_path))
-                self.assertEqual(classes_json[0]["type"], "tag")
+                classes = json.load(open(classes_path))
+                self.assertEqual(classes[0]["type"], "tag")

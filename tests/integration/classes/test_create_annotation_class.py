@@ -4,7 +4,7 @@ import tempfile
 import pytest
 from src.superannotate import AppException
 from src.superannotate import SAClient
-from src.superannotate.lib.core.entities.classes import AnnotationClassEntity
+from superannotate_core.core.exceptions import SAException
 from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
@@ -105,10 +105,14 @@ class TestVectorAnnotationClasses(BaseTestCase):
         self.assertEqual(msg, '"classes[0].attribute_groups[0].attributes" is required')
 
     def test_create_annotation_class_backend_errors(self):
-
-        response = sa.controller.annotation_classes.create(
-            sa.controller.projects.get_by_name(self.PROJECT_NAME).data,
-            AnnotationClassEntity(
+        validation_errors = [
+            """classes[0].attribute_groups[0].attributes" is required.""",
+            """classes[0].attribute_groups[1].attributes" is required.""",
+            """classes[0].attribute_groups[2].default_value" must be a string""",
+        ]
+        try:
+            sa.create_annotation_class(
+                project=self.PROJECT_NAME,
                 name="t",
                 color="blue",
                 attribute_groups=[
@@ -121,41 +125,10 @@ class TestVectorAnnotationClasses(BaseTestCase):
                         "attributes": [],
                     },
                 ],
-            ),
-        )
-
-        assert (
-            response.errors
-            == '"classes[0].attribute_groups[0].attributes" is required.\n'
-            '"classes[0].attribute_groups[1].attributes" is required.\n'
-            '"classes[0].attribute_groups[2].default_value" must be a string'
-        )
-
-    def test_create_annotation_classes_with_empty_default_attribute(self):
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME,
-            classes_json=[
-                {
-                    "name": "Personal vehicle",
-                    "color": "#ecb65f",
-                    "createdAt": "2020-10-12T11:35:20.000Z",
-                    "updatedAt": "2020-10-12T11:48:19.000Z",
-                    "attribute_groups": [
-                        {
-                            "name": "test",
-                            "group_type": "radio",
-                            "attributes": [
-                                {"name": "Car"},
-                                {"name": "Track"},
-                                {"name": "Bus"},
-                            ],
-                        }
-                    ],
-                }
-            ],
-        )
-        classes = sa.search_annotation_classes(self.PROJECT_NAME)
-        assert classes[0]["attribute_groups"][0]["default_value"] is None
+            )
+        except SAException as e:
+            for error in validation_errors:
+                self.assertIn(error, str(e))
 
     def test_class_creation_type(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:

@@ -24,12 +24,10 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
-from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.response import Response
-from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
@@ -201,91 +199,6 @@ class ProjectManager(BaseManager):
             scores=scores,
             service_provider=self.service_provider,
             project_folder_name=project_folder_name,
-        )
-        return use_case.execute()
-
-
-# TODO delete
-class AnnotationClassManager(BaseManager):
-    @timed_lru_cache(seconds=3600)
-    def __get_auth_data(self, project: ProjectEntity, folder: FolderEntity):
-        response = self.service_provider.get_s3_upload_auth_token(project, folder)
-        if not response.ok:
-            raise AppException(response.error)
-        return response.data
-
-    def _get_s3_repository(self, project: ProjectEntity, folder: FolderEntity):
-        auth_data = self.__get_auth_data(project, folder)
-        return S3Repository(
-            auth_data["accessKeyId"],
-            auth_data["secretAccessKey"],
-            auth_data["sessionToken"],
-            auth_data["bucket"],
-            auth_data["region"],
-        )
-
-    def create(self, project: ProjectEntity, annotation_class: AnnotationClassEntity):
-        use_case = usecases.CreateAnnotationClassUseCase(
-            annotation_class=annotation_class,
-            project=project,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def create_multiple(
-        self, project: ProjectEntity, annotation_classes: List[AnnotationClassEntity]
-    ):
-        use_case = usecases.CreateAnnotationClassesUseCase(
-            service_provider=self.service_provider,
-            annotation_classes=annotation_classes,
-            project=project,
-        )
-        return use_case.execute()
-
-    def list(self, condition: Condition):
-        use_case = usecases.GetAnnotationClassesUseCase(
-            service_provider=self.service_provider,
-            condition=condition,
-        )
-        return use_case.execute()
-
-    def delete(self, project: ProjectEntity, annotation_class: AnnotationClassEntity):
-        use_case = usecases.DeleteAnnotationClassUseCase(
-            annotation_class=annotation_class,
-            project=project,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def copy_multiple(
-        self,
-        source_project: ProjectEntity,
-        source_folder: FolderEntity,
-        source_item: BaseItemEntity,
-        destination_project: ProjectEntity,
-        destination_folder: FolderEntity,
-        destination_item: BaseItemEntity,
-    ):
-        use_case = usecases.CopyImageAnnotationClasses(
-            from_project=source_project,
-            from_folder=source_folder,
-            from_image=source_item,
-            to_project=destination_project,
-            to_folder=destination_folder,
-            to_image=destination_item,
-            service_provider=self.service_provider,
-            from_project_s3_repo=self._get_s3_repository(source_project, source_folder),
-            to_project_s3_repo=self._get_s3_repository(
-                destination_project, destination_folder
-            ),
-        )
-        return use_case.execute()
-
-    def download(self, project: ProjectEntity, download_path: str):
-        use_case = usecases.DownloadAnnotationClassesUseCase(
-            project=project,
-            download_path=download_path,
-            service_provider=self.service_provider,
         )
         return use_case.execute()
 
@@ -676,9 +589,6 @@ class BaseController(metaclass=ABCMeta):
         )
         self._user = self.get_current_user()
         self._team = self.get_team().data
-        self.annotation_classes = AnnotationClassManager(
-            self.service_provider, self._session
-        )
         self.projects = ProjectManager(self.service_provider, self._session)
         self.items = ItemManager(self.service_provider, self._session)
         self.annotations = AnnotationManager(

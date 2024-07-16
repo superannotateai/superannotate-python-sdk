@@ -30,7 +30,6 @@ from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.annotations import DownloadAnnotations
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.usecases.classes import DownloadAnnotationClassesUseCase
 
 
 logger = logging.getLogger("sa")
@@ -321,6 +320,7 @@ class DownloadMLModelUseCase(BaseUseCase):
         return self._response
 
 
+# TODO fix
 class ConsensusUseCase(BaseUseCase):
     def __init__(
         self,
