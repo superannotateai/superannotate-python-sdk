@@ -4,7 +4,6 @@ from typing import List
 import lib.core as constants
 from lib.core import entities
 from lib.core.conditions import Condition
-from lib.core.service_types import DownloadMLModelAuthDataResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
@@ -18,7 +17,6 @@ from lib.infrastructure.services.folder import FolderService
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
-from lib.infrastructure.services.models import ModelsService
 from lib.infrastructure.services.project import ProjectService
 from lib.infrastructure.services.subset import SubsetService
 
@@ -35,13 +33,11 @@ class ServiceProvider(BaseServiceProvider):
     URL_USER = "user/ME"
     URL_USERS = "users"
     URL_GET_EXPORT = "export/{}"
-    URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_PREDICTION = "images/prediction"
     URL_SAQUL_QUERY = "/images/search/advanced"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_INVITE_CONTRIBUTORS = "team/{}/inviteUsers"
     URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
-    URL_GET_ML_MODEL_DOWNLOAD_TOKEN = "ml_model/getMyModelDownloadToken/{}"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
 
     def __init__(self, client: HttpClient):
@@ -53,7 +49,6 @@ class ServiceProvider(BaseServiceProvider):
         self.annotation_classes = AnnotationClassService(client)
         self.custom_fields = CustomFieldService(client)
         self.subsets = SubsetService(client)
-        self.models = ModelsService(client)
         self.integrations = IntegrationService(client)
 
     def get_team(self, team_id: int) -> TeamResponse:
@@ -183,35 +178,11 @@ class ServiceProvider(BaseServiceProvider):
             self.URL_GET_EXPORTS, "get", params={"project_id": project.id}
         )
 
-    def get_model_metrics(self, model_id: int):
-        return self.client.request(self.URL_GET_MODEL_METRICS.format(model_id), "get")
-
     def get_export(self, project: entities.ProjectEntity, export_id: int):
         return self.client.request(
             self.URL_GET_EXPORT.format(export_id),
             "get",
             params={"project_id": project.id},
-        )
-
-    def get_ml_model_download_tokens(self, model_id: int):
-        return self.client.request(
-            self.URL_GET_ML_MODEL_DOWNLOAD_TOKEN.format(model_id),
-            "get",
-            content_type=DownloadMLModelAuthDataResponse,
-        )
-
-    def run_prediction(
-        self, project: entities.ProjectEntity, ml_model_id: int, image_ids: list
-    ):
-        return self.client.request(
-            self.URL_PREDICTION,
-            "post",
-            data={
-                "team_id": project.team_id,
-                "project_id": project.id,
-                "ml_model_id": ml_model_id,
-                "image_ids": image_ids,
-            },
         )
 
     def get_project_images_count(self, project: entities.ProjectEntity):

@@ -18,4 +18,3 @@ Contents
     api_subset
     api_image
     api_team
-    api_neural_network
