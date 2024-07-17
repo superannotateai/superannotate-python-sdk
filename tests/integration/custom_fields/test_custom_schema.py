@@ -1,6 +1,5 @@
 import copy
 
-from src.superannotate import AppException
 from src.superannotate import SAClient
 from superannotate_core.core.exceptions import SAException
 from tests.integration.base import BaseTestCase

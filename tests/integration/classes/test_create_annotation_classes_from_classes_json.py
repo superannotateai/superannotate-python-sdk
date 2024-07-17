@@ -48,6 +48,7 @@ class TestVectorCreateAnnotationClass(BaseTestCase):
         )
         self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 4)
 
+    # TODO failed after SDK_core integration (check validation in future)
     def test_invalid_json(self):
         try:
             sa.create_annotation_classes_from_classes_json(
@@ -119,6 +120,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                 "Predefined tagging functionality is not supported for projects of type Video.",
             )
 
+    # TODO failed after SDK_core integration (check validation in future)
     def test_create_annotation_class_via_json_and_ocr_group_type(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"
@@ -158,6 +160,44 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                     self.PROJECT_NAME, temp_path
                 )
 
+    def test_create_annotation_classes_with_empty_default_attribute(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            temp_path = f"{tmpdir_name}/new_classes.json"
+            with open(temp_path, "w") as new_classes:
+                new_classes.write(
+                    """
+                    [
+                       {
+                          "id":56820,
+                          "project_id":7617,
+                          "name":"Personal vehicle",
+                          "color":"#547497",
+                          "count":18,
+                          "type": "tag",
+                          "attribute_groups":[
+                             {
+                                "id":21448,
+                                "class_id":56820,
+                                "name":"Large",
+                                "group_type": "radio",
+                                "attributes":[
+                                    {"name": "Car"},
+                                    {"name": "Track"},
+                                    {"name": "Bus"}
+                                ]
+                             }
+                          ]
+                       }
+                    ]
+                    """
+                )
+            sa.create_annotation_classes_from_classes_json(
+                self.PROJECT_NAME,
+                classes_json=temp_path,
+            )
+        classes = sa.search_annotation_classes(self.PROJECT_NAME)
+        assert classes[0]["attribute_groups"][0]["default_value"] is None
+
 
 class TestPixelCreateAnnotationClass(BaseTestCase):
     PROJECT_NAME = "TestCreateAnnotationClassPixel"
@@ -169,30 +209,44 @@ class TestPixelCreateAnnotationClass(BaseTestCase):
     def large_json_path(self):
         return os.path.join(DATA_SET_PATH, self.TEST_LARGE_CLASSES_JSON)
 
+    # TODO failed after SDK_core integration (check validation in future)
     def test_create_annotation_classes_with_default_attribute(self):
         with self.assertRaisesRegexp(
             AppException,
             'The "default_value" key is not supported for project type Pixel.',
         ):
-            sa.create_annotation_classes_from_classes_json(
-                self.PROJECT_NAME,
-                classes_json=[
-                    {
-                        "name": "Personal vehicle",
-                        "color": "#ecb65f",
-                        "createdAt": "2020-10-12T11:35:20.000Z",
-                        "updatedAt": "2020-10-12T11:48:19.000Z",
-                        "attribute_groups": [
-                            {
-                                "name": "test",
-                                "attributes": [
-                                    {"name": "Car"},
-                                    {"name": "Track"},
-                                    {"name": "Bus"},
-                                ],
-                                "default_value": "Bus",
-                            }
-                        ],
-                    }
-                ],
-            )
+            with tempfile.TemporaryDirectory() as tmpdir_name:
+                temp_path = f"{tmpdir_name}/new_classes.json"
+                with open(temp_path, "w") as new_classes:
+                    new_classes.write(
+                        """
+                        [
+                           {
+                              "id":56820,
+                              "project_id":7617,
+                              "name":"Personal vehicle",
+                              "color":"#547497",
+                              "count":18,
+                              "type": "tag",
+                              "attribute_groups":[
+                                 {
+                                    "id":21448,
+                                    "class_id":56820,
+                                    "name":"Large",
+                                    "group_type": "radio",
+                                    "attributes":[
+                                        {"name": "Car"},
+                                        {"name": "Track"},
+                                        {"name": "Bus"}
+                                    ],
+                                    "default_value": "Bus"
+                                 }
+                              ]
+                           }
+                        ]
+                        """
+                    )
+                sa.create_annotation_classes_from_classes_json(
+                    self.PROJECT_NAME,
+                    classes_json=temp_path,
+                )
