@@ -58,7 +58,6 @@ from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import MLModel
-from lib.core.types import PriorityScoreEntity
 
 from lib.core.pydantic_v1 import constr
 from lib.core.pydantic_v1 import conlist
@@ -405,6 +404,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project.workflows = self.controller.projects.list_workflow(project).data
         return ProjectSerializer(project).serialize()
 
+    # TODO fix
     def clone_project(
         self,
         project_name: Union[NotEmptyStr, dict],
@@ -2407,7 +2407,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return response.data
 
-    def upload_priority_scores(self, project: NotEmptyStr, scores: List[PriorityScore]):
+    def upload_priority_scores(
+        self,
+        project: Union[NotEmptyStr, dict],
+        scores: Union[List[PriorityScore], List[dict[str, float]]],
+    ):
         """Upload priority scores for the given list of items.
 
         :param project: project name or folder path (e.g., “project1/folder1”)
@@ -2419,16 +2423,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of uploaded, skipped items
         :rtype: tuple (2 members) of lists of strs
         """
-        scores = parse_obj_as(List[PriorityScoreEntity], scores)
         project_name, folder_name = extract_project_folder(project)
-        project_folder_name = project
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
-        response = self.controller.projects.upload_priority_scores(
-            project, folder, scores, project_folder_name
+        project = self.controller.get_project(project_name)
+        folder = project.get_folder(folder_name)
+        logger.info(
+            f"Uploading  priority scores for {len(scores)} item(s) to {folder.name}."
         )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        uploaded_score_names = folder.upload_priority_scores(scores)
+        skipped_score_names = list(
+            {i["name"] for i in scores} - set(uploaded_score_names)
+        )
+        return uploaded_score_names, skipped_score_names
 
     def get_integrations(self):
         """Get all integrations per team
@@ -2810,7 +2815,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if _unique_attachments:
             logger.info(
-                f"Attaching {len(_unique_attachments)} file(s) to project {project}."
+                f"Attaching {len(_unique_attachments)} file(s) to project {project.name}."
             )
 
             uploaded, duplicated = folder.attach_items(
