@@ -143,15 +143,6 @@ class BaseProjectService(SuperannotateServiceProvider):
     ) -> ServiceResponse:
         raise NotImplementedError
 
-    @abstractmethod
-    def upload_priority_scores(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        priorities: list,
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
 
 class BaseAnnotationClassService(SuperannotateServiceProvider):
     @abstractmethod

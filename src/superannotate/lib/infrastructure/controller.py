@@ -189,19 +189,6 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def upload_priority_scores(
-        self, project: ProjectEntity, folder: FolderEntity, scores, project_folder_name
-    ):
-        use_case = usecases.UploadPriorityScoresUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            scores=scores,
-            service_provider=self.service_provider,
-            project_folder_name=project_folder_name,
-        )
-        return use_case.execute()
-
 
 class ItemManager(BaseManager):
     def get_by_name(

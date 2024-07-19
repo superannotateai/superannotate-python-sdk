@@ -17,7 +17,6 @@ class ProjectService(BaseProjectService):
     URL_SHARE = "project/{}/share/bulk"
     URL_SHARE_PROJECT = "project/{}/share"
     URL_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
-    URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
     URL_GET_BY_ID = "project/{project_id}"
 
@@ -155,20 +154,4 @@ class ProjectService(BaseProjectService):
                 "remove_user_ids": ["all"],
                 "folder_name": folder.name,
             },
-        )
-
-    def upload_priority_scores(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        priorities: list,
-    ):
-        return self.client.request(
-            self.URL_UPLOAD_PRIORITY_SCORES,
-            "post",
-            params={
-                "project_id": project.id,
-                "folder_id": folder.id,
-            },
-            data={"image_entropies": priorities},
         )
