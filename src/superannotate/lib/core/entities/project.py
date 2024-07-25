@@ -142,29 +142,6 @@ class ProjectEntity(TimedBaseModel):
         return self.id == other.id
 
 
-class MLModelEntity(TimedBaseModel):
-    id: Optional[int]
-    team_id: Optional[int]
-    name: Optional[str]
-    path: Optional[str]
-    config_path: Optional[str]
-    model_type: Optional[int]
-    description: Optional[str]
-    output_path: Optional[str]
-    task: Optional[str]
-    base_model_id: Optional[int]
-    image_count: Optional[int]
-    training_status: Optional[int]
-    test_folder_ids: Optional[List[int]]
-    train_folder_ids: Optional[List[int]]
-    is_trainable: Optional[bool]
-    is_global: Optional[bool]
-    hyper_parameters: Optional[dict]
-
-    class Config:
-        extra = Extra.ignore
-
-
 class UserEntity(BaseModel):
     id: Optional[str]
     first_name: Optional[str]

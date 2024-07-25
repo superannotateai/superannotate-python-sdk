@@ -19,7 +19,6 @@ from lib.core.entities import ConfigEntity
 from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
-from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
@@ -684,47 +683,6 @@ class CustomFieldManager(BaseManager):
         return use_case.execute()
 
 
-class ModelManager(BaseManager):
-    def list(self, condition: Condition):
-        use_case = usecases.SearchMLModels(
-            condition=condition, service_provider=self.service_provider
-        )
-        return use_case.execute()
-
-    def run_prediction(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        items_list: list,
-        model_name: str,
-    ):
-        use_case = usecases.RunPredictionUseCase(
-            project=project,
-            ml_model_name=model_name,
-            images_list=items_list,
-            service_provider=self.service_provider,
-            folder=folder,
-        )
-        return use_case.execute()
-
-    def download(self, model_data: dict, download_path: str):
-        model = MLModelEntity(
-            id=model_data["id"],
-            name=model_data["name"],
-            path=model_data["path"],
-            config_path=model_data["config_path"],
-            team_id=model_data["team_id"],
-            training_status=model_data["training_status"],
-            is_global=model_data["is_global"],
-        )
-        use_case = usecases.DownloadMLModelUseCase(
-            model=model,
-            download_path=download_path,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-
 class IntegrationManager(BaseManager):
     def list(self):
         use_case = usecases.GetIntegrations(
@@ -788,7 +746,6 @@ class BaseController(metaclass=ABCMeta):
         self._images = None
         self._items = None
         self._integrations = None
-        self._ml_models = None
         self._user_id = None
         self._reporter = None
 
@@ -806,7 +763,6 @@ class BaseController(metaclass=ABCMeta):
         self.annotations = AnnotationManager(self.service_provider, config)
         self.custom_fields = CustomFieldManager(self.service_provider)
         self.subsets = SubsetManager(self.service_provider)
-        self.models = ModelManager(self.service_provider)
         self.integrations = IntegrationManager(self.service_provider)
 
     @property
