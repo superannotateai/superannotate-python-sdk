@@ -14,6 +14,7 @@ from lib.core.entities.project import AttachmentEntity
 from lib.core.entities.project import ContributorEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
+from lib.core.entities.project import StepEntity
 from lib.core.entities.project import TeamEntity
 from lib.core.entities.project import UserEntity
 from lib.core.entities.project import WorkflowEntity
@@ -38,9 +39,10 @@ __all__ = [
     "AttachmentEntity",
     # project
     "ProjectEntity",
+    "WorkflowEntity",
     "ContributorEntity",
     "ConfigEntity",
-    "WorkflowEntity",
+    "StepEntity",
     "FolderEntity",
     "S3FileEntity",
     "AnnotationClassEntity",

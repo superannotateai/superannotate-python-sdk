@@ -70,7 +70,6 @@ class ProjectManager(BaseManager):
         project: ProjectEntity,
         include_annotation_classes: bool = False,
         include_settings: bool = False,
-        include_workflow: bool = False,
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
     ):
@@ -79,7 +78,6 @@ class ProjectManager(BaseManager):
             service_provider=self.service_provider,
             include_annotation_classes=include_annotation_classes,
             include_settings=include_settings,
-            include_workflow=include_workflow,
             include_contributors=include_contributors,
             include_complete_image_count=include_complete_image_count,
         )

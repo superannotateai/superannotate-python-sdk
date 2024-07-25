@@ -50,7 +50,7 @@ class AttachmentEntity(BaseModel):
         return hash(self.name)
 
 
-class WorkflowEntity(BaseModel):
+class StepEntity(BaseModel):
     id: Optional[int]
     project_id: Optional[int]
     class_id: Optional[int]
@@ -63,7 +63,7 @@ class WorkflowEntity(BaseModel):
         extra = Extra.ignore
 
     def __copy__(self):
-        return WorkflowEntity(step=self.step, tool=self.tool, attribute=self.attribute)
+        return StepEntity(step=self.step, tool=self.tool, attribute=self.attribute)
 
 
 class SettingEntity(BaseModel):
@@ -101,6 +101,7 @@ class ProjectEntity(TimedBaseModel):
     sharing_status: Optional[int]
     status: Optional[ProjectStatus]
     folder_id: Optional[int]
+    workflow_id: Optional[int]
     sync_status: Optional[int]
     upload_state: Optional[int]
     users: Optional[List[ContributorEntity]] = []
@@ -108,7 +109,6 @@ class ProjectEntity(TimedBaseModel):
     contributors: List[ContributorEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
-    workflows: Optional[List[WorkflowEntity]] = []
     item_count: Optional[int] = Field(None, alias="imageCount")
     completed_items_count: Optional[int] = Field(None, alias="completedImagesCount")
     root_folder_completed_items_count: Optional[int] = Field(
@@ -163,6 +163,18 @@ class TeamEntity(BaseModel):
     users: Optional[List[UserEntity]]
     pending_invitations: Optional[List[Any]]
     creator_id: Optional[str]
+
+    class Config:
+        extra = Extra.ignore
+
+
+class WorkflowEntity(BaseModel):
+    id: Optional[int]
+    name: Optional[int]
+    type: Optional[str]
+
+    def is_system(self):
+        return self.type == "system"
 
     class Config:
         extra = Extra.ignore

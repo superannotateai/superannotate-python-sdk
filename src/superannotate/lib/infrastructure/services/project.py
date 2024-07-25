@@ -85,11 +85,11 @@ class ProjectService(BaseProjectService):
 
     def list_workflows(self, project: entities.ProjectEntity):
         return self.client.paginate(
-            self.URL_WORKFLOW.format(project.id), item_type=entities.WorkflowEntity
+            self.URL_WORKFLOW.format(project.id), item_type=entities.StepEntity
         )
 
     def set_workflow(
-        self, project: entities.ProjectEntity, workflow: entities.WorkflowEntity
+        self, project: entities.ProjectEntity, workflow: entities.StepEntity
     ):
         return self.client.request(
             self.URL_WORKFLOW.format(project.id),

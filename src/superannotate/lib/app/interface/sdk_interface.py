@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import sys
+import warnings
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -43,9 +44,9 @@ from lib.core import LIMITED_FUNCTIONS
 from lib.core import entities
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
+from lib.core.jsx_conditions import Filter, OperatorEnum
 from lib.core.conditions import EmptyCondition
 from lib.core.entities import AttachmentEntity
-from lib.core.entities import WorkflowEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
@@ -301,6 +302,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         classes: List[AnnotationClassEntity] = None,
         workflows: List = None,
         instructions_link: str = None,
+        workflow: str = None,
     ):
         """Create a new project in the team.
 
@@ -319,8 +321,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param classes: list of class objects
         :type classes: list of dicts
 
-        :param workflows:  list of information for each step
+        :param workflows: Deprecated
         :type workflows: list of dicts
+
+        :param workflow: the name of the workflow already created within the team, which must match exactly.
+                         If None, the default “Annotator can’t complete” system workflow will be set.
+        :type workflow: str
 
         :param instructions_link: str of instructions URL
         :type instructions_link: str
@@ -329,17 +335,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: dict
         """
         if workflows:
-            if project_type.capitalize() not in (
-                constants.ProjectType.VECTOR.name,
-                constants.ProjectType.PIXEL.name,
-            ):
-                raise AppException(
-                    f"Workflow is not supported in {project_type} project."
+            warnings.warn(
+                DeprecationWarning(
+                    "The “workflows” parameter is deprecated. Please use the “set_project_steps” function instead."
                 )
-            parse_obj_as(List[WorkflowEntity], workflows)
-        if workflows and not classes:
-            raise AppException(
-                "Project with workflows can not be created without classes."
             )
         if settings:
             settings = parse_obj_as(List[SettingEntity], settings)
@@ -347,30 +346,24 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             settings = []
         if classes:
             classes = parse_obj_as(List[AnnotationClassEntity], classes)
-        if workflows and classes:
-            invalid_classes = []
-            class_names = [_class.name for _class in classes]
-            for step in workflows:
-                if step["className"] not in class_names:
-                    invalid_classes.append(step["className"])
-            if invalid_classes:
-                seen = set()
-                seen_add = seen.add
-                invalid_classes = [
-                    i for i in invalid_classes if not (i in seen or seen_add(i))
-                ]
-                raise AppException(
-                    f"There are no [{', '.join(invalid_classes)}] classes created in the project."
-                )
-        project_response = self.controller.projects.create(
-            entities.ProjectEntity(
-                name=project_name,
-                description=project_description,
-                type=constants.ProjectType.get_value(project_type),
-                settings=settings,
-                instructions_link=instructions_link,
-            )
+        project_entity = entities.ProjectEntity(
+            name=project_name,
+            description=project_description,
+            type=constants.ProjectType.get_value(project_type),
+            settings=settings,
+            instructions_link=instructions_link,
         )
+        if workflow:
+            _workflows = (
+                self.controller.service_provider.work_managament.list_workflows(
+                    Filter("name", workflow, OperatorEnum.EQ)
+                )
+            )
+            _workflow = next((i for i in _workflows.data if i.name == workflow), None)
+            if not _workflow:
+                raise AppException("Workflow not fund.")
+            project_entity.workflow_id = _workflow.id
+        project_response = self.controller.projects.create(project_entity)
         project_response.raise_for_status()
         project = project_response.data
         if classes:
@@ -379,12 +372,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
             classes_response.raise_for_status()
             project.classes = classes_response.data
-            if workflows:
-                workflow_response = self.controller.projects.set_workflows(
-                    project, workflows
-                )
-                workflow_response.raise_for_status()
-                project.workflows = self.controller.projects.list_workflow(project).data
         return ProjectSerializer(project).serialize()
 
     def clone_project(
@@ -415,7 +402,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param copy_settings: enables copying project settings
         :type copy_settings: bool
 
-        :param copy_workflow: enables copying project workflow
+        :param copy_workflow: Deprecated
         :type copy_workflow: bool
 
         :param copy_contributors: enables copying project contributors
@@ -424,22 +411,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: dict object metadata of the new project
         :rtype: dict
         """
+        if copy_workflow:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “copy_workflow” parameter is deprecated. Please use the “set_project_steps” function instead."
+                )
+            )
         response = self.controller.projects.get_metadata(
             self.controller.get_project(from_project),
             include_annotation_classes=copy_annotation_classes,
             include_settings=copy_settings,
-            include_workflow=copy_workflow,
             include_contributors=copy_contributors,
         )
         response.raise_for_status()
         project: entities.ProjectEntity = response.data
-        if copy_workflow and project.type not in (
-            constants.ProjectType.VECTOR,
-            constants.ProjectType.PIXEL,
-        ):
-            raise AppException(
-                f"Workflow is not supported in {project.type.name} project."
-            )
+
         project_copy = copy.copy(project)
         if project_copy.type in (
             constants.ProjectType.VECTOR,
@@ -468,22 +454,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
             classes_response.raise_for_status()
             project.classes = classes_response.data
-        if copy_workflow:
-            if not copy_annotation_classes:
-                logger.info(
-                    f"Skipping the workflow clone from {from_project} to {project_name}."
-                )
-            else:
-                logger.info(f"Cloning workflow from {from_project} to {project_name}.")
-                workflow_response = self.controller.projects.set_workflows(
-                    new_project, project.workflows
-                )
-                workflow_response.raise_for_status()
-                project.workflows = self.controller.projects.list_workflow(project).data
         response = self.controller.projects.get_metadata(
             new_project,
             include_settings=copy_settings,
-            include_workflow=copy_workflow,
             include_contributors=copy_contributors,
             include_annotation_classes=copy_annotation_classes,
             include_complete_image_count=True,
@@ -667,8 +640,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                  the key "settings"
         :type include_settings: bool
 
-        :param include_workflow: enables project workflow output under
-                                 the key "workflow"
+        :param include_workflow: Deprecated
         :type include_workflow: bool
 
         :param include_contributors: enables project contributors output under
@@ -684,11 +656,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project(project_name)
+        if include_workflow:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “include_workflow” parameter is deprecated."
+                    " Please use the “get_project_steps” function instead."
+                )
+            )
         response = self.controller.projects.get_metadata(
             project,
             include_annotation_classes,
             include_settings,
-            include_workflow,
             include_contributors,
             include_complete_item_count,
         )
@@ -716,15 +694,47 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return settings
 
     def get_project_workflow(self, project: Union[str, dict]):
-        """Gets project's workflow.
+        """
+        Deprecated
+        """
+        warnings.warn(
+            DeprecationWarning(
+                "The “set_project_workflow” function is deprecated."
+                " Please use the “set_project_steps” function instead."
+            )
+        )
+        return self.get_project_steps(project)
+
+    def get_project_steps(self, project: Union[str, dict]):
+        """Gets project's steps.
 
         Return value example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, ...},...]
 
         :param project: project name or metadata
         :type project: str or dict
 
-        :return: project workflow
+        :return: project steps
         :rtype: list of dicts
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "step": 1,
+                    "className": "Anatomy",
+                    "tool": 2,
+                    "attribute": [
+                        {
+                            "attribute": {
+                                "name": "Lung",
+                                "attribute_group": {"name": "Organs"}
+                            }
+                        }
+                    ]
+                }
+            ]
+
         """
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project(project_name)
@@ -1662,21 +1672,49 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def set_project_workflow(
         self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]
     ):
-        """Sets project's workflow.
+        """
+        Deprecated
+        """
+        warnings.warn(
+            DeprecationWarning(
+                "The “set_project_workflow” function is deprecated. Please use the “set_project_steps” function instead."
+            )
+        )
+        return self.set_project_steps(project, new_workflow)
 
-        new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>,
-          "attribute":[{"attribute" : {"name" : <attribute_value>, "attribute_group" : {"name": <attribute_group>}}},
-          ...]},...]
+    def set_project_steps(self, project: Union[NotEmptyStr, dict], steps: List[dict]):
+        """Sets project's steps.
 
         :param project: project name or metadata
         :type project: str or dict
 
-        :param new_workflow: new workflow list of dicts
-        :type new_workflow: list of dicts
+        :param steps: new workflow list of dicts
+        :type steps: list of dicts
+
+        Request Example:
+        ::
+            sa.set_project_steps(
+                project="Medical Annotations",
+                steps=[
+                    {
+                        "step": 1,
+                        "className": "Anatomy",
+                        "tool": 2,
+                        "attribute": [
+                            {
+                                "attribute": {
+                                    "name": "Lung",
+                                    "attribute_group": {"name": "Organs"}
+                                }
+                            }
+                        ]
+                    }
+                ]
+            )
         """
         project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        response = self.controller.projects.set_workflows(project, steps=new_workflow)
+        response = self.controller.projects.set_workflows(project, steps=steps)
         if response.errors:
             raise AppException(response.errors)
 
@@ -2543,6 +2581,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data, exclude=exclude)
 
+    def list_items(
+        self,
+        project: Union[str, int],
+        *,
+        folder: Union[str, int] = None,
+        annotation_status: str,
+        id__in: List[int] = None,
+        name__contains: str = None,
+        name__startswith: str = None,
+        assignee__user_id: str,
+        include: List[Literal["custom_metadata", "assignmet"]],
+    ):
+        #  todo user cant filter assingee if asssignment not joined
+        ...
+
     def attach_items(
         self,
         project: Union[NotEmptyStr, dict],
@@ -2551,49 +2604,48 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Link items from external storage to SuperAnnotate using URLs.
 
-        :param project: project name or folder path (e.g., “project1/folder1”)
-        :type project: str
+                :param project: project name or folder path (e.g., “project1/folder1”)
+                :type project: str
 
-        :param attachments: path to CSV file or list of dicts containing attachments URLs.
-        :type attachments: path-like (str or Path) or list of dicts
+                :param attachments: path to CSV file or list of dicts containing attachments URLs.
+                :type attachments: path-like (str or Path) or list of dicts
+        t        :param annotation_status: value to set the annotation statuses of the linked items. \n
+                        Available statuses are::
 
-        :param annotation_status: value to set the annotation statuses of the linked items. \n
-                Available statuses are::
+                         * NotStarted
+                         * InProgress
+                         * QualityCheck
+                         * Returned
+                         * Completed
+                         * Skipped
+                :type annotation_status: str
 
-                 * NotStarted
-                 * InProgress
-                 * QualityCheck
-                 * Returned
-                 * Completed
-                 * Skipped
-        :type annotation_status: str
+                :return: uploaded, failed and duplicated item names
+                :rtype: tuple of list of strs
 
-        :return: uploaded, failed and duplicated item names
-        :rtype: tuple of list of strs
+                Example:
+                ::
 
-        Example:
-        ::
+                    client = SAClient()
+                    client.attach_items(
+                        project="Medical Annotations",
+                        attachments=[{"name": "item", "url": "https://..."}]
+                     )
 
-            client = SAClient()
-            client.attach_items(
-                project="Medical Annotations",
-                attachments=[{"name": "item", "url": "https://..."}]
-             )
+                Example of attaching items from custom integration:
+                ::
 
-        Example of attaching items from custom integration:
-        ::
-
-            client = SAClient()
-            client.attach_items(
-                project="Medical Annotations",
-                attachments=[
-                    {
-                        "name": "item",
-                        "url": "https://bucket-name.s3…/example.png"
-                        "integration": "custom-integration-name"
-                        }
-                    ]
-            )
+                    client = SAClient()
+                    client.attach_items(
+                        project="Medical Annotations",
+                        attachments=[
+                            {
+                                "name": "item",
+                                "url": "https://bucket-name.s3…/example.png"
+                                "integration": "custom-integration-name"
+                                }
+                            ]
+                    )
         """
 
         project_name, folder_name = extract_project_folder(project)

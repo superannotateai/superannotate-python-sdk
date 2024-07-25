@@ -41,6 +41,10 @@ class BaseClient(ABC):
         return self._api_url
 
     @property
+    def token(self):
+        return self._token
+
+    @property
     @abstractmethod
     def default_headers(self):
         raise NotImplementedError
@@ -102,7 +106,7 @@ class BaseProjectService(SuperannotateServiceProvider):
 
     @abstractmethod
     def set_workflow(
-        self, project: entities.ProjectEntity, workflow: entities.WorkflowEntity
+        self, project: entities.ProjectEntity, workflow: entities.StepEntity
     ):
         raise NotImplementedError
 

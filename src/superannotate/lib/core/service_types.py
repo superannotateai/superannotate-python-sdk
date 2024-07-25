@@ -210,6 +210,10 @@ class ProjectResponse(ServiceResponse):
     res_data: entities.ProjectEntity = None
 
 
+class WorkflowListResponse(ServiceResponse):
+    res_data: List[entities.WorkflowEntity] = None
+
+
 class ProjectListResponse(ServiceResponse):
     res_data: List[entities.ProjectEntity] = None
 

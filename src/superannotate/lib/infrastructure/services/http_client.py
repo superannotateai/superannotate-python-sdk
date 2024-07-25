@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import io
 import json
 import logging
@@ -45,6 +46,10 @@ class HttpClient(BaseClient):
         super().__init__(api_url, token)
         self._verify_ssl = verify_ssl
 
+    @property
+    def verify_ssl(self):
+        return self._verify_ssl
+
     @lru_cache(maxsize=32)
     def _get_session(self, thread_id, ttl=None):  # noqa
         del ttl
@@ -68,6 +73,13 @@ class HttpClient(BaseClient):
             "Authorization": self._token,
             "authtype": self.AUTH_TYPE,
             "Content-Type": "application/json",
+            "x-sa-entity-context": base64.b64encode(
+                json.dumps(
+                    {
+                        "team_id": self.team_id,
+                    }
+                ).encode("utf-8")
+            ).decode("utf-8"),
             "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()};"
             f"OS: {platform.system()}; Team: {self.team_id}",
         }
