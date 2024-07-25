@@ -6,13 +6,24 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.24 - July 2, 2024
+_______________________
+
+
+**Removed**
+
+    - ``SAClient.download_model()``
+    - ``SAClient.run_prediction()``
+    - ``SAClient.search_models()``
+
+
 4.4.23 - July 4, 2024
 _______________________
 
 
 **Updated**
 
-    - ``SAClient.prepare_export`` added the ability to export GenAI project data to a CSV file..
+    - ``SAClient.prepare_export`` added the ability to export GenAI project data to a CSV file.
 
 **Fixed**
 
