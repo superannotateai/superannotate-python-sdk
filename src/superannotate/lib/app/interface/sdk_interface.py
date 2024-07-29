@@ -47,7 +47,6 @@ from lib.app.interface.base_interface import TrackableMeta
 from lib.app.interface.types import EmailStr
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import ProjectSerializer
-from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core import entities
@@ -55,7 +54,7 @@ from lib.core import entities
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
-from lib.core.enums import ImageQuality
+from superannotate_core.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import MLModel
 from lib.core.types import PriorityScoreEntity
@@ -702,11 +701,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of dicts
         """
         project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
-        settings = self.controller.projects.list_settings(project).data
-        settings = [
-            SettingsSerializer(attribute.dict()).serialize() for attribute in settings
-        ]
+        project = self.controller.get_project(project_name)
+        settings = []
+        for setting in project.list_settings():
+            if setting.attribute == "ImageQuality":
+                setting.value = ImageQuality.get_name(setting.value)
+            settings.append(setting.dict())
         return settings
 
     def get_project_workflow(self, project: Union[str, dict]):
@@ -827,16 +827,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param image_quality_in_editor: new setting value, should be "original" or "compressed"
         :type image_quality_in_editor: str
         """
-        project_name, folder_name = extract_project_folder(project)
-        image_quality_in_editor = ImageQuality.get_value(image_quality_in_editor)
+        project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        response = self.controller.projects.set_settings(
-            project=project,
-            settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
+        return project.set_settings(
+            [{"attribute": "ImageQuality", "value": image_quality_in_editor}]
         )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
 
     def pin_image(
         self,
