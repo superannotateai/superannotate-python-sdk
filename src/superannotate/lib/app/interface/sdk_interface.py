@@ -30,6 +30,7 @@ from superannotate_core.infrastructure.repositories.item_repository import Attac
 from superannotate_core.core.conditions import Condition
 from superannotate_core.core.conditions import EmptyCondition
 from superannotate_core.core.enums import FolderStatus
+from superannotate_core.core.enums import ProjectStatus
 from superannotate_core.core.enums import ClassTypeEnum
 from superannotate_core.core.enums import AnnotationStatus
 from superannotate_core.core.enums import ProjectType
@@ -52,7 +53,6 @@ from lib.core import LIMITED_FUNCTIONS
 from lib.core import entities
 
 from lib.core.entities import WorkflowEntity
-from lib.core.entities import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
@@ -156,9 +156,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project metadata
         :rtype: dict
         """
-        # response = self.controller.get_project_by_id(project_id=project_id)
-        #
-        # return ProjectSerializer(response.data).serialize()
         return Project.get_by_id(self.session, project_id).dict()
 
     def get_folder_by_id(self, project_id: int, folder_id: int):
@@ -314,7 +311,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_description: NotEmptyStr,
         project_type: PROJECT_TYPE,
         settings: List[Setting] = None,
-        # fix validation for class
+        # TODO fix validation for class
         # classes: List[AnnotationClassEntity] = None,
         classes: List = None,
         workflows: List = None,
@@ -359,15 +356,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(
                 "Project with workflows can not be created without classes."
             )
-        if settings:
-            settings = parse_obj_as(List[SettingEntity], settings)
-        else:
-            settings = []
-        if classes:
-            classes = parse_obj_as(List[AnnotationClassEntity], classes)
+
         if workflows and classes:
             invalid_classes = []
-            class_names = [_class.name for _class in classes]
+            class_names = [_class["name"] for _class in classes]
             for step in workflows:
                 if step["className"] not in class_names:
                     invalid_classes.append(step["className"])
@@ -380,30 +372,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 raise AppException(
                     f"There are no [{', '.join(invalid_classes)}] classes created in the project."
                 )
-        project_response = self.controller.projects.create(
-            entities.ProjectEntity(
-                name=project_name,
-                description=project_description,
-                type=constants.ProjectType.get_value(project_type),
-                settings=settings,
-                instructions_link=instructions_link,
-            )
+
+        new_project = Project.create(
+            session=self.session,
+            name=project_name,
+            team_id=self.controller.team_id,
+            description=project_description,
+            type=ProjectType.get_value(project_type),
+            status=ProjectStatus.NotStarted.value,
+            settings=settings,
+            instructions_link=instructions_link,
         )
-        project_response.raise_for_status()
-        project = project_response.data
+        # TODO set instructions_link (delete after adding support in creation)
+        if instructions_link:
+            new_project = new_project.update(instructions_link=instructions_link)
         if classes:
-            classes_response = self.controller.annotation_classes.create_multiple(
-                project, classes
-            )
-            classes_response.raise_for_status()
-            project.classes = classes_response.data
+            new_project.classes = new_project.create_annotation_classes(classes)
             if workflows:
-                workflow_response = self.controller.projects.set_workflows(
-                    project, workflows
-                )
-                workflow_response.raise_for_status()
-                project.workflows = self.controller.projects.list_workflow(project).data
-        return ProjectSerializer(project).serialize()
+                new_project.set_workflows(workflows=workflows)
+        return new_project.dict()
 
     def clone_project(
         self,
