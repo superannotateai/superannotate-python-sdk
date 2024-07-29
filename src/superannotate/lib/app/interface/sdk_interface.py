@@ -38,6 +38,7 @@ from superannotate_core.core.enums import ApprovalStatus
 from superannotate_core.core.entities import AttributeGroupSchema
 from superannotate_core.core.entities import AnnotationClassEntity
 from superannotate_core.core.exceptions import SAException
+from superannotate_core.core.exceptions import SAInvalidInput
 import lib.core as constants
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
@@ -530,10 +531,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name
         :type project: str
         """
-        name = project
-        if isinstance(project, dict):
-            name = project["name"]
-        self.controller.projects.delete(name=name)
+        project_name, _ = extract_project_folder(project)
+        try:
+            project = self.controller.get_project(project_name)
+        except SAInvalidInput:
+            pass
+        else:
+            project.delete()
 
     def rename_project(self, project: NotEmptyStr, new_name: NotEmptyStr):
         """Renames the project
@@ -544,16 +548,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param new_name: project's new name
         :type new_name: str
         """
-        old_name = project
-        project = self.controller.get_project(old_name)  # noqa
-        project.name = new_name
-        response = self.controller.projects.update(project)
-        if response.errors:
-            raise AppException(response.errors)
+        project_name, _ = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        updated_project = project.update(name=new_name)
         logger.info(
-            "Successfully renamed project %s to %s.", old_name, response.data.name
+            "Successfully renamed project %s to %s.", project_name, updated_project.name
         )
-        return ProjectSerializer(response.data).serialize()
+        return updated_project.dict()
 
     def get_folder_metadata(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Returns folder metadata
