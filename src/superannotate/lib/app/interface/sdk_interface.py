@@ -285,14 +285,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             condition &= Condition(
                 "status", constants.ProjectStatus.get_value(status), EQ
             )
-
-        response = self.controller.projects.list(condition)
-        if response.errors:
-            raise AppException(response.errors)
+        projects = Project.list(session=self.session, condition=condition)
         if return_metadata:
             return [
                 i.dict(
-                    {
+                    exclude={
                         "settings",
                         "workflows",
                         "contributors",
@@ -300,10 +297,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "item_count",
                     }
                 )
-                for i in response.data
+                for i in projects
             ]
         else:
-            return [project.name for project in response.data]
+            return [project.name for project in projects]
 
     def create_project(
         self,
@@ -721,12 +718,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project workflow
         :rtype: list of dicts
         """
-        project_name, folder_name = extract_project_folder(project)
+        project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        workflow = self.controller.projects.list_workflow(project)
-        if workflow.errors:
-            raise AppException(workflow.errors)
-        return workflow.data
+        return [i.dict() for i in project.list_workflows()]
 
     def search_annotation_classes(
         self,
@@ -1630,9 +1624,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        response = self.controller.projects.set_workflows(project, steps=new_workflow)
-        if response.errors:
-            raise AppException(response.errors)
+        project.set_workflows(new_workflow)
+        return [i.dict() for i in project.workflows]
 
     def download_image(
         self,
