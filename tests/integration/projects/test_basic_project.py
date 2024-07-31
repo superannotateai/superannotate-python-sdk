@@ -130,7 +130,14 @@ class TestProjectBasic(BaseTestCase):
             ],
         )
         workflows = sa.get_project_workflow(self.PROJECT_NAME)
-        metadata = sa.get_project_metadata(self.PROJECT_NAME, include_workflow=True)
+        metadata = sa.get_project_metadata(
+            self.PROJECT_NAME,
+            include_workflow=True,
+            include_complete_item_count=True,
+            include_settings=True,
+            include_contributors=True,
+            include_annotation_classes=True,
+        )
         assert metadata["workflows"][0]["className"] == "class1"
         assert metadata["workflows"][1]["className"] == "class2"
         self.assertEqual(workflows[0]["className"], "class1")

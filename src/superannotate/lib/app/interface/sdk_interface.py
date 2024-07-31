@@ -673,19 +673,38 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of project
         :rtype: dict
         """
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project(project_name)
-        response = self.controller.projects.get_metadata(
-            project,
-            include_annotation_classes,
-            include_settings,
-            include_workflow,
-            include_contributors,
-            include_complete_item_count,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return ProjectSerializer(response.data).serialize()
+        project_name, _ = extract_project_folder(project)
+
+        project = self.controller.get_project(
+            project_name
+        )  # TODO include users data in get_project
+        project = Project.get_by_id(session=self.session, project_id=project.id)
+        if include_complete_item_count:
+            folders = project.list_folders(
+                condition=Condition("completedImagesCount", True, EQ)
+            )
+            root_completed_count = 0
+            total_completed_count = 0
+            for folder in folders:
+                try:
+                    total_completed_count += folder.completedCount  # noqa
+                    if folder.is_root:
+                        root_completed_count = folder.completedCount  # noqa
+                except AttributeError:
+                    pass
+            project.root_folder_completed_items_count = root_completed_count
+            project.completed_items_count = total_completed_count
+        if include_annotation_classes:
+            project.classes = project.list_annotation_classes()
+        if include_settings:
+            project.settings = project.list_settings()
+        if include_workflow:
+            project.workflows = project.list_workflows()
+        if include_contributors:
+            project.contributors = project.users
+        else:
+            project.users = []
+        return project.dict()
 
     def get_project_settings(self, project: Union[NotEmptyStr, dict]):
         """Gets project's settings.
