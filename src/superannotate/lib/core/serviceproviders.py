@@ -14,10 +14,7 @@ from lib.core.service_types import DownloadMLModelAuthDataResponse
 from lib.core.service_types import IntegrationListResponse
 from lib.core.service_types import ItemListResponse
 from lib.core.service_types import ModelListResponse
-from lib.core.service_types import ProjectListResponse
-from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
-from lib.core.service_types import SettingsListResponse
 from lib.core.service_types import SubsetListResponse
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
@@ -63,94 +60,6 @@ class BaseClient(ABC):
 class SuperannotateServiceProvider(ABC):
     def __init__(self, client: BaseClient):
         self.client = client
-
-
-class BaseProjectService(SuperannotateServiceProvider):
-    @abstractmethod
-    def get(self, uuid: int):
-        raise NotImplementedError
-
-    @abstractmethod
-    def create(self, entity: entities.ProjectEntity) -> ProjectResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def list(self, condition: Condition = None) -> ProjectListResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def update(self, entity: entities.ProjectEntity) -> ProjectResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def delete(self, entity: entities.ProjectEntity) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_settings(self, project: entities.ProjectEntity) -> SettingsListResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_settings(
-        self, project: entities.ProjectEntity, data: List[entities.SettingEntity]
-    ):
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_workflows(self, project: entities.ProjectEntity):
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_workflow(
-        self, project: entities.ProjectEntity, workflow: entities.WorkflowEntity
-    ):
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_workflows(self, project: entities.ProjectEntity, steps: list):
-        raise NotImplementedError
-
-    @abstractmethod
-    def share(self, project: entities.ProjectEntity, users: list) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def un_share(self, project: entities.ProjectEntity, user_id) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_project_workflow_attributes(
-        self, project: entities.ProjectEntity, attributes: list
-    ):
-        raise NotImplementedError
-
-    @abstractmethod
-    def assign_items(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        user: str,
-        item_names: List[str],
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def un_assign_items(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        item_names: List[str],
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def upload_priority_scores(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        priorities: list,
-    ) -> ServiceResponse:
-        raise NotImplementedError
 
 
 class BaseAnnotationClassService(SuperannotateServiceProvider):
@@ -449,7 +358,6 @@ class BaseIntegrationService(SuperannotateServiceProvider):
 
 
 class BaseServiceProvider:
-    projects: BaseProjectService
     items: BaseItemService
     annotations: BaseAnnotationService
     custom_fields: BaseCustomFieldService

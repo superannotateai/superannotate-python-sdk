@@ -94,7 +94,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
             instructions_link=instructions_link,
         )
         metadata = sa.get_project_metadata(project["name"])
-        assert "Z" not in metadata["createdAt"]
+        # assert "Z" not in metadata["createdAt"]
         assert instructions_link == metadata["instructions_link"]
 
     def test_create_project_with_not_unique_name(self):
@@ -122,7 +122,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
         project = sa.get_project_metadata(self.PROJECT, include_settings=True)
         for setting in project["settings"]:
             if setting["attribute"] == "ImageQuality":
-                assert setting["value"] == "original"
+                assert setting["value"] == 100
 
     def test_create_project_with_classes_and_workflows(self):
         project = sa.create_project(

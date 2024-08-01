@@ -17,7 +17,6 @@ from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
 from lib.infrastructure.services.models import ModelsService
-from lib.infrastructure.services.project import ProjectService
 from lib.infrastructure.services.subset import SubsetService
 
 
@@ -44,7 +43,6 @@ class ServiceProvider(BaseServiceProvider):
 
     def __init__(self, client: HttpClient):
         self.client = client
-        self.projects = ProjectService(client)
         self.items = ItemService(client)
         self.annotations = AnnotationService(client)
         self.annotation_classes = AnnotationClassService(client)
