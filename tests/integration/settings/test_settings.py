@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from src.superannotate import AppException
 from src.superannotate import SAClient
+from superannotate_core.core.exceptions import SAValidationException
 
 sa = SAClient()
 
@@ -64,7 +64,7 @@ class TestSettings(BaseTestCase):
 
     def test_frame_rate_invalid_range_value(self):
         with self.assertRaisesRegexp(
-            AppException, "FrameRate is available only for Video projects"
+            SAValidationException, "FrameRate is available only for Video projects"
         ):
             sa.create_project(
                 self.PROJECT_NAME,
@@ -117,7 +117,7 @@ class TestVideoSettings(BaseTestCase):
 
     def test_frame_rate_invalid_range_value(self):
         with self.assertRaisesRegexp(
-            AppException, "The FrameRate value range is between 0.001 - 120"
+            SAValidationException, "The FrameRate value range is between 0.001 - 120"
         ):
             sa.create_project(
                 self.PROJECT_NAME,
@@ -128,7 +128,7 @@ class TestVideoSettings(BaseTestCase):
 
     def test_frame_rate_invalid_str_value(self):
         with self.assertRaisesRegexp(
-            AppException, "The FrameRate value should be float"
+            SAValidationException, "The FrameRate value should be float"
         ):
             sa.create_project(
                 self.PROJECT_NAME,

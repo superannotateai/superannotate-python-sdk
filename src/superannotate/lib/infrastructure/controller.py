@@ -16,18 +16,14 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
-from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import SettingEntity
-from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
-from lib.core.response import Response
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
@@ -50,157 +46,6 @@ class BaseManager:
     def __init__(self, service_provider: ServiceProvider, session: Session):
         self.session = session
         self.service_provider = service_provider
-
-
-class ProjectManager(BaseManager):
-    def get_by_id(self, project_id):
-        use_case = usecases.GetProjectByIDUseCase(
-            project_id=project_id, service_provider=self.service_provider
-        )
-        response = use_case.execute()
-        return response
-
-    def get_by_name(self, name: str):
-        use_case = usecases.GetProjectByNameUseCase(
-            name=name, service_provider=self.service_provider
-        )
-        response = use_case.execute()
-        if response.errors:
-            raise AppException(response.errors)
-        return response
-
-    def get_metadata(
-        self,
-        project: ProjectEntity,
-        include_annotation_classes: bool = False,
-        include_settings: bool = False,
-        include_workflow: bool = False,
-        include_contributors: bool = False,
-        include_complete_image_count: bool = False,
-    ):
-        use_case = usecases.GetProjectMetaDataUseCase(
-            project=project,
-            service_provider=self.service_provider,
-            include_annotation_classes=include_annotation_classes,
-            include_settings=include_settings,
-            include_workflow=include_workflow,
-            include_contributors=include_contributors,
-            include_complete_image_count=include_complete_image_count,
-        )
-        return use_case.execute()
-
-    def create(self, entity: ProjectEntity) -> Response:
-        use_case = usecases.CreateProjectUseCase(
-            project=entity, service_provider=self.service_provider
-        )
-        return use_case.execute()
-
-    def list(self, condition: Condition):
-        use_case = usecases.GetProjectsUseCase(
-            condition=condition,
-            session=self.session,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def delete(self, name: str):
-        use_case = usecases.DeleteProjectUseCase(
-            project_name=name, service_provider=self.service_provider
-        )
-        return use_case.execute()
-
-    def update(self, entity: ProjectEntity) -> Response:
-        use_case = usecases.UpdateProjectUseCase(
-            entity, service_provider=self.service_provider
-        )
-        return use_case.execute()
-
-    def set_settings(self, project: ProjectEntity, settings: List[SettingEntity]):
-        use_case = usecases.UpdateSettingsUseCase(
-            to_update=settings,
-            service_provider=self.service_provider,
-            project=project,
-        )
-        return use_case.execute()
-
-    def list_settings(self, project: ProjectEntity):
-        use_case = usecases.GetSettingsUseCase(
-            service_provider=self.service_provider, project=project
-        )
-        return use_case.execute()
-
-    def list_workflow(self, project: ProjectEntity):
-        use_case = usecases.GetWorkflowsUseCase(
-            project=project, service_provider=self.service_provider
-        )
-        return use_case.execute()
-
-    def set_workflows(self, project: ProjectEntity, steps: List):
-        use_case = usecases.SetWorkflowUseCase(
-            service_provider=self.service_provider,
-            steps=steps,
-            project=project,
-        )
-        return use_case.execute()
-
-    def add_contributors(
-        self,
-        team: TeamEntity,
-        project: ProjectEntity,
-        contributors: List[ContributorEntity],
-    ):
-        project = self.get_metadata(project).data
-        use_case = usecases.AddContributorsToProject(
-            team=team,
-            project=project,
-            contributors=contributors,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
-
-    def un_share(self, project: ProjectEntity, user_id: str):
-        use_case = usecases.UnShareProjectUseCase(
-            service_provider=self.service_provider,
-            project=project,
-            user_id=user_id,
-        )
-        return use_case.execute()
-
-    def assign_items(
-        self, project: ProjectEntity, folder: FolderEntity, item_names: list, user: str
-    ):
-        use_case = usecases.AssignItemsUseCase(
-            project=project,
-            service_provider=self.service_provider,
-            folder=folder,
-            item_names=item_names,
-            user=user,
-        )
-        return use_case.execute()
-
-    def un_assign_items(
-        self, project: ProjectEntity, folder: FolderEntity, item_names: list
-    ):
-        use_case = usecases.UnAssignItemsUseCase(
-            project=project,
-            service_provider=self.service_provider,
-            folder=folder,
-            item_names=item_names,
-        )
-        return use_case.execute()
-
-    def upload_priority_scores(
-        self, project: ProjectEntity, folder: FolderEntity, scores, project_folder_name
-    ):
-        use_case = usecases.UploadPriorityScoresUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            scores=scores,
-            service_provider=self.service_provider,
-            project_folder_name=project_folder_name,
-        )
-        return use_case.execute()
 
 
 class ItemManager(BaseManager):
@@ -589,7 +434,6 @@ class BaseController(metaclass=ABCMeta):
         )
         self._user = self.get_current_user()
         self._team = self.get_team().data
-        self.projects = ProjectManager(self.service_provider, self._session)
         self.items = ItemManager(self.service_provider, self._session)
         self.annotations = AnnotationManager(
             self.service_provider, config, self._session
@@ -771,9 +615,9 @@ class Controller(BaseController):
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
+        project_name, folder_name = extract_project_folder(project_name)
         project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
-
+        folder = project.get_folder(folder_name)
         return usecases.UploadImagesToProject(
             project=project,
             folder=folder,

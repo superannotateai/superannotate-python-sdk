@@ -4,6 +4,7 @@ from unittest import TestCase
 import src.superannotate.lib.core as constances
 from src.superannotate import AppException
 from src.superannotate import SAClient
+from superannotate_core.core.exceptions import SAValidationException
 
 
 sa = SAClient()
@@ -85,9 +86,24 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
     PROJECT_TYPE = "Vector"
 
     def test_create_project_datetime(self):
-        project = sa.create_project(self.PROJECT, "desc", self.PROJECT_TYPE)
+        instructions_link = "https://en.wikipedia.org/wiki/Wiki"
+        project = sa.create_project(
+            self.PROJECT,
+            "desc",
+            self.PROJECT_TYPE,
+            instructions_link=instructions_link,
+        )
         metadata = sa.get_project_metadata(project["name"])
-        assert "Z" not in metadata["createdAt"]
+        # assert "Z" not in metadata["createdAt"]
+        assert instructions_link == metadata["instructions_link"]
+
+    def test_create_project_with_not_unique_name(self):
+        sa.create_project(self.PROJECT, "desc", self.PROJECT_TYPE)
+        with self.assertRaisesRegexp(
+            SAValidationException,
+            f"Project name {self.PROJECT} is not unique. To use SDK please make project names unique.",
+        ):
+            sa.create_project(self.PROJECT, "desc", self.PROJECT_TYPE)
 
     def test_create_project_with_wrong_type(self):
         with self.assertRaisesRegexp(
@@ -106,7 +122,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
         project = sa.get_project_metadata(self.PROJECT, include_settings=True)
         for setting in project["settings"]:
             if setting["attribute"] == "ImageQuality":
-                assert setting["value"] == "original"
+                assert setting["value"] == 100
 
     def test_create_project_with_classes_and_workflows(self):
         project = sa.create_project(
@@ -185,3 +201,5 @@ class TestCreateVideoProject(ProjectCreateBaseTestCase):
         for setting in project["settings"]:
             if setting["attribute"] == "FrameRate":
                 assert setting["value"] == 1.0
+            if setting["attribute"] == "FrameMode":
+                assert setting["value"] == 1

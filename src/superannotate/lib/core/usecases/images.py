@@ -850,8 +850,8 @@ class UploadImagesToProject(BaseInteractiveUseCase):
 
     def __init__(
         self,
-        project: ProjectEntity,
-        folder: FolderEntity,
+        project: Project,
+        folder: Folder,
         s3_repo,
         service_provider: BaseServiceProvider,
         paths: List[str],
@@ -1234,11 +1234,8 @@ class UploadImageS3UseCase(BaseUseCase):
             huge_image, huge_width, huge_height = image_processor.generate_huge()
             quality = 60
             if not self._image_quality_in_editor:
-                _response = self._service_provider.projects.list_settings(self._project)
-                if not _response.ok:
-                    self._response.errors = AppException(_response.error)
-                    return self._response
-                for setting in _response.data:
+                settings = self._project.list_settings()
+                for setting in settings:
                     if setting.attribute == "ImageQuality":
                         quality = setting.value
             else:

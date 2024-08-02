@@ -30,6 +30,7 @@ from superannotate_core.infrastructure.repositories.item_repository import Attac
 from superannotate_core.core.conditions import Condition
 from superannotate_core.core.conditions import EmptyCondition
 from superannotate_core.core.enums import FolderStatus
+from superannotate_core.core.enums import ProjectStatus
 from superannotate_core.core.enums import ClassTypeEnum
 from superannotate_core.core.enums import AnnotationStatus
 from superannotate_core.core.enums import ProjectType
@@ -37,6 +38,7 @@ from superannotate_core.core.enums import ApprovalStatus
 from superannotate_core.core.entities import AttributeGroupSchema
 from superannotate_core.core.entities import AnnotationClassEntity
 from superannotate_core.core.exceptions import SAException
+from superannotate_core.core.exceptions import SAInvalidInput
 import lib.core as constants
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
@@ -45,17 +47,15 @@ from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
 from lib.app.interface.types import EmailStr
 from lib.app.serializers import BaseSerializer
-from lib.app.serializers import ProjectSerializer
-from lib.app.serializers import SettingsSerializer
+
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core import entities
 
 from lib.core.entities import WorkflowEntity
-from lib.core.entities import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
-from lib.core.enums import ImageQuality
+from superannotate_core.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import MLModel
 from lib.core.types import PriorityScoreEntity
@@ -156,9 +156,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project metadata
         :rtype: dict
         """
-        # response = self.controller.get_project_by_id(project_id=project_id)
-        #
-        # return ProjectSerializer(response.data).serialize()
         return Project.get_by_id(self.session, project_id).dict()
 
     def get_folder_by_id(self, project_id: int, folder_id: int):
@@ -288,14 +285,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             condition &= Condition(
                 "status", constants.ProjectStatus.get_value(status), EQ
             )
-
-        response = self.controller.projects.list(condition)
-        if response.errors:
-            raise AppException(response.errors)
+        projects = Project.list(session=self.session, condition=condition)
         if return_metadata:
             return [
                 i.dict(
-                    {
+                    exclude={
                         "settings",
                         "workflows",
                         "contributors",
@@ -303,10 +297,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "item_count",
                     }
                 )
-                for i in response.data
+                for i in projects
             ]
         else:
-            return [project.name for project in response.data]
+            return [project.name for project in projects]
 
     def create_project(
         self,
@@ -314,7 +308,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_description: NotEmptyStr,
         project_type: PROJECT_TYPE,
         settings: List[Setting] = None,
-        # fix validation for class
+        # TODO fix validation for class
         # classes: List[AnnotationClassEntity] = None,
         classes: List = None,
         workflows: List = None,
@@ -359,15 +353,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(
                 "Project with workflows can not be created without classes."
             )
-        if settings:
-            settings = parse_obj_as(List[SettingEntity], settings)
-        else:
-            settings = []
-        if classes:
-            classes = parse_obj_as(List[AnnotationClassEntity], classes)
+
         if workflows and classes:
             invalid_classes = []
-            class_names = [_class.name for _class in classes]
+            class_names = [_class["name"] for _class in classes]
             for step in workflows:
                 if step["className"] not in class_names:
                     invalid_classes.append(step["className"])
@@ -380,30 +369,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 raise AppException(
                     f"There are no [{', '.join(invalid_classes)}] classes created in the project."
                 )
-        project_response = self.controller.projects.create(
-            entities.ProjectEntity(
-                name=project_name,
-                description=project_description,
-                type=constants.ProjectType.get_value(project_type),
-                settings=settings,
-                instructions_link=instructions_link,
-            )
+
+        new_project = Project.create(
+            session=self.session,
+            name=project_name,
+            team_id=self.controller.team_id,
+            description=project_description,
+            type=ProjectType.get_value(project_type),
+            status=ProjectStatus.NotStarted.value,
+            settings=settings,
+            instructions_link=instructions_link,
         )
-        project_response.raise_for_status()
-        project = project_response.data
+        # TODO set instructions_link (delete after adding support in creation)
+        if instructions_link:
+            new_project = new_project.update(instructions_link=instructions_link)
         if classes:
-            classes_response = self.controller.annotation_classes.create_multiple(
-                project, classes
-            )
-            classes_response.raise_for_status()
-            project.classes = classes_response.data
+            new_project.classes = new_project.create_annotation_classes(classes)
             if workflows:
-                workflow_response = self.controller.projects.set_workflows(
-                    project, workflows
-                )
-                workflow_response.raise_for_status()
-                project.workflows = self.controller.projects.list_workflow(project).data
-        return ProjectSerializer(project).serialize()
+                new_project.set_workflows(workflows=workflows)
+        return new_project.dict()
 
     def clone_project(
         self,
@@ -442,74 +426,69 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: dict object metadata of the new project
         :rtype: dict
         """
-        response = self.controller.projects.get_metadata(
-            self.controller.get_project(from_project),
+        from_project = self.get_project_metadata(
+            project=from_project,
             include_annotation_classes=copy_annotation_classes,
             include_settings=copy_settings,
             include_workflow=copy_workflow,
             include_contributors=copy_contributors,
         )
-        response.raise_for_status()
-        project: entities.ProjectEntity = response.data
-        if copy_workflow and project.type not in (
-            constants.ProjectType.VECTOR,
-            constants.ProjectType.PIXEL,
+        project_copy = Project.from_json(copy.copy(from_project))
+
+        if copy_workflow and project_copy.type.value not in (
+            constants.ProjectType.VECTOR.value,
+            constants.ProjectType.PIXEL.value,
         ):
             raise AppException(
-                f"Workflow is not supported in {project.type.name} project."
+                f"Workflow is not supported in {project_copy.type.name} project."
             )
-        project_copy = copy.copy(project)
-        if project_copy.type in (
-            constants.ProjectType.VECTOR,
-            constants.ProjectType.PIXEL,
+        if project_copy.type.value in (
+            constants.ProjectType.VECTOR.value,
+            constants.ProjectType.PIXEL.value,
         ):
-            project_copy.upload_state = constants.UploadState.INITIAL
+            project_copy.upload_state = constants.UploadState.INITIAL.value
         if project_description:
             project_copy.description = project_description
-        else:
-            project_copy.description = project.description
         project_copy.name = project_name
-        create_response = self.controller.projects.create(project_copy)
-        create_response.raise_for_status()
-        new_project = create_response.data
-        if copy_contributors:
-            logger.info(f"Cloning contributors from {from_project} to {project_name}.")
-            self.controller.projects.add_contributors(
-                self.controller.team, new_project, project.contributors
+        project_copy.id = None
+        project_copy.createdAt = None
+        project_copy.updatedAt = None
+        project_copy.folder_id = None
+        new_project = Project.create(
+            session=self.session, **project_copy.to_json(exclude_none=True)
+        )
+        if project_copy.instructions_link:
+            new_project = new_project.update(
+                instructions_link=project_copy.instructions_link
             )
+        if copy_contributors and project_copy.users:
+            logger.info(
+                f"Cloning contributors from {project_copy.name} to {new_project.name}."
+            )
+            new_project.add_contributors(project_copy.users)
         if copy_annotation_classes:
             logger.info(
-                f"Cloning annotation classes from {from_project} to {project_name}."
+                f"Cloning annotation classes from {project_copy.name} to {new_project.name}."
             )
-            classes_response = self.controller.annotation_classes.create_multiple(
-                new_project, project.classes
-            )
-            classes_response.raise_for_status()
-            project.classes = classes_response.data
+            new_project.create_annotation_classes(project_copy.classes)
         if copy_workflow:
             if not copy_annotation_classes:
                 logger.info(
-                    f"Skipping the workflow clone from {from_project} to {project_name}."
+                    f"Skipping the workflow clone from {project_copy.name} to {new_project.name}."
                 )
             else:
-                logger.info(f"Cloning workflow from {from_project} to {project_name}.")
-                workflow_response = self.controller.projects.set_workflows(
-                    new_project, project.workflows
+                logger.info(
+                    f"Cloning workflow from {project_copy.name} to {new_project.name}."
                 )
-                workflow_response.raise_for_status()
-                project.workflows = self.controller.projects.list_workflow(project).data
-        response = self.controller.projects.get_metadata(
-            new_project,
+                new_project.set_workflows(project_copy.workflows)
+        return self.get_project_metadata(
+            new_project.name,
             include_settings=copy_settings,
             include_workflow=copy_workflow,
             include_contributors=copy_contributors,
             include_annotation_classes=copy_annotation_classes,
-            include_complete_image_count=True,
+            include_complete_item_count=True,
         )
-
-        if response.errors:
-            raise AppException(response.errors)
-        return ProjectSerializer(response.data).serialize()
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Create a new folder in the project.
@@ -544,10 +523,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name
         :type project: str
         """
-        name = project
-        if isinstance(project, dict):
-            name = project["name"]
-        self.controller.projects.delete(name=name)
+        project_name, _ = extract_project_folder(project)
+        try:
+            project = self.controller.get_project(project_name)
+        except SAInvalidInput:
+            pass
+        else:
+            project.delete()
 
     def rename_project(self, project: NotEmptyStr, new_name: NotEmptyStr):
         """Renames the project
@@ -558,16 +540,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param new_name: project's new name
         :type new_name: str
         """
-        old_name = project
-        project = self.controller.get_project(old_name)  # noqa
-        project.name = new_name
-        response = self.controller.projects.update(project)
-        if response.errors:
-            raise AppException(response.errors)
+        project_name, _ = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        updated_project = project.update(name=new_name)
         logger.info(
-            "Successfully renamed project %s to %s.", old_name, response.data.name
+            "Successfully renamed project %s to %s.", project_name, updated_project.name
         )
-        return ProjectSerializer(response.data).serialize()
+        return updated_project.dict()
 
     def get_folder_metadata(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Returns folder metadata
@@ -689,19 +668,37 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of project
         :rtype: dict
         """
-        project_name, folder_name = extract_project_folder(project)
+        project_name, _ = extract_project_folder(project)
+
         project = self.controller.get_project(project_name)
-        response = self.controller.projects.get_metadata(
-            project,
-            include_annotation_classes,
-            include_settings,
-            include_workflow,
-            include_contributors,
-            include_complete_item_count,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return ProjectSerializer(response.data).serialize()
+        # get project include users
+        project = Project.get_by_id(session=self.session, project_id=project.id)
+        if include_complete_item_count:
+            folders = project.list_folders(
+                condition=Condition("completedImagesCount", True, EQ)
+            )
+            root_completed_count = 0
+            total_completed_count = 0
+            for folder in folders:
+                try:
+                    total_completed_count += folder.completedCount  # noqa
+                    if folder.is_root:
+                        root_completed_count = folder.completedCount  # noqa
+                except AttributeError:
+                    pass
+            project.root_folder_completed_items_count = root_completed_count
+            project.completed_items_count = total_completed_count
+        if include_annotation_classes:
+            project.classes = project.list_annotation_classes()
+        if include_settings:
+            project.settings = project.list_settings()
+        if include_workflow:
+            project.workflows = project.list_workflows()
+        if include_contributors:
+            project.contributors = project.users
+        else:
+            project.users = []
+        return project.dict()
 
     def get_project_settings(self, project: Union[NotEmptyStr, dict]):
         """Gets project's settings.
@@ -715,11 +712,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of dicts
         """
         project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
-        settings = self.controller.projects.list_settings(project).data
-        settings = [
-            SettingsSerializer(attribute.dict()).serialize() for attribute in settings
-        ]
+        project = self.controller.get_project(project_name)
+        settings = []
+        for setting in project.list_settings():
+            if setting.attribute == "ImageQuality":
+                setting.value = ImageQuality.get_name(setting.value)
+            settings.append(setting.dict())
         return settings
 
     def get_project_workflow(self, project: Union[str, dict]):
@@ -733,12 +731,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project workflow
         :rtype: list of dicts
         """
-        project_name, folder_name = extract_project_folder(project)
+        project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        workflow = self.controller.projects.list_workflow(project)
-        if workflow.errors:
-            raise AppException(workflow.errors)
-        return workflow.data
+        return [i.dict() for i in project.list_workflows()]
 
     def search_annotation_classes(
         self,
@@ -790,10 +785,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :type status: str
         """
-        project = self.controller.get_project(pk=project)
-        project.status = constants.ProjectStatus.get_value(status)
-        response = self.controller.projects.update(project)
-        if response.errors:
+        project_name, _ = extract_project_folder(project)
+        project = self.controller.get_project(project_name)
+        updated_project = project.update(status=ProjectStatus.get_value(status))
+        if updated_project.status.name.lower() != status.lower():
             raise AppException(f"Failed to change {project.name} status.")
         logger.info(f"Successfully updated {project.name} status to {status}")
 
@@ -840,16 +835,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param image_quality_in_editor: new setting value, should be "original" or "compressed"
         :type image_quality_in_editor: str
         """
-        project_name, folder_name = extract_project_folder(project)
-        image_quality_in_editor = ImageQuality.get_value(image_quality_in_editor)
+        project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        response = self.controller.projects.set_settings(
-            project=project,
-            settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
+        return project.set_settings(
+            [{"attribute": "ImageQuality", "value": image_quality_in_editor}]
         )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
 
     def pin_image(
         self,
@@ -1647,9 +1637,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        response = self.controller.projects.set_workflows(project, steps=new_workflow)
-        if response.errors:
-            raise AppException(response.errors)
+        project.set_workflows(new_workflow)
+        return [i.dict() for i in project.workflows]
 
     def download_image(
         self,

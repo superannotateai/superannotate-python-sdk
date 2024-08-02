@@ -40,7 +40,6 @@ from lib.core.response import Response
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.serviceproviders import ServiceResponse
-from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
@@ -806,94 +805,6 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
                     self._response.data = []
             else:
                 self._response.errors = "Couldn't get annotations."
-        return self._response
-
-
-class UploadPriorityScoresUseCase(BaseReportableUseCase):
-    CHUNK_SIZE = 100
-
-    def __init__(
-        self,
-        reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        scores: List[PriorityScoreEntity],
-        project_folder_name: str,
-        service_provider: BaseServiceProvider,
-    ):
-        super().__init__(reporter)
-        self._project = project
-        self._folder = folder
-        self._scores = scores
-        self._service_provider = service_provider
-        self._project_folder_name = project_folder_name
-
-    @staticmethod
-    def get_clean_priority(priority):
-        if len(str(priority)) > 8:
-            priority = float(str(priority)[:8])
-        if priority > 1000000:
-            priority = 1000000
-        if priority < 0:
-            priority = 0
-        if str(float(priority)).split(".")[1:2]:
-            if len(str(float(priority)).split(".")[1]) > 5:
-                priority = float(
-                    str(float(priority)).split(".")[0]
-                    + "."
-                    + str(float(priority)).split(".")[1][:5]
-                )
-        return priority
-
-    @property
-    def folder_path(self):
-        return f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}"
-
-    @property
-    def uploading_info(self):
-        data_len: int = len(self._scores)
-        return (
-            f"Uploading  priority scores for {data_len} item(s) to {self.folder_path}."
-        )
-
-    def execute(self):
-        if self.is_valid():
-            priorities = []
-            initial_scores = []
-            for i in self._scores:
-                priorities.append(
-                    {
-                        "name": i.name,
-                        "entropy_value": self.get_clean_priority(i.priority),
-                    }
-                )
-                initial_scores.append(i.name)
-            uploaded_score_names = []
-            self.reporter.log_info(self.uploading_info)
-            iterations = range(0, len(priorities), self.CHUNK_SIZE)
-            self.reporter.start_progress(iterations, "Uploading priority scores")
-            if iterations:
-                for i in iterations:
-                    priorities_to_upload = priorities[
-                        i : i + self.CHUNK_SIZE
-                    ]  # noqa: E203
-                    res = self._service_provider.projects.upload_priority_scores(
-                        project=self._project,
-                        folder=self._folder,
-                        priorities=priorities_to_upload,
-                    )
-                    _data = res.data["data"]
-                    if not _data:
-                        _data = []
-                    self.reporter.update_progress(len(priorities_to_upload))
-                    uploaded_score_names.extend(list(map(lambda x: x["name"], _data)))
-                self.reporter.finish_progress()
-                skipped_score_names = list(
-                    set(initial_scores) - set(uploaded_score_names)
-                )
-                self._response.data = (uploaded_score_names, skipped_score_names)
-            else:
-                self.reporter.warning_messages("Empty scores.")
         return self._response
 
 

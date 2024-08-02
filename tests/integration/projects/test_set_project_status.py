@@ -2,8 +2,9 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from src.superannotate import AppException
-from src.superannotate.lib.core.service_types import ServiceResponse
 from superannotate import SAClient
+from superannotate_core.app import Project
+from superannotate_core.core.exceptions import SAInvalidInput
 
 
 sa = SAClient()
@@ -40,9 +41,9 @@ class TestSetProjectStatus(TestCase):
                 self.assertEqual(status, project["status"])
             self.assertEqual(len(cm.output), len(self.PROJECT_STATUSES))
 
-    @patch("lib.infrastructure.services.project.ProjectService.update")
+    @patch("lib.app.interface.sdk_interface.Project.update")
     def test_set_project_status_fail(self, update_function):
-        update_function.return_value = ServiceResponse(_error="ERROR")
+        update_function.return_value = Project.from_json({"status": "OnHold"})
         with self.assertRaisesRegexp(
             AppException,
             f"Failed to change {self.PROJECT_NAME} status.",
@@ -58,7 +59,7 @@ class TestSetProjectStatus(TestCase):
 
     def test_set_project_status_via_invalid_project(self):
         with self.assertRaisesRegexp(
-            AppException,
+            SAInvalidInput,
             "Project not found.",
         ):
             sa.set_project_status(project="Invalid name", status="Completed")
