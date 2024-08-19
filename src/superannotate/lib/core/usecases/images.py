@@ -544,7 +544,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                     fill_color = *class_color_map[annotation["className"]], 255
                     for part in annotation["parts"]:
                         part_color = *self.generate_color(part["color"]), 255
-                        temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
+                        temp_mask = np.all(annotation_mask == part_color, axis=2)
                         empty_image_arr[temp_mask] = fill_color
 
                 images = [
