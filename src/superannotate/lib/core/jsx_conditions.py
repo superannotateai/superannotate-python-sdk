@@ -10,6 +10,7 @@ class OperatorEnum(str, Enum):
     GT = "$gt"
     LT = "$lt"
     STARTS = "$starts"
+    ENDS = "ENDS"
     IN = "$in"
 
 

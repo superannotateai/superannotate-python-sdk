@@ -44,7 +44,7 @@ from lib.core import LIMITED_FUNCTIONS
 from lib.core import entities
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
-from lib.core.jsx_conditions import Filter, OperatorEnum
+from lib.core.jsx_conditions import Filter, OperatorEnum, EmptyQuery, Join
 from lib.core.conditions import EmptyCondition
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import SettingEntity
@@ -94,6 +94,15 @@ ANNOTATION_TYPE = Literal["bbox", "polygon", "point", "tag"]
 ANNOTATOR_ROLE = Literal["Admin", "Annotator", "QA"]
 
 FOLDER_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
+
+
+class ItemFilters(TypedDict, total=False):
+    name: Optional[str]
+    id__in: Optional[List[int]]
+    name__in: Optional[List[str]]
+    name__startswith: Optional[str]
+    assignee__user_id: Optional[str]
+    assignee__user_id__in: Optional[List[str]]
 
 
 class Setting(TypedDict):
@@ -1198,8 +1207,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param kwargs:
             Arbitrary kwargs:
-                 * integration_name: can be provided which will be used as a storage to store export file
-                 * format: can be CSV for the Gen AI projects
+
+             - integration_name: can be provided which will be used as a storage to store export file
+             - format: can be CSV for the Gen AI projects
+        :return: metadata object of the prepared export
+        :rtype: dict
 
         Request Example:
         ::
@@ -1209,12 +1221,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project = "Project Name",
                 folder_names = ["Folder 1", "Folder 2"],
                 annotation_statuses = ["Completed","QualityCheck"],
-                export_type = "CSV")
+                export_type = "CSV"
+            )
 
             client.download_export("Project Name", export, "path_to_download")
-
-        :return: metadata object of the prepared export
-        :rtype: dict
         """
         project_name, folder_name = extract_project_folder(project)
         if folder_names is None:
@@ -1693,6 +1703,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             sa.set_project_steps(
                 project="Medical Annotations",
                 steps=[
@@ -2582,19 +2593,116 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return BaseSerializer.serialize_iterable(response.data, exclude=exclude)
 
     def list_items(
-        self,
-        project: Union[str, int],
-        *,
-        folder: Union[str, int] = None,
-        annotation_status: str,
-        id__in: List[int] = None,
-        name__contains: str = None,
-        name__startswith: str = None,
-        assignee__user_id: str,
-        include: List[Literal["custom_metadata", "assignmet"]],
+            self,
+            project: Union[str, int],
+            folder: Optional[Union[str, int]] = None,
+            *,
+            include: List[Literal["assignee", "custom_metadata"]] = None,
+            **filters: ItemFilters,
     ):
-        #  todo user cant filter assingee if asssignment not joined
-        ...
+        """
+        Search items by filtering criteria.
+
+        :param project: The project name or ID to search within.
+                        This can refer to the root of the project or a specific subfolder.
+        :type project: Union[str, int]
+
+        :param folder: Optional folder name or ID within the project to search in.
+                       If None, the search will default to the root folder of the project.
+        :type folder: Union[str, int], optional
+
+        :param include: Optional list of additional fields to include in the response.
+
+                Possible values are
+
+                - "assignee": Includes information about the item’s assignee (e.g., annotator or QA).
+                - "custom_metadata": Includes custom metadata attached to the items.
+        :type include: list of str, optional
+
+        :param filters: Arbitrary filtering criteria for items such as annotation status, name, and more.
+                        Can be passed as keyword arguments with supported comparison types like
+                        `__in`, `__startswith`, etc. (e.g., `annotation_status="Completed"`).
+
+                Options are:
+
+                - id__in: list[int]
+                - name: str
+                - name__in: list[str]
+                - name__contains: str
+                - name__startswith: str
+                - name__endswith: str
+                - assignee__user_id: str
+                -  assignee__user_id__in: list[str]
+        :type filters: ItemFilters
+
+        :return: A list of items that match the filtering criteria.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.list_items(
+                project="Medical Annotations",
+                folder="folder1",
+                include=["custom_metadata"],
+                annotation_status="InProgress",
+                name_contains="scan"
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "name": "scan_123.jpeg",
+                    "path": "Medical Annotations/folder1",
+                    "url": "https://sa-public-files.s3.../scan_123.jpeg",
+                    "annotation_status": "InProgress",
+                    "annotator_email": "annotator@example.com",
+                    "qa_email": "qa@example.com",
+                    "createdAt": "2022-02-10T14:32:21.000Z",
+                    "updatedAt": "2022-02-15T20:46:44.000Z",
+                    "custom_metadata": {
+                        "study_date": "2021-12-31",
+                        "patient_id": "62078f8a756ddb2ca9fc9660",
+                        "medical_specialist": "robertboxer@ms.com"
+                    }
+                }
+            ]
+
+        Additional Filter Examples:
+        ::
+
+            # Filter items completed before a specific date
+            client.list_items(
+                project="Medical Annotations",
+                folder="folder2",
+                annotation_status="Completed",
+                name__in=["1.jpg", "2.jpg", "3.jpg"]
+            )
+
+            # Filter items assigned to a specific QA
+            client.list_items(
+                project="Medical Annotations",
+                assignee__user_id="qa@example.com"
+            )
+        """
+        project = project if isinstance(project, int) else self.controller.get_project(project)
+        project_id = project.id
+        folder_id = folder if folder and isinstance(folder, int) else project.folder_id
+        filter_annotations = ItemFilters.__annotations__
+        query = Filter("team_id", self.controller.team_id, OperatorEnum.EQ)
+        query &= Filter("project_id", project_id, OperatorEnum.EQ)
+        query &= Filter("folder_id", folder_id, OperatorEnum.EQ)
+        for key, val in filters:
+            if key in filter_annotations:
+                _key, condition = key.split("__")
+                query &= Filter(_key, val, OperatorEnum[condition])
+        if include:
+            for _include in include:
+                query &= Join(_include)
+        response =  self.controller.service_provider.item_service.list(query)
+        return response.data
 
     def attach_items(
         self,
@@ -2609,7 +2717,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
                 :param attachments: path to CSV file or list of dicts containing attachments URLs.
                 :type attachments: path-like (str or Path) or list of dicts
-        t        :param annotation_status: value to set the annotation statuses of the linked items. \n
+                :param annotation_status: value to set the annotation statuses of the linked items. \n
                         Available statuses are::
 
                          * NotStarted

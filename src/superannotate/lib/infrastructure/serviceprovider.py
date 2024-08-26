@@ -20,6 +20,7 @@ from lib.infrastructure.services.item import ItemService
 from lib.infrastructure.services.project import ProjectService
 from lib.infrastructure.services.subset import SubsetService
 from lib.infrastructure.services.work_managament import WorkManagamentService
+from lib.infrastructure.services.item_service import ItemService as SeperateItemService
 
 
 class ServiceProvider(BaseServiceProvider):
@@ -58,12 +59,26 @@ class ServiceProvider(BaseServiceProvider):
                 verify_ssl=client.verify_ssl,
             )
         )
-
+        self.item_service = SeperateItemService(
+            HttpClient(
+                api_url=self._get_item_service_url(client),
+                token=client.token,
+                verify_ssl=client.verify_ssl,
+            )
+        )
     @staticmethod
     def _get_work_managament_url(client: HttpClient):
         if client.api_url != constants.BACKEND_URL:
             return "https://work-management-api.devsuperannotate.com/api/v1/"
         return "https://work-management-api.devsuperannotate.com/api/v1/"
+
+    @staticmethod
+    def _get_item_service_url(client: HttpClient):
+        if client.api_url != constants.BACKEND_URL:
+            return "https://item.devsuperannotate.com/api/v1/"
+        return (
+            f"https://item.superannotate.com//api/v1/"
+        )
 
     def get_team(self, team_id: int) -> TeamResponse:
         return self.client.request(
