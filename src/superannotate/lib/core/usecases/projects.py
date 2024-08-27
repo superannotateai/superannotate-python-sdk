@@ -838,13 +838,15 @@ class ListSubsetsUseCase(BaseUseCase):
         self._service_provider = service_provider
 
     def validate_arguments(self):
-        response = self._service_provider.validate_saqul_query(self._project, "_")
+        response = self._service_provider.explore.validate_saqul_query(
+            self._project, "_"
+        )
         if not response.ok:
             raise AppException(response.error)
 
     def execute(self) -> Response:
         if self.is_valid():
-            sub_sets_response = self._service_provider.subsets.list(
+            sub_sets_response = self._service_provider.explore.list_subsets(
                 project=self._project
             )
             if sub_sets_response.ok:

@@ -18,11 +18,9 @@ from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import SettingsListResponse
-from lib.core.service_types import SubsetListResponse
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
-from lib.core.service_types import UploadCustomFieldValuesResponse
 from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
 from lib.core.types import Attachment
@@ -408,65 +406,6 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         raise NotImplementedError
 
 
-class BaseCustomFieldService(SuperannotateServiceProvider):
-    @abstractmethod
-    def create_schema(
-        self, project: entities.ProjectEntity, schema: dict
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_schema(self, project: entities.ProjectEntity) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def delete_fields(
-        self, project: entities.ProjectEntity, fields: List[str]
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def upload_fields(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        items: List[dict],
-    ) -> UploadCustomFieldValuesResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def delete_values(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        items: List[Dict[str, List[str]]],
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-
-class BaseSubsetService(SuperannotateServiceProvider):
-    @abstractmethod
-    def list(
-        self, project: entities.ProjectEntity, condition: Condition = None
-    ) -> SubsetListResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def create_multiple(
-        self, project: entities.ProjectEntity, names: List[str]
-    ) -> SubsetListResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def add_items(
-        self,
-        project: entities.ProjectEntity,
-        subset: entities.SubSetEntity,
-        item_ids: List[int],
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-
 class BaseIntegrationService(SuperannotateServiceProvider):
     @abstractmethod
     def list(self) -> IntegrationListResponse:
@@ -483,15 +422,81 @@ class BaseIntegrationService(SuperannotateServiceProvider):
         raise NotImplementedError
 
 
+class BaseExploreService(SuperannotateServiceProvider):
+    @abstractmethod
+    def create_schema(self, project: entities.ProjectEntity, schema: dict):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_schema(self, project: entities.ProjectEntity):
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_fields(self, project: entities.ProjectEntity, fields: List[str]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def upload_fields(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        items: List[dict],
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_values(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        items: List[Dict[str, List[str]]],
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_subsets(
+        self, project: entities.ProjectEntity, condition: Condition = None
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_multiple_subsets(self, project: entities.ProjectEntity, name: List[str]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def add_items_to_subset(
+        self,
+        project: entities.ProjectEntity,
+        subset: entities.SubSetEntity,
+        item_ids: List[int],
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def validate_saqul_query(
+        self, project: entities.ProjectEntity, query: str
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def saqul_query(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity = None,
+        query: str = None,
+        subset_id: int = None,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+
 class BaseServiceProvider:
     projects: BaseProjectService
     folders: BaseFolderService
     items: BaseItemService
     annotations: BaseAnnotationService
-    custom_fields: BaseCustomFieldService
     annotation_classes: BaseAnnotationClassService
-    subsets: BaseSubsetService
     integrations: BaseIntegrationService
+    explore: BaseExploreService
 
     @abstractmethod
     def get_team(self, team_id: int) -> TeamResponse:
@@ -581,21 +586,5 @@ class BaseServiceProvider:
     @abstractmethod
     def invite_contributors(
         self, team_id: int, team_role: int, emails: List[str]
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def validate_saqul_query(
-        self, project: entities.ProjectEntity, query: str
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
-    def saqul_query(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity = None,
-        query: str = None,
-        subset_id: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError

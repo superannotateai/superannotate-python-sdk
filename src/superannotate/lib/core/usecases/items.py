@@ -144,7 +144,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
 
     def validate_arguments(self):
         if self._query:
-            response = self._service_provider.validate_saqul_query(
+            response = self._service_provider.explore.validate_saqul_query(
                 project=self._project, query=self._query
             )
 
@@ -155,7 +155,9 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             else:
                 raise AppException("Incorrect query.")
         else:
-            response = self._service_provider.validate_saqul_query(self._project, "-")
+            response = self._service_provider.explore.validate_saqul_query(
+                self._project, "-"
+            )
             if not response.ok:
                 raise AppException(response.error)
 
@@ -173,7 +175,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             query_kwargs = {}
             if self._subset:
                 subset: Optional[SubSetEntity] = None
-                response = self._service_provider.subsets.list(self._project)
+                response = self._service_provider.explore.list_subsets(self._project)
                 if response.ok:
                     subset = next(
                         (_sub for _sub in response.data if _sub.name == self._subset),
@@ -194,7 +196,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             query_kwargs["folder"] = (
                 None if self._folder.name == "root" else self._folder
             )
-            service_response = self._service_provider.saqul_query(
+            service_response = self._service_provider.explore.saqul_query(
                 self._project,
                 **query_kwargs,
             )
@@ -1035,7 +1037,9 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self.__separate_to_paths()
 
     def validate_project(self):
-        response = self._service_provider.validate_saqul_query(self.project, "_")
+        response = self._service_provider.explore.validate_saqul_query(
+            self.project, "_"
+        )
         if not response.ok:
             raise AppException(response.error)
 
@@ -1058,7 +1062,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     logger.debug(traceback.format_exc())
                     raise
 
-            subsets = self._service_provider.subsets.list(self.project).data
+            subsets = self._service_provider.explore.list_subsets(self.project).data
             subset = None
             for s in subsets:
                 if s.name == self.subset_name:
@@ -1066,7 +1070,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     break
 
             if not subset:
-                subset = self._service_provider.subsets.create_multiple(
+                subset = self._service_provider.explore.create_multiple_subsets(
                     self.project, [self.subset_name]
                 ).data[0]
 
@@ -1083,7 +1087,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     f"Dropping duplicates. Found {processed_items} / {self._provided_item_count} unique items."
                 )
             for i in range(0, len(unique_item_ids), self.CHUNK_SIZE):
-                tmp_response = self._service_provider.subsets.add_items(
+                tmp_response = self._service_provider.explore.add_items_to_subset(
                     project=self.project,
                     item_ids=unique_item_ids[i : i + self.CHUNK_SIZE],  # noqa
                     subset=subset,
