@@ -169,7 +169,7 @@ class CreateProjectUseCase(BaseUseCase):
             if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
                 self._project.settings.remove(setting)
             if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
-                setting.value = constances.ImageQuality.get_value(setting.value)
+                setting.value = constances.ImageQuality(setting.value).value
             elif setting.attribute == "FrameRate":
                 if not self._project.type == constances.ProjectType.VIDEO.value:
                     raise AppValidationException(
@@ -256,7 +256,7 @@ class CreateProjectUseCase(BaseUseCase):
                 data["classes"] = self._project.classes
             logger.info(
                 f"Created project {entity.name} (ID {entity.id}) "
-                f"with type {constances.ProjectType.get_name(self._response.data.type)}."
+                f"with type {constances.ProjectType(self._response.data.type).name}."
             )
         return self._response
 
@@ -301,7 +301,7 @@ class UpdateProjectUseCase(BaseUseCase):
             if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
                 self._project.settings.remove(setting)
             if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
-                setting.value = constances.ImageQuality.get_value(setting.value)
+                setting.value = constances.ImageQuality(setting.value).value
             elif setting.attribute == "FrameRate":
                 if not self._project.type == constances.ProjectType.VIDEO.value:
                     raise AppValidationException(
@@ -456,7 +456,7 @@ class UpdateSettingsUseCase(BaseUseCase):
             if setting["attribute"].lower() == "imagequality" and isinstance(
                 setting["value"], str
             ):
-                setting["value"] = constances.ImageQuality.get_value(setting["value"])
+                setting["value"] = constances.ImageQuality(setting["value"]).value
                 return
 
     def validate_project_type(self):

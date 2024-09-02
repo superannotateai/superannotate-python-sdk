@@ -5,17 +5,11 @@ from typing import List
 from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.entities import BaseItemEntity
-from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
-from lib.core.service_types import ClassificationResponse
-from lib.core.service_types import DocumentResponse
-from lib.core.service_types import ImageResponse
 from lib.core.service_types import ItemListResponse
-from lib.core.service_types import PointCloudResponse
+from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
 from lib.core.service_types import ServiceResponse
-from lib.core.service_types import TiledResponse
-from lib.core.service_types import VideoResponse
 from lib.core.serviceproviders import BaseItemService
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
@@ -35,22 +29,11 @@ class ItemService(BaseItemService):
     URL_DELETE_ITEMS = "image/delete/images"
     URL_SET_APPROVAL_STATUSES = "/items/bulk/change"
 
-    PROJECT_TYPE_RESPONSE_MAP = {
-        ProjectType.VECTOR: ImageResponse,
-        ProjectType.OTHER: ClassificationResponse,
-        ProjectType.VIDEO: VideoResponse,
-        ProjectType.TILED: TiledResponse,
-        ProjectType.PIXEL: ImageResponse,
-        ProjectType.DOCUMENT: DocumentResponse,
-        ProjectType.POINT_CLOUD: PointCloudResponse,
-        ProjectType.GEN_AI: ImageResponse,
-    }
-
     def get_by_id(self, item_id, project_id, project_type):
 
         params = {"project_id": project_id}
 
-        content_type = self.PROJECT_TYPE_RESPONSE_MAP[project_type]
+        content_type = PROJECT_TYPE_RESPONSE_MAP[project_type]
 
         response = self.client.request(
             url=self.URL_GET_BY_ID.format(image_id=item_id),
@@ -134,19 +117,20 @@ class ItemService(BaseItemService):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         attachments: List[Attachment],
-        annotation_status_code,
         upload_state_code,
         meta: Dict[str, AttachmentMeta],
+        annotation_status_code=None,
     ):
         data = {
             "project_id": project.id,
             "folder_id": folder.id,
             "team_id": project.team_id,
             "images": [i.dict() for i in attachments],
-            "annotation_status": annotation_status_code,
             "upload_state": upload_state_code,
             "meta": meta,
         }
+        if annotation_status_code:
+            data["annotation_status"] = annotation_status_code
         return self.client.request(self.URL_ATTACH, "post", data=data)
 
     def copy_multiple(

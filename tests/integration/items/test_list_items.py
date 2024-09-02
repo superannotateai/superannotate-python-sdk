@@ -1,16 +1,14 @@
 import os
 from pathlib import Path
 
-import src.superannotate.lib.core as constances
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
-from tests.integration.items import IMAGE_EXPECTED_KEYS
 
 sa = SAClient()
 
 
 class TestListItems(BaseTestCase):
-    PROJECT_NAME = "TestSearchItems"
+    PROJECT_NAME = "TestListItems"
     PROJECT_DESCRIPTION = "TestSearchItems"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
@@ -26,4 +24,15 @@ class TestListItems(BaseTestCase):
             self.PROJECT_NAME, [{"name": str(i), "url": str(i)} for i in range(100)]
         )
         items = sa.list_items(self.PROJECT_NAME)
+        assert len(items) == 100
+        sa.set_approval_statuses(self.PROJECT_NAME, "Disapproved")
+        items = sa.list_items(self.PROJECT_NAME, approval_status="Disapproved")
+        assert len(items) == 100
+        items = sa.list_items(self.PROJECT_NAME, approval_status="Approved")
+        assert len(items) == 0
+        items = sa.list_items(self.PROJECT_NAME, approval_status__in=["Approved", None])
+        assert len(items) == 0
+        items = sa.list_items(
+            self.PROJECT_NAME, approval_status__in=["Disapproved", None]
+        )
         assert len(items) == 100

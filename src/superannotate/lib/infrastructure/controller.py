@@ -7,9 +7,11 @@ from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import TypedDict
 from typing import Union
 
 import lib.core as constances
+from lib.core import ApprovalStatus
 from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
@@ -19,6 +21,7 @@ from lib.core.entities import ConfigEntity
 from lib.core.entities import ContributorEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
+from lib.core.entities import PROJECT_ITEM_ENTITY_MAP
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
@@ -26,13 +29,36 @@ from lib.core.entities import UserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import Join
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.reporter import Reporter
 from lib.core.response import Response
+from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
+from lib.core.usecases import GetItem
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import extract_project_folder
+
+
+class ItemFilters(TypedDict, total=False):
+    id: Optional[int]
+    id__in: Optional[List[int]]
+    name: Optional[str]
+    name__in: Optional[List[str]]
+    name__contains: Optional[str]
+    name__starts: Optional[str]
+    name__ends: Optional[str]
+    # approval_status: Optional[APPROVAL_STATUS]
+    annotation_status: Optional[str]
+    annotation_status__in: Optional[List[str]]
+    approval_status: Optional[str]
+    approval_status__in: Optional[str]
+    assignments__user_id: Optional[str]
+    assignments__user_role: Optional[str]
 
 
 def build_condition(**kwargs) -> Condition:
@@ -340,7 +366,7 @@ class ItemManager(BaseManager):
         folder: FolderEntity,
         name: str,
         include_custom_metadata: bool = False,
-    ):
+    ) -> BaseItemEntity:
         use_case = usecases.GetItem(
             reporter=Reporter(),
             project=project,
@@ -349,7 +375,14 @@ class ItemManager(BaseManager):
             service_provider=self.service_provider,
             include_custom_metadata=include_custom_metadata,
         )
-        return use_case.execute()
+        response = use_case.execute()
+        if response.errors:
+            raise AppException(response.errors)
+        item = response.data
+        item.annotation_status = self.service_provider.get_annotation_status_name(
+            project, item.annotation_status
+        )
+        return item
 
     def get_by_id(self, item_id: int, project: ProjectEntity):
         use_case = usecases.GetItemByIDUseCase(
@@ -358,6 +391,67 @@ class ItemManager(BaseManager):
             service_provider=self.service_provider,
         )
         return use_case.execute()
+
+    @staticmethod
+    def _extract_value_from_mapping(data, extractor=lambda x: x):
+        if isinstance(data, (list, tuple, set)):
+            return [extractor(i) for i in data]
+        return extractor(data)
+
+    def list_items(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        /,
+        include: List[str] = None,
+        **filters,
+    ):
+
+        filter_annotations = ItemFilters.__annotations__.keys()
+        include_custom_metadata = bool(include.pop("custom_metadata", ""))
+
+        query = EmptyQuery()
+        _include = set(include) if include else set()
+        for key, val in filters.items():
+            if key in filter_annotations:
+                _keys = key.split("__")
+                entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
+                if _keys[0] not in entity.__fields__:
+                    _include.add(_keys[0])
+                if _keys[0] == "approval_status":
+                    if isinstance(val, (list, tuple, set)):
+                        val = [ApprovalStatus(i).value for i in val]
+                    else:
+                        val = ApprovalStatus(val).value
+                elif _keys[0] == "annotation_status":
+                    val = self._extract_value_from_mapping(
+                        val,
+                        lambda x: self.service_provider.get_annotation_status_value(
+                            project, x
+                        ),
+                    )
+                if len(_keys) == 1:
+                    _key, condition = _keys[0], OperatorEnum.EQ
+                else:
+                    if _keys[-1].upper() in OperatorEnum.__members__:
+                        condition = OperatorEnum[_keys.pop().upper()]
+                    else:
+                        condition = OperatorEnum.EQ
+                    _key = ".".join(_keys)
+                query &= Filter(_key, val, condition)
+        for i in _include:
+            query &= Join(i)
+        response = self.service_provider.item_service.list(project.id, folder.id, query)
+        if response.error:
+            raise AppException(response.error)
+        data = []
+        for item in response.data:
+            item = usecases.GetItem.serialize_entity(item, project)
+            item.annotation_status = self.service_provider.get_annotation_status_name(
+                project, item.annotation_status
+            )
+            data.append(item)
+        return data
 
     def list(
         self,
@@ -382,14 +476,21 @@ class ItemManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         attachments: List[AttachmentEntity],
-        annotation_status: str,
+        annotation_status: str = None,
     ):
+        annotation_status_value = (
+            self.service_provider.get_annotation_status_value(
+                project, annotation_status
+            )
+            if annotation_status
+            else None
+        )
         use_case = usecases.AttachItems(
             reporter=Reporter(),
             project=project,
             folder=folder,
             attachments=attachments,
-            annotation_status=annotation_status,
+            annotation_status_value=annotation_status_value,
             service_provider=self.service_provider,
         )
         return use_case.execute()
@@ -836,13 +937,18 @@ class Controller(BaseController):
             raise AppException("Project not found.")
         return response
 
-    def get_item_by_id(self, item_id: int, project: ProjectEntity):
-        response = self.items.get_by_id(item_id=item_id, project=project)
-
-        if response.errors:
-            raise AppException(response.errors)
-
-        return response
+    def get_item_by_id(self, item_id: int, project: ProjectEntity) -> BaseItemEntity:
+        response = self.service_provider.item_service.get(
+            project_id=project.id, item_id=item_id
+        )
+        if response.error:
+            raise AppException(response.error)
+        PROJECT_TYPE_RESPONSE_MAP[project.type] = response.data
+        item = GetItem.serialize_entity(response.data, project)
+        item.annotation_status = self.service_provider.get_annotation_status_name(
+            project, item.annotation_status
+        )
+        return item
 
     def get_project_folder_by_path(
         self, path: Union[str, Path]
@@ -893,7 +999,13 @@ class Controller(BaseController):
             image_path = image
         else:
             image_bytes = image
-
+        annotation_status_value = (
+            self.service_provider.get_annotation_status_value(
+                project, annotation_status
+            )
+            if annotation_status
+            else None
+        )
         return usecases.UploadImageToProject(
             project=project,
             folder=folder,
@@ -903,7 +1015,7 @@ class Controller(BaseController):
             image_bytes=image_bytes,
             image_name=image_name,
             from_s3_bucket=from_s3_bucket,
-            annotation_status=annotation_status,
+            annotation_status_value=annotation_status_value,
             image_quality_in_editor=image_quality_in_editor,
         ).execute()
 
@@ -926,7 +1038,9 @@ class Controller(BaseController):
             service_provider=self.service_provider,
             paths=paths,
             from_s3_bucket=from_s3_bucket,
-            annotation_status=annotation_status,
+            annotation_status_value=self.service_provider.get_annotation_status_value(
+                project, annotation_status
+            ),
             image_quality_in_editor=image_quality_in_editor,
         )
 
@@ -944,7 +1058,13 @@ class Controller(BaseController):
     ):
         project = self.get_project(project_name)
         folder = self.get_folder(project, folder_name)
-
+        annotation_status_value = (
+            self.service_provider.get_annotation_status_value(
+                project, annotation_status
+            )
+            if annotation_status
+            else None
+        )
         return usecases.UploadImagesFromFolderToProject(
             project=project,
             folder=folder,
@@ -952,7 +1072,7 @@ class Controller(BaseController):
             service_provider=self.service_provider,
             folder_path=folder_path,
             extensions=extensions,
-            annotation_status=annotation_status,
+            annotation_status_value=annotation_status_value,
             from_s3_bucket=from_s3_bucket,
             exclude_file_patterns=exclude_file_patterns,
             recursive_sub_folders=recursive_sub_folders,
@@ -1105,7 +1225,7 @@ class Controller(BaseController):
     def validate_annotations(self, project_type: str, annotation: dict):
         use_case = usecases.ValidateAnnotationUseCase(
             reporter=self.get_default_reporter(),
-            project_type=constances.ProjectType.get_value(project_type),
+            project_type=constances.ProjectType(project_type).value,
             annotation=annotation,
             team_id=self.team_id,
             service_provider=self.service_provider,
@@ -1136,7 +1256,13 @@ class Controller(BaseController):
     ):
         project = self.get_project(project_name)
         folder = self.get_folder(project, folder_name)
-
+        annotation_status_value = (
+            self.service_provider.get_annotation_status_value(
+                project, annotation_status
+            )
+            if annotation_status
+            else None
+        )
         use_case = usecases.UploadVideosAsImages(
             reporter=self.get_default_reporter(),
             service_provider=self.service_provider,
@@ -1149,7 +1275,7 @@ class Controller(BaseController):
             exclude_file_patterns=exclude_file_patterns,
             start_time=start_time,
             end_time=end_time,
-            annotation_status=annotation_status,
+            annotation_status_value=annotation_status_value,
             image_quality_in_editor=image_quality_in_editor,
         )
         return use_case.execute()

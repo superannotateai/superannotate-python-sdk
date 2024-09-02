@@ -4,7 +4,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from superannotate.lib.app.exceptions import PathError
+from lib.app.exceptions import PathError
 
 
 def divide_to_chunks(it, size):

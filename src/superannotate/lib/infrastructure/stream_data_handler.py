@@ -6,7 +6,7 @@ from typing import Callable
 
 import aiohttp
 from lib.core.reporter import Reporter
-from superannotate.lib.infrastructure.services.http_client import AIOHttpSession
+from lib.infrastructure.services.http_client import AIOHttpSession
 
 _seconds = 2**10
 TIMEOUT = aiohttp.ClientTimeout(
@@ -36,6 +36,7 @@ class StreamedAnnotations:
             return json.loads(data)
         except json.decoder.JSONDecodeError as e:
             self._reporter.log_error(f"Invalud chunk: {str(e)}")
+            return None
 
     async def fetch(
         self,

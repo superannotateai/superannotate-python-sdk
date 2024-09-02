@@ -44,7 +44,7 @@ class PrepareExportUseCase(BaseUseCase):
         integration_id: int = None,
         export_type: int = None,
     ):
-        super().__init__(),
+        super().__init__()
         self._project = project
         self._folder_names = list(folder_names) if folder_names else None
         self._service_provider = service_provider
@@ -70,7 +70,7 @@ class PrepareExportUseCase(BaseUseCase):
         ):
             raise AppValidationException(
                 "Include fuse functionality is not supported for  projects containing "
-                f"{ProjectType.get_name(self._project.type)} attached with URLs"
+                f"{ProjectType(self._project.type).name} attached with URLs"
             )
 
     def validate_export_type(self):

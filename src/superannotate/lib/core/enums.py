@@ -16,65 +16,80 @@ class BaseTitledEnum(int, Enum):
         obj = super().__new__(cls, value)
         obj._value_ = value
         obj.__doc__ = title
-        obj._type = "titled_enum"
         cls._value2member_map_[title] = obj
         return obj
 
-    @classmethod
-    def choices(cls):
-        return tuple(cls._value2member_map_.keys())
+    def __repr__(self):
+        return self._name_
 
     @DynamicClassAttribute
     def name(self) -> str:
-        return self.__doc__
-
-    def __unicode__(self):
         return self.__doc__
 
     @DynamicClassAttribute
     def value(self):
         return super().value
 
-    @classmethod
-    def get_name(cls, value):
-        for enum in list(cls):
-            if enum.value == value:
-                return enum.__doc__
+    def __unicode__(self):
+        return self.__doc__
 
     @classmethod
-    def get_value(cls, name):
-        for enum in list(cls):
-            if enum.__doc__ and name and enum.__doc__.lower() == name.lower():
-                if isinstance(enum.value, int):
-                    if enum.value < 0:
-                        return ""
-                return enum.value
+    def choices(cls) -> typing.Tuple[str]:
+        """Return all titles as choices."""
+        return tuple(cls._value2member_map_.keys())
+
+    @property
+    def title(self) -> str:
+        return self._name_
 
     @classmethod
-    def values(cls):
-        return [enum.__doc__.lower() if enum else None for enum in list(cls)]
+    def values(cls) -> typing.List[str]:
+        """Return all values (names/titles) in lowercase."""
+        return [enum.__doc__.lower() for enum in cls if enum.__doc__]
 
     @classmethod
-    def titles(cls) -> typing.Tuple:
-        return tuple(enum.__doc__ for enum in list(cls))
+    def titles(cls) -> typing.Tuple[str]:
+        """Return all titles in the enum."""
+        return tuple(enum.__doc__ for enum in cls)
 
-    def equals(self, other: Enum):
-        return self.__doc__.lower() == other.__doc__.lower()
+    def equals(self, other: Enum) -> bool:
+        """Compare this enum's name/title with another enum's name/title."""
+        return (
+            self.__doc__.lower() == other.__doc__.lower()
+            if self.__doc__ and other.__doc__
+            else False
+        )
 
     def __eq__(self, other):
         return super().__eq__(other)
 
-    def __repr__(self):
-        return self.name
-
     def __hash__(self):
         return hash(self.name)
 
+    @classmethod
+    def _missing_(cls, value):
+        """Handle creation from value, name, or title."""
+        if isinstance(value, int):
+            for enum in cls:
+                if enum.value == value:
+                    return enum
+        if isinstance(value, str):
+            for enum in cls:
+                if enum.__doc__ and enum.__doc__.lower() == value.lower():
+                    return enum
+            if value in cls.__members__:
+                return cls.__members__[value]
+        raise ValueError(f"{value} is not a valid {cls.__name__}")
+
 
 class ApprovalStatus(BaseTitledEnum):
-    NONE = None, 0
-    DISAPPROVED = "Disapproved", 1
+    NOAPPROVAL = None, 0
+    REJECTED = "Disapproved", 1
     APPROVED = "Approved", 2
+
+    @classmethod
+    def get_mapping(cls) -> typing.Dict[str, int]:
+        return {i.__repr__(): i.value for i in list(cls)}
 
 
 class AnnotationTypes(str, Enum):
@@ -181,10 +196,3 @@ class TrainingStatus(BaseTitledEnum):
     FAILED_BEFORE_EVALUATION = "FailedBeforeEvaluation", 4
     FAILED_AFTER_EVALUATION = "FailedAfterEvaluation", 5
     FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL = "FailedAfterEvaluationWithSavedModel", 6
-
-
-class SegmentationStatus(BaseTitledEnum):
-    NOT_STARTED = "NotStarted", 1
-    IN_PROGRESS = "InProgress", 2
-    COMPLETED = "Completed", 3
-    FAILED = "Failed", 4

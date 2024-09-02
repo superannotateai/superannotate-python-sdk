@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from lib.core import entities
+from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import BaseModel
 from lib.core.pydantic_v1 import Extra
@@ -122,6 +123,10 @@ class ServiceResponse(BaseModel):
         return f"Status: {self.status_code}, Error {self.error}"
 
 
+class BaseItemResponse(ServiceResponse):
+    res_data: entities.BaseItemEntity = None
+
+
 class ImageResponse(ServiceResponse):
     res_data: entities.ImageEntity = None
 
@@ -220,3 +225,15 @@ class ProjectListResponse(ServiceResponse):
 
 class SettingsListResponse(ServiceResponse):
     res_data: List[entities.SettingEntity] = None
+
+
+PROJECT_TYPE_RESPONSE_MAP = {
+    ProjectType.VECTOR: ImageResponse,
+    ProjectType.OTHER: ClassificationResponse,
+    ProjectType.VIDEO: VideoResponse,
+    ProjectType.TILED: TiledResponse,
+    ProjectType.PIXEL: ImageResponse,
+    ProjectType.DOCUMENT: DocumentResponse,
+    ProjectType.POINT_CLOUD: PointCloudResponse,
+    ProjectType.GEN_AI: ImageResponse,
+}

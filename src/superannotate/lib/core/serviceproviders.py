@@ -8,6 +8,7 @@ from typing import List
 
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
 from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import FolderListResponse
@@ -60,6 +61,7 @@ class BaseClient(ABC):
         item_type: Any,
         chunk_size: int = 2000,
         query_params: Dict[str, Any] = None,
+        headers: Dict = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -67,6 +69,16 @@ class BaseClient(ABC):
 class SuperannotateServiceProvider(ABC):
     def __init__(self, client: BaseClient):
         self.client = client
+
+
+class BaseWorkManagementService(SuperannotateServiceProvider):
+    @abstractmethod
+    def list(self, query: Query):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_workflow_statuses(self, project_id: int, workflow_id: int):
+        raise NotImplementedError
 
 
 class BaseProjectService(SuperannotateServiceProvider):
@@ -496,6 +508,13 @@ class BaseServiceProvider:
     annotation_classes: BaseAnnotationClassService
     subsets: BaseSubsetService
     integrations: BaseIntegrationService
+    work_management: BaseWorkManagementService
+
+    @abstractmethod
+    def get_annotation_status_value(
+        self, project: entities.ProjectEntity, status_name: str
+    ) -> int:
+        ...
 
     @abstractmethod
     def get_team(self, team_id: int) -> TeamResponse:

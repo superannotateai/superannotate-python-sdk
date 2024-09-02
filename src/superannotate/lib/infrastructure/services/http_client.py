@@ -3,6 +3,7 @@ import base64
 import io
 import json
 import logging
+import os
 import platform
 import threading
 import time
@@ -20,7 +21,6 @@ from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseClient
 from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
-from superannotate import __version__
 
 try:
     from pydantic.v1 import BaseModel
@@ -45,6 +45,7 @@ class HttpClient(BaseClient):
     def __init__(self, api_url: str, token: str, verify_ssl: bool = True):
         super().__init__(api_url, token)
         self._verify_ssl = verify_ssl
+        self._version = os.environ.get("sa_version")
 
     @property
     def verify_ssl(self):
@@ -80,7 +81,7 @@ class HttpClient(BaseClient):
                     }
                 ).encode("utf-8")
             ).decode("utf-8"),
-            "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()};"
+            "User-Agent": f"Python-SDK-Version: {self._version}; Python: {platform.python_version()};"
             f"OS: {platform.system()}; Team: {self.team_id}",
         }
 
@@ -162,6 +163,7 @@ class HttpClient(BaseClient):
         item_type: Any = None,
         chunk_size: int = 2000,
         query_params: Dict[str, Any] = None,
+        headers: Dict = None,
     ) -> ServiceResponse:
         offset = 0
         total = []
@@ -170,7 +172,11 @@ class HttpClient(BaseClient):
         while True:
             _url = f"{url}{splitter}offset={offset}"
             _response = self.request(
-                _url, method="get", params=query_params, dispatcher="data"
+                _url,
+                method="get",
+                params=query_params,
+                dispatcher="data",
+                headers=headers,
             )
             if _response.ok:
                 if _response.data:

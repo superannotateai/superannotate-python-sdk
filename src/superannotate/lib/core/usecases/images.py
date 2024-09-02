@@ -82,7 +82,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         folder: FolderEntity,
         attachments: List[ImageEntity],
         service_provider: BaseServiceProvider,
-        annotation_status: str = None,
+        annotation_status_value: int = None,
         upload_state_code: int = constances.UploadState.EXTERNAL.value,
     ):
         super().__init__()
@@ -90,7 +90,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         self._project = project
         self._folder = folder
         self._service_provider = service_provider
-        self._annotation_status = annotation_status
+        self._annotation_status_value = annotation_status_value
         self._upload_state_code = upload_state_code
 
     def _validate_limitations(self, to_upload_count):
@@ -106,14 +106,6 @@ class AttachFileUrlsUseCase(BaseUseCase):
             and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
-
-    @property
-    def annotation_status_code(self):
-        if self._annotation_status:
-            if isinstance(self._annotation_status, int):
-                return self._annotation_status
-            return constances.AnnotationStatus.get_value(self._annotation_status)
-        return constances.AnnotationStatus.NOT_STARTED.value
 
     @property
     def upload_state_code(self) -> int:
@@ -153,7 +145,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
                 project=self._project,
                 folder=self._folder,
                 attachments=to_upload,
-                annotation_status_code=self.annotation_status_code,
+                annotation_status_code=self._annotation_status_value,
                 upload_state_code=self.upload_state_code,
                 meta=meta,
             )
@@ -694,9 +686,7 @@ class DownloadImageUseCase(BaseReportableUseCase):
                 ).data
                 fuse_image = (
                     CreateFuseImageUseCase(
-                        project_type=constances.ProjectType.get_name(
-                            self._project.type
-                        ),
+                        project_type=constances.ProjectType(self._project.type).name,
                         image_path=download_path,
                         classes=[
                             annotation_class.dict(exclude_unset=True)
@@ -724,7 +714,7 @@ class UploadImageToProject(BaseUseCase):
         folder: FolderEntity,
         s3_repo,
         service_provider: BaseServiceProvider,
-        annotation_status: str,
+        annotation_status_value: Optional[int] = None,
         image_bytes: io.BytesIO = None,
         image_path: str = None,
         image_name: str = None,
@@ -741,7 +731,7 @@ class UploadImageToProject(BaseUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._s3_repo = s3_repo
         self._service_provider = service_provider
-        self._annotation_status = annotation_status
+        self._annotation_status_value = annotation_status_value
         self._auth_data = None
 
     @property
@@ -774,9 +764,9 @@ class UploadImageToProject(BaseUseCase):
         response = self._service_provider.get_limitations(self._project, self._folder)
         if response.data.folder_limit.remaining_image_count < 1:
             raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
-        elif response.data.project_limit.remaining_image_count < 1:
+        if response.data.project_limit.remaining_image_count < 1:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
-        elif (
+        if (
             response.data.user_limit
             and response.data.user_limit.remaining_image_count < 1
         ):
@@ -835,7 +825,7 @@ class UploadImageToProject(BaseUseCase):
                 folder=self._folder,
                 attachments=[s3_upload_response.data],
                 service_provider=self._service_provider,
-                annotation_status=self._annotation_status,
+                annotation_status_value=self._annotation_status_value,
                 upload_state_code=constances.UploadState.BASIC.value,
             ).execute()
         return self._response
@@ -853,7 +843,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         service_provider: BaseServiceProvider,
         paths: List[str],
         extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status="NotStarted",
+        annotation_status_value: Optional[int] = None,
         from_s3_bucket=None,
         exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_sub_folders: bool = False,
@@ -878,7 +868,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 list(constances.DEFAULT_FILE_EXCLUDE_PATTERNS)
             )
         self._exclude_file_patterns = exclude_file_patterns
-        self._annotation_status = annotation_status
+        self._annotation_status_value = annotation_status_value
 
     @property
     def extensions(self):
@@ -906,14 +896,6 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
-
-    def validate_annotation_status(self):
-        if (
-            self._annotation_status
-            and self._annotation_status.lower()
-            not in constances.AnnotationStatus.values()
-        ):
-            raise AppValidationException("Invalid annotations status")
 
     def validate_extensions(self):
         if self._extensions and not all(
@@ -1004,10 +986,9 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 entity=entity,
                 name=Path(image_path).name,
             )
-        else:
-            return ProcessedImage(
-                uploaded=False, path=image_path, entity=None, name=Path(image_path).name
-            )
+        return ProcessedImage(
+            uploaded=False, path=image_path, entity=None, name=Path(image_path).name
+        )
 
     def filter_paths(self, paths: List[str]):
         paths = [
@@ -1100,7 +1081,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                         image.entity
                         for image in uploaded_images[i : i + 100]  # noqa: E203
                     ],
-                    annotation_status=self._annotation_status,
+                    annotation_status_value=self._annotation_status_value,
                     upload_state_code=constances.UploadState.BASIC.value,
                 ).execute()
                 if response.errors:
@@ -1130,7 +1111,7 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
         service_provider: BaseServiceProvider,
         folder_path: str,
         extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status="NotStarted",
+        annotation_status_value: Optional[int] = None,
         from_s3_bucket=None,
         exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_sub_folders: bool = False,
@@ -1149,7 +1130,7 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
             service_provider=service_provider,
             paths=paths,
             extensions=extensions,
-            annotation_status=annotation_status,
+            annotation_status_value=annotation_status_value,
             from_s3_bucket=from_s3_bucket,
             exclude_file_patterns=exclude_file_patterns,
             recursive_sub_folders=recursive_sub_folders,
@@ -1239,7 +1220,7 @@ class UploadImageS3UseCase(BaseUseCase):
                     if setting.attribute == "ImageQuality":
                         quality = setting.value
             else:
-                quality = ImageQuality.get_value(self._image_quality_in_editor)
+                quality = ImageQuality(self._image_quality_in_editor).value
             if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
                 if quality == 100:
                     self._image.seek(0)
@@ -1593,7 +1574,7 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
         start_time: float,
         end_time: float = None,
         target_fps: float = None,
-        annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
+        annotation_status_code: int = None,
         image_quality_in_editor: str = None,
         limit: int = None,
     ):
@@ -1698,7 +1679,7 @@ class UploadVideosAsImages(BaseReportableUseCase):
         exclude_file_patterns: List[str] = (),
         start_time: Optional[float] = 0.0,
         end_time: Optional[float] = None,
-        annotation_status: str = constances.AnnotationStatus.NOT_STARTED,
+        annotation_status_value: int = None,
         image_quality_in_editor=None,
     ):
         super().__init__(reporter)
@@ -1712,14 +1693,8 @@ class UploadVideosAsImages(BaseReportableUseCase):
         self._exclude_file_patterns = exclude_file_patterns
         self._start_time = start_time
         self._end_time = end_time
-        self._annotation_status = annotation_status
+        self._annotation_status_value = annotation_status_value
         self._image_quality_in_editor = image_quality_in_editor
-
-    @property
-    def annotation_status(self):
-        if not self._annotation_status:
-            return constances.AnnotationStatus.NOT_STARTED.name
-        return self._annotation_status
 
     @property
     def upload_path(self):
@@ -1782,7 +1757,7 @@ class UploadVideosAsImages(BaseReportableUseCase):
                         start_time=self._start_time,
                         end_time=self._end_time,
                         target_fps=self._target_fps,
-                        annotation_status_code=self.annotation_status,
+                        annotation_status_code=self._annotation_status_value,
                         image_quality_in_editor=self._image_quality_in_editor,
                     )
                     if not frames_generator_use_case.is_valid():
@@ -1820,12 +1795,12 @@ class UploadVideosAsImages(BaseReportableUseCase):
                                 service_provider=self._service_provider,
                                 folder_path=temp_path,
                                 s3_repo=self._s3_repo,
-                                annotation_status=self.annotation_status,
+                                annotation_status_value=self._annotation_status_value,
                                 image_quality_in_editor=self._image_quality_in_editor,
                             )
 
                             images_to_upload, duplicates = use_case.images_to_upload
-                            if not len(images_to_upload):
+                            if not images_to_upload:
                                 continue
                             if use_case.is_valid():
                                 for _ in use_case.execute():

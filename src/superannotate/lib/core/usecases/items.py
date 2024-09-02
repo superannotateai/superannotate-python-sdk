@@ -8,7 +8,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-import superannotate.lib.core as constants
+import lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
@@ -367,17 +367,15 @@ class AttachItems(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         attachments: List[AttachmentEntity],
-        annotation_status: str,
         service_provider: BaseServiceProvider,
+        annotation_status_value: int = None,
         upload_state_code: int = constants.UploadState.EXTERNAL.value,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._attachments = attachments
-        self._annotation_status_code = constants.AnnotationStatus.get_value(
-            annotation_status
-        )
+        self._annotation_status_code = annotation_status_value
         self._upload_state_code = upload_state_code
         self._service_provider = service_provider
         self._attachments_count = None
@@ -397,9 +395,9 @@ class AttachItems(BaseReportableUseCase):
             raise AppValidationException(response.error)
         if attachments_count > response.data.folder_limit.remaining_image_count:
             raise AppValidationException(constants.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
-        elif attachments_count > response.data.project_limit.remaining_image_count:
+        if attachments_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constants.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
-        elif (
+        if (
             response.data.user_limit
             and attachments_count > response.data.user_limit.remaining_image_count
         ):
@@ -668,9 +666,9 @@ class SetAnnotationStatues(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._item_names = item_names
-        self._annotation_status_code = constants.AnnotationStatus.get_value(
+        self._annotation_status_code = constants.AnnotationStatus(
             annotation_status
-        )
+        ).value
         self._service_provider = service_provider
 
     def validate_items(self):
@@ -734,7 +732,7 @@ class SetApprovalStatues(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._item_names = item_names
-        self._approval_status_code = constants.ApprovalStatus.get_value(approval_status)
+        self._approval_status_code = constants.ApprovalStatus(approval_status).value
         self._service_provider = service_provider
 
     def validate_items(self):
@@ -746,14 +744,11 @@ class SetApprovalStatues(BaseReportableUseCase):
                 item.name for item in self._service_provider.items.list(condition).data
             ]
             return
-        else:
-            _tmp = set(self._item_names)
-            unique, total = len(_tmp), len(self._item_names)
-            if unique < total:
-                logger.info(
-                    f"Dropping duplicates. Found {unique}/{total} unique items."
-                )
-            self._item_names = list(_tmp)
+        _tmp = set(self._item_names)
+        unique, total = len(_tmp), len(self._item_names)
+        if unique < total:
+            logger.info(f"Dropping duplicates. Found {unique}/{total} unique items.")
+        self._item_names = list(_tmp)
         existing_items = []
         for i in range(0, len(self._item_names), self.CHUNK_SIZE):
             search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
@@ -787,7 +782,7 @@ class SetApprovalStatues(BaseReportableUseCase):
                     if response.error == "Unsupported project type.":
                         self._response.errors = (
                             f"The function is not supported for"
-                            f" {constants.ProjectType.get_name(self._project.type)} projects."
+                            f" {constants.ProjectType(self._project.type).name} projects."
                         )
                     else:
                         self._response.errors = self.ERROR_MESSAGE
@@ -960,7 +955,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                 if not folder_found:
                     removables.append(path)
 
-            except Exception as e:
+            except Exception as _:
                 removables.append(path)
 
         # Removing completely incorrect paths and their items
@@ -977,7 +972,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         return query_str
 
     def __query(self, path, items):
-        _, folder = extract_project_folder(path)
+        _, __ = extract_project_folder(path)
 
         item_names = [item["name"] for item in items["items"]]
         query = self.__build_query_string(path, item_names)

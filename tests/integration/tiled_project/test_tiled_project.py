@@ -11,6 +11,4 @@ class TestTiledProject(BaseTestCase):
 
     def test_get_metadata(self):
         self._attach_items()
-        assert all(
-            [i["metadata"]["name"] for i in sa.get_annotations(self.PROJECT_NAME)]
-        )
+        assert all(i["metadata"]["name"] for i in sa.get_annotations(self.PROJECT_NAME))

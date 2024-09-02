@@ -36,7 +36,10 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import UserEntity
+from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.service_types import UploadAnnotationAuthData
@@ -467,15 +470,24 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 {i.item.name for i in items_to_upload}
                 - set(self._report.failed_annotations).union(set(skipped))
             )
-            if uploaded_annotations and not self._keep_status:
-                statuses_changed = set_annotation_statuses_in_progress(
-                    service_provider=self._service_provider,
-                    project=self._project,
-                    folder=self._folder,
-                    item_names=uploaded_annotations,
-                )
-                if not statuses_changed:
-                    self._response.errors = AppException("Failed to change status.")
+            response = self._service_provider.work_management.list(
+                Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+            )
+            if not response.ok:
+                raise AppException(response.error)
+            workflow: WorkflowEntity = next(
+                (i for i in response.data if i.id == self._project.workflow_id), None
+            )
+            if workflow.is_system():
+                if uploaded_annotations and not self._keep_status:
+                    statuses_changed = set_annotation_statuses_in_progress(
+                        service_provider=self._service_provider,
+                        project=self._project,
+                        folder=self._folder,
+                        item_names=uploaded_annotations,
+                    )
+                    if not statuses_changed:
+                        self._response.errors = AppException("Failed to change status.")
 
             self._response.data = {
                 "succeeded": uploaded_annotations,
@@ -1104,7 +1116,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
         if self._project.type != constants.ProjectType.VIDEO.value:
             raise AppException(
                 "The function is not supported for"
-                f" {constants.ProjectType.get_name(self._project.type)} projects."
+                f" {constants.ProjectType(self._project.type).name} projects."
             )
 
     def execute(self):

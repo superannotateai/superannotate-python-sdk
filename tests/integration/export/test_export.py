@@ -84,10 +84,14 @@ class TestExportImport(TestCase):
                     folder_name = folder_name.replace("/", "")
                     if folder_name == "classes":
                         continue
-                    actual = json.load(open(os.path.join(path, name)))
-                    expected = json.load(
-                        open(os.path.join(self.TEST_FOLDER_PATH, folder_name, name))
-                    )
+                    with open(os.path.join(path, name), encoding="utf-8") as f:
+                        actual = json.load(f)
+                    with open(
+                        os.path.join(self.TEST_FOLDER_PATH, folder_name, name),
+                        encoding="utf-8",
+                    ) as f:
+                        expected = json.load(f)
+
                     assert compare_result(
                         actual, expected, ignore_keys=self.IGNORE_KEYS
                     )

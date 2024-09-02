@@ -1,9 +1,12 @@
 import datetime
+from typing import Dict
 from typing import List
 
 import lib.core as constants
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.enums import ApprovalStatus
+from lib.core.exceptions import AppException
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
@@ -17,10 +20,10 @@ from lib.infrastructure.services.folder import FolderService
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
+from lib.infrastructure.services.item_service import ItemService as SeparateItemService
 from lib.infrastructure.services.project import ProjectService
 from lib.infrastructure.services.subset import SubsetService
-from lib.infrastructure.services.work_managament import WorkManagamentService
-from lib.infrastructure.services.item_service import ItemService as SeperateItemService
+from lib.infrastructure.services.work_managament import WorkManagementService
 
 
 class ServiceProvider(BaseServiceProvider):
@@ -43,6 +46,9 @@ class ServiceProvider(BaseServiceProvider):
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
 
     def __init__(self, client: HttpClient):
+        self.enum_mapping = {"approval_status": ApprovalStatus.get_mapping()}
+        self._annotation_status_name_value_mapping: Dict[int, Dict[str, int]] = dict()
+        self._annotation_status_value_name_mapping: Dict[int, Dict[int, str]] = dict()
         self.client = client
         self.projects = ProjectService(client)
         self.folders = FolderService(client)
@@ -52,22 +58,68 @@ class ServiceProvider(BaseServiceProvider):
         self.custom_fields = CustomFieldService(client)
         self.subsets = SubsetService(client)
         self.integrations = IntegrationService(client)
-        self.work_managament = WorkManagamentService(
+        self.work_management = WorkManagementService(
             HttpClient(
-                api_url=self._get_work_managament_url(client),
+                api_url=self._get_work_management_url(client),
                 token=client.token,
                 verify_ssl=client.verify_ssl,
             )
         )
-        self.item_service = SeperateItemService(
+        self.item_service = SeparateItemService(
             HttpClient(
                 api_url=self._get_item_service_url(client),
                 token=client.token,
                 verify_ssl=client.verify_ssl,
             )
         )
+
+    def _sync_annotations_statues(self, project: entities.ProjectEntity):
+        # todo delete
+        import time
+
+        time.sleep(2)
+        response = self.work_management.list_workflow_statuses(
+            project.id, project.workflow_id
+        )
+        if not response.ok:
+            raise AppException(response.error)
+        statuses = response.data["data"]
+        status_name_value_map = {}
+        for status in statuses:
+            status_name_value_map[status["status"]["name"]] = status["value"]
+        self._annotation_status_name_value_mapping[project.id] = status_name_value_map
+        self._annotation_status_value_name_mapping[project.id] = {
+            v: k for k, v in status_name_value_map.items()
+        }
+
+    def get_annotation_status_value(
+        self, project: entities.ProjectEntity, status_name: str
+    ) -> int:
+        if project.id in self._annotation_status_name_value_mapping:
+            mapping = self._annotation_status_name_value_mapping[project.id]
+            if status_name in mapping:
+                return mapping[status_name]
+            else:
+                raise AppException("Invalid status value provided.")
+        else:
+            self._sync_annotations_statues(project)
+            return self.get_annotation_status_value(project, status_name)
+
+    def get_annotation_status_name(
+        self, project: entities.ProjectEntity, status_value: int
+    ) -> str:
+        if project.id in self._annotation_status_value_name_mapping:
+            mapping = self._annotation_status_value_name_mapping[project.id]
+            if status_value in mapping:
+                return mapping[status_value]
+            else:
+                raise AppException("Invalid status value provided.")
+        else:
+            self._sync_annotations_statues(project)
+            return self.get_annotation_status_name(project, status_value)
+
     @staticmethod
-    def _get_work_managament_url(client: HttpClient):
+    def _get_work_management_url(client: HttpClient):
         if client.api_url != constants.BACKEND_URL:
             return "https://work-management-api.devsuperannotate.com/api/v1/"
         return "https://work-management-api.devsuperannotate.com/api/v1/"
@@ -76,9 +128,7 @@ class ServiceProvider(BaseServiceProvider):
     def _get_item_service_url(client: HttpClient):
         if client.api_url != constants.BACKEND_URL:
             return "https://item.devsuperannotate.com/api/v1/"
-        return (
-            f"https://item.superannotate.com//api/v1/"
-        )
+        return "https://item.superannotate.com//api/v1/"
 
     def get_team(self, team_id: int) -> TeamResponse:
         return self.client.request(
@@ -179,7 +229,7 @@ class ServiceProvider(BaseServiceProvider):
         export_type: int = None,
     ):
         annotation_statuses = ",".join(
-            [str(constants.AnnotationStatus.get_value(i)) for i in annotation_statuses]
+            [str(constants.AnnotationStatus(i).value) for i in annotation_statuses]
         )
 
         data = {

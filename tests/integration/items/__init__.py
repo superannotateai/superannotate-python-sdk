@@ -11,8 +11,6 @@ ITEM_EXPECTED_KEYS = [
 ]
 
 IMAGE_EXPECTED_KEYS = ITEM_EXPECTED_KEYS + [
-    "segmentation_status",
-    "prediction_status",
     "approval_status",
 ]
 

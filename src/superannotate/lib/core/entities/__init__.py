@@ -8,6 +8,7 @@ from lib.core.entities.items import ClassificationEntity
 from lib.core.entities.items import DocumentEntity
 from lib.core.entities.items import ImageEntity
 from lib.core.entities.items import PointCloudEntity
+from lib.core.entities.items import PROJECT_ITEM_ENTITY_MAP
 from lib.core.entities.items import TiledEntity
 from lib.core.entities.items import VideoEntity
 from lib.core.entities.project import AttachmentEntity
@@ -49,4 +50,5 @@ __all__ = [
     "TeamEntity",
     "UserEntity",
     "IntegrationEntity",
+    "PROJECT_ITEM_ENTITY_MAP",
 ]

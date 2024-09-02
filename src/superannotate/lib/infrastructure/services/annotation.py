@@ -24,7 +24,7 @@ try:
 except ImportError:
     from pydantic import parse_obj_as
 
-from superannotate.lib.infrastructure.services.http_client import AIOHttpSession
+from lib.infrastructure.services.http_client import AIOHttpSession
 
 logger = logging.getLogger("sa")
 
@@ -388,11 +388,10 @@ class AnnotationService(BaseAnnotationService):
                     status = data.get("status")
                     if status == "SUCCESS":
                         return True
-                    elif status.startswith("FAILED"):
+                    if status.startswith("FAILED"):
                         return False
                     await asyncio.sleep(15)
-                else:
-                    raise AppException(str(await response.text()))
+                raise AppException(str(await response.text()))
 
     def delete(
         self,

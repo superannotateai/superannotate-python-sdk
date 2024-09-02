@@ -198,7 +198,7 @@ def export_annotation(
         ProjectType.VIDEO.name,
         ProjectType.DOCUMENT.name,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[ProjectType.get_value(project_type)])
+        raise AppException(LIMITED_FUNCTIONS[ProjectType(project_type).value])
 
     params_info = [
         (input_dir, "input_dir", (str, Path)),

@@ -170,7 +170,7 @@ class TeamEntity(BaseModel):
 
 class WorkflowEntity(BaseModel):
     id: Optional[int]
-    name: Optional[int]
+    name: Optional[str]
     type: Optional[str]
 
     def is_system(self):

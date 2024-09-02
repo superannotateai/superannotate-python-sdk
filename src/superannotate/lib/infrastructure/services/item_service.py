@@ -1,16 +1,40 @@
-import lib.core as constants
+import base64
+
+from lib.core.entities import BaseItemEntity
 from lib.core.jsx_conditions import Query
-from lib.core.service_types import ItemListResponse
+from lib.core.service_types import BaseItemResponse
 from lib.core.serviceproviders import SuperannotateServiceProvider
 
 
 class ItemService(SuperannotateServiceProvider):
     URL_LIST = "items"
+    URL_GET = "items/{item_id}"
 
-    def list(self, query: Query):
+    def get(self, project_id: int, item_id: int):
         result = self.client.request(
-            f"{self.URL_LIST}/{query.build_query()}",
-            "get",
-            content_type=ItemListResponse,
+            url=self.URL_GET.format(item_id=item_id),
+            method="GET",
+            content_type=BaseItemResponse,
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},'
+                    f'"project_id":{project_id}}}'.encode("utf-8")
+                ).decode()
+            },
+        )
+        return result
+
+    def list(self, project_id: int, folder_id: int, query: Query):
+        result = self.client.paginate(
+            f"{self.URL_LIST}?{query.build_query()}",
+            item_type=BaseItemEntity,
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},'
+                    f'"project_id":{project_id},"folder_id":{folder_id}}}'.encode(
+                        "utf-8"
+                    )
+                ).decode()
+            },
         )
         return result

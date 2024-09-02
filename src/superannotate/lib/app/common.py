@@ -54,8 +54,8 @@ def id2rgb(id_map):
 
 
 def write_to_json(output_path, json_data):
-    with open(output_path, "w") as fw:
-        json.dump(json_data, fw, indent=2)
+    with open(output_path, "w") as f:
+        json.dump(json_data, f, indent=2)
 
 
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit

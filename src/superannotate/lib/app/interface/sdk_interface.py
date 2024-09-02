@@ -7,6 +7,7 @@ import os
 import sys
 import warnings
 from pathlib import Path
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterable
@@ -36,7 +37,6 @@ from lib.app.interface.base_interface import TrackableMeta
 from lib.app.interface.types import EmailStr
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import FolderSerializer
-from lib.app.serializers import ItemSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
@@ -44,7 +44,7 @@ from lib.core import LIMITED_FUNCTIONS
 from lib.core import entities
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
-from lib.core.jsx_conditions import Filter, OperatorEnum, EmptyQuery, Join
+from lib.core.jsx_conditions import Filter, OperatorEnum
 from lib.core.conditions import EmptyCondition
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import SettingEntity
@@ -67,7 +67,9 @@ from lib.infrastructure.validators import wrap_error
 
 logger = logging.getLogger("sa")
 
-NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
+# NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
+NotEmptyStr = constr(strict=True, min_length=1)
+
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
@@ -101,6 +103,8 @@ class ItemFilters(TypedDict, total=False):
     id__in: Optional[List[int]]
     name__in: Optional[List[str]]
     name__startswith: Optional[str]
+    approval_status: Optional[APPROVAL_STATUS]
+    approval_status__in: Optional[APPROVAL_STATUS]
     assignee__user_id: Optional[str]
     assignee__user_id__in: Optional[List[str]]
 
@@ -189,11 +193,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_response = self.controller.get_project_by_id(project_id=project_id)
         project_response.raise_for_status()
-        response = self.controller.get_item_by_id(
+        item = self.controller.get_item_by_id(
             item_id=item_id, project=project_response.data
         )
 
-        return ItemSerializer(response.data).serialize(exclude={"url", "meta"})
+        return BaseSerializer(item).serialize(exclude={"url", "meta"})
 
     def get_team_metadata(self):
         """Returns team metadata
@@ -278,10 +282,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             condition &= Condition(
                 "completeImagesCount", include_complete_item_count, EQ
             )
-        for status in statuses:
-            condition &= Condition(
-                "status", constants.ProjectStatus.get_value(status), EQ
-            )
+        for _status in statuses:
+            condition &= Condition("status", constants.ProjectStatus(_status).value, EQ)
 
         response = self.controller.projects.list(condition)
         if response.errors:
@@ -299,8 +301,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
                 for project in response.data
             ]
-        else:
-            return [project.name for project in response.data]
+        return [project.name for project in response.data]
 
     def create_project(
         self,
@@ -309,7 +310,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_type: PROJECT_TYPE,
         settings: List[Setting] = None,
         classes: List[AnnotationClassEntity] = None,
-        workflows: List = None,
+        workflows: Any = None,
         instructions_link: str = None,
         workflow: str = None,
     ):
@@ -358,13 +359,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_entity = entities.ProjectEntity(
             name=project_name,
             description=project_description,
-            type=constants.ProjectType.get_value(project_type),
+            type=constants.ProjectType(project_type).value,
             settings=settings,
             instructions_link=instructions_link,
         )
         if workflow:
             _workflows = (
-                self.controller.service_provider.work_managament.list_workflows(
+                self.controller.service_provider.work_management.list_workflows(
                     Filter("name", workflow, OperatorEnum.EQ)
                 )
             )
@@ -476,7 +477,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return ProjectSerializer(response.data).serialize()
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
-        """Create a new folder in the project.
+        """
+        Create a new folder in the project.
 
         :param project: project name
         :type project: str
@@ -609,9 +611,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             condition &= Condition("includeUsers", return_metadata, EQ)
         if status:
             if isinstance(status, list):
-                status_condition = [constants.FolderStatus.get_value(i) for i in status]
+                status_condition = [constants.FolderStatus(i).value for i in status]
             else:
-                status_condition = constants.FolderStatus.get_value(status)
+                status_condition = constants.FolderStatus(status).value
             condition &= Condition("status", status_condition, EQ)
         response = self.controller.folders.list(project, condition)
         if response.errors:
@@ -663,7 +665,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of project
         :rtype: dict
         """
-        project_name, folder_name = extract_project_folder(project)
+        project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
         if include_workflow:
             warnings.warn(
@@ -745,7 +747,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ]
 
         """
-        project_name, folder_name = extract_project_folder(project)
+        project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
         workflow = self.controller.projects.list_workflow(project)
         if workflow.errors:
@@ -767,7 +769,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: annotation classes of the project
         :rtype: list of dicts
         """
-        project_name, folder_name = extract_project_folder(project)
+        project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
         condition = Condition("project_id", project.id, EQ)
         if name_contains:
@@ -798,7 +800,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type status: str
         """
         project = self.controller.get_project(name=project)
-        project.status = constants.ProjectStatus.get_value(status)
+        project.status = constants.ProjectStatus(status).value
         response = self.controller.projects.update(project)
         if response.errors:
             raise AppException(f"Failed to change {project.name} status.")
@@ -827,7 +829,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project, folder = self.controller.get_project_folder(
             project_name=project, folder_name=folder
         )
-        folder.status = constants.FolderStatus.get_value(status)
+        folder.status = constants.FolderStatus(status).value
         response = self.controller.update(project, folder)
         if response.errors:
             raise AppException(f"Failed to change {project.name}/{folder.name} status.")
@@ -847,8 +849,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param image_quality_in_editor: new setting value, should be "original" or "compressed"
         :type image_quality_in_editor: str
         """
-        project_name, folder_name = extract_project_folder(project)
-        image_quality_in_editor = ImageQuality.get_value(image_quality_in_editor)
+        project_name, _ = extract_project_folder(project)
+        image_quality_in_editor = ImageQuality(image_quality_in_editor).value
         project = self.controller.get_project(project_name)
         response = self.controller.projects.set_settings(
             project=project,
@@ -874,10 +876,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type pin: bool
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        response = self.controller.items.get_by_name(project, folder, image_name)
-        if response.errors:
-            raise AppException(response.errors)
-        item = response.data
+        item = self.controller.items.get_by_name(project, folder, image_name)
         item.is_pinned = int(pin)
         self.controller.items.update(project=project, item=item)
 
@@ -1014,7 +1013,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         extensions: Optional[
             Union[List[NotEmptyStr], Tuple[NotEmptyStr]]
         ] = constants.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status="NotStarted",
+        annotation_status: Optional[str] = None,
         from_s3_bucket=None,
         exclude_file_patterns: Optional[
             Iterable[NotEmptyStr]
@@ -1038,8 +1037,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param extensions: tuple or list of filename extensions to include from folder
         :type extensions: tuple or list of strs
 
-        :param annotation_status: value to set the annotation statuses of the uploaded images
-         NotStarted InProgress QualityCheck Returned Completed Skipped
+        :param annotation_status: the annotation status of the item within the current project workflow.
+                                  If None, the status will be set to the start status of the project workflow.
         :type annotation_status: str
 
         :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
@@ -1072,7 +1071,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(
                 "extensions should be a list or a tuple in upload_images_from_folder_to_project"
             )
-        elif len(extensions) < 1:
+        if len(extensions) < 1:
             return [], [], []
 
         if exclude_file_patterns:
@@ -1280,7 +1279,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         target_fps: Optional[int] = None,
         start_time: Optional[float] = 0.0,
         end_time: Optional[float] = None,
-        annotation_status: Optional[ANNOTATION_STATUS] = "NotStarted",
+        annotation_status: str = None,
         image_quality_in_editor: Optional[IMAGE_QUALITY] = None,
     ):
         """Uploads image frames from all videos with given extensions from folder_path to the project.
@@ -1311,8 +1310,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param end_time: Time (in seconds) up to which to extract frames. If None up to end
         :type end_time: float
 
-        :param annotation_status: value to set the annotation statuses of the uploaded images
-            NotStarted InProgress QualityCheck Returned Completed Skipped
+        :param annotation_status:  the annotation status of the item within the current project workflow.
+                                   If None, the status will be set to the start status of the project workflow.
         :type annotation_status: str
 
         :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
@@ -1368,7 +1367,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         target_fps: Optional[int] = None,
         start_time: Optional[float] = 0.0,
         end_time: Optional[float] = None,
-        annotation_status: Optional[ANNOTATION_STATUS] = "NotStarted",
+        annotation_status: Optional[str] = None,
         image_quality_in_editor: Optional[IMAGE_QUALITY] = None,
     ):
         """Uploads image frames from video to platform. Uploaded images will have
@@ -1390,8 +1389,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param end_time: Time (in seconds) up to which to extract frames. If None up to end
         :type end_time: float
 
-        :param annotation_status: value to set the annotation statuses of the uploaded
-                                  video frames NotStarted InProgress QualityCheck Returned Completed Skipped
+        :param annotation_status:  the annotation status of the item within the current project workflow.
+                                   If None, the status will be set to the start status of the project workflow.
         :type annotation_status: str
 
         :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
@@ -1587,12 +1586,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project = self.controller.projects.get_by_name(project).data
-        response = self.controller.annotation_classes.download(
-            project=project, download_path=folder
+        logger.info(
+            f"Downloading classes.json from project {project.name} to folder {str(folder)}."
+        )
+        response = self.controller.annotation_classes.list(
+            condition=Condition("project_id", project.id, EQ)
         )
         if response.errors:
             raise AppException(response.errors)
-        return response.data
+        classes = BaseSerializer.serialize_iterable(response.data)
+        json_path = f"{folder}/classes.json"
+        with open(json_path, "w") as f:
+            json.dump(classes, f, indent=4)
+        return json_path
 
     def create_annotation_classes_from_classes_json(
         self,
@@ -1615,7 +1621,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: list of created annotation class metadatas
         :rtype: list of dicts
         """
-        if isinstance(classes_json, str) or isinstance(classes_json, Path):
+        if isinstance(classes_json, (str, Path)):
             if from_s3_bucket:
                 from_session = boto3.Session()
                 from_s3 = from_session.resource("s3")
@@ -1623,10 +1629,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
                 from_s3_object.download_fileobj(file)
                 file.seek(0)
-                data = file
+                classes_json = json.load(file)
             else:
-                data = open(classes_json, encoding="utf-8")
-            classes_json = json.load(data)
+                with open(classes_json, encoding="utf-8") as f:
+                    classes_json = json.load(f)
         try:
             annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
         except ValidationError as _:
@@ -1666,7 +1672,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
         :type to_s3_bucket: Bucket object
         """
-        project_name, folder_name = extract_project_folder(project)
+        project_name, _ = extract_project_folder(project)
         export_name = export["name"] if isinstance(export, dict) else export
 
         response = self.controller.download_export(
@@ -1811,6 +1817,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
 
         """
+        if keep_status:
+            warnings.warn(DeprecationWarning(""))
         project, folder = self.controller.get_project_folder_by_path(project)
         response = self.controller.annotations.upload_multiple(
             project=project,
@@ -1941,23 +1949,24 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             else:
                 mask_path = f"{image_name}___save.png"
             if os.path.exists(mask_path):
-                mask = open(mask_path, "rb").read()
+                with open(mask_path, "rb") as f:
+                    mask = f.read()
         elif isinstance(mask, str) or isinstance(mask, Path):
             if os.path.exists(mask):
-                mask = open(mask, "rb").read()
+                with open(mask, "rb") as f:
+                    mask = f.read()
 
         if not isinstance(annotation_json, dict):
             if verbose:
                 logger.info("Uploading annotations from %s.", annotation_json)
-            annotation_json = json.load(open(annotation_json))
+            with open(annotation_json, "rb") as f:
+                annotation_json = json.load(f)
         folder = self.controller.get_folder(project, folder_name)
         if not folder:
             raise AppException("Folder not found.")
 
-        image = self.controller.items.get_by_name(project, folder, image_name).data
+        image = self.controller.items.get_by_name(project, folder, image_name)
 
-        if not image:
-            raise AppException("Image not found.")
         response = self.controller.annotations.upload_image_annotations(
             project=project,
             folder=folder,
@@ -2015,7 +2024,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: NotEmptyStr,
         img,
         image_name: Optional[NotEmptyStr] = None,
-        annotation_status: Optional[ANNOTATION_STATUS] = "NotStarted",
+        annotation_status: Optional[str] = None,
         from_s3_bucket=None,
         image_quality_in_editor: Optional[NotEmptyStr] = None,
     ):
@@ -2032,8 +2041,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                            image name will be set to filename of the path
         :type image_name: str
 
-        :param annotation_status: value to set the annotation statuses of the uploaded image
-                NotStarted InProgress QualityCheck Returned Completed Skipped
+        :param annotation_status: the annotation status of the item within the current project workflow.
+                                  If None, the status will be set to the start status of the project workflow.
         :type annotation_status: str
 
         :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
@@ -2150,7 +2159,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: DataFrame on annotations
         :rtype: pandas DataFrame
         """
-        from superannotate.lib.app.analytics.aggregators import DataAggregator
+        from lib.app.analytics.aggregators import DataAggregator
 
         return DataAggregator(
             project_type=project_type,  # noqa
@@ -2196,7 +2205,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if isinstance(annotations_json, dict):
             annotation_data = annotations_json
         else:
-            annotation_data = json.load(open(annotations_json))
+            with open(annotations_json, "rb") as f:
+                annotation_data = json.load(f)
         response = self.controller.validate_annotations(project_type, annotation_data)
         if response.errors:
             raise AppException(response.errors)
@@ -2471,7 +2481,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        response = self.controller.items.get_by_name(
+        item = self.controller.items.get_by_name(
             project=project,
             folder=folder,
             name=item_name,
@@ -2479,9 +2489,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         exclude = {"custom_metadata"} if not include_custom_metadata else set()
         exclude.add("meta")
-        if response.errors:
-            raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize(exclude=exclude)
+
+        return BaseSerializer(item).serialize(exclude=exclude)
 
     def search_items(
         self,
@@ -2565,40 +2574,47 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ]
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        search_condition = Condition.get_empty_condition()
+        query_kwargs = {}
         if name_contains:
-            search_condition &= Condition("name", name_contains, EQ)
+            query_kwargs["name__contains"] = name_contains
         if annotation_status:
-            search_condition &= Condition(
-                "annotation_status",
-                constants.AnnotationStatus.get_value(annotation_status),
-                EQ,
-            )
+            query_kwargs["annotation_status"] = annotation_status
         if qa_email:
-            search_condition &= Condition("qa_id", qa_email, EQ)
+            query_kwargs["assignments__user_id"] = qa_email
+            query_kwargs["assignments__user_role"] = "QA"
         if annotator_email:
-            search_condition &= Condition("annotator_id", annotator_email, EQ)
+            query_kwargs["assignments__user_id"] = annotator_email
+            query_kwargs["assignments__user_role"] = "ANNOTATOR"
+        if include_custom_metadata:
+            query_kwargs
 
-        response = self.controller.items.list(
-            project=project,
-            folder=folder,
-            condition=search_condition,
-            recursive=recursive,
-            include_custom_metadata=include_custom_metadata,
-        )
-        exclude = {"custom_metadata"} if not include_custom_metadata else set()
-        exclude.add("meta")
-        if response.errors:
-            raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data, exclude=exclude)
+        if folder.is_root and recursive:
+            items = []
+            for folder in self.controller.folders.list(project=project).data:
+                path = (
+                    f"{project.name}{f'/{folder.name}' if not folder.is_root else ''}"
+                )
+                _items = self.controller.items.list_items(
+                    project, folder, **query_kwargs
+                )
+                for i in _items:
+                    i.path = path
+                items.extend(_items)
+        else:
+            path = f"{project.name}{f'/{folder}' if not folder.is_root else ''}"
+            items = self.controller.items.list_items(project, folder, **query_kwargs)
+            for i in items:
+                i.path = path
+        exclude = {"meta"}
+        return BaseSerializer.serialize_iterable(items, exclude=exclude)
 
     def list_items(
-            self,
-            project: Union[str, int],
-            folder: Optional[Union[str, int]] = None,
-            *,
-            include: List[Literal["assignee", "custom_metadata"]] = None,
-            **filters: ItemFilters,
+        self,
+        project: Union[str, int],
+        folder: Optional[Union[str, int]] = None,
+        /,
+        include: List[Literal["assignee", "custom_metadata"]] = None,
+        **filters,
     ):
         """
         Search items by filtering criteria.
@@ -2631,8 +2647,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 - name__contains: str
                 - name__startswith: str
                 - name__endswith: str
+                - approval_status: Literal["Approved", "Disapproved", None]
+                - approval_status__in: list[Literal["Approved", "Disapproved", None]]
                 - assignee__user_id: str
-                -  assignee__user_id__in: list[str]
+                - assignee__user_id__in: list[str]
         :type filters: ItemFilters
 
         :return: A list of items that match the filtering criteria.
@@ -2687,73 +2705,67 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 assignee__user_id="qa@example.com"
             )
         """
-        project = project if isinstance(project, int) else self.controller.get_project(project)
-        project_id = project.id
-        folder_id = folder if folder and isinstance(folder, int) else project.folder_id
-        filter_annotations = ItemFilters.__annotations__
-        query = Filter("team_id", self.controller.team_id, OperatorEnum.EQ)
-        query &= Filter("project_id", project_id, OperatorEnum.EQ)
-        query &= Filter("folder_id", folder_id, OperatorEnum.EQ)
-        for key, val in filters:
-            if key in filter_annotations:
-                _key, condition = key.split("__")
-                query &= Filter(_key, val, OperatorEnum[condition])
-        if include:
-            for _include in include:
-                query &= Join(_include)
-        response =  self.controller.service_provider.item_service.list(query)
-        return response.data
+        project = (
+            project
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        folder = (
+            folder
+            if folder and isinstance(folder, int)
+            else self.controller.get_folder(project, "root")
+        )
+        res = self.controller.items.list_items(
+            project, folder, include=include, **filters
+        )
+        exclude = {"meta"}
+        return BaseSerializer.serialize_iterable(res, exclude=exclude)
 
     def attach_items(
         self,
         project: Union[NotEmptyStr, dict],
         attachments: Union[NotEmptyStr, Path, conlist(Attachment, min_items=1)],
-        annotation_status: Optional[ANNOTATION_STATUS] = "NotStarted",
+        annotation_status: str = None,
     ):
-        """Link items from external storage to SuperAnnotate using URLs.
+        """
+        Link items from external storage to SuperAnnotate using URLs.
 
-                :param project: project name or folder path (e.g., “project1/folder1”)
-                :type project: str
+        :param project: project name or folder path (e.g., “project1/folder1”)
+        :type project: str
 
-                :param attachments: path to CSV file or list of dicts containing attachments URLs.
-                :type attachments: path-like (str or Path) or list of dicts
-                :param annotation_status: value to set the annotation statuses of the linked items. \n
-                        Available statuses are::
+        :param attachments: path to CSV file or list of dicts containing attachments URLs.
+        :type attachments: path-like (str or Path) or list of dicts
+        :param annotation_status: the annotation status of the item within the current project workflow.
+                                  If None, the status will be set to the start status of the project workflow.
 
-                         * NotStarted
-                         * InProgress
-                         * QualityCheck
-                         * Returned
-                         * Completed
-                         * Skipped
-                :type annotation_status: str
+        :type annotation_status: str
 
-                :return: uploaded, failed and duplicated item names
-                :rtype: tuple of list of strs
+        :return: uploaded, failed and duplicated item names
+        :rtype: tuple of list of strs
 
-                Example:
-                ::
+        Example:
+        ::
 
-                    client = SAClient()
-                    client.attach_items(
-                        project="Medical Annotations",
-                        attachments=[{"name": "item", "url": "https://..."}]
-                     )
+            client = SAClient()
+            client.attach_items(
+                project="Medical Annotations",
+                attachments=[{"name": "item", "url": "https://..."}]
+             )
 
-                Example of attaching items from custom integration:
-                ::
+        Example of attaching items from custom integration:
+        ::
 
-                    client = SAClient()
-                    client.attach_items(
-                        project="Medical Annotations",
-                        attachments=[
-                            {
-                                "name": "item",
-                                "url": "https://bucket-name.s3…/example.png"
-                                "integration": "custom-integration-name"
-                                }
-                            ]
-                    )
+            client = SAClient()
+            client.attach_items(
+                project="Medical Annotations",
+                attachments=[
+                    {
+                        "name": "item",
+                        "url": "https://bucket-name.s3…/example.png"
+                        "integration": "custom-integration-name"
+                        }
+                    ]
+            )
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -2941,8 +2953,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        else:
-            logger.info("Annotation statuses of items changed")
+        logger.info("Annotation statuses of items changed")
 
     def download_annotations(
         self,

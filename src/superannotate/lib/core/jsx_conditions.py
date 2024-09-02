@@ -9,6 +9,7 @@ class OperatorEnum(str, Enum):
     NE = "$ne"
     GT = "$gt"
     LT = "$lt"
+    CONTAINS = "$cont"
     STARTS = "$starts"
     ENDS = "ENDS"
     IN = "$in"
@@ -23,16 +24,19 @@ class Query:
         """Abstract method to build the query."""
         pass
 
-    def __and__(self, other: 'Query') -> 'Query':
+    def __and__(self, other: "Query") -> "Query":
         if not isinstance(other, Query):
             raise TypeError("Only Query types are supported in 'and' operations.")
         self.condition_set.extend(other.condition_set)
         return self
 
-
     def build_query(self) -> str:
         """Builds a query string based on the condition set."""
-        return "&".join(condition.build() for condition in self.condition_set if not isinstance(condition, EmptyQuery))
+        return "&".join(
+            condition.build()
+            for condition in self.condition_set
+            if not isinstance(condition, EmptyQuery)
+        )
 
 
 class EmptyQuery(Query):
@@ -49,7 +53,10 @@ class Filter(Query):
         self.condition_set = [self]
 
     def _build(self):
-        return f"{self._key}||{self._operator.value}||{self._value}"
+        if isinstance(self._value, (list, set, tuple)):
+            return f"{self._key}||{self._operator.value}||{','.join(map(str, self._value))}"
+        else:
+            return f"{self._key}||{self._operator.value}||{self._value}"
 
     def build(self) -> str:
         return f"filter={self._build()}"
@@ -73,4 +80,3 @@ class Join(Query):
     def build(self) -> str:
         fields_str = f"||{','.join(self._fields)}" if self._fields else ""
         return f"join={self._relation}{fields_str}"
-
