@@ -114,6 +114,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         return self._upload_state_code
 
     def execute(self):
+        response = self._service_provider
         response = self._service_provider.items.list_by_names(
             project=self._project,
             folder=self._folder,

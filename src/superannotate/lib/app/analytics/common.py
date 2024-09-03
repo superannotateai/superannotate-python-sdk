@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-from lib.app.exceptions import AppException
+from lib.core.exceptions import AppException
 
 
 logger = logging.getLogger("sa")

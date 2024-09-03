@@ -9,9 +9,9 @@ from typing import Union
 
 import lib.core as constances
 import pandas as pd
-from lib.app.exceptions import AppException
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
+from lib.core.exceptions import AppException
 
 logger = logging.getLogger("sa")
 
@@ -210,14 +210,13 @@ class DataAggregator:
             constances.ProjectType.PIXEL,
         ):
             return self.aggregate_image_annotations_as_df(annotation_paths)
-        elif self.project_type is constances.ProjectType.VIDEO:
+        if self.project_type is constances.ProjectType.VIDEO:
             return self.aggregate_video_annotations_as_df(annotation_paths)
-        elif self.project_type is constances.ProjectType.DOCUMENT:
+        if self.project_type is constances.ProjectType.DOCUMENT:
             return self.aggregate_document_annotations_as_df(annotation_paths)
-        else:
-            raise AppException(
-                f"The function is not supported for {self.project_type.name} projects."
-            )
+        raise AppException(
+            f"The function is not supported for {self.project_type.name} projects."
+        )
 
     @staticmethod
     def __add_attributes_to_raws(raws, attributes, element_raw):

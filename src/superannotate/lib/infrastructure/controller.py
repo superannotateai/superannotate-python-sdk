@@ -4,6 +4,7 @@ import os
 from abc import ABCMeta
 from pathlib import Path
 from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -33,14 +34,16 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import Join
 from lib.core.jsx_conditions import OperatorEnum
+from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
-from lib.core.usecases import GetItem
+from lib.core.usecases import serialize_item_entity
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
+from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
 
 
@@ -57,7 +60,10 @@ class ItemFilters(TypedDict, total=False):
     annotation_status__in: Optional[List[str]]
     approval_status: Optional[str]
     approval_status__in: Optional[str]
+    approval_status__ne: Optional[str]
     assignments__user_id: Optional[str]
+    assignments__user_id__in: Optional[List[str]]
+    assignments__user_id__ne: Optional[str]
     assignments__user_role: Optional[str]
 
 
@@ -365,38 +371,81 @@ class ItemManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         name: str,
-        include_custom_metadata: bool = False,
     ) -> BaseItemEntity:
-        use_case = usecases.GetItem(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            item_name=name,
-            service_provider=self.service_provider,
-            include_custom_metadata=include_custom_metadata,
-        )
-        response = use_case.execute()
-        if response.errors:
-            raise AppException(response.errors)
-        item = response.data
-        item.annotation_status = self.service_provider.get_annotation_status_name(
-            project, item.annotation_status
-        )
-        return item
 
-    def get_by_id(self, item_id: int, project: ProjectEntity):
-        use_case = usecases.GetItemByIDUseCase(
-            item_id=item_id,
-            project=project,
-            service_provider=self.service_provider,
-        )
-        return use_case.execute()
+        items = self.list_items(project, folder, name=name)
+        item = next(iter(items), None)
+        if not items:
+            raise AppException("Item not found.")
+        return item
 
     @staticmethod
     def _extract_value_from_mapping(data, extractor=lambda x: x):
         if isinstance(data, (list, tuple, set)):
             return [extractor(i) for i in data]
         return extractor(data)
+
+    def _handle_special_fields(self, project: ProjectEntity, keys: List[str], val):
+        """Handle special fields like 'approval_status' and 'annotation_status'."""
+        if keys[0] == "approval_status":
+            val = (
+                [ApprovalStatus(i).value for i in val]
+                if isinstance(val, (list, tuple, set))
+                else ApprovalStatus(val).value
+            )
+        elif keys[0] == "annotation_status":
+            val = self._extract_value_from_mapping(
+                val,
+                lambda x: self.service_provider.get_annotation_status_value(project, x),
+            )
+        elif keys[0] == "assignments" and keys[1] == "user_role":
+            val = self.service_provider.get_role_id(project, val)
+        return val
+
+    @staticmethod
+    def _determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
+        """Determine the condition and key from the filters."""
+        if len(keys) == 1:
+            return OperatorEnum.EQ, keys[0]
+        else:
+            if keys[-1].upper() in OperatorEnum.__members__:
+                condition = OperatorEnum[keys.pop().upper()]
+            else:
+                condition = OperatorEnum.EQ
+            return condition, ".".join(keys)
+
+    def _build_query(
+        self, project: ProjectEntity, filters: dict, include: List[str]
+    ) -> Query:
+        """Build the query object based on filters and include fields."""
+        filter_annotations = ItemFilters.__annotations__.keys()
+        query = EmptyQuery()
+        _include = set(include if include else [])
+        for key, val in filters.items():
+            if key in filter_annotations:
+                _keys = key.split("__")
+                entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
+                if _keys[0] not in entity.__fields__:
+                    _include.add(_keys[0])
+                val = self._handle_special_fields(project, _keys[0], val)
+                condition, _key = self._determine_condition_and_key(_keys)
+                query &= Filter(_key, val, condition)
+        for i in _include:
+            query &= Join(i)
+        return query
+
+    def _process_response(
+        self, items: List[BaseItemEntity], project: ProjectEntity
+    ) -> List[dict]:
+        """Process the response data and return a list of serialized items."""
+        data = []
+        for item in items:
+            item = usecases.serialize_item_entity(item, project)
+            item.annotation_status = self.service_provider.get_annotation_status_name(
+                project, item.annotation_status
+            )
+            data.append(item)
+        return data
 
     def list_items(
         self,
@@ -405,71 +454,13 @@ class ItemManager(BaseManager):
         /,
         include: List[str] = None,
         **filters,
-    ):
+    ) -> List[BaseItemEntity]:
 
-        filter_annotations = ItemFilters.__annotations__.keys()
-        include_custom_metadata = bool(include.pop("custom_metadata", ""))
-
-        query = EmptyQuery()
-        _include = set(include) if include else set()
-        for key, val in filters.items():
-            if key in filter_annotations:
-                _keys = key.split("__")
-                entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
-                if _keys[0] not in entity.__fields__:
-                    _include.add(_keys[0])
-                if _keys[0] == "approval_status":
-                    if isinstance(val, (list, tuple, set)):
-                        val = [ApprovalStatus(i).value for i in val]
-                    else:
-                        val = ApprovalStatus(val).value
-                elif _keys[0] == "annotation_status":
-                    val = self._extract_value_from_mapping(
-                        val,
-                        lambda x: self.service_provider.get_annotation_status_value(
-                            project, x
-                        ),
-                    )
-                if len(_keys) == 1:
-                    _key, condition = _keys[0], OperatorEnum.EQ
-                else:
-                    if _keys[-1].upper() in OperatorEnum.__members__:
-                        condition = OperatorEnum[_keys.pop().upper()]
-                    else:
-                        condition = OperatorEnum.EQ
-                    _key = ".".join(_keys)
-                query &= Filter(_key, val, condition)
-        for i in _include:
-            query &= Join(i)
+        query = self._build_query(project, filters, include)
         response = self.service_provider.item_service.list(project.id, folder.id, query)
         if response.error:
             raise AppException(response.error)
-        data = []
-        for item in response.data:
-            item = usecases.GetItem.serialize_entity(item, project)
-            item.annotation_status = self.service_provider.get_annotation_status_name(
-                project, item.annotation_status
-            )
-            data.append(item)
-        return data
-
-    def list(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        condition: Condition = None,
-        recursive: bool = False,
-        include_custom_metadata: bool = False,
-    ):
-        use_case = usecases.ListItems(
-            project=project,
-            folder=folder,
-            service_provider=self.service_provider,
-            recursive=recursive,
-            search_condition=condition,
-            include_custom_metadata=include_custom_metadata,
-        )
-        return use_case.execute()
+        return self._process_response(response.data, project)
 
     def attach(
         self,
@@ -781,6 +772,20 @@ class CustomFieldManager(BaseManager):
         )
         return use_case.execute()
 
+    def list_fields(
+        self, project: ProjectEntity, item_ids: List[int]
+    ) -> Dict[int, dict]:
+        _data: Dict[int, dict] = dict()
+        for chunk in divide_to_chunks(
+            item_ids, self.service_provider.explore.CHUNK_SIZE
+        ):
+            response = self.service_provider.explore.list_fields(project, chunk)
+            if not response.ok:
+                raise AppException(response.error)
+            for item_id, fields in response.data.items():
+                _data[int(item_id)] = {**{k: v for d in fields for k, v in d.items()}}
+        return _data
+
 
 class IntegrationManager(BaseManager):
     def list(self):
@@ -944,7 +949,7 @@ class Controller(BaseController):
         if response.error:
             raise AppException(response.error)
         PROJECT_TYPE_RESPONSE_MAP[project.type] = response.data
-        item = GetItem.serialize_entity(response.data, project)
+        item = serialize_item_entity(response.data, project)
         item.annotation_status = self.service_provider.get_annotation_status_name(
             project, item.annotation_status
         )

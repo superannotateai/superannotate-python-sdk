@@ -1,4 +1,3 @@
-import copy
 import logging
 import traceback
 from collections import defaultdict
@@ -35,94 +34,25 @@ from lib.infrastructure.utils import extract_project_folder
 logger = logging.getLogger("sa")
 
 
-class GetItemByIDUseCase(BaseUseCase):
-    def __init__(self, item_id, project, service_provider):
-        self._item_id = item_id
-        self._project = project
-        self._service_provider = service_provider
-        super().__init__()
-
-    def execute(
-        self,
-    ):
-        try:
-            response = self._service_provider.items.get_by_id(
-                item_id=self._item_id,
-                project_id=self._project.id,
-                project_type=self._project.type,
-            )
-            if not response.ok:
-                self._response.errors = response.error
-        except AppException as e:
-            self._response.errors = e
-        else:
-            self._response.data = response.data
-        return self._response
-
-
-class GetItem(BaseReportableUseCase):
-    def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        service_provider: BaseServiceProvider,
-        item_name: str,
-        include_custom_metadata: bool,
-    ):
-        super().__init__(reporter)
-        self._project = project
-        self._folder = folder
-        self._service_provider = service_provider
-        self._item_name = item_name
-        self._include_custom_metadata = include_custom_metadata
-
-    def validate_project_type(self):
-        if (
-            self._project.type == constants.ProjectType.PIXEL.value
-            and self._include_custom_metadata
-        ):
-            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
-
-    @staticmethod
-    def serialize_entity(entity: BaseItemEntity, project: ProjectEntity):
-        entity = BaseItemEntity(**BaseItemEntity.map_fields(entity.dict()))
-        if project.upload_state != constants.UploadState.EXTERNAL.value:
-            entity.url = None
-        if project.type in constants.ProjectType.images:
-            tmp_entity = entity
-            if project.type == constants.ProjectType.VECTOR.value:
-                entity.segmentation_status = None
-            if project.upload_state == constants.UploadState.EXTERNAL.value:
-                tmp_entity.prediction_status = None
-                tmp_entity.segmentation_status = None
-            return ImageEntity(**tmp_entity.dict(by_alias=True))
-        elif project.type == constants.ProjectType.VIDEO.value:
-            return VideoEntity(**entity.dict(by_alias=True))
-        elif project.type == constants.ProjectType.DOCUMENT.value:
-            return DocumentEntity(**entity.dict(by_alias=True))
-        return entity
-
-    def execute(self) -> Response:
-        if self.is_valid():
-            condition = (
-                Condition("name", self._item_name, EQ)
-                & Condition("project_id", self._project.id, EQ)
-                & Condition("folder_id", self._folder.id, EQ)
-                & Condition("includeCustomMetadata", self._include_custom_metadata, EQ)
-            )
-            response = self._service_provider.items.list(condition)
-            if not response.ok:
-                self._response.errors = response.error
-                return self._response
-            entity = next((i for i in response.data if i.name == self._item_name), None)
-            if entity:
-                entity = self.serialize_entity(entity, self._project)
-                entity.add_path(self._project.name, self._folder.name)
-                self._response.data = entity
-            else:
-                self._response.errors = AppException("Item not found.")
-        return self._response
+def serialize_item_entity(
+    entity: BaseItemEntity, project: ProjectEntity
+) -> BaseItemEntity:
+    entity = BaseItemEntity(**BaseItemEntity.map_fields(entity.dict()))
+    if project.upload_state != constants.UploadState.EXTERNAL.value:
+        entity.url = None
+    if project.type in constants.ProjectType.images:
+        tmp_entity = entity
+        if project.type == constants.ProjectType.VECTOR.value:
+            entity.segmentation_status = None
+        if project.upload_state == constants.UploadState.EXTERNAL.value:
+            tmp_entity.prediction_status = None
+            tmp_entity.segmentation_status = None
+        return ImageEntity(**tmp_entity.dict(by_alias=True))
+    elif project.type == constants.ProjectType.VIDEO.value:
+        return VideoEntity(**entity.dict(by_alias=True))
+    elif project.type == constants.ProjectType.DOCUMENT.value:
+        return DocumentEntity(**entity.dict(by_alias=True))
+    return entity
 
 
 class QueryEntitiesUseCase(BaseReportableUseCase):
@@ -203,7 +133,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             if service_response.ok:
                 data = []
                 for i, item in enumerate(service_response.data):
-                    tmp_item = GetItem.serialize_entity(
+                    tmp_item = serialize_item_entity(
                         BaseItemEntity(**item), self._project
                     )
                     folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
@@ -212,74 +142,6 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
                 self._response.data = data
             else:
                 self._response.errors = service_response.data
-        return self._response
-
-
-class ListItems(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        service_provider: BaseServiceProvider,
-        search_condition: Condition,
-        recursive: bool = False,
-        include_custom_metadata: bool = False,
-    ):
-        super().__init__()
-        self._project = project
-        self._service_provider = service_provider
-        self._folder = folder
-        self._search_condition = search_condition
-        self._recursive = recursive
-        self._include_custom_metadata = include_custom_metadata
-
-    def validate_recursive_case(self):
-        if not self._folder.is_root and self._recursive:
-            self._recursive = False
-
-    def validate_project_type(self):
-        if (
-            self._project.type == constants.ProjectType.PIXEL.value
-            and self._include_custom_metadata
-        ):
-            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
-
-    def execute(self) -> Response:
-        if self.is_valid():
-            self._search_condition &= Condition("project_id", self._project.id, EQ)
-            self._search_condition &= Condition(
-                "includeCustomMetadata", self._include_custom_metadata, EQ
-            )
-
-            if not self._recursive:
-                self._search_condition &= Condition("folder_id", self._folder.id, EQ)
-                items_response = self._service_provider.items.list(
-                    self._search_condition
-                )
-                if not items_response.ok:
-                    raise AppException(items_response.error)
-                items = []
-                for item in items_response.data:
-                    item = GetItem.serialize_entity(item, self._project)
-                    item.add_path(self._project.name, self._folder.name)
-                    items.append(item)
-            else:
-                items = []
-                folders = self._service_provider.folders.list(
-                    Condition("project_id", self._project.id, EQ)
-                ).data
-                for folder in folders:
-                    response = self._service_provider.items.list(
-                        copy.deepcopy(self._search_condition)
-                        & Condition("folder_id", folder.id, EQ)
-                    )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    for item in response.data:
-                        item = GetItem.serialize_entity(item, self._project)
-                        item.add_path(self._project.name, folder.name)
-                        items.append(item)
-            self._response.data = items
         return self._response
 
 

@@ -78,6 +78,10 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def list_workflow_statuses(self, project_id: int, workflow_id: int):
         raise NotImplementedError
 
+    @abstractmethod
+    def list_workflow_roles(self, project_id: int, workflow_id: int):
+        raise NotImplementedError
+
 
 class BaseProjectService(SuperannotateServiceProvider):
     @abstractmethod
@@ -439,6 +443,14 @@ class BaseIntegrationService(SuperannotateServiceProvider):
 
 
 class BaseExploreService(SuperannotateServiceProvider):
+    MAX_ITEMS_COUNT: int
+    CHUNK_SIZE: int
+    SAQUL_CHUNK_SIZE: int
+
+    @abstractmethod
+    def list_fields(self, project: entities.ProjectEntity, item_ids: List[int]):
+        raise NotImplementedError
+
     @abstractmethod
     def create_schema(self, project: entities.ProjectEntity, schema: dict):
         raise NotImplementedError
@@ -517,7 +529,7 @@ class BaseServiceProvider:
 
     @abstractmethod
     def get_annotation_status_value(
-            self, project: entities.ProjectEntity, status_name: str
+        self, project: entities.ProjectEntity, status_name: str
     ) -> int:
         ...
 

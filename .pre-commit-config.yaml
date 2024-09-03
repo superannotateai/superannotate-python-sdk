@@ -48,19 +48,19 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
         files: \.rst$
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
-    hooks:
-      - id: mypy
-        additional_dependencies: [ types-six ]
-#  - repo: 'https://github.com/PyCQA/pylint'
-#    rev: v2.13.9
+#  - repo: https://github.com/pre-commit/mirrors-mypy
+#    rev: v1.11.2
 #    hooks:
-#      - id: pylint
-#        name: Python Linter (pylint)
-#        exclude: tests/|src/lib/app/converters/|src/lib/app/analytics/|src/lib/app/input_converters/
-#        args:
-#          - '--disable=R0903,C0111,C0301,W0703,R0914,R0801,R0913,E0401,W0511,C0413,R0902,C0103,W0201,C0209,W1203,W0707,C0415,W0611'
+#      - id: mypy
+#        additional_dependencies: [ types-six ]
+  - repo: 'https://github.com/PyCQA/pylint'
+    rev: v2.13.9
+    hooks:
+      - id: pylint
+        name: Python Linter (pylint)
+        exclude: tests/|src/lib/app/converters/|src/lib/app/analytics/|src/lib/app/input_converters/
+        args:
+          - '--disable=R0903,C0111,C0301,W0703,R0914,R0801,R0913,E0401,W0511,C0413,R0902,C0103,W0201,C0209,W1203,W0707,C0415,W0611'
 #  - repo: 'https://github.com/asottile/dead'
 #    rev: v1.3.0
 #    hooks:

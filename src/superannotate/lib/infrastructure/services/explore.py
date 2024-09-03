@@ -14,10 +14,12 @@ from lib.core.serviceproviders import BaseExploreService
 
 class ExploreService(BaseExploreService):
     API_VERSION = "v1"
-    MAX_ITEMS_COUNT = 50 * 1000
+    MAX_ITEMS_COUNT = 50_1000
+    CHUNK_SIZE = 5_000
     SAQUL_CHUNK_SIZE = 50
 
     URL_SUBSET = "subsets"
+    URL_LIST_CUSTOM_FIELDS = "custom/metadata/item/value"
     URL_ADD_ITEMS_TO_SUBSET = "subsets/change"
     URL_CUSTOM_SCHEMA = "custom/metadata/schema"
     URL_UPLOAD_CUSTOM_VALUE = "custom/metadata/item"
@@ -81,6 +83,17 @@ class ExploreService(BaseExploreService):
             method="delete",
             params={"project_id": project.id, "folder_id": folder.id},
             data=dict(data=dict(ChainMap(*items))),
+        )
+
+    def list_fields(self, project: entities.ProjectEntity, item_ids: List[int]):
+        assert len(item_ids) <= self.CHUNK_SIZE
+        return self.client.request(
+            url=urljoin(self.explore_service_url, self.URL_LIST_CUSTOM_FIELDS),
+            method="POST",
+            params={"project_id": project.id},
+            data={
+                "item_id": item_ids,
+            },
         )
 
     def list_subsets(

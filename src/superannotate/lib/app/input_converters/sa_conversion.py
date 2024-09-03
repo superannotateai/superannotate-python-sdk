@@ -6,8 +6,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+from lib.core.exceptions import AppException
 
 from ..common import blue_color_generator
 from ..common import hex_to_rgb

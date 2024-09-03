@@ -99,7 +99,9 @@ class CreateAnnotationClassUseCase(BaseUseCase):
                     self._response.data = response.data[0]
                 else:
                     self._response.errors = AppException(
-                        response.error.replace(". ", ".\n")
+                        "\n".join(response.error)
+                        if isinstance(response.error, list)
+                        else response.error
                     )
             else:
                 logger.error("This class name already exists. Skipping.")

@@ -27,7 +27,7 @@ class BaseTitledEnum(int, Enum):
         return self.__doc__
 
     @DynamicClassAttribute
-    def value(self):
+    def value(self) -> int:
         return super().value
 
     def __unicode__(self):

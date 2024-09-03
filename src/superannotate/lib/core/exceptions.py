@@ -29,3 +29,9 @@ class ImageProcessingException(AppException):
     """
     App validation exception
     """
+
+
+class PathError(AppException):
+    """
+    User input Error
+    """

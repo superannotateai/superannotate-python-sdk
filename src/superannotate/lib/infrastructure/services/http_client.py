@@ -221,9 +221,14 @@ class HttpClient(BaseClient):
                     return content_type(**data)
                 else:
                     data_json = response.json()
-                    data["res_error"] = data_json.get(
-                        "error", data_json.get("errors", "Unknown Error")
-                    )
+                    if "error" in data_json:
+                        data["res_error"] = data_json["error"]
+                    elif "errors" in data_json:
+                        data["res_error"] = data_json["errors"]
+                    elif "message" in data_json:
+                        data["res_error"] = data_json["message"]
+                    else:
+                        data["res_error"] = "Unknown Error"
                     return content_type(**data)
             data_json = response.json()
             if dispatcher:

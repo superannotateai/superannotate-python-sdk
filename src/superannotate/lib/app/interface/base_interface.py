@@ -169,7 +169,7 @@ class Tracker:
         for key, value in kwargs.items():
             if key == "self":
                 continue
-            elif key == "token":
+            if key == "token":
                 properties["sa_token"] = str(bool(value))
             elif key == "config_path":
                 properties[key] = str(bool(value))

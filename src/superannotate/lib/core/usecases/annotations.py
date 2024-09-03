@@ -1341,7 +1341,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             _schema = self.schema
         if _schema is True:
             return
-        elif _schema is False:
+        if _schema is False:
             yield superannotate_schemas.ValidationError(
                 f"False schema does not allow {instance!r}",
                 validator=None,

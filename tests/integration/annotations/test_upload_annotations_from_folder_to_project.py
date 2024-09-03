@@ -44,8 +44,6 @@ class TestAnnotationUploadVector(BaseTestCase):
 
         assert annotation["instances"][-1]["type"] == "tag"
         assert annotation["instances"][-2]["type"] == "tag"
-        # assert annotation["instances"][-1]["attributes"] == []
-        # assert annotation["instances"][-2]["attributes"] == []
 
     def test_upload_keep_true(self):
         self._attach_items()

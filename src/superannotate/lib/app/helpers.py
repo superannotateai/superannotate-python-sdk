@@ -8,10 +8,10 @@ from typing import Union
 import boto3
 import numpy as np
 import pandas as pd
-from lib.app.exceptions import AppException
 from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
+from lib.core.exceptions import AppException
 
 
 def get_annotation_paths(folder_path, s3_bucket=None, recursive=False):

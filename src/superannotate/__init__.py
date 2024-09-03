@@ -14,7 +14,7 @@ from packaging.version import parse
 from lib.core import PACKAGE_VERSION_UPGRADE
 from lib.core import PACKAGE_VERSION_INFO_MESSAGE
 from lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
-from lib.app.exceptions import AppException
+from lib.core.exceptions import AppException
 from lib.app.input_converters import convert_project_type
 from lib.app.input_converters import export_annotation
 from lib.app.input_converters import import_annotation

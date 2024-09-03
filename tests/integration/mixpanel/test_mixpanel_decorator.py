@@ -157,6 +157,7 @@ class TestMixpanel(TestCase):
             "settings": {"a": 1, "b": 2},
             "classes": None,
             "workflows": None,
+            "workflow": None,
             "instructions_link": None,
         }
         try:

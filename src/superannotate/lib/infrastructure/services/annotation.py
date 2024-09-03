@@ -51,6 +51,7 @@ class AnnotationService(BaseAnnotationService):
 
         if self.client.api_url != constants.BACKEND_URL:
             return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
+            # return f"https://assets-provider-ed01.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
         return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
 
     def get_schema(self, project_type: int, version: str):

@@ -14,7 +14,6 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import TypeVar
 from typing import Union
 
 from typing_extensions import Literal
@@ -779,7 +778,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.annotation_classes.list(condition)
         if response.errors:
             raise AppException(response.errors)
-        return response.data
+        return BaseSerializer.serialize_iterable(response.data)
 
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status
@@ -1965,7 +1964,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if not folder:
             raise AppException("Folder not found.")
 
-        image = self.controller.items.get_by_name(project, folder, image_name)
+        items = self.controller.items.list_items(project, folder, name=image_name)
+        image = next(iter(items), None)
+        if not image:
+            raise AppException("Image not found.")
 
         response = self.controller.annotations.upload_image_annotations(
             project=project,
@@ -2481,14 +2483,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        item = self.controller.items.get_by_name(
-            project=project,
-            folder=folder,
-            name=item_name,
-            include_custom_metadata=include_custom_metadata,
-        )
-        exclude = {"custom_metadata"} if not include_custom_metadata else set()
-        exclude.add("meta")
+        items = self.controller.items.list_items(project, folder, name=item_name)
+        item = next(iter(items), None)
+        if not items:
+            raise AppException("Item not found.")
+        exclude = {"meta"}
+        if include_custom_metadata:
+            item_custom_fields = self.controller.custom_fields.list_fields(
+                project=project, item_ids=[item.id]
+            )
+            item.custom_metadata = item_custom_fields.get(item.id)
+        else:
+            exclude.add("custom_metadata")
 
         return BaseSerializer(item).serialize(exclude=exclude)
 
@@ -2585,9 +2591,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if annotator_email:
             query_kwargs["assignments__user_id"] = annotator_email
             query_kwargs["assignments__user_role"] = "ANNOTATOR"
-        if include_custom_metadata:
-            query_kwargs
-
         if folder.is_root and recursive:
             items = []
             for folder in self.controller.folders.list(project=project).data:
@@ -2606,6 +2609,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for i in items:
                 i.path = path
         exclude = {"meta"}
+        if include_custom_metadata:
+            item_custom_fields = self.controller.custom_fields.list_fields(
+                project=project, item_ids=[i.id for i in items]
+            )
+            for i in items:
+                i.custom_metadata = item_custom_fields[i.id]
+        else:
+            exclude.add("custom_metadata")
         return BaseSerializer.serialize_iterable(items, exclude=exclude)
 
     def list_items(
@@ -2715,9 +2726,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if folder and isinstance(folder, int)
             else self.controller.get_folder(project, "root")
         )
+        include = include or []
+        include_custom_metadata = "custom_metadata" in include
+        if include_custom_metadata:
+            include.remove("custom_metadata")
         res = self.controller.items.list_items(
             project, folder, include=include, **filters
         )
+        if include_custom_metadata:
+            item_custom_fields = self.controller.custom_fields.list_fields(
+                project=project, item_ids=[i["id"] for i in res]
+            )
+            for i in res:
+                i["custom_metadata"] = item_custom_fields[i["id"]]
         exclude = {"meta"}
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
 

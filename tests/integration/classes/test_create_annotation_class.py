@@ -126,8 +126,8 @@ class TestVectorAnnotationClasses(BaseTestCase):
 
         assert (
             response.errors
-            == '"classes[0].attribute_groups[0].attributes" is required.\n'
-            '"classes[0].attribute_groups[1].attributes" is required.\n'
+            == '"classes[0].attribute_groups[0].attributes" is required\n'
+            '"classes[0].attribute_groups[1].attributes" is required\n'
             '"classes[0].attribute_groups[2].default_value" must be a string'
         )
 
