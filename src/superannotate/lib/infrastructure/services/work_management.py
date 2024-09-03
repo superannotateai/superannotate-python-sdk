@@ -2,10 +2,10 @@ import base64
 
 from lib.core.entities import WorkflowEntity
 from lib.core.jsx_conditions import Query
-from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.serviceproviders import BaseWorkManagementService
 
 
-class WorkManagementService(SuperannotateServiceProvider):
+class WorkManagementService(BaseWorkManagementService):
     URL_GET = "workflows/{project_id}"
     URL_LIST = "workflows"
     URL_LIST_STATUSES = "workflows/{workflow_id}/workflowstatuses"

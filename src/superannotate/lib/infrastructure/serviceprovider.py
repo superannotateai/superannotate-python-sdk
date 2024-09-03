@@ -15,21 +15,17 @@ from lib.core.service_types import UserResponse
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.infrastructure.services.annotation import AnnotationService
 from lib.infrastructure.services.annotation_class import AnnotationClassService
-from lib.infrastructure.services.custom_field import CustomFieldService
+from lib.infrastructure.services.explore import ExploreService
 from lib.infrastructure.services.folder import FolderService
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
 from lib.infrastructure.services.item_service import ItemService as SeparateItemService
 from lib.infrastructure.services.project import ProjectService
-from lib.infrastructure.services.subset import SubsetService
 from lib.infrastructure.services.work_managament import WorkManagementService
 
 
 class ServiceProvider(BaseServiceProvider):
-    MAX_ITEMS_COUNT = 50 * 1000
-    SAQUL_CHUNK_SIZE = 50
-
     URL_TEAM = "team"
     URL_GET_LIMITS = "project/{project_id}/limitationDetails"
     URL_GET_TEMPLATES = "templates"
@@ -39,10 +35,8 @@ class ServiceProvider(BaseServiceProvider):
     URL_USERS = "users"
     URL_GET_EXPORT = "export/{}"
     URL_PREDICTION = "images/prediction"
-    URL_SAQUL_QUERY = "/images/search/advanced"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_INVITE_CONTRIBUTORS = "team/{}/inviteUsers"
-    URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
 
     def __init__(self, client: HttpClient):
@@ -55,9 +49,8 @@ class ServiceProvider(BaseServiceProvider):
         self.items = ItemService(client)
         self.annotations = AnnotationService(client)
         self.annotation_classes = AnnotationClassService(client)
-        self.custom_fields = CustomFieldService(client)
-        self.subsets = SubsetService(client)
         self.integrations = IntegrationService(client)
+        self.explore = ExploreService(client)
         self.work_management = WorkManagementService(
             HttpClient(
                 api_url=self._get_work_management_url(client),
@@ -129,6 +122,7 @@ class ServiceProvider(BaseServiceProvider):
         if client.api_url != constants.BACKEND_URL:
             return "https://item.devsuperannotate.com/api/v1/"
         return "https://item.superannotate.com//api/v1/"
+
 
     def get_team(self, team_id: int) -> TeamResponse:
         return self.client.request(
@@ -283,56 +277,3 @@ class ServiceProvider(BaseServiceProvider):
             "post",
             data=dict(emails=emails, team_role=team_role),
         )
-
-    def validate_saqul_query(self, project: entities.ProjectEntity, query: str):
-        params = {
-            "project_id": project.id,
-        }
-        data = {
-            "query": query,
-        }
-        return self.client.request(
-            self.URL_VALIDATE_SAQUL_QUERY, "post", params=params, data=data
-        )
-
-    def saqul_query(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity = None,
-        query: str = None,
-        subset_id: int = None,
-    ) -> ServiceResponse:
-
-        params = {
-            "project_id": project.id,
-            "includeFolderNames": True,
-        }
-        if folder:
-            params["folder_id"] = folder.id
-        if subset_id:
-            params["subset_id"] = subset_id
-        data = {"image_index": 0}
-        if query:
-            data["query"] = query
-        items = []
-        response = None
-        for _ in range(0, self.MAX_ITEMS_COUNT, self.SAQUL_CHUNK_SIZE):
-            response = self.client.request(
-                self.URL_SAQUL_QUERY, "post", params=params, data=data
-            )
-            if not response.ok:
-                break
-            response_items = response.data
-            items.extend(response_items)
-            if len(response_items) < self.SAQUL_CHUNK_SIZE:
-                break
-            data["image_index"] += self.SAQUL_CHUNK_SIZE
-
-        if response:
-            response = ServiceResponse(status=response.status_code, res_data=items)
-            if not response.ok:
-                response.set_error(response.error)
-                response = ServiceResponse(status=response.status_code, res_data=items)
-        else:
-            response = ServiceResponse(status=200, res_data=[])
-        return response
