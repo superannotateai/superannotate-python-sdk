@@ -52,7 +52,7 @@ class AttachmentEntity(BaseModel):
 
 class GenAIAttachmentEntity(BaseModel):
     _item_name: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
-    _item_category: Optional[str] = Field(default=None)
+    _item_category: Optional[str] = None
 
     integration: Optional[str] = None
     integration_id: Optional[int] = None
