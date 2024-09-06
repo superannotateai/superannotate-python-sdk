@@ -33,6 +33,8 @@ from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import ImageProcessingException
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
 from lib.core.reporter import Progress
@@ -65,13 +67,14 @@ class GetImageUseCase(BaseUseCase):
         self._service_provider = service_provider
 
     def execute(self):
-        images = self._service_provider.items.list_by_names(
-            project=self._project, folder=self._folder, names=[self._image_name]
-        ).data
-        if images:
-            self._response.data = images[0]
-        else:
+        response = self._service_provider.item_service.list(
+            self._project.id,
+            self._folder.id,
+            Filter("name", self._image_name, OperatorEnum.EQ),
+        )
+        if not response.ok:
             raise AppException("Image not found.")
+        self._response.data = response.data[0]
         return self._response
 
 
@@ -114,11 +117,12 @@ class AttachFileUrlsUseCase(BaseUseCase):
         return self._upload_state_code
 
     def execute(self):
-        response = self._service_provider
-        response = self._service_provider.items.list_by_names(
-            project=self._project,
-            folder=self._folder,
-            names=[image.name for image in self._attachments],
+        response = self._service_provider.item_service.list(
+            self._project.id,
+            self._folder.id,
+            Filter(
+                "name", [image.name for image in self._attachments], OperatorEnum.IN
+            ),
         )
         if not response.ok:
             raise AppException(response.error)
@@ -782,12 +786,14 @@ class UploadImageToProject(BaseUseCase):
             raise AppValidationException("Image data not provided.")
 
     def validate_image_name_uniqueness(self):
-        image_entities = self._service_provider.items.list_by_names(
-            project=self._project,
-            folder=self._folder,
-            names=[
-                self._image_name if self._image_name else Path(self._image_path).name
-            ],
+        image_entities = self._service_provider.item_service.list(
+            self._project.id,
+            self._folder.id,
+            Filter(
+                "name",
+                self._image_name if self._image_name else Path(self._image_path).name,
+                OperatorEnum.EQ,
+            ),
         ).data
         if image_entities:
             raise AppValidationException("Image with this name already exists.")
@@ -1018,12 +1024,17 @@ class UploadImagesToProject(BaseInteractiveUseCase):
 
         image_list = []
         for i in range(0, len(filtered_paths), CHUNK_SIZE):
-            response = self._service_provider.items.list_by_names(
-                project=self._project,
-                folder=self._folder,
-                names=[
-                    image.split("/")[-1] for image in filtered_paths[i : i + CHUNK_SIZE]
-                ],
+            response = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter(
+                    "name",
+                    [
+                        image.split("/")[-1]
+                        for image in filtered_paths[i : i + CHUNK_SIZE]
+                    ],
+                    OperatorEnum.IN,
+                ),
             )
 
             if not response.ok:
@@ -1744,8 +1755,10 @@ class UploadVideosAsImages(BaseReportableUseCase):
                     frame_names = VideoPlugin.get_extractable_frames(
                         path, self._start_time, self._end_time, self._target_fps
                     )
-                    duplicate_images = self._service_provider.items.list_by_names(
-                        project=self._project, folder=self._folder, names=frame_names
+                    duplicate_images = self._service_provider.item_service.list(
+                        self._project.id,
+                        self._folder.id,
+                        Filter("name", frame_names, OperatorEnum.IN),
                     ).data
 
                     duplicate_images = [image.name for image in duplicate_images]

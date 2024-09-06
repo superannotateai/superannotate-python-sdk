@@ -386,7 +386,9 @@ class ItemManager(BaseManager):
         return extractor(data)
 
     def _handle_special_fields(self, project: ProjectEntity, keys: List[str], val):
-        """Handle special fields like 'approval_status' and 'annotation_status'."""
+        """
+        Handle special fields like 'approval_status', 'assignments',  'user_role' and 'annotation_status'.
+        """
         if keys[0] == "approval_status":
             val = (
                 [ApprovalStatus(i).value for i in val]
@@ -427,7 +429,7 @@ class ItemManager(BaseManager):
                 entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
                 if _keys[0] not in entity.__fields__:
                     _include.add(_keys[0])
-                val = self._handle_special_fields(project, _keys[0], val)
+                val = self._handle_special_fields(project, _keys, val)
                 condition, _key = self._determine_condition_and_key(_keys)
                 query &= Filter(_key, val, condition)
         for i in _include:
@@ -435,12 +437,13 @@ class ItemManager(BaseManager):
         return query
 
     def _process_response(
-        self, items: List[BaseItemEntity], project: ProjectEntity
+        self, items: List[BaseItemEntity], project: ProjectEntity, folder: FolderEntity
     ) -> List[dict]:
         """Process the response data and return a list of serialized items."""
         data = []
         for item in items:
             item = usecases.serialize_item_entity(item, project)
+            item = usecases.add_item_path(project, folder, item)
             item.annotation_status = self.service_provider.get_annotation_status_name(
                 project, item.annotation_status
             )
@@ -460,7 +463,7 @@ class ItemManager(BaseManager):
         response = self.service_provider.item_service.list(project.id, folder.id, query)
         if response.error:
             raise AppException(response.error)
-        return self._process_response(response.data, project)
+        return self._process_response(response.data, project, folder)
 
     def attach(
         self,
@@ -547,7 +550,9 @@ class ItemManager(BaseManager):
             Reporter(),
             project=project,
             folder=folder,
-            annotation_status=annotation_status,
+            annotation_status=self.service_provider.get_annotation_status_value(
+                project, annotation_status
+            ),
             item_names=item_names,
             service_provider=self.service_provider,
         )
@@ -1051,7 +1056,7 @@ class Controller(BaseController):
 
     def upload_images_from_folder_to_project(
         self,
-        project_name: str,
+        project: ProjectEntity,
         folder_name: str,
         folder_path: str,
         extensions: Optional[List[str]] = None,
@@ -1061,7 +1066,6 @@ class Controller(BaseController):
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self.get_project(project_name)
         folder = self.get_folder(project, folder_name)
         annotation_status_value = (
             self.service_provider.get_annotation_status_value(

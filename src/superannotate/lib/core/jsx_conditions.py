@@ -13,6 +13,7 @@ class OperatorEnum(str, Enum):
     STARTS = "$starts"
     ENDS = "ENDS"
     IN = "$in"
+    NOTIN = "$notin"
 
 
 class Query:

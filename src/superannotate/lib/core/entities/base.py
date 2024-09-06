@@ -268,6 +268,9 @@ class BaseItemEntity(TimedBaseModel):
     class Config:
         extra = Extra.allow
 
+    def __hash__(self):
+        return hash(self.name)
+
     def add_path(self, project_name: str, folder_name: str):
         self.path = (
             f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}"

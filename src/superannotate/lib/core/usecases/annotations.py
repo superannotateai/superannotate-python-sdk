@@ -38,6 +38,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.reporter import Reporter
@@ -332,10 +333,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         existing_items = []
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-            response = self._service_provider.items.list_by_names(
-                project=self._project, folder=self._folder, names=items_to_check
+            res = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter("name", items_to_check, OperatorEnum.IN),
             )
-            existing_items.extend(response.data)
+            if not res.ok:
+                raise AppException(res.error)
+            existing_items.extend(res.data)
         return existing_items
 
     async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
@@ -680,11 +685,13 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         existing_name_item_mapping = {}
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-            response = self._service_provider.items.list_by_names(
-                project=self._project, folder=self._folder, names=items_to_check
+            res = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter("name", items_to_check, OperatorEnum.IN),
             )
-            if response.ok:
-                existing_name_item_mapping.update({i.name: i for i in response.data})
+            if res.ok:
+                existing_name_item_mapping.update({i.name: i for i in res.data})
         return existing_name_item_mapping
 
     @property
@@ -1588,8 +1595,10 @@ class GetAnnotations(BaseReportableUseCase):
             if self._items:
                 if isinstance(self._items[0], str):
                     items: List[BaseItemEntity] = get_or_raise(
-                        self._service_provider.items.list_by_names(
-                            self._project, self._folder, self._items
+                        self._service_provider.item_service.list(
+                            self._project.id,
+                            self._folder.id,
+                            Filter("name", self._items, OperatorEnum.IN),
                         )
                     )
                 else:
@@ -1607,10 +1616,16 @@ class GetAnnotations(BaseReportableUseCase):
                         f"Could not find annotations for {len_provided_items - len_items}/{len_provided_items} items."
                     )
             elif self._items is None:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._folder.id, EQ
+                # condition = Condition("project_id", self._project.id, EQ) & Condition(
+                #     "folder_id", self._folder.id, EQ
+                # )
+                # items = get_or_raise(self._service_provider.items.list(condition))
+
+                items = get_or_raise(
+                    self._service_provider.item_service.list(
+                        self._project.id, self._folder.id, EmptyQuery()
+                    )
                 )
-                items = get_or_raise(self._service_provider.items.list(condition))
             else:
                 items = []
             if not items:
@@ -1799,8 +1814,10 @@ class DownloadAnnotations(BaseReportableUseCase):
             for folder in folders:
                 if self._item_names:
                     items = get_or_raise(
-                        self._service_provider.items.list_by_names(
-                            self._project, folder, self._item_names
+                        self._service_provider.item_service.list(
+                            self._project.id,
+                            self._folder.id,
+                            Filter("name", self._item_names, OperatorEnum.IN),
                         )
                     )
                 else:

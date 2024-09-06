@@ -5,7 +5,6 @@ from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 from typing import List
-from typing import Optional
 
 import lib.core as constants
 from lib.core.conditions import Condition
@@ -16,11 +15,13 @@ from lib.core.entities import DocumentEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import SubSetEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import BackendError
+from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
@@ -53,6 +54,11 @@ def serialize_item_entity(
     elif project.type == constants.ProjectType.DOCUMENT.value:
         return DocumentEntity(**entity.dict(by_alias=True))
     return entity
+
+
+def add_item_path(project: ProjectEntity, folder: FolderEntity, item: BaseItemEntity):
+    item.path = f"{project.name}{'' if folder.is_root else f'/{folder.name}'}"
+    return item
 
 
 class QueryEntitiesUseCase(BaseReportableUseCase):
@@ -104,7 +110,6 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
         if self.is_valid():
             query_kwargs = {}
             if self._subset:
-                subset: Optional[SubSetEntity] = None
                 response = self._service_provider.explore.list_subsets(self._project)
                 if response.ok:
                     subset = next(
@@ -282,10 +287,14 @@ class AttachItems(BaseReportableUseCase):
             self.reporter.start_progress(self.attachments_count, "Attaching URLs")
             for i in range(0, self.attachments_count, self.CHUNK_SIZE):
                 attachments = self._attachments[i : i + self.CHUNK_SIZE]  # noqa: E203
-                response = self._service_provider.items.list_by_names(
-                    project=self._project,
-                    folder=self._folder,
-                    names=[attachment.name for attachment in attachments],
+
+                query = Filter(
+                    "name",
+                    [attachment.name for attachment in attachments],
+                    OperatorEnum.IN,
+                )
+                response = self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, query
                 )
                 if not response.ok:
                     raise AppException(response.error)
@@ -367,23 +376,25 @@ class CopyItems(BaseReportableUseCase):
             if self._item_names:
                 items = self._item_names
             else:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._from_folder.id, EQ
+                res = self._service_provider.item_service.list(
+                    self._project.id, self._from_folder.id, EmptyQuery()
                 )
-                items = [
-                    item.name
-                    for item in self._service_provider.items.list(condition).data
-                ]
+                if res.error:
+                    raise AppException(res.error)
+                items = [i.name for i in res.data]
             existing_items = []
             for i in range(0, len(items), self.CHUNK_SIZE):
-                cand_items = self._service_provider.items.list_by_names(
-                    project=self._project,
-                    folder=self._to_folder,
-                    names=items[i : i + self.CHUNK_SIZE],  # noqa
-                ).data
-                if isinstance(cand_items, dict):
+                query = Filter(
+                    "name", items[i : i + self.CHUNK_SIZE], OperatorEnum.IN
+                )  # noqa
+                res = self._service_provider.item_service.list(
+                    self._project.id, self._to_folder.id, query
+                )
+                if res.error:
+                    raise AppException(res.error)
+                if not res.data:
                     continue
-                existing_items += cand_items
+                existing_items += res.data
             duplications = [item.name for item in existing_items]
             items_to_copy = list(set(items) - set(duplications))
             skipped_items = duplications
@@ -416,14 +427,17 @@ class CopyItems(BaseReportableUseCase):
                         return self._response
                 existing_items = []
                 for i in range(0, len(items), self.CHUNK_SIZE):
-                    cand_items = self._service_provider.items.list_by_names(
-                        project=self._project,
-                        folder=self._to_folder,
-                        names=items[i : i + self.CHUNK_SIZE],  # noqa
+                    res = self._service_provider.item_service.list(
+                        self._project.id,
+                        self._to_folder.id,
+                        Filter(
+                            "name", items[i : i + self.CHUNK_SIZE], OperatorEnum.IN
+                        ),  # noqa
                     )
-                    if isinstance(cand_items, dict):
-                        continue
-                    existing_items += cand_items.data
+                    if res.error:
+                        raise AppException(res.error)
+
+                    existing_items += res.data
 
                 existing_item_names_set = {item.name for item in existing_items}
                 items_to_copy_names_set = set(items_to_copy)
@@ -478,12 +492,11 @@ class MoveItems(BaseReportableUseCase):
     def execute(self):
         if self.is_valid():
             if not self._item_names:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._from_folder.id, EQ
-                )
                 items = [
-                    item.name
-                    for item in self._service_provider.items.list(condition).data
+                    i.name
+                    for i in self._service_provider.item_service.list(
+                        self._project.id, self._from_folder.id, EmptyQuery()
+                    ).data
                 ]
             else:
                 items = self._item_names
@@ -500,6 +513,8 @@ class MoveItems(BaseReportableUseCase):
                     to_folder=self._to_folder,
                     item_names=items[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
+                if not response.ok:
+                    raise AppException(response.error)
                 if response.ok and response.data.get("done"):
                     moved_images.extend(response.data["done"])
 
@@ -537,26 +552,25 @@ class SetAnnotationStatues(BaseReportableUseCase):
 
     def validate_items(self):
         if not self._item_names:
-            condition = Condition("project_id", self._project.id, EQ) & Condition(
-                "folder_id", self._folder.id, EQ
-            )
             self._item_names = [
-                item.name for item in self._service_provider.items.list(condition).data
+                item.name
+                for item in self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, EmptyQuery()
+                ).data
             ]
             return
         existing_items = []
         for i in range(0, len(self._item_names), self.CHUNK_SIZE):
             search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
-            response = self._service_provider.items.list_by_names(
-                project=self._project,
-                folder=self._folder,
-                names=search_names,
+            res = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter("name", search_names, OperatorEnum.IN),
             )
-            if not response.ok:
-                raise AppValidationException(response.error)
+            if res.error:
+                raise AppValidationException(res.error)
 
-            cand_items = response.data
-            existing_items += cand_items
+            existing_items += res.data
         if not existing_items:
             raise AppValidationException(self.ERROR_MESSAGE)
         if existing_items:
@@ -601,36 +615,38 @@ class SetApprovalStatues(BaseReportableUseCase):
 
     def validate_items(self):
         if not self._item_names:
-            condition = Condition("project_id", self._project.id, EQ) & Condition(
-                "folder_id", self._folder.id, EQ
-            )
-            self._item_names = [
-                item.name for item in self._service_provider.items.list(condition).data
+            self._item_names = self._item_names = [
+                item.name
+                for item in self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, EmptyQuery()
+                ).data
             ]
-            return
-        _tmp = set(self._item_names)
-        unique, total = len(_tmp), len(self._item_names)
-        if unique < total:
-            logger.info(f"Dropping duplicates. Found {unique}/{total} unique items.")
-        self._item_names = list(_tmp)
-        existing_items = []
-        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
-            search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
-            response = self._service_provider.items.list_by_names(
-                project=self._project,
-                folder=self._folder,
-                names=search_names,
-            )
-            if not response.ok:
-                raise AppValidationException(response.error)
-            cand_items = response.data
-            existing_items += cand_items
-        if not existing_items:
-            raise AppValidationException("No items found.")
-        if existing_items:
-            self._item_names = list(
-                {i.name for i in existing_items}.intersection(set(self._item_names))
-            )
+        else:
+            _tmp = set(self._item_names)
+            unique, total = len(_tmp), len(self._item_names)
+            if unique < total:
+                logger.info(
+                    f"Dropping duplicates. Found {unique}/{total} unique items."
+                )
+            self._item_names = list(_tmp)
+            existing_items = []
+            for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+                search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
+                response = self._service_provider.item_service.list(
+                    self._project.id,
+                    self._folder.id,
+                    Filter("name", search_names, OperatorEnum.IN),
+                )
+                if not response.ok:
+                    raise AppValidationException(response.error)
+                cand_items = response.data
+                existing_items += cand_items
+            if not existing_items:
+                raise AppValidationException("No items found.")
+            if existing_items:
+                self._item_names = list(
+                    {i.name for i in existing_items}.intersection(set(self._item_names))
+                )
 
     def execute(self):
         if self.is_valid():
@@ -680,20 +696,17 @@ class DeleteItemsUseCase(BaseUseCase):
             if self._item_names:
                 item_ids = [
                     item.id
-                    for item in self._service_provider.items.list_by_names(
-                        project=self._project,
-                        folder=self._folder,
-                        names=self._item_names,
+                    for item in self._service_provider.item_service.list(
+                        self._project.id,
+                        self._folder.id,
+                        Filter("name", self._item_names, OperatorEnum.IN),
                     ).data
                 ]
             else:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._folder.id, EQ
-                )
-                item_ids = [
-                    item.id
-                    for item in self._service_provider.items.list(condition).data
-                ]
+                items = self._service_provider.item_service.list(
+                    self._project.id, self._folder, EmptyQuery()
+                ).data
+                item_ids = [item.id for item in items]
 
             for i in range(0, len(item_ids), self.CHUNK_SIZE):
                 self._service_provider.items.delete_multiple(

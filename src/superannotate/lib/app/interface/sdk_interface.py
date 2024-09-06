@@ -97,17 +97,6 @@ ANNOTATOR_ROLE = Literal["Admin", "Annotator", "QA"]
 FOLDER_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 
-class ItemFilters(TypedDict, total=False):
-    name: Optional[str]
-    id__in: Optional[List[int]]
-    name__in: Optional[List[str]]
-    name__startswith: Optional[str]
-    approval_status: Optional[APPROVAL_STATUS]
-    approval_status__in: Optional[APPROVAL_STATUS]
-    assignee__user_id: Optional[str]
-    assignee__user_id__in: Optional[List[str]]
-
-
 class Setting(TypedDict):
     attribute: str
     value: Union[str, float, int]
@@ -1088,9 +1077,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_folder_name,
             exclude_file_patterns,
         )
-
+        project = self.controller.get_project(project_name)
         use_case = self.controller.upload_images_from_folder_to_project(
-            project_name=project_name,
+            project=project,
             folder_name=folder_name,
             folder_path=folder_path,
             extensions=extensions,
@@ -2590,7 +2579,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             query_kwargs["assignments__user_role"] = "QA"
         if annotator_email:
             query_kwargs["assignments__user_id"] = annotator_email
-            query_kwargs["assignments__user_role"] = "ANNOTATOR"
+            query_kwargs["assignments__user_role"] = "Annotator"
         if folder.is_root and recursive:
             items = []
             for folder in self.controller.folders.list(project=project).data:
@@ -2660,8 +2649,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 - name__endswith: str
                 - approval_status: Literal["Approved", "Disapproved", None]
                 - approval_status__in: list[Literal["Approved", "Disapproved", None]]
-                - assignee__user_id: str
-                - assignee__user_id__in: list[str]
+                - assignments__user_id: str
+                - assignments__user_id__ne: str
+                - assignments__user_id__in: list[str]
+                - assignments__user_id__notin: list[str]
+                - assignments__user_role: str
+                - assignments__user_id__ne: str
+                - assignments__user_role__in: list[str]
+                - assignments__user_role__notin: list[str]
         :type filters: ItemFilters
 
         :return: A list of items that match the filtering criteria.

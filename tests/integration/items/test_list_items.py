@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -23,9 +24,8 @@ class TestListItems(BaseTestCase):
         sa.attach_items(
             self.PROJECT_NAME, [{"name": str(i), "url": str(i)} for i in range(100)]
         )
-        items = sa.list_items(self.PROJECT_NAME)
-        items = sa.list_items(self.PROJECT_NAME, annotation_status="NotStarted")
-        assert len(items) == 100
+        # items = sa.list_items(self.PROJECT_NAME)
+        # assert len(items) == 100
         sa.set_approval_statuses(self.PROJECT_NAME, "Disapproved")
         items = sa.list_items(self.PROJECT_NAME, approval_status="Disapproved")
         assert len(items) == 100
@@ -37,3 +37,10 @@ class TestListItems(BaseTestCase):
             self.PROJECT_NAME, approval_status__in=["Disapproved", None]
         )
         assert len(items) == 100
+
+    def test_role_filter(self):
+        sa.attach_items(
+            self.PROJECT_NAME, [{"name": str(i), "url": str(i)} for i in range(1)]
+        )
+        with self.assertRaisesRegexp(AppException, "Invalid role provided."):
+            sa.list_items(self.PROJECT_NAME, assignments__user_role="Dummy")

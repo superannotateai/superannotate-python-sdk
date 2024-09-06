@@ -7,7 +7,6 @@ from lib.core.conditions import Condition
 from lib.core.entities import BaseItemEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
-from lib.core.service_types import ItemListResponse
 from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
 from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseItemService
@@ -22,7 +21,6 @@ class ItemService(BaseItemService):
     URL_GET_BY_ID = "image/{image_id}"
     URL_MOVE_MULTIPLE = "image/move"
     URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
-    URL_LIST_BY_NAMES = "images/getBulk"
     URL_LIST_BY_IDS = "images/getImagesByIds"
     URL_COPY_MULTIPLE = "images/copy-image-or-folders"
     URL_COPY_PROGRESS = "images/copy-image-progress"
@@ -83,33 +81,6 @@ class ItemService(BaseItemService):
                 return response
             items.extend(response.data["images"])
         response.res_data = [BaseItemEntity(**i) for i in items]
-        return response
-
-    def list_by_names(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        names: List[str],
-    ):
-        chunk_size = 200
-        items = []
-        response = None
-        for i in range(0, len(names), chunk_size):
-            response = self.client.request(
-                self.URL_LIST_BY_NAMES,
-                "post",
-                data={
-                    "project_id": project.id,
-                    "team_id": project.team_id,
-                    "folder_id": folder.id,
-                    "names": names[i : i + chunk_size],  # noqa
-                },
-                content_type=ItemListResponse,
-            )
-            if not response.ok:
-                return response
-            items.extend(response.data)
-        response.res_data = items
         return response
 
     def attach(

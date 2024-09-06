@@ -33,7 +33,7 @@ def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:
 def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[str]]:
     if isinstance(user_input, str):
         return split_project_path(user_input)
-    elif isinstance(user_input, dict):
+    if isinstance(user_input, dict):
         project_path = user_input.get("name")
         if not project_path:
             raise PathError("Invalid project path")
@@ -74,6 +74,9 @@ class CachedWorkManagementRepository:
     def _sync_data(
         self, project: entities.ProjectEntity, data_type: Literal["statuses", "roles"]
     ):
+        import time
+
+        time.sleep(10)
         if data_type == "roles":
             response = self.work_management.list_workflow_roles(
                 project.id, project.workflow_id

@@ -254,15 +254,6 @@ class BaseItemService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def list_by_names(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        names: List[str],
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
     def list_by_ids(
         self,
         project: entities.ProjectEntity,
@@ -526,6 +517,7 @@ class BaseServiceProvider:
     integrations: BaseIntegrationService
     explore: BaseExploreService
     work_management: BaseWorkManagementService
+    item_service: Any
 
     @abstractmethod
     def get_annotation_status_value(
