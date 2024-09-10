@@ -23,7 +23,7 @@ requirements = []
 with open("requirements.txt") as f:
     requirements.extend(f.read().splitlines())
 
-with open("README.md") as f:
+with open("README.rst") as f:
     long_description = f.read()
 
 setup(
