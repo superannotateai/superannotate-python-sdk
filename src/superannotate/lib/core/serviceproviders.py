@@ -10,7 +10,7 @@ from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
-from lib.core.service_types import AnnotationClassListResponse
+from lib.core.service_types import AnnotationClassListResponse, WorkflowListResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
@@ -71,7 +71,7 @@ class SuperannotateServiceProvider(ABC):
 
 class BaseWorkManagementService(SuperannotateServiceProvider):
     @abstractmethod
-    def list(self, query: Query):
+    def list_workflows(self, query: Query) -> WorkflowListResponse:
         raise NotImplementedError
 
     @abstractmethod

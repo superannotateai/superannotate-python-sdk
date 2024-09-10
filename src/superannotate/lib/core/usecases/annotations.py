@@ -171,7 +171,7 @@ def set_annotation_statuses_in_progress(
             project=project,
             folder=folder,
             item_names=item_names[i : i + chunk_size],  # noqa: E203
-            annotation_status=constants.AnnotationStatus.IN_PROGRESS.value,
+            annotation_status=service_provider.get_annotation_status_value(project, "InProgress"),
         )
         if not status_changed.ok:
             failed_on_chunk = True
@@ -475,7 +475,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 {i.item.name for i in items_to_upload}
                 - set(self._report.failed_annotations).union(set(skipped))
             )
-            response = self._service_provider.work_management.list(
+            response = self._service_provider.work_management.list_workflows(
                 Filter("id", self._project.workflow_id, OperatorEnum.EQ)
             )
             if not response.ok:
@@ -840,15 +840,22 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             name_path_mappings.keys()
             - set(self._report.failed_annotations).union(set(missing_annotations))
         )
-        if uploaded_annotations and not self._keep_status:
-            statuses_changed = set_annotation_statuses_in_progress(
-                service_provider=self._service_provider,
-                project=self._project,
-                folder=self._folder,
-                item_names=uploaded_annotations,
+        if uploaded_annotations and self._keep_status is not None:
+            response = self._service_provider.work_management.list_workflows(
+                Filter('id', self._project.id, OperatorEnum.EQ)
             )
-            if not statuses_changed:
-                self._response.errors = AppException("Failed to change status.")
+            if response.error:
+                raise response.error
+            workflow = response.data[0]
+            if workflow.is_system and not self._keep_status:
+                statuses_changed = set_annotation_statuses_in_progress(
+                    service_provider=self._service_provider,
+                    project=self._project,
+                    folder=self._folder,
+                    item_names=uploaded_annotations,
+                )
+                if not statuses_changed:
+                    self._response.errors = AppException("Failed to change status.")
 
         if missing_annotations:
             logger.warning(
@@ -1076,17 +1083,24 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                                 ],
                                 Body=mask,
                             )
-                    if not self._keep_status:
-                        statuses_changed = set_annotation_statuses_in_progress(
-                            service_provider=self._service_provider,
-                            project=self._project,
-                            folder=self._folder,
-                            item_names=[self._image.name],
+                    if self._keep_status is not None and not self._keep_status:
+                        response = self._service_provider.work_management.list_workflows(
+                            Filter('id', self._project.workflow_id, OperatorEnum.EQ)
                         )
-                        if not statuses_changed:
-                            self._response.errors = AppException(
-                                "Failed to change status."
+                        if not response.ok:
+                            raise AppException(response.error)
+                        workflow = response.data[0]
+                        if workflow.is_system:
+                            statuses_changed = set_annotation_statuses_in_progress(
+                                service_provider=self._service_provider,
+                                project=self._project,
+                                folder=self._folder,
+                                item_names=[self._image.name],
                             )
+                            if not statuses_changed:
+                                self._response.errors = AppException(
+                                    "Failed to change status."
+                                )
                     if self._verbose:
                         self.reporter.log_info(
                             f"Uploading annotations for image {str(self._image.name)} in project {self._project.name}."

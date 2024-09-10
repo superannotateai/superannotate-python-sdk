@@ -30,6 +30,21 @@ Project metadata example:
 
 ----------
 
+Folder metadata
+_________________
+
+Folder metadata example:
+
+.. code-block:: python
+
+   {
+    "name": "Example folder",
+    "status": "NotStarted"
+   }
+
+
+----------
+
 Setting metadata
 _________________
 
@@ -114,8 +129,6 @@ Image metadata example:
    {
       "name": "000000000001.jpg",
       "annotation_status": "Completed",
-      "prediction_status": "NotStarted",
-      "segmentation_status": "NotStarted",
       "annotator_id": None,
       "annotator_name": None,
       "qa_id": None,

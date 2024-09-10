@@ -11,7 +11,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_LIST_STATUSES = "workflows/{workflow_id}/workflowstatuses"
     URL_LIST_ROLES = "workflows/{workflow_id}/workflowroles"
 
-    def list(self, query: Query):
+    def list_workflows(self, query: Query):
         result = self.client.paginate(
             f"{self.URL_LIST}?{query.build_query()}",
             item_type=WorkflowEntity,

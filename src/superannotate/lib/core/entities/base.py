@@ -257,8 +257,8 @@ class BaseItemEntity(TimedBaseModel):
         None, description="Item’s path in SuperAnnotate project"
     )
     url: Optional[str] = Field(description="Publicly available HTTP address")
-    annotator_email: Optional[str] = Field(description="Annotator email")
-    qa_email: Optional[str] = Field(description="QA email")
+    annotator_email: Optional[str] = Field(None, description="Annotator email")
+    qa_email: Optional[str] = Field(None, description="QA email")
     annotation_status: Optional[Union[int, str]] = Field(
         None, description="Item annotation status"
     )

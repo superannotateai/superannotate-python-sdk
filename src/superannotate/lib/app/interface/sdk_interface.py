@@ -1049,6 +1049,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
+        if annotation_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         if recursive_subfolders:
             logger.info(
                 "When using recursive subfolder parsing same name images"
@@ -1193,7 +1200,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type only_pinned: bool
 
         :param kwargs:
-            Arbitrary kwargs:
+             Arbitrary kwargs:
 
              - integration_name: can be provided which will be used as a storage to store export file
              - format: can be CSV for the Gen AI projects
@@ -1202,6 +1209,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
+
             client = SAClient()
 
             export = client.prepare_export(
@@ -1312,7 +1320,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-
+        if annotation_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         video_paths = []
         for extension in extensions:
             if not recursive_subfolders:
@@ -1391,7 +1405,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-
+        if annotation_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         response = self.controller.upload_videos(
             project_name=project_name,
             folder_name=folder_name,
@@ -1777,7 +1797,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_annotations(
-        self, project: NotEmptyStr, annotations: List[dict], keep_status: bool = False
+        self, project: NotEmptyStr, annotations: List[dict], keep_status: bool = None
     ):
         """Uploads a list of annotation dicts as annotations to the SuperAnnotate directory.
 
@@ -1805,8 +1825,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
 
         """
-        if keep_status:
-            warnings.warn(DeprecationWarning(""))
+        if keep_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         project, folder = self.controller.get_project_folder_by_path(project)
         response = self.controller.annotations.upload_multiple(
             project=project,
@@ -1825,7 +1850,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         folder_path: Union[str, Path],
         from_s3_bucket=None,
         recursive_subfolders: Optional[bool] = False,
-        keep_status=False,
+        keep_status: Optional[bool] = None,
     ):
         """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -1859,6 +1884,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
+        if keep_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
         if recursive_subfolders:
@@ -1899,7 +1931,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_json: Union[str, Path, dict],
         mask: Optional[Union[str, Path, bytes]] = None,
         verbose: Optional[bool] = True,
-        keep_status: bool = False,
+        keep_status: bool = None,
     ):
         """Upload annotations from JSON (also mask for pixel annotations)
         to the image.
@@ -1926,7 +1958,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-
+        if keep_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         project = self.controller.projects.get_by_name(project_name).data
         if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
@@ -2045,7 +2083,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type image_quality_in_editor: str
         """
         project_name, folder_name = extract_project_folder(project)
-
+        if annotation_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         response = self.controller.upload_image_to_project(
             project_name=project_name,
             folder_name=folder_name,
@@ -2612,7 +2656,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[str, int],
         folder: Optional[Union[str, int]] = None,
-        /,
+        *,
         include: List[Literal["assignee", "custom_metadata"]] = None,
         **filters,
     ):
@@ -2783,7 +2827,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     ]
             )
         """
-
+        if annotation_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The “keep_status” parameter is deprecated. "
+                    "Please use the “set_annotation_statuses” function instead."
+                )
+            )
         project_name, folder_name = extract_project_folder(project)
         try:
             attachments = parse_obj_as(List[AttachmentEntity], attachments)

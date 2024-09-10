@@ -38,9 +38,8 @@ class TestListItems(BaseTestCase):
         )
         assert len(items) == 100
 
-    def test_role_filter(self):
-        sa.attach_items(
-            self.PROJECT_NAME, [{"name": str(i), "url": str(i)} for i in range(1)]
-        )
+    def test_invalid_filter(self):
         with self.assertRaisesRegexp(AppException, "Invalid role provided."):
             sa.list_items(self.PROJECT_NAME, assignments__user_role="Dummy")
+        with self.assertRaisesRegexp(AppException, "Invalid status provided."):
+            sa.list_items(self.PROJECT_NAME, annotation_status="Dummy")

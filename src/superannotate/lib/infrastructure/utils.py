@@ -76,7 +76,7 @@ class CachedWorkManagementRepository:
     ):
         import time
 
-        time.sleep(10)
+        time.sleep(5)
         if data_type == "roles":
             response = self.work_management.list_workflow_roles(
                 project.id, project.workflow_id

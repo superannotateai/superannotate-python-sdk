@@ -736,6 +736,18 @@ class UploadImageToProject(BaseUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._s3_repo = s3_repo
         self._service_provider = service_provider
+        if annotation_status_value is None:
+            response = self._service_provider.work_management.list_workflows(
+                Filter('id', self._project.workflow_id, OperatorEnum.EQ)
+            )
+            if response.error:
+                raise AppException(response.error)
+            workflow = response.data[0]
+            if workflow.is_system:
+                annotation_status_value = self._service_provider.get_annotation_status_value(
+                    self._project, "NotStarted"
+                )
+
         self._annotation_status_value = annotation_status_value
         self._auth_data = None
 
@@ -1084,6 +1096,18 @@ class UploadImagesToProject(BaseInteractiveUseCase):
 
             uploaded = []
             attach_duplications_list = []
+
+            if not self._annotation_status_value:
+                response = self._service_provider.work_management.list_workflows(
+                    Filter('id', self._project.workflow_id, OperatorEnum.EQ)
+                )
+                if response.error:
+                    raise AppException(response.error)
+                workflow = response.data[0]
+                if workflow.is_system:
+                    self._annotation_status_value = self._service_provider.get_annotation_status_value(
+                        self._project, "NotStarted"
+                    )
             for i in range(0, len(uploaded_images), 100):
                 response = AttachFileUrlsUseCase(
                     project=self._project,
@@ -1586,7 +1610,6 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
         start_time: float,
         end_time: float = None,
         target_fps: float = None,
-        annotation_status_code: int = None,
         image_quality_in_editor: str = None,
         limit: int = None,
     ):
@@ -1599,7 +1622,6 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
         self._start_time = start_time
         self._end_time = end_time
         self._target_fps = target_fps
-        self._annotation_status_code = annotation_status_code
         self._image_quality_in_editor = image_quality_in_editor
         self._limit = limit
         self._limitation_response = None
@@ -1771,7 +1793,6 @@ class UploadVideosAsImages(BaseReportableUseCase):
                         start_time=self._start_time,
                         end_time=self._end_time,
                         target_fps=self._target_fps,
-                        annotation_status_code=self._annotation_status_value,
                         image_quality_in_editor=self._image_quality_in_editor,
                     )
                     if not frames_generator_use_case.is_valid():

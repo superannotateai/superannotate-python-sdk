@@ -114,8 +114,8 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
             "desc",
             self.PROJECT_TYPE,
             classes=self.CLASSES,
-            workflows=self.WORKFLOWS,
         )
+        sa.set_project_workflow(self.PROJECT,  self.WORKFLOWS)
         assert len(project["classes"]) == 1
         assert len(project["classes"][0]["attribute_groups"]) == 1
         assert len(project["classes"][0]["attribute_groups"][0]["attributes"]) == 3
@@ -127,14 +127,6 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
         assert steps[1]["attribute"][0]["attribute"]["name"] == "Track"
         assert steps[1]["attribute"][1]["attribute"]["name"] == "Bus"
 
-    def test_create_project_with_workflow_without_classes(self):
-        with self.assertRaisesRegexp(
-            AppException, "Project with workflows can not be created without classes."
-        ):
-            sa.create_project(
-                self.PROJECT, "desc", self.PROJECT_TYPE, workflows=self.WORKFLOWS
-            )
-
     def test_create_project_with_workflow_and_wrong_classes(self):
         try:
             workflows = copy.copy(self.WORKFLOWS)
@@ -145,8 +137,9 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
                 "desc",
                 self.PROJECT_TYPE,
                 classes=self.CLASSES,
-                workflows=self.WORKFLOWS,
+
             )
+            sa.set_project_steps(self.PROJECT, self.WORKFLOWS)
         except AppException as e:
             assert str(e) == "There are no [1, 2] classes created in the project."
 
