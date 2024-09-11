@@ -47,6 +47,7 @@ from lib.core.types import AttachmentMeta
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
+from lib.infrastructure.utils import divide_to_chunks
 from PIL import UnidentifiedImageError
 
 logger = logging.getLogger("sa")
@@ -117,16 +118,17 @@ class AttachFileUrlsUseCase(BaseUseCase):
         return self._upload_state_code
 
     def execute(self):
-        response = self._service_provider.item_service.list(
-            self._project.id,
-            self._folder.id,
-            Filter(
-                "name", [image.name for image in self._attachments], OperatorEnum.IN
-            ),
-        )
-        if not response.ok:
-            raise AppException(response.error)
-        duplications = [image.name for image in response.data]
+        attachment_names = [image.name for image in self._attachments]
+        duplications = []
+        for names in divide_to_chunks(attachment_names, 500):
+            response = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter("name", names, OperatorEnum.IN),
+            )
+            if not response.ok:
+                raise AppException(response.error)
+            duplications.extend([image.name for image in response.data])
         meta = {}
         to_upload = []
         for image in self._attachments:
@@ -1781,12 +1783,16 @@ class UploadVideosAsImages(BaseReportableUseCase):
                     frame_names = VideoPlugin.get_extractable_frames(
                         path, self._start_time, self._end_time, self._target_fps
                     )
-                    duplicate_images = self._service_provider.item_service.list(
-                        self._project.id,
-                        self._folder.id,
-                        Filter("name", frame_names, OperatorEnum.IN),
-                    ).data
-
+                    duplicate_images = []
+                    for names in divide_to_chunks(frame_names, 500):
+                        response = self._service_provider.item_service.list(
+                            self._project.id,
+                            self._folder.id,
+                            Filter("name", names, OperatorEnum.IN),
+                        )
+                        if not response.ok:
+                            raise AppException(response.error)
+                        duplicate_images.extend(response.data)
                     duplicate_images = [image.name for image in duplicate_images]
                     frames_generator_use_case = ExtractFramesUseCase(
                         service_provider=self._service_provider,

@@ -1612,13 +1612,16 @@ class GetAnnotations(BaseReportableUseCase):
         if self.is_valid():
             if self._items:
                 if isinstance(self._items[0], str):
-                    items: List[BaseItemEntity] = get_or_raise(
-                        self._service_provider.item_service.list(
+                    items = []
+                    for names in divide_to_chunks(self._items, 1000):
+                        response = self._service_provider.item_service.list(
                             self._project.id,
                             self._folder.id,
-                            Filter("name", self._items, OperatorEnum.IN),
+                            Filter("name", names, OperatorEnum.IN),
                         )
-                    )
+                        if not response.ok:
+                            raise AppException(response.error)
+                        items.extend(response.data)
                 else:
                     response = self._service_provider.items.list_by_ids(
                         project=self._project,
@@ -1634,11 +1637,6 @@ class GetAnnotations(BaseReportableUseCase):
                         f"Could not find annotations for {len_provided_items - len_items}/{len_provided_items} items."
                     )
             elif self._items is None:
-                # condition = Condition("project_id", self._project.id, EQ) & Condition(
-                #     "folder_id", self._folder.id, EQ
-                # )
-                # items = get_or_raise(self._service_provider.items.list(condition))
-
                 items = get_or_raise(
                     self._service_provider.item_service.list(
                         self._project.id, self._folder.id, EmptyQuery()
@@ -1831,13 +1829,16 @@ class DownloadAnnotations(BaseReportableUseCase):
                 folders.append(self._folder)
             for folder in folders:
                 if self._item_names:
-                    items = get_or_raise(
-                        self._service_provider.item_service.list(
+                    items = []
+                    for chunk in divide_to_chunks(self._item_names, 500):
+                        response = self._service_provider.item_service.list(
                             self._project.id,
                             self._folder.id,
-                            Filter("name", self._item_names, OperatorEnum.IN),
+                            Filter("name", chunk, OperatorEnum.IN),
                         )
-                    )
+                        if response.error:
+                            raise AppException(response.error)
+                        items.extend(response.data)
                 else:
                     condition = Condition(
                         "project_id", self._project.id, EQ

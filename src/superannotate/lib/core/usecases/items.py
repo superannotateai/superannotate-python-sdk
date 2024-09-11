@@ -30,6 +30,7 @@ from lib.core.types import AttachmentMeta
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.folders import SearchFoldersUseCase
+from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
 
 logger = logging.getLogger("sa")
@@ -707,14 +708,16 @@ class DeleteItemsUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             if self._item_names:
-                item_ids = [
-                    item.id
-                    for item in self._service_provider.item_service.list(
+                item_ids = []
+                for chunk in divide_to_chunks(self._item_names, 500):
+                    response = self._service_provider.item_service.list(
                         self._project.id,
                         self._folder.id,
                         Filter("name", self._item_names, OperatorEnum.IN),
-                    ).data
-                ]
+                    )
+                    if response.error:
+                        raise AppException(response.error)
+                    item_ids.extend([i.id for i in response.data])
             else:
                 items = self._service_provider.item_service.list(
                     self._project.id, self._folder.id, EmptyQuery()
