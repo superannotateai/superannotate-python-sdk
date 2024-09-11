@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Optional
 from typing import Union
 
+from numpy.ma.core import empty
+
 from lib.core import BACKEND_URL
 from lib.core import LOG_FILE_LOCATION
 from lib.core.pydantic_v1 import BaseModel
@@ -280,7 +282,10 @@ class BaseItemEntity(TimedBaseModel):
 
     @staticmethod
     def map_fields(entity: dict) -> dict:
-        entity["url"] = entity["metadata"]["path"]
+        if "path" in entity:
+            entity['url'] = entity["path"]
+        else:
+            entity["url"] = entity["metadata"]["path"]
         entity["path"] = None
         return entity
 

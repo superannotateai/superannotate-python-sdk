@@ -29,6 +29,7 @@ class TestGetEntityMetadataVector(BaseTestCase):
         "segmentation_status": None,
         "approval_status": None,
         "is_pinned": False,
+        "assignments": [],
     }
 
     @property
