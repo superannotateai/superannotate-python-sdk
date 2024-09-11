@@ -713,7 +713,7 @@ class DeleteItemsUseCase(BaseUseCase):
                     response = self._service_provider.item_service.list(
                         self._project.id,
                         self._folder.id,
-                        Filter("name", self._item_names, OperatorEnum.IN),
+                        Filter("name", chunk, OperatorEnum.IN),
                     )
                     if response.error:
                         raise AppException(response.error)

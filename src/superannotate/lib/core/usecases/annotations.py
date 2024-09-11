@@ -842,22 +842,21 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             name_path_mappings.keys()
             - set(self._report.failed_annotations).union(set(missing_annotations))
         )
-        if uploaded_annotations and self._keep_status is not None:
-            response = self._service_provider.work_management.list_workflows(
-                Filter("id", self._project.id, OperatorEnum.EQ)
+        response = self._service_provider.work_management.list_workflows(
+            Filter("id", self._project.id, OperatorEnum.EQ)
+        )
+        if response.error:
+            raise response.error
+        workflow = response.data[0]
+        if workflow.is_system and uploaded_annotations and not self._keep_status:
+            statuses_changed = set_annotation_statuses_in_progress(
+                service_provider=self._service_provider,
+                project=self._project,
+                folder=self._folder,
+                item_names=uploaded_annotations,
             )
-            if response.error:
-                raise response.error
-            workflow = response.data[0]
-            if workflow.is_system and not self._keep_status:
-                statuses_changed = set_annotation_statuses_in_progress(
-                    service_provider=self._service_provider,
-                    project=self._project,
-                    folder=self._folder,
-                    item_names=uploaded_annotations,
-                )
-                if not statuses_changed:
-                    self._response.errors = AppException("Failed to change status.")
+            if not statuses_changed:
+                self._response.errors = AppException("Failed to change status.")
 
         if missing_annotations:
             logger.warning(
@@ -1085,26 +1084,23 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                                 ],
                                 Body=mask,
                             )
-                    if self._keep_status is not None and not self._keep_status:
-                        response = (
-                            self._service_provider.work_management.list_workflows(
-                                Filter("id", self._project.workflow_id, OperatorEnum.EQ)
-                            )
+                    response = self._service_provider.work_management.list_workflows(
+                        Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+                    )
+                    if not response.ok:
+                        raise AppException(response.error)
+                    workflow = response.data[0]
+                    if workflow.is_system and not self._keep_status:
+                        statuses_changed = set_annotation_statuses_in_progress(
+                            service_provider=self._service_provider,
+                            project=self._project,
+                            folder=self._folder,
+                            item_names=[self._image.name],
                         )
-                        if not response.ok:
-                            raise AppException(response.error)
-                        workflow = response.data[0]
-                        if workflow.is_system:
-                            statuses_changed = set_annotation_statuses_in_progress(
-                                service_provider=self._service_provider,
-                                project=self._project,
-                                folder=self._folder,
-                                item_names=[self._image.name],
+                        if not statuses_changed:
+                            self._response.errors = AppException(
+                                "Failed to change status."
                             )
-                            if not statuses_changed:
-                                self._response.errors = AppException(
-                                    "Failed to change status."
-                                )
                     if self._verbose:
                         self.reporter.log_info(
                             f"Uploading annotations for image {str(self._image.name)} in project {self._project.name}."
