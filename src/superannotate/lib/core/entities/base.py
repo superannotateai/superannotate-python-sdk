@@ -279,7 +279,7 @@ class BaseItemEntity(TimedBaseModel):
 
     @staticmethod
     def map_fields(entity: dict) -> dict:
-        entity["url"] = entity.get("path")
+        entity["url"] = entity["metadata"]["path"]
         entity["path"] = None
         entity["annotator_email"] = entity.get("annotator_id")
         entity["qa_email"] = entity.get("qa_id")

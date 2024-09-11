@@ -318,8 +318,10 @@ class AttachItems(BaseReportableUseCase):
                         raise AppException(response.error)
                     workflow = response.data[0]
                     if workflow.is_system:
-                        self._annotation_status_code = self._service_provider.get_annotation_status_value(
-                            self._project, "NotStarted"
+                        self._annotation_status_code = (
+                            self._service_provider.get_annotation_status_value(
+                                self._project, "NotStarted"
+                            )
                         )
                 if to_upload:
                     backend_response = self._service_provider.items.attach(
@@ -715,7 +717,7 @@ class DeleteItemsUseCase(BaseUseCase):
                 ]
             else:
                 items = self._service_provider.item_service.list(
-                    self._project.id, self._folder, EmptyQuery()
+                    self._project.id, self._folder.id, EmptyQuery()
                 ).data
                 item_ids = [item.id for item in items]
 

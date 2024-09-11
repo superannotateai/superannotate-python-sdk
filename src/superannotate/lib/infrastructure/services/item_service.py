@@ -1,6 +1,7 @@
 import base64
 
 from lib.core.entities import BaseItemEntity
+from lib.core.jsx_conditions import Join
 from lib.core.jsx_conditions import Query
 from lib.core.service_types import BaseItemResponse
 from lib.core.serviceproviders import SuperannotateServiceProvider
@@ -25,6 +26,7 @@ class ItemService(SuperannotateServiceProvider):
         return result
 
     def list(self, project_id: int, folder_id: int, query: Query):
+        query &= Join("metadata", ["path"])
         result = self.client.paginate(
             f"{self.URL_LIST}?{query.build_query()}",
             item_type=BaseItemEntity,

@@ -171,7 +171,9 @@ def set_annotation_statuses_in_progress(
             project=project,
             folder=folder,
             item_names=item_names[i : i + chunk_size],  # noqa: E203
-            annotation_status=service_provider.get_annotation_status_value(project, "InProgress"),
+            annotation_status=service_provider.get_annotation_status_value(
+                project, "InProgress"
+            ),
         )
         if not status_changed.ok:
             failed_on_chunk = True
@@ -842,7 +844,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         )
         if uploaded_annotations and self._keep_status is not None:
             response = self._service_provider.work_management.list_workflows(
-                Filter('id', self._project.id, OperatorEnum.EQ)
+                Filter("id", self._project.id, OperatorEnum.EQ)
             )
             if response.error:
                 raise response.error
@@ -1084,8 +1086,10 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                                 Body=mask,
                             )
                     if self._keep_status is not None and not self._keep_status:
-                        response = self._service_provider.work_management.list_workflows(
-                            Filter('id', self._project.workflow_id, OperatorEnum.EQ)
+                        response = (
+                            self._service_provider.work_management.list_workflows(
+                                Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+                            )
                         )
                         if not response.ok:
                             raise AppException(response.error)

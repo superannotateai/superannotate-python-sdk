@@ -104,3 +104,20 @@ class TestGetEntityMetadataVideo(BaseTestCase):
         assert item_metadata["path"] == f"{self.PROJECT_NAME}"
         assert "prediction_status" not in item_metadata
         assert "segmentation_status" not in item_metadata
+
+    def test_ge(self):
+        sa.attach_items(
+            self.PROJECT_NAME,
+            [
+                {
+                    "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
+                    "name": self.ITEM_NAME,
+                }
+            ],
+        )
+        item_metadata = sa.get_item_metadata(
+            self.PROJECT_NAME, self.ITEM_NAME, include_custom_metadata=True
+        )
+        assert item_metadata["path"] == f"{self.PROJECT_NAME}"
+        assert "prediction_status" not in item_metadata
+        assert "segmentation_status" not in item_metadata

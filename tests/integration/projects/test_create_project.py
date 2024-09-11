@@ -115,7 +115,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
             self.PROJECT_TYPE,
             classes=self.CLASSES,
         )
-        sa.set_project_workflow(self.PROJECT,  self.WORKFLOWS)
+        sa.set_project_workflow(self.PROJECT, self.WORKFLOWS)
         assert len(project["classes"]) == 1
         assert len(project["classes"][0]["attribute_groups"]) == 1
         assert len(project["classes"][0]["attribute_groups"][0]["attributes"]) == 3
@@ -137,7 +137,6 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
                 "desc",
                 self.PROJECT_TYPE,
                 classes=self.CLASSES,
-
             )
             sa.set_project_steps(self.PROJECT, self.WORKFLOWS)
         except AppException as e:

@@ -10,7 +10,7 @@ from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
-from lib.core.service_types import AnnotationClassListResponse, WorkflowListResponse
+from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
@@ -24,6 +24,7 @@ from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
+from lib.core.service_types import WorkflowListResponse
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
 
