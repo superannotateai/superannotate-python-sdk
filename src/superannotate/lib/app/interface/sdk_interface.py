@@ -2516,7 +2516,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        items = self.controller.items.list_items(project, folder, name=item_name)
+        items = self.controller.items.list_items(
+            project, folder, name=item_name, include=["assignments"]
+        )
         item = next(iter(items), None)
         if not items:
             raise AppException("Item not found.")
@@ -2657,7 +2659,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[str, int],
         folder: Optional[Union[str, int]] = None,
         *,
-        include: List[Literal["assignee", "custom_metadata"]] = None,
+        include: List[Literal["assignments", "custom_metadata"]] = None,
         **filters,
     ):
         """
@@ -2778,7 +2780,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
             for i in res:
                 i["custom_metadata"] = item_custom_fields[i["id"]]
-        exclude = {"meta"}
+        exclude = {"meta", "annotator_email", "qa_email"}
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
 
     def attach_items(

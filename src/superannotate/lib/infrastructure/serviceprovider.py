@@ -69,6 +69,9 @@ class ServiceProvider(BaseServiceProvider):
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
         return self._cached_work_management_repository.get_role_id(project, role_name)
 
+    def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
+        return self._cached_work_management_repository.get_role_name(project, role_id)
+
     def get_annotation_status_value(
         self, project: entities.ProjectEntity, status_name: str
     ) -> int:

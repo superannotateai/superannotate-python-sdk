@@ -442,11 +442,21 @@ class ItemManager(BaseManager):
         """Process the response data and return a list of serialized items."""
         data = []
         for item in items:
+
             item = usecases.serialize_item_entity(item, project)
             item = usecases.add_item_path(project, folder, item)
             item.annotation_status = self.service_provider.get_annotation_status_name(
                 project, item.annotation_status
             )
+            for assignment in item.assignments:
+                role_name = self.service_provider.get_role_name(
+                    project, assignment["user_role"]
+                )
+                if role_name == "QA":
+                    item.qa_email = assignment["user_id"]
+                elif role_name == "Annotator":
+                    item.annotator_email = assignment["user_id"]
+                assignment["user_role"] = role_name
             data.append(item)
         return data
 

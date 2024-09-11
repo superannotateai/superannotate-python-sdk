@@ -264,6 +264,7 @@ class BaseItemEntity(TimedBaseModel):
     )
     entropy_value: Optional[float] = Field(description="Priority score of given item")
     custom_metadata: Optional[dict]
+    assignments: Optional[list] = Field([])
 
     class Config:
         extra = Extra.allow
@@ -281,8 +282,6 @@ class BaseItemEntity(TimedBaseModel):
     def map_fields(entity: dict) -> dict:
         entity["url"] = entity["metadata"]["path"]
         entity["path"] = None
-        entity["annotator_email"] = entity.get("annotator_id")
-        entity["qa_email"] = entity.get("qa_id")
         return entity
 
 

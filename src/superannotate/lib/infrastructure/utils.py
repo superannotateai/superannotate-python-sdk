@@ -48,6 +48,7 @@ class CachedWorkManagementRepository:
         self._annotation_status_name_value_mapping: Dict[int, Dict[str, int]] = {}
         self._annotation_status_value_name_mapping: Dict[int, Dict[int, str]] = {}
         self._role_name_id_map: Dict[int, Dict[str, int]] = {}
+        self._role_id_name_map: Dict[int, Dict[int, str]] = {}
         self._cache_timestamps: Dict[
             int, Dict[str, float]
         ] = {}  # Tracking separate timestamps for roles and statuses
@@ -87,6 +88,9 @@ class CachedWorkManagementRepository:
             self._role_name_id_map[project.id] = {
                 role["role"]["name"]: role["role_id"] for role in roles
             }
+            self._role_id_name_map[project.id] = {
+                role["role_id"]: role["role"]["name"] for role in roles
+            }
             self._update_cache_timestamp(project.id, "roles")
 
         elif data_type == "statuses":
@@ -122,6 +126,13 @@ class CachedWorkManagementRepository:
         mapping = self._role_name_id_map.get(project.id, {})
         if role_name in mapping:
             return mapping[role_name]
+        raise AppException("Invalid role provided.")
+
+    def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
+        self._sync(project, "roles")
+        mapping = self._role_id_name_map.get(project.id, {})
+        if role_id in mapping:
+            return mapping[role_id]
         raise AppException("Invalid role provided.")
 
     def get_annotation_status_value(
