@@ -73,9 +73,13 @@ class GetImageUseCase(BaseUseCase):
             self._folder.id,
             Filter("name", self._image_name, OperatorEnum.EQ),
         )
+        error = AppException("Image not found.")
         if not response.ok:
-            raise AppException("Image not found.")
-        self._response.data = response.data[0]
+            raise error
+        image = next(iter(response.data), None)
+        if not image:
+            raise error
+        self._response.data = image
         return self._response
 
 

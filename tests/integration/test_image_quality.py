@@ -41,6 +41,10 @@ class TestImageQuality(BaseTestCase):
             )
 
     def test_image_quality_setting2(self):
+        sa.download_image(
+            self.PROJECT_NAME,
+            "self.EXAMPLE_IMAGE_1",
+        )
         with tempfile.TemporaryDirectory() as tmpdir_name:
             sa.set_project_default_image_quality_in_editor(
                 self.PROJECT_NAME, "original"
