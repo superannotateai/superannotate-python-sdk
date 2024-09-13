@@ -468,6 +468,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 contributor[
                     "user_role"
                 ] = self.controller.service_provider.get_role_name(
+                    new_project,
                     contributor["user_role"]
                 )
         return data
@@ -685,6 +686,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 contributor[
                     "user_role"
                 ] = self.controller.service_provider.get_role_name(
+                    response.data,
                     contributor["user_role"]
                 )
         return data
