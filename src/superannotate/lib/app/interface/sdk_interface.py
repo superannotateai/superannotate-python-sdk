@@ -462,7 +462,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if response.errors:
             raise AppException(response.errors)
-        return ProjectSerializer(response.data).serialize()
+        data = ProjectSerializer(response.data).serialize()
+        if data.get("users"):
+            for contributor in data["users"]:
+                contributor[
+                    "user_role"
+                ] = self.controller.service_provider.get_role_name(
+                    contributor["user_role"]
+                )
+        return data
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """
@@ -671,7 +679,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return ProjectSerializer(response.data).serialize()
+        data = ProjectSerializer(response.data).serialize()
+        if data.get("users"):
+            for contributor in data["users"]:
+                contributor[
+                    "user_role"
+                ] = self.controller.service_provider.get_role_name(
+                    contributor["user_role"]
+                )
+        return data
 
     def get_project_settings(self, project: Union[NotEmptyStr, dict]):
         """Gets project's settings.
@@ -864,7 +880,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type pin: bool
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        item = self.controller.items.get_by_name(project, folder, image_name)
+        items = self.controller.items.list_items(project, folder, name=image_name)
+        item = next(iter(items), None)
+        if not items:
+            raise AppException("Item not found.")
         item.is_pinned = int(pin)
         self.controller.items.update(project=project, item=item)
 
@@ -2687,18 +2706,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
                 Options are:
 
+                - id: int
                 - id__in: list[int]
                 - name: str
                 - name__in: list[str]
                 - name__contains: str
-                - name__startswith: str
-                - name__endswith: str
+                - name__starts: str
+                - name__ends: str
                 - approval_status: Literal["Approved", "Disapproved", None]
-                - approval_status__in: list[Literal["Approved", "Disapproved", None]]
                 - assignments__user_id: str
                 - assignments__user_id__ne: str
                 - assignments__user_id__in: list[str]
-                - assignments__user_id__notin: list[str]
                 - assignments__user_role: str
                 - assignments__user_id__ne: str
                 - assignments__user_role__in: list[str]
@@ -2728,8 +2746,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "path": "Medical Annotations/folder1",
                     "url": "https://sa-public-files.s3.../scan_123.jpeg",
                     "annotation_status": "InProgress",
-                    "annotator_email": "annotator@example.com",
-                    "qa_email": "qa@example.com",
                     "createdAt": "2022-02-10T14:32:21.000Z",
                     "updatedAt": "2022-02-15T20:46:44.000Z",
                     "custom_metadata": {
@@ -2743,7 +2759,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Additional Filter Examples:
         ::
 
-            # Filter items completed before a specific date
             client.list_items(
                 project="Medical Annotations",
                 folder="folder2",
@@ -2762,11 +2777,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if isinstance(project, int)
             else self.controller.get_project(project)
         )
-        folder = (
-            folder
-            if folder and isinstance(folder, int)
-            else self.controller.get_folder(project, "root")
-        )
+        if folder is None:
+            folder = self.controller.get_folder(project, "root")
+        else:
+            if isinstance(folder, int):
+                folder = self.controller.get_folder_by_id(project.id, folder)
+            else:
+                folder = self.controller.get_folder(project, folder)
         include = include or []
         include_custom_metadata = "custom_metadata" in include
         if include_custom_metadata:
@@ -2781,6 +2798,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for i in res:
                 i["custom_metadata"] = item_custom_fields[i["id"]]
         exclude = {"meta", "annotator_email", "qa_email"}
+        if include:
+            if "custom_metadata" not in include:
+                exclude.add("custom_metadata")
+            if "assignments" not in include:
+                exclude.add("assignments")
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
 
     def attach_items(

@@ -63,7 +63,7 @@ class ServiceProvider(BaseServiceProvider):
             )
         )
         self._cached_work_management_repository = CachedWorkManagementRepository(
-            2, self.work_management
+            5, self.work_management
         )
 
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:

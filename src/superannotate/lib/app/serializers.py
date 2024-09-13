@@ -139,12 +139,6 @@ class ProjectSerializer(BaseSerializer):
 
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
-
-        if data.get("users"):
-            for contributor in data["users"]:
-                contributor["user_role"] = constance.UserRole.get_name(
-                    contributor["user_role"]
-                )
         return data
 
 

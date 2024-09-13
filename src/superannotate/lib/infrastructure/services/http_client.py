@@ -185,7 +185,7 @@ class HttpClient(BaseClient):
                     break
                 data_len = len(_response.data)
                 offset += data_len
-                if data_len < chunk_size or _response.count - offset < 0:
+                if data_len < chunk_size or _response.total_count - offset < 0:
                     break
             else:
                 break

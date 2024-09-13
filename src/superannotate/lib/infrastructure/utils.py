@@ -75,9 +75,6 @@ class CachedWorkManagementRepository:
     def _sync_data(
         self, project: entities.ProjectEntity, data_type: Literal["statuses", "roles"]
     ):
-        import time
-
-        time.sleep(5)
         if data_type == "roles":
             response = self.work_management.list_workflow_roles(
                 project.id, project.workflow_id
@@ -126,14 +123,14 @@ class CachedWorkManagementRepository:
         mapping = self._role_name_id_map.get(project.id, {})
         if role_name in mapping:
             return mapping[role_name]
-        raise AppException("Invalid role provided.")
+        raise AppException("Invalid assignments role provided.")
 
     def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
         self._sync(project, "roles")
         mapping = self._role_id_name_map.get(project.id, {})
         if role_id in mapping:
             return mapping[role_id]
-        raise AppException("Invalid role provided.")
+        raise AppException("Invalid assignments role provided.")
 
     def get_annotation_status_value(
         self, project: entities.ProjectEntity, status_name: str

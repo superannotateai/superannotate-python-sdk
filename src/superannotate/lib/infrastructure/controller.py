@@ -55,7 +55,6 @@ class ItemFilters(TypedDict, total=False):
     name__contains: Optional[str]
     name__starts: Optional[str]
     name__ends: Optional[str]
-    # approval_status: Optional[APPROVAL_STATUS]
     annotation_status: Optional[str]
     annotation_status__in: Optional[List[str]]
     approval_status: Optional[str]
@@ -65,6 +64,9 @@ class ItemFilters(TypedDict, total=False):
     assignments__user_id__in: Optional[List[str]]
     assignments__user_id__ne: Optional[str]
     assignments__user_role: Optional[str]
+    assignments__user_role__in: Optional[str]
+    assignments__user_role__ne: Optional[str]
+    assignments__user_role__notin: Optional[str]
 
 
 def build_condition(**kwargs) -> Condition:
@@ -401,7 +403,10 @@ class ItemManager(BaseManager):
                 lambda x: self.service_provider.get_annotation_status_value(project, x),
             )
         elif keys[0] == "assignments" and keys[1] == "user_role":
-            val = self.service_provider.get_role_id(project, val)
+            if isinstance(val, list):
+                val = [self.service_provider.get_role_id(project, i) for i in val]
+            else:
+                val = self.service_provider.get_role_id(project, val)
         return val
 
     @staticmethod
@@ -586,6 +591,9 @@ class ItemManager(BaseManager):
         return use_case.execute()
 
     def update(self, project: ProjectEntity, item: BaseItemEntity):
+        item.annotation_status = self.service_provider.get_annotation_status_value(
+            project, item.annotation_status
+        )
         use_case = usecases.UpdateItemUseCase(
             project=project, service_provider=self.service_provider, item=item
         )

@@ -24,8 +24,6 @@ class TestListItems(BaseTestCase):
         sa.attach_items(
             self.PROJECT_NAME, [{"name": str(i), "url": str(i)} for i in range(100)]
         )
-        # items = sa.list_items(self.PROJECT_NAME)
-        # assert len(items) == 100
         sa.set_approval_statuses(self.PROJECT_NAME, "Disapproved")
         items = sa.list_items(self.PROJECT_NAME, approval_status="Disapproved")
         assert len(items) == 100
@@ -39,7 +37,13 @@ class TestListItems(BaseTestCase):
         assert len(items) == 100
 
     def test_invalid_filter(self):
-        with self.assertRaisesRegexp(AppException, "Invalid role provided."):
+        with self.assertRaisesRegexp(
+            AppException, "Invalid assignments role provided."
+        ):
+            sa.list_items(self.PROJECT_NAME, assignments__user_role__in=["Approved"])
+        with self.assertRaisesRegexp(
+            AppException, "Invalid assignments role provided."
+        ):
             sa.list_items(self.PROJECT_NAME, assignments__user_role="Dummy")
         with self.assertRaisesRegexp(AppException, "Invalid status provided."):
             sa.list_items(self.PROJECT_NAME, annotation_status="Dummy")

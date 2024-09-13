@@ -83,9 +83,16 @@ class ServiceResponse(BaseModel):
     res_data: Optional[Any] = None  # response data
     res_error: Optional[Union[str, list, dict]] = None
     count: Optional[int] = 0
+    total: Optional[int] = 0
 
     class Config:
         extra = Extra.allow
+
+    @property
+    def total_count(self):
+        if self.total:
+            return self.total
+        return self.count
 
     @property
     def data(self):

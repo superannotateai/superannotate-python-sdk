@@ -311,19 +311,6 @@ class AttachItems(BaseReportableUseCase):
                         to_upload_meta[attachment.name] = self.generate_meta(
                             attachment.integration_id
                         )
-                if not self._annotation_status_code:
-                    response = self._service_provider.work_management.list_workflows(
-                        Filter("id", self._project.workflow_id, OperatorEnum.EQ)
-                    )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    workflow = response.data[0]
-                    if workflow.is_system:
-                        self._annotation_status_code = (
-                            self._service_provider.get_annotation_status_value(
-                                self._project, "NotStarted"
-                            )
-                        )
                 if to_upload:
                     backend_response = self._service_provider.items.attach(
                         project=self._project,

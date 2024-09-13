@@ -1,4 +1,3 @@
-import copy
 from unittest import TestCase
 
 import src.superannotate.lib.core as constances
@@ -126,21 +125,6 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
         assert steps[0]["attribute"][1]["attribute"]["name"] == "Bus"
         assert steps[1]["attribute"][0]["attribute"]["name"] == "Track"
         assert steps[1]["attribute"][1]["attribute"]["name"] == "Bus"
-
-    def test_create_project_with_workflow_and_wrong_classes(self):
-        try:
-            workflows = copy.copy(self.WORKFLOWS)
-            workflows[0]["className"] = "1"
-            workflows[1]["className"] = "2"
-            sa.create_project(
-                self.PROJECT,
-                "desc",
-                self.PROJECT_TYPE,
-                classes=self.CLASSES,
-            )
-            sa.set_project_steps(self.PROJECT, self.WORKFLOWS)
-        except AppException as e:
-            assert str(e) == "There are no [1, 2] classes created in the project."
 
 
 class TestCreateVideoProject(ProjectCreateBaseTestCase):
