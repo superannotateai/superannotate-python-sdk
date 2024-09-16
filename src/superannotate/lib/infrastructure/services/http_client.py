@@ -250,7 +250,7 @@ class HttpClient(BaseClient):
 class AIOHttpSession(aiohttp.ClientSession):
     RETRY_STATUS_CODES = [401, 403, 502, 503, 504]
     RETRY_LIMIT = 3
-    BACKOFF_FACTOR = 0.3
+    BACKOFF_FACTOR = 0.5
 
     @staticmethod
     def _copy_form_data(data: aiohttp.FormData) -> aiohttp.FormData:

@@ -10,7 +10,6 @@ from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
-from lib.core.enums import UserRole
 from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
@@ -83,7 +82,7 @@ class ContributorEntity(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     user_id: str
-    user_role: UserRole
+    user_role: Union[int, str]
 
     class Config:
         extra = Extra.ignore

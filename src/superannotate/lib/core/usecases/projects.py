@@ -118,7 +118,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         self._include_complete_image_count = include_complete_image_count
 
     def execute(self):
-        project = self._service_provider.projects.get(self._project.id).data
+        project = self._service_provider.projects.get_by_id(self._project.id).data
         if self._include_complete_image_count:
             folders = self._service_provider.folders.list(
                 Condition("project_id", self._project.id, EQ)
@@ -702,7 +702,7 @@ class AddContributorsToProject(BaseUseCase):
                         users=[
                             dict(
                                 user_id=user_id,
-                                user_role=role.value,
+                                user_role=role,
                             )
                             for user_id in _to_add
                         ],
@@ -765,7 +765,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     # REMINDER UserRole.VIEWER is the contributor for the teams
                     team_role=constances.UserRole.ADMIN.value
                     if self._set_admin
-                    else constances.UserRole.VIEWER.value,
+                    else constances.UserRole.CONTRIBUTOR.value,
                     emails=to_add,
                 )
                 invited, failed = (

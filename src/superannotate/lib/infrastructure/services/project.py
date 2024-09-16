@@ -10,7 +10,7 @@ from lib.core.serviceproviders import BaseProjectService
 
 class ProjectService(BaseProjectService):
     URL = "project"
-    URL_LIST = "projects"
+    URL_LIST = "api/v1/projects"
     URL_GET = "project/{}"
     URL_SETTINGS = "project/{}/settings"
     URL_WORKFLOW = "project/{}/workflow"
@@ -30,11 +30,6 @@ class ProjectService(BaseProjectService):
             content_type=ProjectResponse,
         )
         return result
-
-    def get(self, uuid: int):
-        return self.client.request(
-            self.URL_GET.format(uuid), "get", content_type=ProjectResponse
-        )
 
     def create(self, entity: entities.ProjectEntity) -> ServiceResponse:
         entity.team_id = self.client.team_id

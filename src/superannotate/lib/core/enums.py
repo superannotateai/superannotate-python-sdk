@@ -118,12 +118,8 @@ class ProjectType(BaseTitledEnum):
 
 
 class UserRole(BaseTitledEnum):
-    SUPER_ADMIN = "Superadmin", 1  # noqa
-    ADMIN = "Admin", 2
-    ANNOTATOR = "Annotator", 3
-    QA = "QA", 4
-    CUSTOMER = "Customer", 5
-    VIEWER = "Viewer", 6
+    CONTRIBUTOR = "Contributor", 4
+    ADMIN = "Admin", 7
 
 
 class UploadState(Enum):

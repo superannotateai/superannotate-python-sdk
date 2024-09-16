@@ -88,6 +88,8 @@ class CachedWorkManagementRepository:
             self._role_id_name_map[project.id] = {
                 role["role_id"]: role["role"]["name"] for role in roles
             }
+            self._role_id_name_map[project.id][3] = "Admin"
+            self._role_name_id_map[project.id]["Admin"] = 3
             self._update_cache_timestamp(project.id, "roles")
 
         elif data_type == "statuses":

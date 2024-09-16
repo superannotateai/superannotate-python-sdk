@@ -468,8 +468,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 contributor[
                     "user_role"
                 ] = self.controller.service_provider.get_role_name(
-                    new_project,
-                    contributor["user_role"]
+                    new_project, contributor["user_role"]
                 )
         return data
 
@@ -686,8 +685,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 contributor[
                     "user_role"
                 ] = self.controller.service_provider.get_role_name(
-                    response.data,
-                    contributor["user_role"]
+                    response.data, contributor["user_role"]
                 )
         return data
 
@@ -2294,9 +2292,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project = self.controller.projects.get_by_name(project).data
         contributors = [
-            entities.ContributorEntity(
-                user_id=email, user_role=constants.UserRole(role)
-            )
+            entities.ContributorEntity(user_id=email, user_role=role)
             for email in emails
         ]
         response = self.controller.projects.add_contributors(

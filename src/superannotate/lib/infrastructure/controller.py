@@ -177,6 +177,11 @@ class ProjectManager(BaseManager):
         contributors: List[ContributorEntity],
     ):
         project = self.get_metadata(project).data
+        for contributor in contributors:
+            contributor.user_role = self.service_provider.get_role_id(
+                project, contributor.user_role
+            )
+        project = self.get_metadata(project).data
         use_case = usecases.AddContributorsToProject(
             team=team,
             project=project,

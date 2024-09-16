@@ -392,7 +392,8 @@ class AnnotationService(BaseAnnotationService):
                     if status.startswith("FAILED"):
                         return False
                     await asyncio.sleep(15)
-                raise AppException(str(await response.text()))
+                else:
+                    raise AppException(str(await response.text()))
 
     def delete(
         self,

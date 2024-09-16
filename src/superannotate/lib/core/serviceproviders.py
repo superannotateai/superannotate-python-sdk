@@ -86,7 +86,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
 class BaseProjectService(SuperannotateServiceProvider):
     @abstractmethod
-    def get(self, uuid: int):
+    def get_by_id(self, project_id: int):
         raise NotImplementedError
 
     @abstractmethod
