@@ -15,41 +15,14 @@ from lib.core.types import AttachmentMeta
 
 
 class ItemService(BaseItemService):
-    URL_LIST = "items"
     URL_GET = "image/{}"
     URL_ATTACH = "image/ext-create"
-    URL_GET_BY_ID = "image/{image_id}"
     URL_MOVE_MULTIPLE = "image/move"
     URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
-    URL_LIST_BY_IDS = "images/getImagesByIds"
     URL_COPY_MULTIPLE = "images/copy-image-or-folders"
     URL_COPY_PROGRESS = "images/copy-image-progress"
     URL_DELETE_ITEMS = "image/delete/images"
     URL_SET_APPROVAL_STATUSES = "/items/bulk/change"
-
-    def get_by_id(self, item_id, project_id, project_type):
-
-        params = {"project_id": project_id}
-
-        content_type = PROJECT_TYPE_RESPONSE_MAP[project_type]
-
-        response = self.client.request(
-            url=self.URL_GET_BY_ID.format(image_id=item_id),
-            method="get",
-            params=params,
-            content_type=content_type,
-        )
-
-        return response
-
-    def list(self, condition: Condition = None):
-        return self.client.paginate(
-            url=f"{self.URL_LIST}?{condition.build_query()}"
-            if condition
-            else self.URL_LIST,
-            chunk_size=2000,
-            item_type=entities.BaseItemEntity,
-        )
 
     def update(self, project: entities.ProjectEntity, item: entities.BaseItemEntity):
         return self.client.request(
@@ -58,30 +31,6 @@ class ItemService(BaseItemService):
             data=item.dict(),
             params={"project_id": project.id},
         )
-
-    def list_by_ids(
-        self,
-        project: entities.ProjectEntity,
-        ids: List[int],
-    ):
-        chunk_size = 2000
-        items = []
-        response = None
-        for i in range(0, len(ids), chunk_size):
-            response = self.client.request(
-                self.URL_LIST_BY_IDS,
-                "post",
-                data={
-                    "image_ids": ids[i : i + chunk_size],  # noqa
-                },
-                params={"project_id": project.id},
-                content_type=ServiceResponse,
-            )
-            if not response.ok:
-                return response
-            items.extend(response.data["images"])
-        response.res_data = [BaseItemEntity(**i) for i in items]
-        return response
 
     def attach(
         self,

@@ -246,20 +246,9 @@ class BaseAnnotationClassService(SuperannotateServiceProvider):
 
 
 class BaseItemService(SuperannotateServiceProvider):
-    @abstractmethod
-    def list(self, condition: Condition = None) -> ItemListResponse:
-        raise NotImplementedError
 
     @abstractmethod
     def update(self, project: entities.ProjectEntity, item: entities.BaseItemEntity):
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_by_ids(
-        self,
-        project: entities.ProjectEntity,
-        ids: List[int],
-    ) -> ServiceResponse:
         raise NotImplementedError
 
     @abstractmethod

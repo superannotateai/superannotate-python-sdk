@@ -2702,12 +2702,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         Can be passed as keyword arguments with supported comparison types like
                         `__in`, `__startswith`, etc. (e.g., `annotation_status="Completed"`).
 
+                        - __ne
+                        - __in
+                        - __notin
+                        - __contains
+                        - __starts
+                        - __ends
+
                 Options are:
 
                 - id: int
                 - id__in: list[int]
                 - name: str
-                - name__in: list[str]
+                - name__in:  list[str]
                 - name__contains: str
                 - name__starts: str
                 - name__ends: str

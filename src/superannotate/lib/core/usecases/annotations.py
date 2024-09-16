@@ -1482,6 +1482,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
 
 
 class GetAnnotations(BaseReportableUseCase):
+    CHUNK_SIZE = 1000
+
     def __init__(
         self,
         config: ConfigEntity,
@@ -1619,13 +1621,17 @@ class GetAnnotations(BaseReportableUseCase):
                             raise AppException(response.error)
                         items.extend(response.data)
                 else:
-                    response = self._service_provider.items.list_by_ids(
-                        project=self._project,
-                        ids=self._items,
-                    )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    items: List[BaseItemEntity] = response.data
+                    items: List[BaseItemEntity] = []
+                    for i in range(0, len(self._items), self.CHUNK_SIZE):
+                        search_ids = self._items[i: i + self.CHUNK_SIZE]  # noqa
+                        response = self._service_provider.item_service.list(
+                            self._project.id,
+                            self._folder.id,
+                            Filter("id", search_ids, OperatorEnum.IN),
+                        )
+                        if not response.ok:
+                            raise AppException(response.error)
+                        items.extend(response.data)
                     self._item_id_name_map = {i.id: i.name for i in items}
                 len_items, len_provided_items = len(items), len(self._items)
                 if len_items != len_provided_items:
@@ -1836,10 +1842,13 @@ class DownloadAnnotations(BaseReportableUseCase):
                             raise AppException(response.error)
                         items.extend(response.data)
                 else:
-                    condition = Condition(
-                        "project_id", self._project.id, EQ
-                    ) & Condition("folder_id", folder.id, EQ)
-                    items = get_or_raise(self._service_provider.items.list(condition))
+                    response = self._service_provider.item_service.list(
+                        self._project.id,
+                        self._folder.id
+                    )
+                    if not response.ok:
+                        raise AppException(response.error)
+                    items = response.data
                 if not items:
                     continue
                 new_export_path = self.destination
