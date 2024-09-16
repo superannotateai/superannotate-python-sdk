@@ -242,7 +242,10 @@ class CreateProjectUseCase(BaseUseCase):
             if not entity:
                 self._response.errors = AppException("Failed to create project.")
                 return self._response
-            self._response.data = entity
+            created_project = GetProjectByNameUseCase(
+            name=entity.name, service_provider=self._service_provider
+            ).execute().data
+            self._response.data = created_project
             data = {}
             annotation_classes_mapping = {}
             if self._service_provider.annotation_classes:
