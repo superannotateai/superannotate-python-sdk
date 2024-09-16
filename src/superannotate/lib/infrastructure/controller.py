@@ -178,7 +178,7 @@ class ProjectManager(BaseManager):
     ):
         project = self.get_metadata(project).data
         for contributor in contributors:
-            contributor.user_role = self.service_provider.get_role_id(
+            contributor.user_role = self.service_provider.get_role_name(
                 project, contributor.user_role
             )
         project = self.get_metadata(project).data
