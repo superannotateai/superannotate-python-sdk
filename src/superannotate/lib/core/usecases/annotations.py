@@ -1835,7 +1835,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                     for chunk in divide_to_chunks(self._item_names, 500):
                         response = self._service_provider.item_service.list(
                             self._project.id,
-                            self._folder.id,
+                            folder.id,
                             Filter("name", chunk, OperatorEnum.IN),
                         )
                         if response.error:
@@ -1844,7 +1844,8 @@ class DownloadAnnotations(BaseReportableUseCase):
                 else:
                     response = self._service_provider.item_service.list(
                         self._project.id,
-                        self._folder.id
+                        folder.id,
+                        EmptyQuery()
                     )
                     if not response.ok:
                         raise AppException(response.error)

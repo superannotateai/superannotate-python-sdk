@@ -332,7 +332,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: dict object metadata the new project
         :rtype: dict
         """
-        if workflows:
+        if workflows is not None:
             warnings.warn(
                 DeprecationWarning(
                     "The “workflows” parameter is deprecated. Please use the “set_project_steps” function instead."
@@ -2682,34 +2682,37 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         Search items by filtering criteria.
 
-        :param project: The project name or ID to search within.
+        :param project: The project name, project ID, or folder path (e.g., "project1/folder1") to search within.
                         This can refer to the root of the project or a specific subfolder.
         :type project: Union[str, int]
 
-        :param folder: Optional folder name or ID within the project to search in.
-                       If None, the search will default to the root folder of the project.
+        :param folder: The folder name or ID to search within. If None, the search will be done in the root folder of
+                       the project. If both “project” and “folder” specify folders, the “project”
+                       value will take priority.
         :type folder: Union[str, int], optional
 
-        :param include: Optional list of additional fields to include in the response.
+        :param include: Specifies additional fields to include in the response.
 
                 Possible values are
 
-                - "assignee": Includes information about the item’s assignee (e.g., annotator or QA).
-                - "custom_metadata": Includes custom metadata attached to the items.
+                - "assignee": Includes information about the role of the item assignee.
+                - "custom_metadata": Includes custom metadata attached to the item.
         :type include: list of str, optional
 
-        :param filters: Arbitrary filtering criteria for items such as annotation status, name, and more.
-                        Can be passed as keyword arguments with supported comparison types like
-                        `__in`, `__startswith`, etc. (e.g., `annotation_status="Completed"`).
+        :param filters: Specifies filtering criteria (e.g., name, ID, annotation status),
+                        with all conditions combined using logical AND. Only items matching all criteria are returned.
+                        If no operation is specified, an exact match is applied.
 
-                        - __ne
-                        - __in
-                        - __notin
-                        - __contains
-                        - __starts
-                        - __ends
 
-                Options are:
+                Supported operations:
+                    - __ne: Value is in the list.
+                    - __in: Value is not equal.
+                    - __notin: Value is not in the list.
+                    - __contains: Value has the substring.
+                    - __starts: Value starts with the prefix.
+                    - __ends: Value ends with the suffix.
+
+                Filter params::
 
                 - id: int
                 - id__in: list[int]

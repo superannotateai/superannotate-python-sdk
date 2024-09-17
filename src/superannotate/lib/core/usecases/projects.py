@@ -249,6 +249,7 @@ class CreateProjectUseCase(BaseUseCase):
                 .execute()
                 .data
             )
+            created_project.instructions_link = instructions_link
             self._response.data = created_project
             data = {}
             annotation_classes_mapping = {}
