@@ -2804,7 +2804,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if include_custom_metadata:
             item_custom_fields = self.controller.custom_fields.list_fields(
-                project=project, item_ids=[i["id"] for i in res]
+                project=project, item_ids=[i.id for i in res]
             )
             for i in res:
                 i["custom_metadata"] = item_custom_fields[i["id"]]

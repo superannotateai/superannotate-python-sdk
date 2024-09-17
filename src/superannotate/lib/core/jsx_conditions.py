@@ -11,7 +11,7 @@ class OperatorEnum(str, Enum):
     LT = "$lt"
     CONTAINS = "$cont"
     STARTS = "$starts"
-    ENDS = "ENDS"
+    ENDS = "$ends"
     IN = "$in"
     NOTIN = "$notin"
 

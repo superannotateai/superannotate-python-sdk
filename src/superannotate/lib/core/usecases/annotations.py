@@ -1626,7 +1626,7 @@ class GetAnnotations(BaseReportableUseCase):
                         search_ids = self._items[i : i + self.CHUNK_SIZE]  # noqa
                         response = self._service_provider.item_service.list(
                             self._project.id,
-                            self._folder.id,
+                            None,
                             Filter("id", search_ids, OperatorEnum.IN),
                         )
                         if not response.ok:

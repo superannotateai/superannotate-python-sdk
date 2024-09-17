@@ -1,4 +1,5 @@
 import base64
+from typing import Optional
 
 from lib.core.entities import BaseItemEntity
 from lib.core.jsx_conditions import Join
@@ -25,18 +26,30 @@ class ItemService(SuperannotateServiceProvider):
         )
         return result
 
-    def list(self, project_id: int, folder_id: int, query: Query):
+    def list(self, project_id: int, folder_id: Optional[int], query: Query):
         query &= Join("metadata", ["path"])
+        entity_context = [
+            f'"team_id":{self.client.team_id}',
+            f'"project_id":{project_id}',
+        ]
+        if folder_id:
+            entity_context.append(f'"folder_id":{folder_id}')
         result = self.client.paginate(
             f"{self.URL_LIST}?{query.build_query()}",
             item_type=BaseItemEntity,
             headers={
                 "x-sa-entity-context": base64.b64encode(
-                    f'{{"team_id":{self.client.team_id},'
-                    f'"project_id":{project_id},"folder_id":{folder_id}}}'.encode(
-                        "utf-8"
-                    )
+                    f"{{{','.join(entity_context)}}}".encode("utf-8")
                 ).decode()
             },
         )
+        # headers={
+        #     "x-sa-entity-context": base64.b64encode(
+        #         f'{{"team_id":{self.client.team_id},' +
+        #         f'"project_id":{project_id},"folder_id":{folder_id}}}'.encode(
+        #             "utf-8"
+        #         )
+        #     ).decode()
+        # },
+        # )
         return result
