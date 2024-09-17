@@ -3,12 +3,8 @@ from typing import Dict
 from typing import List
 
 from lib.core import entities
-from lib.core.conditions import Condition
-from lib.core.entities import BaseItemEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
-from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
-from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseItemService
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta

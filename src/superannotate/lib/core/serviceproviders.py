@@ -14,7 +14,6 @@ from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
-from lib.core.service_types import ItemListResponse
 from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
@@ -246,7 +245,6 @@ class BaseAnnotationClassService(SuperannotateServiceProvider):
 
 
 class BaseItemService(SuperannotateServiceProvider):
-
     @abstractmethod
     def update(self, project: entities.ProjectEntity, item: entities.BaseItemEntity):
         raise NotImplementedError
@@ -510,10 +508,24 @@ class BaseServiceProvider:
     item_service: Any
 
     @abstractmethod
+    def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_annotation_status_value(
         self, project: entities.ProjectEntity, status_name: str
     ) -> int:
-        ...
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_annotation_status_name(
+        self, project: entities.ProjectEntity, status_value: int
+    ) -> str:
+        raise NotImplementedError
 
     @abstractmethod
     def get_team(self, team_id: int) -> TeamResponse:

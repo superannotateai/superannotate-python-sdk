@@ -1623,7 +1623,7 @@ class GetAnnotations(BaseReportableUseCase):
                 else:
                     items: List[BaseItemEntity] = []
                     for i in range(0, len(self._items), self.CHUNK_SIZE):
-                        search_ids = self._items[i: i + self.CHUNK_SIZE]  # noqa
+                        search_ids = self._items[i : i + self.CHUNK_SIZE]  # noqa
                         response = self._service_provider.item_service.list(
                             self._project.id,
                             self._folder.id,
@@ -1843,9 +1843,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                         items.extend(response.data)
                 else:
                     response = self._service_provider.item_service.list(
-                        self._project.id,
-                        folder.id,
-                        EmptyQuery()
+                        self._project.id, folder.id, EmptyQuery()
                     )
                     if not response.ok:
                         raise AppException(response.error)

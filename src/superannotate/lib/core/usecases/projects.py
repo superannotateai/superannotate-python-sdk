@@ -684,15 +684,15 @@ class AddContributorsToProject(BaseUseCase):
             team_users = set()
             project_users = {user.user_id for user in self._project.users}
             for user in self._team.users:
-                if user.user_role > constances.UserRole.ADMIN.value:
+                if user.user_role == constances.UserRole.CONTRIBUTOR.value:
                     team_users.add(user.email)
             # collecting pending team users which is not admin
             for user in self._team.pending_invitations:
-                if user["user_role"] > constances.UserRole.ADMIN.value:
+                if user["user_role"] == constances.UserRole.CONTRIBUTOR.value:
                     team_users.add(user["email"])
             # collecting pending project users which is not admin
             for user in self._project.unverified_users:
-                if user["user_role"] > constances.UserRole.ADMIN.value:
+                if user["user_role"] == constances.UserRole.CONTRIBUTOR.value:
                     project_users.add(user["email"])
 
             role_email_map = defaultdict(list)
@@ -701,6 +701,7 @@ class AddContributorsToProject(BaseUseCase):
             for contributor in self._contributors:
                 role_email_map[contributor.user_role].append(contributor.user_id)
             for role, emails in role_email_map.items():
+                role_id = self._service_provider.get_role_id(self._project, role)
                 _to_add = list(team_users.intersection(emails) - project_users)
                 to_add.extend(_to_add)
                 to_skip.extend(list(set(emails).difference(_to_add)))
@@ -710,7 +711,7 @@ class AddContributorsToProject(BaseUseCase):
                         users=[
                             dict(
                                 user_id=user_id,
-                                user_role=role,
+                                user_role=role_id,
                             )
                             for user_id in _to_add
                         ],
@@ -721,7 +722,7 @@ class AddContributorsToProject(BaseUseCase):
                     if response and not response.data.get("invalidUsers"):
                         logger.info(
                             f"Added {len(_to_add)}/{len(emails)} "
-                            f"contributors to the project {self._project.name} with the {role.name} role."
+                            f"contributors to the project {self._project.name} with the {role} role."
                         )
 
             if to_skip:
