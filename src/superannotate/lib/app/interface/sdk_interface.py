@@ -2464,7 +2464,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/explore-overview).
 
-        :param project: project name or folder path (e.g., “project1/folder1”)
+        :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
 
         :param query: SAQuL query string.
@@ -2474,7 +2474,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             To return all the items in the specified subset, set the value of query param to None.
         :type subset: str
 
-        :return: queried items’ metadata list
+        :return: queried items' metadata list
         :rtype: list of dicts
         """
         project_name, folder_name = extract_project_folder(project)
@@ -2483,7 +2483,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data, exclude={"meta"})
+        project = self.controller.get_project(project_name)
+        items = BaseSerializer.serialize_iterable(response.data, exclude={"meta"})
+        for i in items:
+            i[
+                "annotation_status"
+            ] = self.controller.service_provider.get_annotation_status_name(
+                project, i["annotation_status"]
+            )
+        return items
 
     def get_item_metadata(
         self,
@@ -2807,7 +2815,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project=project, item_ids=[i.id for i in res]
             )
             for i in res:
-                i["custom_metadata"] = item_custom_fields[i["id"]]
+                i["custom_metadata"] = item_custom_fields[i.id]
         exclude = {"meta", "annotator_email", "qa_email"}
         if include:
             if "custom_metadata" not in include:

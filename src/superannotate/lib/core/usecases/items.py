@@ -139,6 +139,9 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             if service_response.ok:
                 data = []
                 for i, item in enumerate(service_response.data):
+                    #  tmp wrapper
+                    if hasattr(item, "assignment"):
+                        item.assignments = item.assignment
                     tmp_item = serialize_item_entity(
                         BaseItemEntity(**item), self._project
                     )

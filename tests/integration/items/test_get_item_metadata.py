@@ -92,16 +92,21 @@ class TestGetEntityMetadataVideo(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     def test_get_item_metadata(self):
+        _url = "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS"
         sa.attach_items(
             self.PROJECT_NAME,
             [
                 {
-                    "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
+                    "url": _url,
                     "name": self.ITEM_NAME,
                 }
             ],
         )
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.ITEM_NAME)
         assert item_metadata["path"] == f"{self.PROJECT_NAME}"
+        assert item_metadata["url"] == (
+            "https://drive.google.com/uc?ex"
+            "port=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS"
+        )
         assert "prediction_status" not in item_metadata
         assert "segmentation_status" not in item_metadata

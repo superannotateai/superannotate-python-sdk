@@ -280,10 +280,10 @@ class BaseItemEntity(TimedBaseModel):
 
     @staticmethod
     def map_fields(entity: dict) -> dict:
-        if "path" in entity:
-            entity["url"] = entity["path"]
-        else:
+        if "metadata" in entity:
             entity["url"] = entity["metadata"]["path"]
+        else:
+            entity["url"] = entity["path"]
         entity["path"] = None
         return entity
 

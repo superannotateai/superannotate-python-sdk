@@ -692,8 +692,7 @@ class AddContributorsToProject(BaseUseCase):
                     team_users.add(user["email"])
             # collecting pending project users which is not admin
             for user in self._project.unverified_users:
-                if user["user_role"] == constances.UserRole.CONTRIBUTOR.value:
-                    project_users.add(user["email"])
+                project_users.add(user["email"])
 
             role_email_map = defaultdict(list)
             to_skip = []
