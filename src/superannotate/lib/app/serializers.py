@@ -92,16 +92,7 @@ class BaseSerializer(ABC):
 
 
 class TeamSerializer(BaseSerializer):
-    def serialize(self, *_, **__):
-        data = super().serialize()
-        users = []
-        # for user in data["users"]:
-        #     user["user_role"] = constance.UserRole(user["user_role"]).name
-        #     users.append(user)
-        data["users"] = users
-        for user in data["pending_invitations"]:
-            user["user_role"] = constance.UserRole(user["user_role"]).name
-        return data
+    ...
 
 
 class ProjectSerializer(BaseSerializer):
