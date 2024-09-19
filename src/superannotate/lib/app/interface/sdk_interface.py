@@ -2478,20 +2478,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of dicts
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.query_entities(
-            project_name, folder_name, query, subset
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        project = self.controller.get_project(project_name)
-        items = BaseSerializer.serialize_iterable(response.data, exclude={"meta"})
-        for i in items:
-            i[
-                "annotation_status"
-            ] = self.controller.service_provider.get_annotation_status_name(
-                project, i["annotation_status"]
-            )
-        return items
+        items = self.controller.query_entities(project_name, folder_name, query, subset)
+        exclude = {
+            "meta",
+        }
+        return BaseSerializer.serialize_iterable(items, exclude=exclude)
 
     def get_item_metadata(
         self,

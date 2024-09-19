@@ -446,20 +446,24 @@ class ItemManager(BaseManager):
             query &= Join(i)
         return query
 
+    @staticmethod
     def _process_response(
-        self, items: List[BaseItemEntity], project: ProjectEntity, folder: FolderEntity
-    ) -> List[dict]:
+        service_provider,
+        items: List[BaseItemEntity],
+        project: ProjectEntity,
+        folder: FolderEntity,
+    ) -> List[BaseItemEntity]:
         """Process the response data and return a list of serialized items."""
         data = []
         for item in items:
 
             item = usecases.serialize_item_entity(item, project)
             item = usecases.add_item_path(project, folder, item)
-            item.annotation_status = self.service_provider.get_annotation_status_name(
+            item.annotation_status = service_provider.get_annotation_status_name(
                 project, item.annotation_status
             )
             for assignment in item.assignments:
-                role_name = self.service_provider.get_role_name(
+                role_name = service_provider.get_role_name(
                     project, assignment["user_role"]
                 )
                 if role_name == "QA":
@@ -483,7 +487,7 @@ class ItemManager(BaseManager):
         response = self.service_provider.item_service.list(project.id, folder.id, query)
         if response.error:
             raise AppException(response.error)
-        return self._process_response(response.data, project, folder)
+        return self._process_response(self.service_provider, project, folder)
 
     def attach(
         self,
@@ -1331,7 +1335,7 @@ class Controller(BaseController):
 
     def query_entities(
         self, project_name: str, folder_name: str, query: str = None, subset: str = None
-    ):
+    ) -> List[BaseItemEntity]:
         project = self.get_project(project_name)
         folder = self.get_folder(project, folder_name)
 
@@ -1343,4 +1347,10 @@ class Controller(BaseController):
             subset=subset,
             service_provider=self.service_provider,
         )
-        return use_case.execute()
+        response = use_case.execute()
+        if response.errors:
+            raise AppException(response.errors)
+        items = response.data
+        return ItemManager._process_response(
+            self.service_provider, items, project, folder
+        )
