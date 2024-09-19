@@ -24,7 +24,7 @@ from lib.infrastructure.utils import CachedWorkManagementRepository
 
 
 class ServiceProvider(BaseServiceProvider):
-    URL_TEAM = "team"
+    URL_TEAM = "api/v1/team"
     URL_GET_LIMITS = "project/{project_id}/limitationDetails"
     URL_GET_TEMPLATES = "templates"
     URL_PREPARE_EXPORT = "export"
