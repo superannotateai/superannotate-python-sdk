@@ -447,30 +447,35 @@ class ItemManager(BaseManager):
         return query
 
     @staticmethod
-    def _process_response(
+    def process_response(
         service_provider,
         items: List[BaseItemEntity],
         project: ProjectEntity,
         folder: FolderEntity,
+        replace_path: bool = True,
     ) -> List[BaseItemEntity]:
         """Process the response data and return a list of serialized items."""
         data = []
         for item in items:
-
-            item = usecases.serialize_item_entity(item, project)
-            item = usecases.add_item_path(project, folder, item)
+            if replace_path:
+                item = usecases.serialize_item_entity(item, project)
+                item = usecases.add_item_path(project, folder, item)
+            else:
+                item = usecases.serialize_item_entity(item, project, drop_path=False)
             item.annotation_status = service_provider.get_annotation_status_name(
                 project, item.annotation_status
             )
             for assignment in item.assignments:
-                role_name = service_provider.get_role_name(
-                    project, assignment["user_role"]
-                )
+                _role = "role" if "role" in assignment else "user_role"
+                user_id = "email" if "email" in assignment else "user_id"
+                role_name = service_provider.get_role_name(project, assignment[_role])
                 if role_name == "QA":
-                    item.qa_email = assignment["user_id"]
+                    item.qa_email = assignment[user_id]
                 elif role_name == "Annotator":
-                    item.annotator_email = assignment["user_id"]
+                    item.annotator_email = assignment[user_id]
                 assignment["user_role"] = role_name
+                assignment.pop("role", None)
+                assignment.pop("email", None)
             data.append(item)
         return data
 
@@ -487,7 +492,9 @@ class ItemManager(BaseManager):
         response = self.service_provider.item_service.list(project.id, folder.id, query)
         if response.error:
             raise AppException(response.error)
-        return self._process_response(self.service_provider, project, folder)
+        return self.process_response(
+            self.service_provider, response.data, project, folder
+        )
 
     def attach(
         self,
@@ -1351,6 +1358,6 @@ class Controller(BaseController):
         if response.errors:
             raise AppException(response.errors)
         items = response.data
-        return ItemManager._process_response(
-            self.service_provider, items, project, folder
+        return ItemManager.process_response(
+            self.service_provider, items, project, folder, replace_path=False
         )

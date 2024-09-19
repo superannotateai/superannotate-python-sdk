@@ -37,9 +37,11 @@ logger = logging.getLogger("sa")
 
 
 def serialize_item_entity(
-    entity: BaseItemEntity, project: ProjectEntity
+    entity: BaseItemEntity, project: ProjectEntity, drop_path: bool = True
 ) -> BaseItemEntity:
-    entity = BaseItemEntity(**BaseItemEntity.map_fields(entity.dict()))
+    entity = BaseItemEntity(
+        **BaseItemEntity.map_fields(entity.dict(), drop_path=drop_path)
+    )
     if project.upload_state != constants.UploadState.EXTERNAL.value:
         entity.url = None
     if project.type in constants.ProjectType.images:
