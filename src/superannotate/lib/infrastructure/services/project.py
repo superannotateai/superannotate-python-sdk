@@ -14,7 +14,7 @@ class ProjectService(BaseProjectService):
     URL_GET = "project/{}"
     URL_SETTINGS = "project/{}/settings"
     URL_WORKFLOW = "project/{}/workflow"
-    URL_SHARE = "project/{}/share/bulk"
+    URL_SHARE = "api/v1/project/{}/share/bulk"
     URL_SHARE_PROJECT = "project/{}/share"
     URL_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
