@@ -85,4 +85,4 @@ class TestUnsupportedProjectEntitiesSearchVector(BaseTestCase):
         try:
             sa.query(self.PROJECT_NAME, self.TEST_QUERY)
         except Exception as e:
-            self.assertEqual(str(e), "Incorrect query.")
+            self.assertEqual(str(e), "Unsupported project type.")

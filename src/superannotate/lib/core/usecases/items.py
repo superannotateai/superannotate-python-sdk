@@ -5,6 +5,7 @@ from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 from typing import List
+from typing import Union
 
 import lib.core as constants
 from lib.core.conditions import Condition
@@ -37,11 +38,13 @@ logger = logging.getLogger("sa")
 
 
 def serialize_item_entity(
-    entity: BaseItemEntity, project: ProjectEntity, drop_path: bool = True
+    entity: Union[BaseItemEntity, dict], project: ProjectEntity, map_fields: bool = True
 ) -> BaseItemEntity:
-    entity = BaseItemEntity(
-        **BaseItemEntity.map_fields(entity.dict(), drop_path=drop_path)
-    )
+    if isinstance(entity, BaseItemEntity):
+        entity = entity.dict()
+    if map_fields:
+        entity = BaseItemEntity.map_fields(entity)
+    entity = BaseItemEntity(**entity)
     if project.upload_state != constants.UploadState.EXTERNAL.value:
         entity.url = None
     if project.type in constants.ProjectType.images:
@@ -142,14 +145,14 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
                 data = []
                 for i, item in enumerate(service_response.data):
                     #  tmp wrapper
-                    if hasattr(item, "assignment"):
-                        item.assignments = item.assignment
-                    tmp_item = serialize_item_entity(
-                        BaseItemEntity(**item), self._project
+                    if "assignment" in item:
+                        item["assignments"] = item.pop("assignment")
+                    item["url"] = item["path"]
+                    item["path"] = (
+                        f"{self._project.name}"
+                        f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
                     )
-                    folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
-                    tmp_item.path = f"{self._project.name}" + folder_path
-                    data.append(tmp_item)
+                    data.append(item)
                 self._response.data = data
             else:
                 self._response.errors = service_response.data

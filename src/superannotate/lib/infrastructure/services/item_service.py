@@ -43,13 +43,4 @@ class ItemService(SuperannotateServiceProvider):
                 ).decode()
             },
         )
-        # headers={
-        #     "x-sa-entity-context": base64.b64encode(
-        #         f'{{"team_id":{self.client.team_id},' +
-        #         f'"project_id":{project_id},"folder_id":{folder_id}}}'.encode(
-        #             "utf-8"
-        #         )
-        #     ).decode()
-        # },
-        # )
         return result

@@ -452,16 +452,16 @@ class ItemManager(BaseManager):
         items: List[BaseItemEntity],
         project: ProjectEntity,
         folder: FolderEntity,
-        replace_path: bool = True,
+        map_fields: bool = True,
     ) -> List[BaseItemEntity]:
         """Process the response data and return a list of serialized items."""
         data = []
         for item in items:
-            if replace_path:
+            if map_fields:
                 item = usecases.serialize_item_entity(item, project)
                 item = usecases.add_item_path(project, folder, item)
             else:
-                item = usecases.serialize_item_entity(item, project, drop_path=False)
+                item = usecases.serialize_item_entity(item, project, map_fields=False)
             item.annotation_status = service_provider.get_annotation_status_name(
                 project, item.annotation_status
             )
@@ -1359,5 +1359,5 @@ class Controller(BaseController):
             raise AppException(response.errors)
         items = response.data
         return ItemManager.process_response(
-            self.service_provider, items, project, folder, replace_path=False
+            self.service_provider, items, project, folder, map_fields=False
         )

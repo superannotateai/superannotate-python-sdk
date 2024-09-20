@@ -279,13 +279,12 @@ class BaseItemEntity(TimedBaseModel):
         return self
 
     @staticmethod
-    def map_fields(entity: dict, drop_path: bool = True) -> dict:
+    def map_fields(entity: dict) -> dict:
         if "metadata" in entity:
             entity["url"] = entity["metadata"]["path"]
         else:
             entity["url"] = entity["path"]
-        if drop_path:
-            entity["path"] = None
+        entity["path"] = None
         return entity
 
 
