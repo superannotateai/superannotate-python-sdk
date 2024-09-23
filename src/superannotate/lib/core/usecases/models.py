@@ -104,24 +104,15 @@ class PrepareExportUseCase(BaseUseCase):
         if self.is_valid():
             if self._project.upload_state == constances.UploadState.EXTERNAL.value:
                 self._include_fuse = False
-
-            if not self._annotation_statuses:
-                self._annotation_statuses = [
-                    constances.AnnotationStatus.IN_PROGRESS.name,
-                    constances.AnnotationStatus.COMPLETED.name,
-                    constances.AnnotationStatus.QUALITY_CHECK.name,
-                    constances.AnnotationStatus.RETURNED.name,
-                    constances.AnnotationStatus.NOT_STARTED.name,
-                    constances.AnnotationStatus.SKIPPED.name,
-                ]
             kwargs = dict(
                 project=self._project,
                 folders=self._folder_names,
-                annotation_statuses=self._annotation_statuses,
                 include_fuse=self._include_fuse,
                 only_pinned=self._only_pinned,
                 integration_id=self._integration_id,
             )
+            if self._annotation_statuses:
+                kwargs["annotation_statuses"] = (self._annotation_statuses,)
             if self._export_type:
                 kwargs["export_type"] = self._export_type
             response = self._service_provider.prepare_export(**kwargs)

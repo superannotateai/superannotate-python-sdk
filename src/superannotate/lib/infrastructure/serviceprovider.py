@@ -190,23 +190,26 @@ class ServiceProvider(BaseServiceProvider):
         self,
         project: entities.ProjectEntity,
         folders: List[str],
-        annotation_statuses: List[str],
         include_fuse: bool,
         only_pinned: bool,
+        annotation_statuses: List[str] = None,
         integration_id: int = None,
         export_type: int = None,
     ):
-        annotation_statuses = ",".join(
-            [str(constants.AnnotationStatus(i).value) for i in annotation_statuses]
-        )
 
         data = {
-            "include": annotation_statuses,
             "fuse": int(include_fuse),
             "is_pinned": int(only_pinned),
             "coco": 0,
             "time": datetime.datetime.now().strftime("%b %d %Y %H:%M"),
         }
+        if annotation_statuses:
+            data["include"] = ",".join(
+                [
+                    str(self.get_annotation_status_value(project, i))
+                    for i in annotation_statuses
+                ]
+            )
         if export_type:
             data["export_format"] = export_type
         if folders:

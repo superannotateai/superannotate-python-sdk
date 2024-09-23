@@ -82,9 +82,6 @@ PROJECT_TYPE = Literal[
     "GenAI",
 ]
 
-ANNOTATION_STATUS = Literal[
-    "NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"
-]
 
 APPROVAL_STATUS = Literal["Approved", "Disapproved", None]
 
@@ -1193,7 +1190,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, dict],
         folder_names: Optional[List[NotEmptyStr]] = None,
-        annotation_statuses: Optional[List[ANNOTATION_STATUS]] = None,
+        annotation_statuses: Optional[List[str]] = None,
         include_fuse: Optional[bool] = False,
         only_pinned=False,
         **kwargs,
@@ -1245,15 +1242,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folders = [folder_name] if folder_name else []
         else:
             folders = folder_names
-        if not annotation_statuses:
-            annotation_statuses = [
-                constants.AnnotationStatus.NOT_STARTED.name,
-                constants.AnnotationStatus.IN_PROGRESS.name,
-                constants.AnnotationStatus.QUALITY_CHECK.name,
-                constants.AnnotationStatus.RETURNED.name,
-                constants.AnnotationStatus.COMPLETED.name,
-                constants.AnnotationStatus.SKIPPED.name,
-            ]
         integration_name = kwargs.get("integration_name")
         integration_id = None
         if integration_name:
@@ -2125,7 +2113,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         img_paths: List[NotEmptyStr],
-        annotation_status: Optional[ANNOTATION_STATUS] = "NotStarted",
+        annotation_status: str = "NotStarted",
         from_s3_bucket=None,
         image_quality_in_editor: Optional[IMAGE_QUALITY] = None,
     ):
@@ -2556,7 +2544,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         name_contains: NotEmptyStr = None,
-        annotation_status: Optional[ANNOTATION_STATUS] = None,
+        annotation_status: str = None,
         annotator_email: Optional[NotEmptyStr] = None,
         qa_email: Optional[NotEmptyStr] = None,
         recursive: bool = False,
@@ -3021,7 +3009,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def set_annotation_statuses(
         self,
         project: Union[NotEmptyStr, dict],
-        annotation_status: ANNOTATION_STATUS,
+        annotation_status: NotEmptyStr,
         items: Optional[List[NotEmptyStr]] = None,
     ):
         """Sets annotation statuses of items

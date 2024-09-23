@@ -5,7 +5,6 @@ from logging.handlers import RotatingFileHandler
 from os.path import expanduser
 
 from lib.core.config import Config
-from lib.core.enums import AnnotationStatus
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import FolderStatus
 from lib.core.enums import ImageQuality
@@ -189,7 +188,6 @@ __alL__ = (
     UploadState,
     TrainingStatus,
     ImageQuality,
-    AnnotationStatus,
     ApprovalStatus,
     CONFIG_JSON_FILE_LOCATION,
     CONFIG_INI_FILE_LOCATION,

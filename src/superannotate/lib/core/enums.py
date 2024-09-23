@@ -156,15 +156,6 @@ class ExportStatus(BaseTitledEnum):
     ERROR = "error", 4
 
 
-class AnnotationStatus(BaseTitledEnum):
-    NOT_STARTED = "NotStarted", 1
-    IN_PROGRESS = "InProgress", 2
-    QUALITY_CHECK = "QualityCheck", 3
-    RETURNED = "Returned", 4
-    COMPLETED = "Completed", 5
-    SKIPPED = "Skipped", 6
-
-
 class ClassTypeEnum(BaseTitledEnum):
     OBJECT = "object", 1
     TAG = "tag", 2

@@ -17,6 +17,6 @@ class TestCondition(TestCase):
         )
         query &= Join("metadata") & Join("fields", ["field1", "field2"])
         self.assertEquals(
-            "filter=id||$in||1,2,3&or=id||$eq||2&join=metadata&join=fields||field1,field2",
+            "filter=id||$in||1%2C2%2C3&or=id||$eq||2&join=metadata&join=fields||field1,field2",
             query.build_query(),
         )

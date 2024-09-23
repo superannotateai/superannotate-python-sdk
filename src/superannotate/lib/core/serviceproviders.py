@@ -584,10 +584,10 @@ class BaseServiceProvider:
         self,
         project: entities.ProjectEntity,
         folders: List[str],
-        annotation_statuses: List[str],
         include_fuse: bool,
         only_pinned: bool,
         integration_id: int,
+        annotation_statuses: List[str] = None,
         export_type: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError

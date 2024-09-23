@@ -1,3 +1,4 @@
+import urllib.parse
 from abc import abstractmethod
 from enum import Enum
 from typing import Any
@@ -55,9 +56,9 @@ class Filter(Query):
 
     def _build(self):
         if isinstance(self._value, (list, set, tuple)):
-            return f"{self._key}||{self._operator.value}||{','.join(map(str, self._value))}"
+            return f"{self._key}||{self._operator.value}||{','.join(map(urllib.parse.quote, map(str, self._value)))}"
         else:
-            return f"{self._key}||{self._operator.value}||{self._value}"
+            return f"{self._key}||{self._operator.value}||{urllib.parse.quote(str(self._value))}"
 
     def build(self) -> str:
         return f"filter={self._build()}"

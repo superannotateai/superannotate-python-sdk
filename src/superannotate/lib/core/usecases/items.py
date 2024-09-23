@@ -546,7 +546,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        annotation_status: str,
+        annotation_status: int,
         service_provider: BaseServiceProvider,
         item_names: List[str] = None,
     ):
@@ -554,9 +554,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._item_names = item_names
-        self._annotation_status_code = constants.AnnotationStatus(
-            annotation_status
-        ).value
+        self._annotation_status_code = annotation_status
         self._service_provider = service_provider
 
     def validate_items(self):
