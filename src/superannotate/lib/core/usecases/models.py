@@ -112,7 +112,7 @@ class PrepareExportUseCase(BaseUseCase):
                 integration_id=self._integration_id,
             )
             if self._annotation_statuses:
-                kwargs["annotation_statuses"] = (self._annotation_statuses,)
+                kwargs["annotation_statuses"] = self._annotation_statuses
             if self._export_type:
                 kwargs["export_type"] = self._export_type
             response = self._service_provider.prepare_export(**kwargs)

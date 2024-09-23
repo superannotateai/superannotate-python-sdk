@@ -111,3 +111,10 @@ class TestExportImport(TestCase):
         ).get("Contents", []):
             files.append(object_data["Key"])
         self.assertEqual(25, len(files))
+
+    def test_export_with_statuses(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            export = sa.prepare_export(self.PROJECT_NAME, annotation_statuses=['NotStarted'], include_fuse=True)
+            sa.download_export(self.PROJECT_NAME, export, tmpdir_name)
+            assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).left_only
+            assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).right_only
