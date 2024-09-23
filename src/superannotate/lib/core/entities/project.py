@@ -135,6 +135,7 @@ class ProjectEntity(TimedBaseModel):
             users=self.users,
             settings=[s.__copy__() for s in self.settings],
             upload_state=self.upload_state,
+            workflow_id=self.workflow_id,
         )
 
     def __eq__(self, other):
