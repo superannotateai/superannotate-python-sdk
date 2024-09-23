@@ -2658,7 +2658,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     i.path = path
                 items.extend(_items)
         else:
-            path = f"{project.name}{f'/{folder}' if not folder.is_root else ''}"
+            path = f"{project.name}{f'/{folder.name}' if not folder.is_root else ''}"
             items = self.controller.items.list_items(project, folder, **query_kwargs)
             for i in items:
                 i.path = path

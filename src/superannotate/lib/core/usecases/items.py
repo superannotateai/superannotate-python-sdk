@@ -883,7 +883,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         queried_items = queried_items.data
         # Adding the images missing from specified folder to 'skipped'
         tmp = {item["name"]: item for item in items["items"]}
-        tmp_q = {x.name for x in queried_items}
+        tmp_q = {x["name"] for x in queried_items}
 
         for i, val in tmp.items():
             if i not in tmp_q:
@@ -892,9 +892,9 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         # Adding ids to path_separated to later see if they've succeded
 
         self.path_separated[path] = [
-            {"id": x.id, "name": x.name, "path": x.path} for x in queried_items
+            {"id": x["id"], "name": x["name"], "path": x["path"]} for x in queried_items
         ]
-        return [x.id for x in queried_items]
+        return [x["id"] for x in queried_items]
 
     def __distribute_to_results(self, item_id, response, item):
 
