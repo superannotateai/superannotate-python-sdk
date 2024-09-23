@@ -147,7 +147,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
                     #  tmp wrapper
                     if "assignment" in item:
                         item["assignments"] = item.pop("assignment")
-                    item["url"] = item["path"]
+                    item["url"] = item.get("path", None)
                     item["path"] = (
                         f"{self._project.name}"
                         f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"

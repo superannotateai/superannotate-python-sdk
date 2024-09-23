@@ -2,11 +2,10 @@ from unittest import TestCase
 
 from src.superannotate import SAClient
 
-
 sa = SAClient()
 
 
-class BaseTestCase(TestCase):
+class BaseApplicationTestCase(TestCase):
     PROJECT_NAME = ""
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
@@ -14,17 +13,19 @@ class BaseTestCase(TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        BaseTestCase.PROJECT_NAME = BaseTestCase.__class__.__name__
+        BaseApplicationTestCase.PROJECT_NAME = BaseApplicationTestCase.__class__.__name__
 
-    def setUp(self, *args, **kwargs):
-        self.tearDown()
-        self._project = sa.create_project(
-            self.PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
+    @classmethod
+    def setUpClass(cls, *args, **kwargs):
+        cls.tearDownClass()
+        cls._project = sa.create_project(
+            cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE
         )
 
-    def tearDown(self) -> None:
+    @classmethod
+    def tearDownClass(cls) -> None:
         try:
-            projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
+            projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
             for project in projects:
                 try:
                     sa.delete_project(project)
@@ -33,14 +34,16 @@ class BaseTestCase(TestCase):
         except Exception as e:
             print(str(e))
 
-    def _attach_items(self, count=5, folder=None):
+    def attach_random_items(self, count=5, name_prefix='example_image_', folder=None):
         path = self.PROJECT_NAME
         if folder:
             path = f"{self.PROJECT_NAME}/{folder}"
-        sa.attach_items(
+        uploaded, _, __ = sa.attach_items(
             path,
             [
-                {"name": f"example_image_{i}.jpg", "url": f"url_{i}"}
+                {"name": f"{name_prefix}{i}.jpg", "url": f"url_{i}"}
                 for i in range(1, count + 1)
             ],  # noqa
         )
+        assert len(uploaded) == count
+
