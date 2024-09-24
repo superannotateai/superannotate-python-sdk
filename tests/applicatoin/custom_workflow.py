@@ -105,6 +105,13 @@ class TestWorkflow(BaseApplicationTestCase):
             assert item_data[f"{contributors_role.get().lower()}_email"] is None
         assert len(item_data['assignments']) == 0
 
+    def step_9_copy_items(self):
+        folder_name = 'new'
+        new_folder = sa.create_folder(self.PROJECT_NAME, folder_name)
+        sa.copy_items(self.PROJECT_NAME, folder_name, include_annotations=True)
+        items = sa.list_items(self._project.id, new_folder['id'])
+        assert True
+
     def step_999_clone(self):
         new_name = 'step_clone'
         try:
