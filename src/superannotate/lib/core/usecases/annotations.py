@@ -36,7 +36,11 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import UserEntity
+from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.service_types import UploadAnnotationAuthData
@@ -167,7 +171,9 @@ def set_annotation_statuses_in_progress(
             project=project,
             folder=folder,
             item_names=item_names[i : i + chunk_size],  # noqa: E203
-            annotation_status=constants.AnnotationStatus.IN_PROGRESS.value,
+            annotation_status=service_provider.get_annotation_status_value(
+                project, "InProgress"
+            ),
         )
         if not status_changed.ok:
             failed_on_chunk = True
@@ -329,10 +335,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         existing_items = []
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-            response = self._service_provider.items.list_by_names(
-                project=self._project, folder=self._folder, names=items_to_check
+            res = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter("name", items_to_check, OperatorEnum.IN),
             )
-            existing_items.extend(response.data)
+            if not res.ok:
+                raise AppException(res.error)
+            existing_items.extend(res.data)
         return existing_items
 
     async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
@@ -467,15 +477,24 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 {i.item.name for i in items_to_upload}
                 - set(self._report.failed_annotations).union(set(skipped))
             )
-            if uploaded_annotations and not self._keep_status:
-                statuses_changed = set_annotation_statuses_in_progress(
-                    service_provider=self._service_provider,
-                    project=self._project,
-                    folder=self._folder,
-                    item_names=uploaded_annotations,
-                )
-                if not statuses_changed:
-                    self._response.errors = AppException("Failed to change status.")
+            response = self._service_provider.work_management.list_workflows(
+                Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+            )
+            if not response.ok:
+                raise AppException(response.error)
+            workflow: WorkflowEntity = next(
+                (i for i in response.data if i.id == self._project.workflow_id), None
+            )
+            if workflow.is_system():
+                if uploaded_annotations and not self._keep_status:
+                    statuses_changed = set_annotation_statuses_in_progress(
+                        service_provider=self._service_provider,
+                        project=self._project,
+                        folder=self._folder,
+                        item_names=uploaded_annotations,
+                    )
+                    if not statuses_changed:
+                        self._response.errors = AppException("Failed to change status.")
 
             self._response.data = {
                 "succeeded": uploaded_annotations,
@@ -668,11 +687,13 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         existing_name_item_mapping = {}
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-            response = self._service_provider.items.list_by_names(
-                project=self._project, folder=self._folder, names=items_to_check
+            res = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter("name", items_to_check, OperatorEnum.IN),
             )
-            if response.ok:
-                existing_name_item_mapping.update({i.name: i for i in response.data})
+            if res.ok:
+                existing_name_item_mapping.update({i.name: i for i in res.data})
         return existing_name_item_mapping
 
     @property
@@ -821,7 +842,13 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             name_path_mappings.keys()
             - set(self._report.failed_annotations).union(set(missing_annotations))
         )
-        if uploaded_annotations and not self._keep_status:
+        response = self._service_provider.work_management.list_workflows(
+            Filter("id", self._project.id, OperatorEnum.EQ)
+        )
+        if response.error:
+            raise response.error
+        workflow = response.data[0]
+        if workflow.is_system and uploaded_annotations and not self._keep_status:
             statuses_changed = set_annotation_statuses_in_progress(
                 service_provider=self._service_provider,
                 project=self._project,
@@ -1057,7 +1084,13 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                                 ],
                                 Body=mask,
                             )
-                    if not self._keep_status:
+                    response = self._service_provider.work_management.list_workflows(
+                        Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+                    )
+                    if not response.ok:
+                        raise AppException(response.error)
+                    workflow = response.data[0]
+                    if workflow.is_system and not self._keep_status:
                         statuses_changed = set_annotation_statuses_in_progress(
                             service_provider=self._service_provider,
                             project=self._project,
@@ -1104,7 +1137,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
         if self._project.type != constants.ProjectType.VIDEO.value:
             raise AppException(
                 "The function is not supported for"
-                f" {constants.ProjectType.get_name(self._project.type)} projects."
+                f" {constants.ProjectType(self._project.type).name} projects."
             )
 
     def execute(self):
@@ -1329,7 +1362,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             _schema = self.schema
         if _schema is True:
             return
-        elif _schema is False:
+        if _schema is False:
             yield superannotate_schemas.ValidationError(
                 f"False schema does not allow {instance!r}",
                 validator=None,
@@ -1449,6 +1482,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
 
 
 class GetAnnotations(BaseReportableUseCase):
+    CHUNK_SIZE = 1000
+
     def __init__(
         self,
         config: ConfigEntity,
@@ -1575,19 +1610,28 @@ class GetAnnotations(BaseReportableUseCase):
         if self.is_valid():
             if self._items:
                 if isinstance(self._items[0], str):
-                    items: List[BaseItemEntity] = get_or_raise(
-                        self._service_provider.items.list_by_names(
-                            self._project, self._folder, self._items
+                    items = []
+                    for names in divide_to_chunks(self._items, 1000):
+                        response = self._service_provider.item_service.list(
+                            self._project.id,
+                            self._folder.id,
+                            Filter("name", names, OperatorEnum.IN),
                         )
-                    )
+                        if not response.ok:
+                            raise AppException(response.error)
+                        items.extend(response.data)
                 else:
-                    response = self._service_provider.items.list_by_ids(
-                        project=self._project,
-                        ids=self._items,
-                    )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    items: List[BaseItemEntity] = response.data
+                    items: List[BaseItemEntity] = []
+                    for i in range(0, len(self._items), self.CHUNK_SIZE):
+                        search_ids = self._items[i : i + self.CHUNK_SIZE]  # noqa
+                        response = self._service_provider.item_service.list(
+                            self._project.id,
+                            None,
+                            Filter("id", search_ids, OperatorEnum.IN),
+                        )
+                        if not response.ok:
+                            raise AppException(response.error)
+                        items.extend(response.data)
                     self._item_id_name_map = {i.id: i.name for i in items}
                 len_items, len_provided_items = len(items), len(self._items)
                 if len_items != len_provided_items:
@@ -1595,10 +1639,11 @@ class GetAnnotations(BaseReportableUseCase):
                         f"Could not find annotations for {len_provided_items - len_items}/{len_provided_items} items."
                     )
             elif self._items is None:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._folder.id, EQ
+                items = get_or_raise(
+                    self._service_provider.item_service.list(
+                        self._project.id, self._folder.id, EmptyQuery()
+                    )
                 )
-                items = get_or_raise(self._service_provider.items.list(condition))
             else:
                 items = []
             if not items:
@@ -1786,16 +1831,23 @@ class DownloadAnnotations(BaseReportableUseCase):
                 folders.append(self._folder)
             for folder in folders:
                 if self._item_names:
-                    items = get_or_raise(
-                        self._service_provider.items.list_by_names(
-                            self._project, folder, self._item_names
+                    items = []
+                    for chunk in divide_to_chunks(self._item_names, 500):
+                        response = self._service_provider.item_service.list(
+                            self._project.id,
+                            folder.id,
+                            Filter("name", chunk, OperatorEnum.IN),
                         )
-                    )
+                        if response.error:
+                            raise AppException(response.error)
+                        items.extend(response.data)
                 else:
-                    condition = Condition(
-                        "project_id", self._project.id, EQ
-                    ) & Condition("folder_id", folder.id, EQ)
-                    items = get_or_raise(self._service_provider.items.list(condition))
+                    response = self._service_provider.item_service.list(
+                        self._project.id, folder.id, EmptyQuery()
+                    )
+                    if not response.ok:
+                        raise AppException(response.error)
+                    items = response.data
                 if not items:
                     continue
                 new_export_path = self.destination

@@ -4,9 +4,10 @@ from typing import List
 from typing import Set
 from typing import Union
 
-import superannotate.lib.core as constance
-from superannotate.lib.core.entities import BaseEntity
-from superannotate.lib.core.pydantic_v1 import BaseModel
+import lib.core as constance
+from lib.core.entities import BaseEntity
+from lib.core.enums import BaseTitledEnum
+from lib.core.pydantic_v1 import BaseModel
 
 
 class BaseSerializer(ABC):
@@ -17,8 +18,8 @@ class BaseSerializer(ABC):
     def _fill_enum_values(data: dict):
         if isinstance(data, dict):
             for key, value in data.items():
-                if hasattr(value, "_type") and value._type == "titled_enum":
-                    data[key] = value.__doc__
+                if isinstance(value, BaseTitledEnum):
+                    data[key] = value.name
         return data
 
     def serialize(
@@ -54,8 +55,8 @@ class BaseSerializer(ABC):
         if isinstance(entity, dict):
             return entity
         if isinstance(entity, BaseModel):
+            fields = set(fields) if fields else None
             if fields:
-                fields = set(fields)
                 if len(fields) == 1:
                     if flat:
                         return entity.dict(
@@ -78,7 +79,7 @@ class BaseSerializer(ABC):
         by_alias: bool = False,
         flat: bool = False,
         exclude: Set = None,
-        **kwargs
+        **kwargs: object
     ) -> List[Any]:
         serialized_data = []
         for i in data:
@@ -91,16 +92,7 @@ class BaseSerializer(ABC):
 
 
 class TeamSerializer(BaseSerializer):
-    def serialize(self):
-        data = super().serialize()
-        users = []
-        for user in data["users"]:
-            user["user_role"] = constance.UserRole.get_name(user["user_role"])
-            users.append(user)
-        data["users"] = users
-        for user in data["pending_invitations"]:
-            user["user_role"] = constance.UserRole.get_name(user["user_role"])
-        return data
+    ...
 
 
 class ProjectSerializer(BaseSerializer):
@@ -110,6 +102,7 @@ class ProjectSerializer(BaseSerializer):
         by_alias: bool = False,
         flat: bool = False,
         exclude: Set[str] = None,
+        exclude_unset=False,
     ):
 
         to_exclude = {
@@ -137,12 +130,6 @@ class ProjectSerializer(BaseSerializer):
 
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
-
-        if data.get("users"):
-            for contributor in data["users"]:
-                contributor["user_role"] = constance.UserRole.get_name(
-                    contributor["user_role"]
-                )
         return data
 
 
@@ -167,21 +154,12 @@ class SettingsSerializer:
 
     def serialize(self):
         if self.data["attribute"] == "ImageQuality":
-            self.data["value"] = constance.ImageQuality.get_name(self.data["value"])
+            self.data["value"] = constance.ImageQuality(self.data["value"]).name
         return self.data
 
 
 class ItemSerializer(BaseSerializer):
-    def serialize(
-        self,
-        fields: List[str] = None,
-        by_alias: bool = False,
-        flat: bool = False,
-        exclude: Set[str] = None,
-    ):
-        data = super().serialize(fields, by_alias, flat, exclude)
-
-        return data
+    ...
 
 
 class EntitySerializer:

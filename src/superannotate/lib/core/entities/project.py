@@ -10,7 +10,6 @@ from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
-from lib.core.enums import UserRole
 from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
@@ -50,7 +49,7 @@ class AttachmentEntity(BaseModel):
         return hash(self.name)
 
 
-class WorkflowEntity(BaseModel):
+class StepEntity(BaseModel):
     id: Optional[int]
     project_id: Optional[int]
     class_id: Optional[int]
@@ -63,7 +62,7 @@ class WorkflowEntity(BaseModel):
         extra = Extra.ignore
 
     def __copy__(self):
-        return WorkflowEntity(step=self.step, tool=self.tool, attribute=self.attribute)
+        return StepEntity(step=self.step, tool=self.tool, attribute=self.attribute)
 
 
 class SettingEntity(BaseModel):
@@ -83,7 +82,7 @@ class ContributorEntity(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     user_id: str
-    user_role: UserRole
+    user_role: Union[int, str]
 
     class Config:
         extra = Extra.ignore
@@ -101,6 +100,7 @@ class ProjectEntity(TimedBaseModel):
     sharing_status: Optional[int]
     status: Optional[ProjectStatus]
     folder_id: Optional[int]
+    workflow_id: Optional[int]
     sync_status: Optional[int]
     upload_state: Optional[int]
     users: Optional[List[ContributorEntity]] = []
@@ -108,7 +108,6 @@ class ProjectEntity(TimedBaseModel):
     contributors: List[ContributorEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
-    workflows: Optional[List[WorkflowEntity]] = []
     item_count: Optional[int] = Field(None, alias="imageCount")
     completed_items_count: Optional[int] = Field(None, alias="completedImagesCount")
     root_folder_completed_items_count: Optional[int] = Field(
@@ -136,6 +135,7 @@ class ProjectEntity(TimedBaseModel):
             users=self.users,
             settings=[s.__copy__() for s in self.settings],
             upload_state=self.upload_state,
+            workflow_id=self.workflow_id,
         )
 
     def __eq__(self, other):
@@ -163,6 +163,18 @@ class TeamEntity(BaseModel):
     users: Optional[List[UserEntity]]
     pending_invitations: Optional[List[Any]]
     creator_id: Optional[str]
+
+    class Config:
+        extra = Extra.ignore
+
+
+class WorkflowEntity(BaseModel):
+    id: Optional[int]
+    name: Optional[str]
+    type: Optional[str]
+
+    def is_system(self):
+        return self.type == "system"
 
     class Config:
         extra = Extra.ignore

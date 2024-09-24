@@ -140,8 +140,6 @@ class TestPixelImages(BaseTestCase):
             truth = {
                 "name": "example_image_1.jpg",
                 "annotation_status": "InProgress",
-                "prediction_status": "NotStarted",
-                "segmentation_status": "NotStarted",
                 "approval_status": None,
                 "annotator_email": None,
                 "qa_email": None,

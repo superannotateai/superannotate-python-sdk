@@ -24,7 +24,7 @@ try:
 except ImportError:
     from pydantic import parse_obj_as
 
-from superannotate.lib.infrastructure.services.http_client import AIOHttpSession
+from lib.infrastructure.services.http_client import AIOHttpSession
 
 logger = logging.getLogger("sa")
 
@@ -51,6 +51,7 @@ class AnnotationService(BaseAnnotationService):
 
         if self.client.api_url != constants.BACKEND_URL:
             return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
+            # return f"https://assets-provider-ed01.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
         return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
 
     def get_schema(self, project_type: int, version: str):
@@ -388,7 +389,7 @@ class AnnotationService(BaseAnnotationService):
                     status = data.get("status")
                     if status == "SUCCESS":
                         return True
-                    elif status.startswith("FAILED"):
+                    if status.startswith("FAILED"):
                         return False
                     await asyncio.sleep(15)
                 else:

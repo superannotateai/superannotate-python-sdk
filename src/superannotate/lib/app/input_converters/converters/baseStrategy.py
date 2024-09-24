@@ -140,8 +140,7 @@ class baseStrategy:
     def __init__(self, args):
         if args.dataset_format not in ("COCO", "VOC"):
             logger.warning(
-                "Beta feature. %s to SuperAnnotate annotation format converter is in BETA state."
-                % args.dataset_format
+                f"Beta feature. {args.dataset_format} to SuperAnnotate annotation format converter is in BETA state."
             )
         self.project_type = args.project_type
         self.dataset_name = args.dataset_name

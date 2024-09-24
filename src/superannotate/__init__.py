@@ -3,23 +3,23 @@ import os
 import sys
 
 
-__version__ = "4.4.24"
+__version__ = "4.4.25dev1"
 
+os.environ.update({"sa_version": __version__})
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
-import logging.config  # noqa
-import requests  # noqa
-from packaging.version import parse  # noqa
-from superannotate.lib.app.input_converters import convert_project_type  # noqa
-from superannotate.lib.app.exceptions import AppException  # noqa
-from superannotate.lib.app.input_converters import convert_project_type  # noqa
-from superannotate.lib.app.input_converters import export_annotation  # noqa
-from superannotate.lib.app.input_converters import import_annotation  # noqa
-from superannotate.lib.app.interface.sdk_interface import SAClient  # noqa
-from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE  # noqa
-from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
-from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
-import superannotate.lib.core.enums as enums  # noqa
+import requests
+from lib.core import enums
+from packaging.version import parse
+from lib.core import PACKAGE_VERSION_UPGRADE
+from lib.core import PACKAGE_VERSION_INFO_MESSAGE
+from lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
+from lib.core.exceptions import AppException
+from lib.app.input_converters import convert_project_type
+from lib.app.input_converters import export_annotation
+from lib.app.input_converters import import_annotation
+from lib.app.interface.sdk_interface import SAClient
+
 
 SESSIONS = {}
 
@@ -30,7 +30,6 @@ __all__ = [
     # Utils
     "enums",
     "AppException",
-    # converters
     "import_annotation",
     "export_annotation",
     "convert_project_type",
@@ -62,5 +61,5 @@ def log_version_info():
             logging.warning(PACKAGE_VERSION_UPGRADE.format(local_version, pip_version))
 
 
-if not os.environ.get("SA_VERSION_CHECK", "True").lower() == "false":
+if os.environ.get("SA_VERSION_CHECK", "True").lower() != "false":
     log_version_info()

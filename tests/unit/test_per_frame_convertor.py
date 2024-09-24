@@ -19,9 +19,10 @@ class TestConvertor(TestCase):
     )
 
     def test_polygon_polyline_convertor(self):
-        payload = json.load(open(self.ANNOTATION_PATH))
+        with open(self.ANNOTATION_PATH, encoding="utf-8") as f:
+            payload = json.load(f)
         generator = VideoFrameGenerator(payload, fps=10)
-        data = [i for i in generator]
+        data = list(generator)
 
         from collections import defaultdict
 
@@ -93,7 +94,7 @@ class TestConvertor(TestCase):
         ]
         for points, frame_count in point_frame_count_pairs:
             assert len(point_frame_map.pop(points)) == frame_count
-        assert all([len(frames) == 1 for frames in point_frame_map.values()])
+        assert all(len(frames) == 1 for frames in point_frame_map.values())
 
     #  TODO write tests for one frame annotation
     # def test_one_frame_annotation(self):
@@ -106,5 +107,8 @@ class TestConvertor(TestCase):
         payload = json.load(open(self.CUSTOM_CASE_5_FRAME_ANNOTATION_PATH))
         generator = VideoFrameGenerator(payload, fps=1)
         data = [i for i in generator]
-        expected = json.load(open(self.CUSTOM_CASE_5_FRAME_EXPECTED_ANNOTATION_PATH))
-        assert expected == data
+        with open(
+            self.CUSTOM_CASE_5_FRAME_EXPECTED_ANNOTATION_PATH, encoding="utf-8"
+        ) as f:
+            expected = json.load(f)
+            assert expected == data

@@ -81,6 +81,8 @@ class TestAttachItemsVector(BaseTestCase):
         )
         assert len(uploaded) == 1
         assert len(duplicated) == 2
+        items = sa.list_items(self.PROJECT_NAME, self.FOLDER_NAME)
+        assert all(i["annotation_status"] == "NotStarted" for i in items)
 
     def test_limitation(self):
         self.assertRaises(

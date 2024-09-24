@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from lib.core import entities
+from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import BaseModel
 from lib.core.pydantic_v1 import Extra
@@ -82,9 +83,16 @@ class ServiceResponse(BaseModel):
     res_data: Optional[Any] = None  # response data
     res_error: Optional[Union[str, list, dict]] = None
     count: Optional[int] = 0
+    total: Optional[int] = 0
 
     class Config:
         extra = Extra.allow
+
+    @property
+    def total_count(self):
+        if self.total:
+            return self.total
+        return self.count
 
     @property
     def data(self):
@@ -120,6 +128,10 @@ class ServiceResponse(BaseModel):
 
     def __str__(self):
         return f"Status: {self.status_code}, Error {self.error}"
+
+
+class BaseItemResponse(ServiceResponse):
+    res_data: entities.BaseItemEntity = None
 
 
 class ImageResponse(ServiceResponse):
@@ -210,9 +222,25 @@ class ProjectResponse(ServiceResponse):
     res_data: entities.ProjectEntity = None
 
 
+class WorkflowListResponse(ServiceResponse):
+    res_data: List[entities.WorkflowEntity] = None
+
+
 class ProjectListResponse(ServiceResponse):
     res_data: List[entities.ProjectEntity] = None
 
 
 class SettingsListResponse(ServiceResponse):
     res_data: List[entities.SettingEntity] = None
+
+
+PROJECT_TYPE_RESPONSE_MAP = {
+    ProjectType.VECTOR: ImageResponse,
+    ProjectType.OTHER: ClassificationResponse,
+    ProjectType.VIDEO: VideoResponse,
+    ProjectType.TILED: TiledResponse,
+    ProjectType.PIXEL: ImageResponse,
+    ProjectType.DOCUMENT: DocumentResponse,
+    ProjectType.POINT_CLOUD: PointCloudResponse,
+    ProjectType.GEN_AI: ImageResponse,
+}

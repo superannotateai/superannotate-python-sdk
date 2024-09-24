@@ -5,13 +5,11 @@ from logging.handlers import RotatingFileHandler
 from os.path import expanduser
 
 from lib.core.config import Config
-from lib.core.enums import AnnotationStatus
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import FolderStatus
 from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
-from lib.core.enums import SegmentationStatus
 from lib.core.enums import TrainingStatus
 from lib.core.enums import UploadState
 from lib.core.enums import UserRole
@@ -189,9 +187,7 @@ __alL__ = (
     UserRole,
     UploadState,
     TrainingStatus,
-    SegmentationStatus,
     ImageQuality,
-    AnnotationStatus,
     ApprovalStatus,
     CONFIG_JSON_FILE_LOCATION,
     CONFIG_INI_FILE_LOCATION,

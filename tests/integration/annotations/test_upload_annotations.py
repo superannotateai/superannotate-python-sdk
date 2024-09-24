@@ -83,9 +83,10 @@ class TestAnnotationUploadVector(BaseTestCase):
         sa.set_annotation_statuses(
             self.PROJECT_NAME, "Completed", items=["example_image_1.jpg"]
         )
-        uploaded, _, _ = sa.upload_annotations(
-            self.PROJECT_NAME, annotations, keep_status=True
-        ).values()
+        with self.assertWarns(DeprecationWarning):
+            uploaded, _, _ = sa.upload_annotations(
+                self.PROJECT_NAME, annotations, keep_status=True
+            ).values()
         assert len(uploaded) == 1
 
         items = sa.search_items(self.PROJECT_NAME)

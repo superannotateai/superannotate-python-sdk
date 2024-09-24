@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-import src.superannotate.lib.core as constances
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 from tests.integration.items import IMAGE_EXPECTED_KEYS
@@ -52,14 +51,14 @@ class TestSearchItems(BaseTestCase):
         assert len(sa.search_items(self.PROJECT_NAME, recursive=True)) == 4
         sa.set_annotation_statuses(
             self.PROJECT_NAME,
-            constances.AnnotationStatus.COMPLETED.name,
+            "Completed",
             [self.IMAGE1_NAME, self.IMAGE2_NAME],
         )
         assert (
             len(
                 sa.search_items(
                     self.PROJECT_NAME,
-                    annotation_status=constances.AnnotationStatus.COMPLETED.name,
+                    annotation_status="Completed",
                 )
             )
             == 2

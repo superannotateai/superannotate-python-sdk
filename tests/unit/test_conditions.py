@@ -27,7 +27,7 @@ class TestCondition(TestCase):
         condition = Condition("name", folder_name, CONDITION_EQ)
         condition &= Condition("includeUsers", return_metadata, CONDITION_EQ)
         _condition = Condition(
-            "status", constants.ProjectStatus.get_value(status), CONDITION_EQ
+            "status", constants.ProjectStatus(status).value, CONDITION_EQ
         )
         _condition &= condition
         assert _condition.get_as_params_dict() == {

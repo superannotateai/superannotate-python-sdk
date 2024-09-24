@@ -23,7 +23,7 @@ class CreateCustomSchemaUseCase(BaseReportableUseCase):
         self._service_provider = service_provider
 
     def execute(self) -> Response:
-        response = self._service_provider.custom_fields.create_schema(
+        response = self._service_provider.explore.create_schema(
             project=self._project,
             schema=self._schema,
         )
@@ -49,9 +49,7 @@ class GetCustomSchemaUseCase(BaseReportableUseCase):
         self._service_provider = service_provider
 
     def execute(self) -> Response:
-        response = self._service_provider.custom_fields.get_schema(
-            project=self._project
-        )
+        response = self._service_provider.explore.get_schema(project=self._project)
         if response.ok:
             self._response.data = response.data
         else:
@@ -75,7 +73,7 @@ class DeleteCustomSchemaUseCase(BaseReportableUseCase):
     def execute(self) -> Response:
         if self._fields:
             self.reporter.log_info("Matched fields deleted from schema.")
-        response = self._service_provider.custom_fields.delete_fields(
+        response = self._service_provider.explore.delete_fields(
             project=self._project,
             fields=self._fields,
         )
@@ -119,7 +117,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
         )
         with self.reporter.spinner:
             for idx in range(0, len(self._items), self.CHUNK_SIZE):
-                response = self._service_provider.custom_fields.upload_fields(
+                response = self._service_provider.explore.upload_fields(
                     project=self._project,
                     folder=self._folder,
                     items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203
@@ -162,7 +160,7 @@ class DeleteCustomValuesUseCase(BaseReportableUseCase):
 
     def execute(self) -> Response:
         for idx in range(0, len(self._items), self.CHUNK_SIZE):
-            response = self._service_provider.custom_fields.delete_values(
+            response = self._service_provider.explore.delete_values(
                 project=self._project,
                 folder=self._folder,
                 items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203

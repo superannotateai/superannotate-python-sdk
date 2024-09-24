@@ -81,7 +81,8 @@ class CocoBaseStrategy(baseStrategy):
         }
         return out_json
 
-    def convert_from_old_sa_to_new(self, old_json_data, project_type):
+    @staticmethod
+    def convert_from_old_sa_to_new(old_json_data, project_type):
 
         new_json_data = {"metadata": {}, "instances": [], "tags": [], "comments": []}
 
@@ -272,8 +273,10 @@ class CocoBaseStrategy(baseStrategy):
 
         return image_info
 
-    def _create_sa_classes(self, json_path):
-        json_data = json.load(open(json_path))
+    @staticmethod
+    def _create_sa_classes(json_path):
+        with open(json_path, encoding="utf-8") as f:
+            json_data = json.load(f)
         classes_list = json_data["categories"]
 
         classes = []
