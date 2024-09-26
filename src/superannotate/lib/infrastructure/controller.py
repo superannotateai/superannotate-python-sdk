@@ -8,7 +8,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import TypedDict
 from typing import Union
 
 import lib.core as constances
@@ -45,6 +44,8 @@ from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
+from typing_extensions import TypedDict
+from typing_extensions import Unpack
 
 
 class ItemFilters(TypedDict, total=False):
@@ -58,15 +59,15 @@ class ItemFilters(TypedDict, total=False):
     annotation_status: Optional[str]
     annotation_status__in: Optional[List[str]]
     approval_status: Optional[str]
-    approval_status__in: Optional[str]
+    approval_status__in: Optional[List[str]]
     approval_status__ne: Optional[str]
     assignments__user_id: Optional[str]
     assignments__user_id__in: Optional[List[str]]
     assignments__user_id__ne: Optional[str]
     assignments__user_role: Optional[str]
-    assignments__user_role__in: Optional[str]
+    assignments__user_role__in: Optional[List[str]]
     assignments__user_role__ne: Optional[str]
-    assignments__user_role__notin: Optional[str]
+    assignments__user_role__notin: Optional[List[str]]
 
 
 def build_condition(**kwargs) -> Condition:
@@ -485,7 +486,7 @@ class ItemManager(BaseManager):
         folder: FolderEntity,
         /,
         include: List[str] = None,
-        **filters,
+        **filters: Unpack[ItemFilters],
     ) -> List[BaseItemEntity]:
 
         query = self._build_query(project, filters, include)

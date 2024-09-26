@@ -320,7 +320,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type workflows: list of dicts
 
         :param workflow: the name of the workflow already created within the team, which must match exactly.
-                         If None, the default “Annotator can’t complete” system workflow will be set.
+                         If None, the default “System workflow” workflow will be set.
         :type workflow: str
 
         :param instructions_link: str of instructions URL
@@ -2262,7 +2262,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         emails: conlist(EmailStr, min_items=1),
-        role: ANNOTATOR_ROLE,
+        role: str,
     ) -> Tuple[List[str], List[str]]:
         """Add contributors to project.
 
@@ -2318,7 +2318,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_annotations(
         self,
-        project: Union[NotEmptyStr, int],
+        project: Union[int, NotEmptyStr],
         items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
     ):
         """Returns annotations for the given list of items.
@@ -2663,8 +2663,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def list_items(
         self,
-        project: Union[str, int],
-        folder: Optional[Union[str, int]] = None,
+        project: Union[int, str],
+        folder: Optional[Union[int, str]] = None,
         *,
         include: List[Literal["assignments", "custom_metadata"]] = None,
         **filters,
@@ -2674,12 +2674,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: The project name, project ID, or folder path (e.g., "project1/folder1") to search within.
                         This can refer to the root of the project or a specific subfolder.
-        :type project: Union[str, int]
+        :type project: Union[int, str]
 
         :param folder: The folder name or ID to search within. If None, the search will be done in the root folder of
                        the project. If both “project” and “folder” specify folders, the “project”
                        value will take priority.
-        :type folder: Union[str, int], optional
+        :type folder: Union[int, str], optional
 
         :param include: Specifies additional fields to include in the response.
 
@@ -2771,7 +2771,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         """
         project = (
-            project
+            self.controller.get_project_by_id(project).data
             if isinstance(project, int)
             else self.controller.get_project(project)
         )
@@ -2779,7 +2779,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder = self.controller.get_folder(project, "root")
         else:
             if isinstance(folder, int):
-                folder = self.controller.get_folder_by_id(project.id, folder)
+                folder = self.controller.get_folder_by_id(
+                    project_id=project.id, folder_id=folder
+                ).data
             else:
                 folder = self.controller.get_folder(project, folder)
         include = include or []
