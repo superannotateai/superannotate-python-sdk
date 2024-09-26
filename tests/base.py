@@ -13,28 +13,11 @@ class BaseApplicationTestCase(TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        BaseApplicationTestCase.PROJECT_NAME = BaseApplicationTestCase.__class__.__name__
-
-    @classmethod
-    def setUpClass(cls, *args, **kwargs):
-        cls.tearDownClass()
-        cls._project = sa.create_project(
-            cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE
+        BaseApplicationTestCase.PROJECT_NAME = (
+            BaseApplicationTestCase.__class__.__name__
         )
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        try:
-            projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
-            for project in projects:
-                try:
-                    sa.delete_project(project)
-                except Exception as e:
-                    print(str(e))
-        except Exception as e:
-            print(str(e))
-
-    def attach_random_items(self, count=5, name_prefix='example_image_', folder=None):
+    def attach_random_items(self, count=5, name_prefix="example_image_", folder=None):
         path = self.PROJECT_NAME
         if folder:
             path = f"{self.PROJECT_NAME}/{folder}"
@@ -46,4 +29,3 @@ class BaseApplicationTestCase(TestCase):
             ],  # noqa
         )
         assert len(uploaded) == count
-
