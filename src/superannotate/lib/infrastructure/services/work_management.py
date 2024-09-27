@@ -1,6 +1,8 @@
 import base64
 
 from lib.core.entities import WorkflowEntity
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
 from lib.core.serviceproviders import BaseWorkManagementService
 
@@ -10,6 +12,14 @@ class WorkManagementService(BaseWorkManagementService):
     URL_LIST = "workflows"
     URL_LIST_STATUSES = "workflows/{workflow_id}/workflowstatuses"
     URL_LIST_ROLES = "workflows/{workflow_id}/workflowroles"
+
+    def get_workflow(self, pk: int) -> WorkflowEntity:
+        response = self.list_workflows(Filter("id", pk, OperatorEnum.EQ))
+        if response.error:
+            raise response.error
+        for w in response.data:
+            if w.id == pk:
+                return w
 
     def list_workflows(self, query: Query):
         result = self.client.paginate(

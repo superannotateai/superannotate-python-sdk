@@ -71,6 +71,10 @@ class SuperannotateServiceProvider(ABC):
 
 class BaseWorkManagementService(SuperannotateServiceProvider):
     @abstractmethod
+    def get_workflow(self, pk: int) -> entities.WorkflowEntity:
+        raise NotImplementedError
+
+    @abstractmethod
     def list_workflows(self, query: Query) -> WorkflowListResponse:
         raise NotImplementedError
 

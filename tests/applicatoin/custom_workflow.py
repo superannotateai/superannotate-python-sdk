@@ -23,13 +23,13 @@ class TestWorkflow(TestCase):
     PROJECT_DESCRIPTION = PROJECT_NAME
     CLASSES_PATH = "sample_project_vector/classes/classes.json"
     ANNOTATIONS_PATH = "sample_project_vector"
-    PROJECT_TYPE = "GenAi"
+    PROJECT_TYPE = "Vector"
 
     @classmethod
     def setUpClass(cls, *args, **kwargs):
         cls.tearDownClass()
         cls._project = sa.create_project(
-            cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE, workflow="ttt"
+            cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE, workflow="ttp"
         )
 
     @classmethod
@@ -190,7 +190,9 @@ class TestWorkflow(TestCase):
 
     def test_steps(self):
         for name, step in self._steps():
-            try:
-                step()
-            except Exception as e:
-                self.fail("{} failed ({}: {})".format(step, type(e), e))
+            step()
+            # try:
+            #     step()
+            # except Exception as e:
+            #     raise e
+            #     self.fail("{} failed ({}: {})".format(step, type(e), e))

@@ -743,19 +743,15 @@ class UploadImageToProject(BaseUseCase):
         self._s3_repo = s3_repo
         self._service_provider = service_provider
         if annotation_status_value is None:
-            response = self._service_provider.work_management.list_workflows(
-                Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+            workflow = self._service_provider.work_management.get_workflow(
+                self._project.workflow_id
             )
-            if response.error:
-                raise AppException(response.error)
-            workflow = response.data[0]
             if workflow.is_system():
                 annotation_status_value = (
                     self._service_provider.get_annotation_status_value(
                         self._project, "NotStarted"
                     )
                 )
-
         self._annotation_status_value = annotation_status_value
         self._auth_data = None
 
@@ -1106,12 +1102,9 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             attach_duplications_list = []
 
             if not self._annotation_status_value:
-                response = self._service_provider.work_management.list_workflows(
-                    Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+                workflow = self._service_provider.work_management.get_workflow(
+                    self._project.workflow_id
                 )
-                if response.error:
-                    raise AppException(response.error)
-                workflow = response.data[0]
                 if workflow.is_system():
                     self._annotation_status_value = (
                         self._service_provider.get_annotation_status_value(

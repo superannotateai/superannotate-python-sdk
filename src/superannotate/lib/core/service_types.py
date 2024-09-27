@@ -222,6 +222,10 @@ class ProjectResponse(ServiceResponse):
     res_data: entities.ProjectEntity = None
 
 
+class WorkflowResponse(ServiceResponse):
+    res_data: entities.WorkflowEntity = None
+
+
 class WorkflowListResponse(ServiceResponse):
     res_data: List[entities.WorkflowEntity] = None
 

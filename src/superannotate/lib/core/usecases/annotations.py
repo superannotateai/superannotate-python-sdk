@@ -36,7 +36,6 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import UserEntity
-from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
@@ -477,13 +476,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 {i.item.name for i in items_to_upload}
                 - set(self._report.failed_annotations).union(set(skipped))
             )
-            response = self._service_provider.work_management.list_workflows(
-                Filter("id", self._project.workflow_id, OperatorEnum.EQ)
-            )
-            if not response.ok:
-                raise AppException(response.error)
-            workflow: WorkflowEntity = next(
-                (i for i in response.data if i.id == self._project.workflow_id), None
+            workflow = self._service_provider.work_management.get_workflow(
+                self._project.workflow_id
             )
             if workflow.is_system():
                 if uploaded_annotations and not self._keep_status:
@@ -842,12 +836,9 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             name_path_mappings.keys()
             - set(self._report.failed_annotations).union(set(missing_annotations))
         )
-        response = self._service_provider.work_management.list_workflows(
-            Filter("id", self._project.id, OperatorEnum.EQ)
+        workflow = self._service_provider.work_management.get_workflow(
+            self._project.workflow_id
         )
-        if response.error:
-            raise response.error
-        workflow = response.data[0]
         if workflow.is_system() and uploaded_annotations and not self._keep_status:
             statuses_changed = set_annotation_statuses_in_progress(
                 service_provider=self._service_provider,
@@ -1084,12 +1075,9 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                                 ],
                                 Body=mask,
                             )
-                    response = self._service_provider.work_management.list_workflows(
-                        Filter("id", self._project.workflow_id, OperatorEnum.EQ)
+                    workflow = self._service_provider.work_management.get_workflow(
+                        self._project.workflow_id
                     )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    workflow = response.data[0]
                     if workflow.is_system() and not self._keep_status:
                         statuses_changed = set_annotation_statuses_in_progress(
                             service_provider=self._service_provider,
