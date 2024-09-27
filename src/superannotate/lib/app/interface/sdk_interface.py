@@ -2666,7 +2666,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[int, str],
         folder: Optional[Union[int, str]] = None,
         *,
-        include: List[Literal["assignments", "custom_metadata"]] = None,
+        include: List[Literal["custom_metadata"]] = None,
         **filters,
     ):
         """
@@ -2685,7 +2685,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
                 Possible values are
 
-                - "assignee": Includes information about the role of the item assignee.
                 - "custom_metadata": Includes custom metadata attached to the item.
         :type include: list of str, optional
 
@@ -2801,8 +2800,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if include:
             if "custom_metadata" not in include:
                 exclude.add("custom_metadata")
-            if "assignments" not in include:
-                exclude.add("assignments")
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
 
     def attach_items(
