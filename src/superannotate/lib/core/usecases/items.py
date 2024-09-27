@@ -926,7 +926,6 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self,
     ):
         if self.is_valid():
-
             futures = []
             with ThreadPoolExecutor(max_workers=4) as executor:
                 for path, items in self.path_separated.items():
