@@ -121,4 +121,4 @@ class TestExportImport(TestCase):
             )
             sa.download_export(self.PROJECT_NAME, export, tmpdir_name)
             assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).left_only
-            assert filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).right_only
+            assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).right_only

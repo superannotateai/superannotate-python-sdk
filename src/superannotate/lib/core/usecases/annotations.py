@@ -1426,11 +1426,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             schema_response = self._service_provider.annotations.get_schema(
                 self._project_type, version
             )
-            if not schema_response.ok:
+            if not schema_response.ok or not schema_response.data:
                 raise AppException(f"Schema {version} does not exist.")
-            if not schema_response.data:
-                ValidateAnnotationUseCase.SCHEMAS[key] = lambda x: x
-                return ValidateAnnotationUseCase.SCHEMAS[key]
             validator = superannotate_schemas.Draft7Validator(schema_response.data)
             from functools import partial
 

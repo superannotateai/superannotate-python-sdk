@@ -104,13 +104,13 @@ Item metadata example:
 .. code-block:: python
 
   {
-  "createdAt": "2022-09-14T07:06:53.000Z",
+   "createdAt": "2022-09-14T07:06:53.000Z",
    "updatedAt": "2022-09-30T13:14:26.000Z",
    "id": 33027004,
    "name": "5199856037_03d1929b7b_o.jpg",
    "path": "New Classes",
    "url": "None",
-  "assignments": [
+   "assignments": [
       {
          "user_role": "Annotator",
          "user_id": "annotator@example.com"
@@ -118,14 +118,6 @@ Item metadata example:
       {
          "user_role": "QA",
          "user_id": "qa@example.com"
-      },
-      {
-         "user_role": "reviewer",
-         "user_id": null
-      },
-      {
-         "user_role": "<role_name",
-         "user_id": "my@example.com"
       }
    ],
    "entropy_value": "None",

@@ -61,6 +61,5 @@ class TestVectorValidators(TestCase):
         assert not is_valid
         assert mock_print.call_args_list[0].args[0] == (
             """instances[0]                                    'points' is a required property
-instances[0].createdBy.role                     'dmin' is not one of ['Customer', 'Admin', 'Annotator', 'QA']
 instances[1]                                    'points' is a required property"""
         )

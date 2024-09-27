@@ -273,10 +273,16 @@ class AIOHttpSession(aiohttp.ClientSession):
             try:
                 response = await super()._request(*args, **kwargs)
                 if attempts <= 1 or response.status not in self.RETRY_STATUS_CODES:
+                    if not response.ok:
+                        txt = await response.text()
+                        logger.debug(
+                            f"Got {response.status} response from backend: {txt}"
+                        )
                     return response
                 if isinstance(kwargs["data"], aiohttp.FormData):
                     raise RuntimeError(await response.text())
             except (aiohttp.ClientError, RuntimeError) as e:
+                logger.debug(f"AsyncClient got {str(e)} response from backend")
                 if attempts <= 1:
                     raise
                 data = kwargs["data"]
