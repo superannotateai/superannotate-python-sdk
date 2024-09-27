@@ -848,7 +848,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         if response.error:
             raise response.error
         workflow = response.data[0]
-        if workflow.is_system and uploaded_annotations and not self._keep_status:
+        if workflow.is_system() and uploaded_annotations and not self._keep_status:
             statuses_changed = set_annotation_statuses_in_progress(
                 service_provider=self._service_provider,
                 project=self._project,
@@ -1090,7 +1090,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                     if not response.ok:
                         raise AppException(response.error)
                     workflow = response.data[0]
-                    if workflow.is_system and not self._keep_status:
+                    if workflow.is_system() and not self._keep_status:
                         statuses_changed = set_annotation_statuses_in_progress(
                             service_provider=self._service_provider,
                             project=self._project,

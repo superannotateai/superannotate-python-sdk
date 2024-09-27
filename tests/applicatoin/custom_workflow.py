@@ -100,7 +100,7 @@ class TestWorkflow(TestCase):
 
     def step_4_upload_annotations(self):
         uploaded, _, __ = sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME, self.annotations_path, keep_status=True
+            self.PROJECT_NAME, self.annotations_path
         )
         attached_items_count = len(attached_item_names.get())
         assert len(uploaded) == attached_items_count
