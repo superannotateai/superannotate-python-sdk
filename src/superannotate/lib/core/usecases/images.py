@@ -749,7 +749,7 @@ class UploadImageToProject(BaseUseCase):
             if response.error:
                 raise AppException(response.error)
             workflow = response.data[0]
-            if workflow.is_system:
+            if workflow.is_system():
                 annotation_status_value = (
                     self._service_provider.get_annotation_status_value(
                         self._project, "NotStarted"
@@ -1112,7 +1112,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 if response.error:
                     raise AppException(response.error)
                 workflow = response.data[0]
-                if workflow.is_system:
+                if workflow.is_system():
                     self._annotation_status_value = (
                         self._service_provider.get_annotation_status_value(
                             self._project, "NotStarted"
