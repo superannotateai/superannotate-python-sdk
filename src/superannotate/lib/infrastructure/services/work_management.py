@@ -1,6 +1,7 @@
 import base64
 
 from lib.core.entities import WorkflowEntity
+from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
@@ -16,7 +17,7 @@ class WorkManagementService(BaseWorkManagementService):
     def get_workflow(self, pk: int) -> WorkflowEntity:
         response = self.list_workflows(Filter("id", pk, OperatorEnum.EQ))
         if response.error:
-            raise response.error
+            raise AppException(response.error)
         for w in response.data:
             if w.id == pk:
                 return w

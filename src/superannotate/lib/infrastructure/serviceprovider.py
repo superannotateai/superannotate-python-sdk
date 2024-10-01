@@ -90,13 +90,13 @@ class ServiceProvider(BaseServiceProvider):
     def _get_work_management_url(client: HttpClient):
         if client.api_url != constants.BACKEND_URL:
             return "https://work-management-api.devsuperannotate.com/api/v1/"
-        return "https://work-management-api.devsuperannotate.com/api/v1/"
+        return "https://work-management-api.superannotate.com/api/v1/"
 
     @staticmethod
     def _get_item_service_url(client: HttpClient):
         if client.api_url != constants.BACKEND_URL:
             return "https://item.devsuperannotate.com/api/v1/"
-        return "https://item.superannotate.com//api/v1/"
+        return "https://item.superannotate.com/api/v1/"
 
     def get_team(self, team_id: int) -> TeamResponse:
         return self.client.request(
