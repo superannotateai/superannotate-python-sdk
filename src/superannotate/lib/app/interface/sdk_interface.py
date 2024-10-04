@@ -711,8 +711,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         warnings.warn(
             DeprecationWarning(
-                "The “set_project_workflow” function is deprecated."
-                " Please use the “set_project_steps” function instead."
+                "The “get_project_workflow” function is deprecated."
+                " Please use the “get_project_steps” function instead."
             )
         )
         return self.get_project_steps(project)
