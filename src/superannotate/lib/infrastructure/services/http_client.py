@@ -1,7 +1,9 @@
 import asyncio
+import base64
 import io
 import json
 import logging
+import os
 import platform
 import threading
 import time
@@ -19,7 +21,6 @@ from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseClient
 from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
-from superannotate import __version__
 
 try:
     from pydantic.v1 import BaseModel
@@ -44,6 +45,11 @@ class HttpClient(BaseClient):
     def __init__(self, api_url: str, token: str, verify_ssl: bool = True):
         super().__init__(api_url, token)
         self._verify_ssl = verify_ssl
+        self._version = os.environ.get("sa_version")
+
+    @property
+    def verify_ssl(self):
+        return self._verify_ssl
 
     @lru_cache(maxsize=32)
     def _get_session(self, thread_id, ttl=None):  # noqa
@@ -68,7 +74,14 @@ class HttpClient(BaseClient):
             "Authorization": self._token,
             "authtype": self.AUTH_TYPE,
             "Content-Type": "application/json",
-            "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()};"
+            "x-sa-entity-context": base64.b64encode(
+                json.dumps(
+                    {
+                        "team_id": self.team_id,
+                    }
+                ).encode("utf-8")
+            ).decode("utf-8"),
+            "User-Agent": f"Python-SDK-Version: {self._version}; Python: {platform.python_version()};"
             f"OS: {platform.system()}; Team: {self.team_id}",
         }
 
@@ -150,6 +163,7 @@ class HttpClient(BaseClient):
         item_type: Any = None,
         chunk_size: int = 2000,
         query_params: Dict[str, Any] = None,
+        headers: Dict = None,
     ) -> ServiceResponse:
         offset = 0
         total = []
@@ -158,7 +172,11 @@ class HttpClient(BaseClient):
         while True:
             _url = f"{url}{splitter}offset={offset}"
             _response = self.request(
-                _url, method="get", params=query_params, dispatcher="data"
+                _url,
+                method="get",
+                params=query_params,
+                dispatcher="data",
+                headers=headers,
             )
             if _response.ok:
                 if _response.data:
@@ -167,7 +185,7 @@ class HttpClient(BaseClient):
                     break
                 data_len = len(_response.data)
                 offset += data_len
-                if data_len < chunk_size or _response.count - offset < 0:
+                if data_len < chunk_size or _response.total_count - offset < 0:
                     break
             else:
                 break
@@ -203,9 +221,14 @@ class HttpClient(BaseClient):
                     return content_type(**data)
                 else:
                     data_json = response.json()
-                    data["res_error"] = data_json.get(
-                        "error", data_json.get("errors", "Unknown Error")
-                    )
+                    if "error" in data_json:
+                        data["res_error"] = data_json["error"]
+                    elif "errors" in data_json:
+                        data["res_error"] = data_json["errors"]
+                    elif "message" in data_json:
+                        data["res_error"] = data_json["message"]
+                    else:
+                        data["res_error"] = "Unknown Error"
                     return content_type(**data)
             data_json = response.json()
             if dispatcher:
@@ -227,7 +250,7 @@ class HttpClient(BaseClient):
 class AIOHttpSession(aiohttp.ClientSession):
     RETRY_STATUS_CODES = [401, 403, 502, 503, 504]
     RETRY_LIMIT = 3
-    BACKOFF_FACTOR = 0.3
+    BACKOFF_FACTOR = 0.5
 
     @staticmethod
     def _copy_form_data(data: aiohttp.FormData) -> aiohttp.FormData:
@@ -250,10 +273,16 @@ class AIOHttpSession(aiohttp.ClientSession):
             try:
                 response = await super()._request(*args, **kwargs)
                 if attempts <= 1 or response.status not in self.RETRY_STATUS_CODES:
+                    if not response.ok:
+                        txt = await response.text()
+                        logger.debug(
+                            f"Got {response.status} response from backend: {txt}"
+                        )
                     return response
                 if isinstance(kwargs["data"], aiohttp.FormData):
                     raise RuntimeError(await response.text())
             except (aiohttp.ClientError, RuntimeError) as e:
+                logger.debug(f"AsyncClient got {str(e)} response from backend")
                 if attempts <= 1:
                     raise
                 data = kwargs["data"]

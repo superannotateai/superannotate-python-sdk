@@ -88,7 +88,7 @@ class CLIFacade:
         project: str,
         folder: str,
         extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
-        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.name,
+        set_annotation_status: str = None,
         exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_subfolders=False,
         image_quality_in_editor=None,
@@ -243,7 +243,7 @@ class CLIFacade:
         target_fps=None,
         recursive=False,
         extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
-        set_annotation_status=constances.AnnotationStatus.NOT_STARTED.name,
+        set_annotation_status=None,
         start_time=0.0,
         end_time=None,
     ):

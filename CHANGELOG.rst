@@ -5,6 +5,24 @@ History
 =======
 
 All release highlights of this project will be documented in this file.
+4.4.25 - Sep 30, 2024
+________________________
+
+**Added**
+
+    - ``SAClient.create_project`` method, a new ``workflow`` argument has been added to define the workflow for the project.
+    - ``SAClient.get_project_steps`` method, added instead of ``get_project_workflow`` function.
+    - ``SAClient.set_project_steps`` method, added instead of ``set_project_workflow`` function.
+    - ``SAClient.list_items`` method has been added to search for items using advanced filtering criteria.
+
+
+**Updated**
+
+    - ``SAClient.create_project`` method, removed ``workflows`` argument, use ``set_project_steps`` function instead.
+    - ``SAClient.clone_project`` method, removed ``copy_workflow`` argument, use ``set_project_steps`` function instead.
+    - ``SAClient.get_project_metadata`` method, removed ``include_workflow`` argument, use ``get_project_steps`` function instead.
+    - ``SAClient.get_project_workflow`` method deprecated, use ``get_project_steps`` function instead.
+    - ``SAClient.set_project_workflow`` method deprecated, use ``set_project_steps`` function instead.
 
 4.4.24 - July 2, 2024
 _______________________

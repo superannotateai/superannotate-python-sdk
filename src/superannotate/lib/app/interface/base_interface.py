@@ -23,7 +23,6 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 from mixpanel import Mixpanel
-from superannotate import __version__
 
 
 class BaseInterfaceFacade:
@@ -134,7 +133,7 @@ class Tracker:
             "SDK": True,
             "Team": team_name,
             "User Email": user_email,
-            "Version": __version__,
+            "Version": os.environ["sa_version"],
             "Python version": platform.python_version(),
             "Python interpreter type": platform.python_implementation(),
         }
@@ -170,7 +169,7 @@ class Tracker:
         for key, value in kwargs.items():
             if key == "self":
                 continue
-            elif key == "token":
+            if key == "token":
                 properties["sa_token"] = str(bool(value))
             elif key == "config_path":
                 properties[key] = str(bool(value))

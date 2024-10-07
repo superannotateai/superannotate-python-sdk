@@ -10,16 +10,16 @@ from lib.core.serviceproviders import BaseProjectService
 
 class ProjectService(BaseProjectService):
     URL = "project"
-    URL_LIST = "projects"
+    URL_LIST = "api/v1/projects"
     URL_GET = "project/{}"
     URL_SETTINGS = "project/{}/settings"
     URL_WORKFLOW = "project/{}/workflow"
-    URL_SHARE = "project/{}/share/bulk"
+    URL_SHARE = "api/v1/project/{}/share/bulk"
     URL_SHARE_PROJECT = "project/{}/share"
     URL_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
-    URL_GET_BY_ID = "project/{project_id}"
+    URL_GET_BY_ID = "api/v1/project/{project_id}"
 
     def get_by_id(self, project_id: int):
         params = {}
@@ -30,11 +30,6 @@ class ProjectService(BaseProjectService):
             content_type=ProjectResponse,
         )
         return result
-
-    def get(self, uuid: int):
-        return self.client.request(
-            self.URL_GET.format(uuid), "get", content_type=ProjectResponse
-        )
 
     def create(self, entity: entities.ProjectEntity) -> ServiceResponse:
         entity.team_id = self.client.team_id
@@ -85,11 +80,11 @@ class ProjectService(BaseProjectService):
 
     def list_workflows(self, project: entities.ProjectEntity):
         return self.client.paginate(
-            self.URL_WORKFLOW.format(project.id), item_type=entities.WorkflowEntity
+            self.URL_WORKFLOW.format(project.id), item_type=entities.StepEntity
         )
 
     def set_workflow(
-        self, project: entities.ProjectEntity, workflow: entities.WorkflowEntity
+        self, project: entities.ProjectEntity, workflow: entities.StepEntity
     ):
         return self.client.request(
             self.URL_WORKFLOW.format(project.id),

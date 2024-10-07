@@ -69,14 +69,14 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         ):
             raise AppException(
                 "Predefined tagging functionality is not supported for projects"
-                f" of type {ProjectType.get_name(self._project.type)}."
+                f" of type {ProjectType(self._project.type).name}."
             )
         if self._project.type != ProjectType.VECTOR:
             for g in self._annotation_class.attribute_groups:
                 if g.group_type == GroupTypeEnum.OCR:
                     raise AppException(
                         f"OCR attribute group is not supported for project type "
-                        f"{ProjectType.get_name(self._project.type)}."
+                        f"{ProjectType(self._project.type).name}."
                     )
 
     def validate_default_value(self):
@@ -99,7 +99,9 @@ class CreateAnnotationClassUseCase(BaseUseCase):
                     self._response.data = response.data[0]
                 else:
                     self._response.errors = AppException(
-                        response.error.replace(". ", ".\n")
+                        "\n".join(response.error)
+                        if isinstance(response.error, list)
+                        else response.error
                     )
             else:
                 logger.error("This class name already exists. Skipping.")
@@ -126,13 +128,13 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
                 if self._project.type == ProjectType.PIXEL and c.type == "tag":
                     raise AppException(
                         f"Predefined tagging functionality is not supported"
-                        f" for projects of type {ProjectType.get_name(self._project.type)}."
+                        f" for projects of type {ProjectType(self._project.type).name}."
                     )
                 for g in c.attribute_groups:
                     if g.group_type == GroupTypeEnum.OCR:
                         raise AppException(
                             f"OCR attribute group is not supported for project type "
-                            f"{ProjectType.get_name(self._project.type)}."
+                            f"{ProjectType(self._project.type).name}."
                         )
 
     def validate_default_value(self):

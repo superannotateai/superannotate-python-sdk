@@ -76,7 +76,7 @@ class Condition:
 
 
 class EmptyCondition(Condition):
-    def __init__(self, *args, **kwargs):  # noqa
+    def __init__(self, *_, **__):  # noqa
         self._condition_set = []
 
     def __or__(self, other):

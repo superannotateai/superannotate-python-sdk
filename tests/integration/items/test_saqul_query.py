@@ -31,9 +31,10 @@ class TestEntitiesSearchVector(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
-        _, _, _ = sa.upload_annotations_from_folder_to_project(
+        uploaded, _, _ = sa.upload_annotations_from_folder_to_project(
             f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.folder_path
         )
+        assert len(uploaded) == 4
 
         entities = sa.query(f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.TEST_QUERY)
         self.assertEqual(len(entities), 1)

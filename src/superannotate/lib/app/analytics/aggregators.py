@@ -9,9 +9,9 @@ from typing import Union
 
 import lib.core as constances
 import pandas as pd
-from lib.app.exceptions import AppException
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
+from lib.core.exceptions import AppException
 
 logger = logging.getLogger("sa")
 
@@ -210,16 +210,16 @@ class DataAggregator:
             constances.ProjectType.PIXEL,
         ):
             return self.aggregate_image_annotations_as_df(annotation_paths)
-        elif self.project_type is constances.ProjectType.VIDEO:
+        if self.project_type is constances.ProjectType.VIDEO:
             return self.aggregate_video_annotations_as_df(annotation_paths)
-        elif self.project_type is constances.ProjectType.DOCUMENT:
+        if self.project_type is constances.ProjectType.DOCUMENT:
             return self.aggregate_document_annotations_as_df(annotation_paths)
-        else:
-            raise AppException(
-                f"The function is not supported for {self.project_type.name} projects."
-            )
+        raise AppException(
+            f"The function is not supported for {self.project_type.name} projects."
+        )
 
-    def __add_attributes_to_raws(self, raws, attributes, element_raw):
+    @staticmethod
+    def __add_attributes_to_raws(raws, attributes, element_raw):
         for attribute_id, attribute in enumerate(attributes):
             attribute_raw = copy.copy(element_raw)
             attribute_raw.attributeId = attribute_id
@@ -366,8 +366,8 @@ class DataAggregator:
         return df.where(pd.notnull(df), None)
 
     def aggregate_image_annotations_as_df(self, annotations_paths: List[str]):
-
-        classes_json = json.load(open(self.classes_path))
+        with open(self.classes_path) as f:
+            classes_json = json.load(f)
         class_name_to_color = {}
         class_group_name_to_values = {}
         rows = []

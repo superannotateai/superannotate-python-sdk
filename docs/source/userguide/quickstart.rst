@@ -85,7 +85,7 @@ Custom config.ini example:
 
     [DEFAULT]
     SA_TOKEN = <token>
-    LOGGING_LEVEL = DEBUG
+    LOGGING_LEVEL = INFO
     LOGGING_PATH = /Users/username/data/superannotate_logs
 
 ----------

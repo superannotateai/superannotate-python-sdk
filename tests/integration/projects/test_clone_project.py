@@ -100,24 +100,10 @@ class TestCloneProject(TestCase):
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
-        # TODO add annotation class attributes assets
-        # self.assertEqual(ann_classes[0]["attributes"], "rrr")
-        new_workflow = sa.get_project_workflow(self.PROJECT_NAME_2)
-        self.assertEqual(len(new_workflow), 1)
-        self.assertEqual(new_workflow[0]["className"], "rrr")
-        self.assertEqual(new_workflow[0]["tool"], 3)
-        self.assertEqual(new_workflow[0]["attribute"][0]["attribute"]["name"], "young")
-        self.assertEqual(
-            new_workflow[0]["attribute"][0]["attribute"]["attribute_group"]["name"],
-            "age",
+        assert (
+            new_project["workflow_id"]
+            == sa.get_project_metadata(self.PROJECT_NAME_1)["workflow_id"]
         )
-        self.assertEqual(new_workflow[0]["attribute"][1]["attribute"]["name"], "yes")
-        self.assertEqual(
-            new_workflow[0]["attribute"][1]["attribute"]["attribute_group"]["name"],
-            "tall",
-        )
-        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
-        assert new_project["status"], constances.ProjectStatus.NotStarted.name
 
 
 class TestCloneProjectAttachedUrls(TestCase):
@@ -182,7 +168,7 @@ class TestCloneVideoProject(TestCase):
     PROJECT_TYPE = "Video"
     PROJECT_DESCRIPTION = "desc"
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *_, **__):
         self.tearDown()
 
     def tearDown(self) -> None:
@@ -226,11 +212,11 @@ class TestCloneVideoProject(TestCase):
         self.assertEqual(new_project["name"], self.PROJECT_NAME_2)
 
         new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
-        for s in new_settings:
-            if s["attribute"] == "FrameRate":
-                assert s["value"] == 3
-            elif s["attribute"] == "FrameMode":
-                assert s["value"]
+        for i in new_settings:
+            if i["attribute"] == "FrameRate":
+                assert i["value"] == 3
+            elif i["attribute"] == "FrameMode":
+                assert i["value"]
 
     def test_clone_video_project_frame_mode_off(self):
         self._project_1 = sa.create_project(
@@ -249,16 +235,10 @@ class TestCloneVideoProject(TestCase):
             if s["attribute"] == "FrameMode":
                 assert not s["value"]
 
-    def test_clone_video_project_via_copy_workflow(self):
-        self._project_1 = sa.create_project(
-            self.PROJECT_NAME_1, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
-        )
 
-        with self.assertRaisesRegexp(
-            AppException, "Workflow is not supported in Video project."
-        ):
-            sa.clone_project(
-                project_name=self.PROJECT_NAME_2,
-                from_project=self.PROJECT_NAME_1,
-                copy_workflow=True,
-            )
+#
+#
+# def test_():
+#     sa.delete_project("tod")
+#     sa.get_project_metadata('tttp', include_contributors=True)
+#     sa.clone_project('tod', 'tttp', copy_contributors=True)

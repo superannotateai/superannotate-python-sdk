@@ -105,7 +105,6 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         service_provider: BaseServiceProvider,
         include_annotation_classes: bool,
         include_settings: bool,
-        include_workflow: bool,
         include_contributors: bool,
         include_complete_image_count: bool,
     ):
@@ -115,12 +114,11 @@ class GetProjectMetaDataUseCase(BaseUseCase):
 
         self._include_annotation_classes = include_annotation_classes
         self._include_settings = include_settings
-        self._include_workflow = include_workflow
         self._include_contributors = include_contributors
         self._include_complete_image_count = include_complete_image_count
 
     def execute(self):
-        project = self._service_provider.projects.get(self._project.id).data
+        project = self._service_provider.projects.get_by_id(self._project.id).data
         if self._include_complete_image_count:
             folders = self._service_provider.folders.list(
                 Condition("project_id", self._project.id, EQ)
@@ -147,15 +145,6 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 self._project
             ).data
 
-        if self._include_workflow:
-            project.workflows = (
-                GetWorkflowsUseCase(
-                    project=self._project, service_provider=self._service_provider
-                )
-                .execute()
-                .data
-            )
-
         if self._include_contributors:
             project.contributors = project.users
         else:
@@ -180,7 +169,7 @@ class CreateProjectUseCase(BaseUseCase):
             if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
                 self._project.settings.remove(setting)
             if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
-                setting.value = constances.ImageQuality.get_value(setting.value)
+                setting.value = constances.ImageQuality(setting.value).value
             elif setting.attribute == "FrameRate":
                 if not self._project.type == constances.ProjectType.VIDEO.value:
                     raise AppValidationException(
@@ -253,19 +242,16 @@ class CreateProjectUseCase(BaseUseCase):
             if not entity:
                 self._response.errors = AppException("Failed to create project.")
                 return self._response
-            self._response.data = entity
+            created_project = (
+                GetProjectByNameUseCase(
+                    name=entity.name, service_provider=self._service_provider
+                )
+                .execute()
+                .data
+            )
+            created_project.instructions_link = instructions_link
+            self._response.data = created_project
             data = {}
-            # TODO delete if create_from_metadata deleted
-            # if self._settings:
-            #     settings_repo = self._settings_repo(self._backend_service, entity)
-            #     for setting in self._settings:
-            #         for new_setting in settings_repo.get_all():
-            #             if new_setting.attribute == setting.attribute:
-            #                 setting_copy = copy.copy(setting)
-            #                 setting_copy.id = new_setting.id
-            #                 setting_copy.project_id = entity.uuid
-            #                 settings_repo.update(setting_copy)
-            #     data["settings"] = self._settings
             annotation_classes_mapping = {}
             if self._service_provider.annotation_classes:
 
@@ -276,26 +262,9 @@ class CreateProjectUseCase(BaseUseCase):
                         entity, [annotation_class]
                     )
                 data["classes"] = self._project.classes
-            if self._project.workflows:
-                set_workflow_use_case = SetWorkflowUseCase(
-                    service_provider=self._service_provider,
-                    steps=[i.dict() for i in self._project.workflows],
-                    project=entity,
-                )
-                set_workflow_response = set_workflow_use_case.execute()
-                data["workflows"] = (
-                    GetWorkflowsUseCase(
-                        project=self._project, service_provider=self._service_provider
-                    )
-                    .execute()
-                    .data
-                )
-                if set_workflow_response.errors:
-                    self._response.errors = set_workflow_response.errors
-
             logger.info(
                 f"Created project {entity.name} (ID {entity.id}) "
-                f"with type {constances.ProjectType.get_name(self._response.data.type)}."
+                f"with type {constances.ProjectType(self._response.data.type).name}."
             )
         return self._response
 
@@ -340,7 +309,7 @@ class UpdateProjectUseCase(BaseUseCase):
             if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
                 self._project.settings.remove(setting)
             if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
-                setting.value = constances.ImageQuality.get_value(setting.value)
+                setting.value = constances.ImageQuality(setting.value).value
             elif setting.attribute == "FrameRate":
                 if not self._project.type == constances.ProjectType.VIDEO.value:
                     raise AppValidationException(
@@ -495,7 +464,7 @@ class UpdateSettingsUseCase(BaseUseCase):
             if setting["attribute"].lower() == "imagequality" and isinstance(
                 setting["value"], str
             ):
-                setting["value"] = constances.ImageQuality.get_value(setting["value"])
+                setting["value"] = constances.ImageQuality(setting["value"]).value
                 return
 
     def validate_project_type(self):
@@ -715,16 +684,15 @@ class AddContributorsToProject(BaseUseCase):
             team_users = set()
             project_users = {user.user_id for user in self._project.users}
             for user in self._team.users:
-                if user.user_role > constances.UserRole.ADMIN.value:
+                if user.user_role == constances.UserRole.CONTRIBUTOR.value:
                     team_users.add(user.email)
             # collecting pending team users which is not admin
             for user in self._team.pending_invitations:
-                if user["user_role"] > constances.UserRole.ADMIN.value:
+                if user["user_role"] == constances.UserRole.CONTRIBUTOR.value:
                     team_users.add(user["email"])
             # collecting pending project users which is not admin
             for user in self._project.unverified_users:
-                if user["user_role"] > constances.UserRole.ADMIN.value:
-                    project_users.add(user["email"])
+                project_users.add(user["email"])
 
             role_email_map = defaultdict(list)
             to_skip = []
@@ -732,6 +700,7 @@ class AddContributorsToProject(BaseUseCase):
             for contributor in self._contributors:
                 role_email_map[contributor.user_role].append(contributor.user_id)
             for role, emails in role_email_map.items():
+                role_id = self._service_provider.get_role_id(self._project, role)
                 _to_add = list(team_users.intersection(emails) - project_users)
                 to_add.extend(_to_add)
                 to_skip.extend(list(set(emails).difference(_to_add)))
@@ -741,7 +710,7 @@ class AddContributorsToProject(BaseUseCase):
                         users=[
                             dict(
                                 user_id=user_id,
-                                user_role=role.value,
+                                user_role=role_id,
                             )
                             for user_id in _to_add
                         ],
@@ -752,7 +721,7 @@ class AddContributorsToProject(BaseUseCase):
                     if response and not response.data.get("invalidUsers"):
                         logger.info(
                             f"Added {len(_to_add)}/{len(emails)} "
-                            f"contributors to the project {self._project.name} with the {role.name} role."
+                            f"contributors to the project {self._project.name} with the {role} role."
                         )
 
             if to_skip:
@@ -804,7 +773,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     # REMINDER UserRole.VIEWER is the contributor for the teams
                     team_role=constances.UserRole.ADMIN.value
                     if self._set_admin
-                    else constances.UserRole.VIEWER.value,
+                    else constances.UserRole.CONTRIBUTOR.value,
                     emails=to_add,
                 )
                 invited, failed = (
@@ -838,13 +807,15 @@ class ListSubsetsUseCase(BaseUseCase):
         self._service_provider = service_provider
 
     def validate_arguments(self):
-        response = self._service_provider.validate_saqul_query(self._project, "_")
+        response = self._service_provider.explore.validate_saqul_query(
+            self._project, "_"
+        )
         if not response.ok:
             raise AppException(response.error)
 
     def execute(self) -> Response:
         if self.is_valid():
-            sub_sets_response = self._service_provider.subsets.list(
+            sub_sets_response = self._service_provider.explore.list_subsets(
                 project=self._project
             )
             if sub_sets_response.ok:

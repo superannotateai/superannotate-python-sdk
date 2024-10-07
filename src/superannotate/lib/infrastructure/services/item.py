@@ -3,72 +3,22 @@ from typing import Dict
 from typing import List
 
 from lib.core import entities
-from lib.core.conditions import Condition
-from lib.core.entities import BaseItemEntity
-from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
-from lib.core.service_types import ClassificationResponse
-from lib.core.service_types import DocumentResponse
-from lib.core.service_types import ImageResponse
-from lib.core.service_types import ItemListResponse
-from lib.core.service_types import PointCloudResponse
-from lib.core.service_types import ServiceResponse
-from lib.core.service_types import TiledResponse
-from lib.core.service_types import VideoResponse
 from lib.core.serviceproviders import BaseItemService
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
 
 
 class ItemService(BaseItemService):
-    URL_LIST = "items"
     URL_GET = "image/{}"
     URL_ATTACH = "image/ext-create"
-    URL_GET_BY_ID = "image/{image_id}"
     URL_MOVE_MULTIPLE = "image/move"
     URL_SET_ANNOTATION_STATUSES = "image/updateAnnotationStatusBulk"
-    URL_LIST_BY_NAMES = "images/getBulk"
-    URL_LIST_BY_IDS = "images/getImagesByIds"
     URL_COPY_MULTIPLE = "images/copy-image-or-folders"
     URL_COPY_PROGRESS = "images/copy-image-progress"
     URL_DELETE_ITEMS = "image/delete/images"
     URL_SET_APPROVAL_STATUSES = "/items/bulk/change"
-
-    PROJECT_TYPE_RESPONSE_MAP = {
-        ProjectType.VECTOR: ImageResponse,
-        ProjectType.OTHER: ClassificationResponse,
-        ProjectType.VIDEO: VideoResponse,
-        ProjectType.TILED: TiledResponse,
-        ProjectType.PIXEL: ImageResponse,
-        ProjectType.DOCUMENT: DocumentResponse,
-        ProjectType.POINT_CLOUD: PointCloudResponse,
-        ProjectType.GEN_AI: ImageResponse,
-    }
-
-    def get_by_id(self, item_id, project_id, project_type):
-
-        params = {"project_id": project_id}
-
-        content_type = self.PROJECT_TYPE_RESPONSE_MAP[project_type]
-
-        response = self.client.request(
-            url=self.URL_GET_BY_ID.format(image_id=item_id),
-            method="get",
-            params=params,
-            content_type=content_type,
-        )
-
-        return response
-
-    def list(self, condition: Condition = None):
-        return self.client.paginate(
-            url=f"{self.URL_LIST}?{condition.build_query()}"
-            if condition
-            else self.URL_LIST,
-            chunk_size=2000,
-            item_type=entities.BaseItemEntity,
-        )
 
     def update(self, project: entities.ProjectEntity, item: entities.BaseItemEntity):
         return self.client.request(
@@ -78,75 +28,25 @@ class ItemService(BaseItemService):
             params={"project_id": project.id},
         )
 
-    def list_by_ids(
-        self,
-        project: entities.ProjectEntity,
-        ids: List[int],
-    ):
-        chunk_size = 2000
-        items = []
-        response = None
-        for i in range(0, len(ids), chunk_size):
-            response = self.client.request(
-                self.URL_LIST_BY_IDS,
-                "post",
-                data={
-                    "image_ids": ids[i : i + chunk_size],  # noqa
-                },
-                params={"project_id": project.id},
-                content_type=ServiceResponse,
-            )
-            if not response.ok:
-                return response
-            items.extend(response.data["images"])
-        response.res_data = [BaseItemEntity(**i) for i in items]
-        return response
-
-    def list_by_names(
-        self,
-        project: entities.ProjectEntity,
-        folder: entities.FolderEntity,
-        names: List[str],
-    ):
-        chunk_size = 200
-        items = []
-        response = None
-        for i in range(0, len(names), chunk_size):
-            response = self.client.request(
-                self.URL_LIST_BY_NAMES,
-                "post",
-                data={
-                    "project_id": project.id,
-                    "team_id": project.team_id,
-                    "folder_id": folder.id,
-                    "names": names[i : i + chunk_size],  # noqa
-                },
-                content_type=ItemListResponse,
-            )
-            if not response.ok:
-                return response
-            items.extend(response.data)
-        response.res_data = items
-        return response
-
     def attach(
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         attachments: List[Attachment],
-        annotation_status_code,
         upload_state_code,
         meta: Dict[str, AttachmentMeta],
+        annotation_status_code=None,
     ):
         data = {
             "project_id": project.id,
             "folder_id": folder.id,
             "team_id": project.team_id,
             "images": [i.dict() for i in attachments],
-            "annotation_status": annotation_status_code,
             "upload_state": upload_state_code,
             "meta": meta,
         }
+        if annotation_status_code:
+            data["annotation_status"] = annotation_status_code
         return self.client.request(self.URL_ATTACH, "post", data=data)
 
     def copy_multiple(

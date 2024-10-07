@@ -1,4 +1,3 @@
-import copy
 import logging
 import traceback
 from collections import defaultdict
@@ -6,9 +5,9 @@ from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 from typing import List
-from typing import Optional
+from typing import Union
 
-import superannotate.lib.core as constants
+import lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
@@ -17,11 +16,13 @@ from lib.core.entities import DocumentEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import SubSetEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import BackendError
+from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
@@ -30,99 +31,40 @@ from lib.core.types import AttachmentMeta
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.folders import SearchFoldersUseCase
+from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
 
 logger = logging.getLogger("sa")
 
 
-class GetItemByIDUseCase(BaseUseCase):
-    def __init__(self, item_id, project, service_provider):
-        self._item_id = item_id
-        self._project = project
-        self._service_provider = service_provider
-        super().__init__()
+def serialize_item_entity(
+    entity: Union[BaseItemEntity, dict], project: ProjectEntity, map_fields: bool = True
+) -> BaseItemEntity:
+    if isinstance(entity, BaseItemEntity):
+        entity = entity.dict()
+    if map_fields:
+        entity = BaseItemEntity.map_fields(entity)
+    entity = BaseItemEntity(**entity)
+    if project.upload_state != constants.UploadState.EXTERNAL.value:
+        entity.url = None
+    if project.type in constants.ProjectType.images:
+        tmp_entity = entity
+        if project.type == constants.ProjectType.VECTOR.value:
+            entity.segmentation_status = None
+        if project.upload_state == constants.UploadState.EXTERNAL.value:
+            tmp_entity.prediction_status = None
+            tmp_entity.segmentation_status = None
+        return ImageEntity(**tmp_entity.dict(by_alias=True))
+    elif project.type == constants.ProjectType.VIDEO.value:
+        return VideoEntity(**entity.dict(by_alias=True))
+    elif project.type == constants.ProjectType.DOCUMENT.value:
+        return DocumentEntity(**entity.dict(by_alias=True))
+    return entity
 
-    def execute(
-        self,
-    ):
-        try:
-            response = self._service_provider.items.get_by_id(
-                item_id=self._item_id,
-                project_id=self._project.id,
-                project_type=self._project.type,
-            )
-            if not response.ok:
-                self._response.errors = response.error
-        except AppException as e:
-            self._response.errors = e
-        else:
-            self._response.data = response.data
-        return self._response
 
-
-class GetItem(BaseReportableUseCase):
-    def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        service_provider: BaseServiceProvider,
-        item_name: str,
-        include_custom_metadata: bool,
-    ):
-        super().__init__(reporter)
-        self._project = project
-        self._folder = folder
-        self._service_provider = service_provider
-        self._item_name = item_name
-        self._include_custom_metadata = include_custom_metadata
-
-    def validate_project_type(self):
-        if (
-            self._project.type == constants.ProjectType.PIXEL.value
-            and self._include_custom_metadata
-        ):
-            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
-
-    @staticmethod
-    def serialize_entity(entity: BaseItemEntity, project: ProjectEntity):
-        entity = BaseItemEntity(**BaseItemEntity.map_fields(entity.dict()))
-        if project.upload_state != constants.UploadState.EXTERNAL.value:
-            entity.url = None
-        if project.type in constants.ProjectType.images:
-            tmp_entity = entity
-            if project.type == constants.ProjectType.VECTOR.value:
-                entity.segmentation_status = None
-            if project.upload_state == constants.UploadState.EXTERNAL.value:
-                tmp_entity.prediction_status = None
-                tmp_entity.segmentation_status = None
-            return ImageEntity(**tmp_entity.dict(by_alias=True))
-        elif project.type == constants.ProjectType.VIDEO.value:
-            return VideoEntity(**entity.dict(by_alias=True))
-        elif project.type == constants.ProjectType.DOCUMENT.value:
-            return DocumentEntity(**entity.dict(by_alias=True))
-        return entity
-
-    def execute(self) -> Response:
-        if self.is_valid():
-            condition = (
-                Condition("name", self._item_name, EQ)
-                & Condition("project_id", self._project.id, EQ)
-                & Condition("folder_id", self._folder.id, EQ)
-                & Condition("includeCustomMetadata", self._include_custom_metadata, EQ)
-            )
-            response = self._service_provider.items.list(condition)
-            if not response.ok:
-                self._response.errors = response.error
-                return self._response
-            entity = next((i for i in response.data if i.name == self._item_name), None)
-            if entity:
-                entity = self.serialize_entity(entity, self._project)
-                entity.add_path(self._project.name, self._folder.name)
-                self._response.data = entity
-            else:
-                self._response.errors = AppException("Item not found.")
-        return self._response
+def add_item_path(project: ProjectEntity, folder: FolderEntity, item: BaseItemEntity):
+    item.path = f"{project.name}{'' if folder.is_root else f'/{folder.name}'}"
+    return item
 
 
 class QueryEntitiesUseCase(BaseReportableUseCase):
@@ -144,7 +86,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
 
     def validate_arguments(self):
         if self._query:
-            response = self._service_provider.validate_saqul_query(
+            response = self._service_provider.explore.validate_saqul_query(
                 project=self._project, query=self._query
             )
 
@@ -155,7 +97,9 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             else:
                 raise AppException("Incorrect query.")
         else:
-            response = self._service_provider.validate_saqul_query(self._project, "-")
+            response = self._service_provider.explore.validate_saqul_query(
+                self._project, "-"
+            )
             if not response.ok:
                 raise AppException(response.error)
 
@@ -172,8 +116,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
         if self.is_valid():
             query_kwargs = {}
             if self._subset:
-                subset: Optional[SubSetEntity] = None
-                response = self._service_provider.subsets.list(self._project)
+                response = self._service_provider.explore.list_subsets(self._project)
                 if response.ok:
                     subset = next(
                         (_sub for _sub in response.data if _sub.name == self._subset),
@@ -194,90 +137,25 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             query_kwargs["folder"] = (
                 None if self._folder.name == "root" else self._folder
             )
-            service_response = self._service_provider.saqul_query(
+            service_response = self._service_provider.explore.saqul_query(
                 self._project,
                 **query_kwargs,
             )
             if service_response.ok:
                 data = []
                 for i, item in enumerate(service_response.data):
-                    tmp_item = GetItem.serialize_entity(
-                        BaseItemEntity(**item), self._project
+                    #  tmp wrapper
+                    if "assignment" in item:
+                        item["assignments"] = item.pop("assignment")
+                    item["url"] = item.get("path", None)
+                    item["path"] = (
+                        f"{self._project.name}"
+                        f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
                     )
-                    folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
-                    tmp_item.path = f"{self._project.name}" + folder_path
-                    data.append(tmp_item)
+                    data.append(item)
                 self._response.data = data
             else:
                 self._response.errors = service_response.data
-        return self._response
-
-
-class ListItems(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        service_provider: BaseServiceProvider,
-        search_condition: Condition,
-        recursive: bool = False,
-        include_custom_metadata: bool = False,
-    ):
-        super().__init__()
-        self._project = project
-        self._service_provider = service_provider
-        self._folder = folder
-        self._search_condition = search_condition
-        self._recursive = recursive
-        self._include_custom_metadata = include_custom_metadata
-
-    def validate_recursive_case(self):
-        if not self._folder.is_root and self._recursive:
-            self._recursive = False
-
-    def validate_project_type(self):
-        if (
-            self._project.type == constants.ProjectType.PIXEL.value
-            and self._include_custom_metadata
-        ):
-            raise AppException(constants.METADATA_DEPRICATED_FOR_PIXEL)
-
-    def execute(self) -> Response:
-        if self.is_valid():
-            self._search_condition &= Condition("project_id", self._project.id, EQ)
-            self._search_condition &= Condition(
-                "includeCustomMetadata", self._include_custom_metadata, EQ
-            )
-
-            if not self._recursive:
-                self._search_condition &= Condition("folder_id", self._folder.id, EQ)
-                items_response = self._service_provider.items.list(
-                    self._search_condition
-                )
-                if not items_response.ok:
-                    raise AppException(items_response.error)
-                items = []
-                for item in items_response.data:
-                    item = GetItem.serialize_entity(item, self._project)
-                    item.add_path(self._project.name, self._folder.name)
-                    items.append(item)
-            else:
-                items = []
-                folders = self._service_provider.folders.list(
-                    Condition("project_id", self._project.id, EQ)
-                ).data
-                for folder in folders:
-                    response = self._service_provider.items.list(
-                        copy.deepcopy(self._search_condition)
-                        & Condition("folder_id", folder.id, EQ)
-                    )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    for item in response.data:
-                        item = GetItem.serialize_entity(item, self._project)
-                        item.add_path(self._project.name, folder.name)
-                        items.append(item)
-            self._response.data = items
         return self._response
 
 
@@ -367,17 +245,15 @@ class AttachItems(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         attachments: List[AttachmentEntity],
-        annotation_status: str,
         service_provider: BaseServiceProvider,
+        annotation_status_value: int = None,
         upload_state_code: int = constants.UploadState.EXTERNAL.value,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._attachments = attachments
-        self._annotation_status_code = constants.AnnotationStatus.get_value(
-            annotation_status
-        )
+        self._annotation_status_code = annotation_status_value
         self._upload_state_code = upload_state_code
         self._service_provider = service_provider
         self._attachments_count = None
@@ -397,9 +273,9 @@ class AttachItems(BaseReportableUseCase):
             raise AppValidationException(response.error)
         if attachments_count > response.data.folder_limit.remaining_image_count:
             raise AppValidationException(constants.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
-        elif attachments_count > response.data.project_limit.remaining_image_count:
+        if attachments_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constants.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
-        elif (
+        if (
             response.data.user_limit
             and attachments_count > response.data.user_limit.remaining_image_count
         ):
@@ -420,10 +296,14 @@ class AttachItems(BaseReportableUseCase):
             self.reporter.start_progress(self.attachments_count, "Attaching URLs")
             for i in range(0, self.attachments_count, self.CHUNK_SIZE):
                 attachments = self._attachments[i : i + self.CHUNK_SIZE]  # noqa: E203
-                response = self._service_provider.items.list_by_names(
-                    project=self._project,
-                    folder=self._folder,
-                    names=[attachment.name for attachment in attachments],
+
+                query = Filter(
+                    "name",
+                    [attachment.name for attachment in attachments],
+                    OperatorEnum.IN,
+                )
+                response = self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, query
                 )
                 if not response.ok:
                     raise AppException(response.error)
@@ -505,23 +385,25 @@ class CopyItems(BaseReportableUseCase):
             if self._item_names:
                 items = self._item_names
             else:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._from_folder.id, EQ
+                res = self._service_provider.item_service.list(
+                    self._project.id, self._from_folder.id, EmptyQuery()
                 )
-                items = [
-                    item.name
-                    for item in self._service_provider.items.list(condition).data
-                ]
+                if res.error:
+                    raise AppException(res.error)
+                items = [i.name for i in res.data]
             existing_items = []
             for i in range(0, len(items), self.CHUNK_SIZE):
-                cand_items = self._service_provider.items.list_by_names(
-                    project=self._project,
-                    folder=self._to_folder,
-                    names=items[i : i + self.CHUNK_SIZE],  # noqa
-                ).data
-                if isinstance(cand_items, dict):
+                query = Filter(
+                    "name", items[i : i + self.CHUNK_SIZE], OperatorEnum.IN
+                )  # noqa
+                res = self._service_provider.item_service.list(
+                    self._project.id, self._to_folder.id, query
+                )
+                if res.error:
+                    raise AppException(res.error)
+                if not res.data:
                     continue
-                existing_items += cand_items
+                existing_items += res.data
             duplications = [item.name for item in existing_items]
             items_to_copy = list(set(items) - set(duplications))
             skipped_items = duplications
@@ -554,14 +436,17 @@ class CopyItems(BaseReportableUseCase):
                         return self._response
                 existing_items = []
                 for i in range(0, len(items), self.CHUNK_SIZE):
-                    cand_items = self._service_provider.items.list_by_names(
-                        project=self._project,
-                        folder=self._to_folder,
-                        names=items[i : i + self.CHUNK_SIZE],  # noqa
+                    res = self._service_provider.item_service.list(
+                        self._project.id,
+                        self._to_folder.id,
+                        Filter(
+                            "name", items[i : i + self.CHUNK_SIZE], OperatorEnum.IN
+                        ),  # noqa
                     )
-                    if isinstance(cand_items, dict):
-                        continue
-                    existing_items += cand_items.data
+                    if res.error:
+                        raise AppException(res.error)
+
+                    existing_items += res.data
 
                 existing_item_names_set = {item.name for item in existing_items}
                 items_to_copy_names_set = set(items_to_copy)
@@ -616,12 +501,11 @@ class MoveItems(BaseReportableUseCase):
     def execute(self):
         if self.is_valid():
             if not self._item_names:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._from_folder.id, EQ
-                )
                 items = [
-                    item.name
-                    for item in self._service_provider.items.list(condition).data
+                    i.name
+                    for i in self._service_provider.item_service.list(
+                        self._project.id, self._from_folder.id, EmptyQuery()
+                    ).data
                 ]
             else:
                 items = self._item_names
@@ -638,6 +522,8 @@ class MoveItems(BaseReportableUseCase):
                     to_folder=self._to_folder,
                     item_names=items[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
+                if not response.ok:
+                    raise AppException(response.error)
                 if response.ok and response.data.get("done"):
                     moved_images.extend(response.data["done"])
 
@@ -660,7 +546,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        annotation_status: str,
+        annotation_status: int,
         service_provider: BaseServiceProvider,
         item_names: List[str] = None,
     ):
@@ -668,33 +554,30 @@ class SetAnnotationStatues(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._item_names = item_names
-        self._annotation_status_code = constants.AnnotationStatus.get_value(
-            annotation_status
-        )
+        self._annotation_status_code = annotation_status
         self._service_provider = service_provider
 
     def validate_items(self):
         if not self._item_names:
-            condition = Condition("project_id", self._project.id, EQ) & Condition(
-                "folder_id", self._folder.id, EQ
-            )
             self._item_names = [
-                item.name for item in self._service_provider.items.list(condition).data
+                item.name
+                for item in self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, EmptyQuery()
+                ).data
             ]
             return
         existing_items = []
         for i in range(0, len(self._item_names), self.CHUNK_SIZE):
             search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
-            response = self._service_provider.items.list_by_names(
-                project=self._project,
-                folder=self._folder,
-                names=search_names,
+            res = self._service_provider.item_service.list(
+                self._project.id,
+                self._folder.id,
+                Filter("name", search_names, OperatorEnum.IN),
             )
-            if not response.ok:
-                raise AppValidationException(response.error)
+            if res.error:
+                raise AppValidationException(res.error)
 
-            cand_items = response.data
-            existing_items += cand_items
+            existing_items += res.data
         if not existing_items:
             raise AppValidationException(self.ERROR_MESSAGE)
         if existing_items:
@@ -734,18 +617,17 @@ class SetApprovalStatues(BaseReportableUseCase):
         self._project = project
         self._folder = folder
         self._item_names = item_names
-        self._approval_status_code = constants.ApprovalStatus.get_value(approval_status)
+        self._approval_status_code = constants.ApprovalStatus(approval_status).value
         self._service_provider = service_provider
 
     def validate_items(self):
         if not self._item_names:
-            condition = Condition("project_id", self._project.id, EQ) & Condition(
-                "folder_id", self._folder.id, EQ
-            )
-            self._item_names = [
-                item.name for item in self._service_provider.items.list(condition).data
+            self._item_names = self._item_names = [
+                item.name
+                for item in self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, EmptyQuery()
+                ).data
             ]
-            return
         else:
             _tmp = set(self._item_names)
             unique, total = len(_tmp), len(self._item_names)
@@ -754,24 +636,24 @@ class SetApprovalStatues(BaseReportableUseCase):
                     f"Dropping duplicates. Found {unique}/{total} unique items."
                 )
             self._item_names = list(_tmp)
-        existing_items = []
-        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
-            search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
-            response = self._service_provider.items.list_by_names(
-                project=self._project,
-                folder=self._folder,
-                names=search_names,
-            )
-            if not response.ok:
-                raise AppValidationException(response.error)
-            cand_items = response.data
-            existing_items += cand_items
-        if not existing_items:
-            raise AppValidationException("No items found.")
-        if existing_items:
-            self._item_names = list(
-                {i.name for i in existing_items}.intersection(set(self._item_names))
-            )
+            existing_items = []
+            for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+                search_names = self._item_names[i : i + self.CHUNK_SIZE]  # noqa
+                response = self._service_provider.item_service.list(
+                    self._project.id,
+                    self._folder.id,
+                    Filter("name", search_names, OperatorEnum.IN),
+                )
+                if not response.ok:
+                    raise AppValidationException(response.error)
+                cand_items = response.data
+                existing_items += cand_items
+            if not existing_items:
+                raise AppValidationException("No items found.")
+            if existing_items:
+                self._item_names = list(
+                    {i.name for i in existing_items}.intersection(set(self._item_names))
+                )
 
     def execute(self):
         if self.is_valid():
@@ -787,7 +669,7 @@ class SetApprovalStatues(BaseReportableUseCase):
                     if response.error == "Unsupported project type.":
                         self._response.errors = (
                             f"The function is not supported for"
-                            f" {constants.ProjectType.get_name(self._project.type)} projects."
+                            f" {constants.ProjectType(self._project.type).name} projects."
                         )
                     else:
                         self._response.errors = self.ERROR_MESSAGE
@@ -819,22 +701,21 @@ class DeleteItemsUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             if self._item_names:
-                item_ids = [
-                    item.id
-                    for item in self._service_provider.items.list_by_names(
-                        project=self._project,
-                        folder=self._folder,
-                        names=self._item_names,
-                    ).data
-                ]
+                item_ids = []
+                for chunk in divide_to_chunks(self._item_names, 500):
+                    response = self._service_provider.item_service.list(
+                        self._project.id,
+                        self._folder.id,
+                        Filter("name", chunk, OperatorEnum.IN),
+                    )
+                    if response.error:
+                        raise AppException(response.error)
+                    item_ids.extend([i.id for i in response.data])
             else:
-                condition = Condition("project_id", self._project.id, EQ) & Condition(
-                    "folder_id", self._folder.id, EQ
-                )
-                item_ids = [
-                    item.id
-                    for item in self._service_provider.items.list(condition).data
-                ]
+                items = self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, EmptyQuery()
+                ).data
+                item_ids = [item.id for item in items]
 
             for i in range(0, len(item_ids), self.CHUNK_SIZE):
                 self._service_provider.items.delete_multiple(
@@ -960,7 +841,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                 if not folder_found:
                     removables.append(path)
 
-            except Exception as e:
+            except Exception as _:
                 removables.append(path)
 
         # Removing completely incorrect paths and their items
@@ -977,7 +858,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         return query_str
 
     def __query(self, path, items):
-        _, folder = extract_project_folder(path)
+        _, __ = extract_project_folder(path)
 
         item_names = [item["name"] for item in items["items"]]
         query = self.__build_query_string(path, item_names)
@@ -1000,7 +881,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         queried_items = queried_items.data
         # Adding the images missing from specified folder to 'skipped'
         tmp = {item["name"]: item for item in items["items"]}
-        tmp_q = {x.name for x in queried_items}
+        tmp_q = {x["name"] for x in queried_items}
 
         for i, val in tmp.items():
             if i not in tmp_q:
@@ -1009,9 +890,9 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         # Adding ids to path_separated to later see if they've succeded
 
         self.path_separated[path] = [
-            {"id": x.id, "name": x.name, "path": x.path} for x in queried_items
+            {"id": x["id"], "name": x["name"], "path": x["path"]} for x in queried_items
         ]
-        return [x.id for x in queried_items]
+        return [x["id"] for x in queried_items]
 
     def __distribute_to_results(self, item_id, response, item):
 
@@ -1035,7 +916,9 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self.__separate_to_paths()
 
     def validate_project(self):
-        response = self._service_provider.validate_saqul_query(self.project, "_")
+        response = self._service_provider.explore.validate_saqul_query(
+            self.project, "_"
+        )
         if not response.ok:
             raise AppException(response.error)
 
@@ -1043,7 +926,6 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         self,
     ):
         if self.is_valid():
-
             futures = []
             with ThreadPoolExecutor(max_workers=4) as executor:
                 for path, items in self.path_separated.items():
@@ -1058,7 +940,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     logger.debug(traceback.format_exc())
                     raise
 
-            subsets = self._service_provider.subsets.list(self.project).data
+            subsets = self._service_provider.explore.list_subsets(self.project).data
             subset = None
             for s in subsets:
                 if s.name == self.subset_name:
@@ -1066,7 +948,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     break
 
             if not subset:
-                subset = self._service_provider.subsets.create_multiple(
+                subset = self._service_provider.explore.create_multiple_subsets(
                     self.project, [self.subset_name]
                 ).data[0]
 
@@ -1083,7 +965,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
                     f"Dropping duplicates. Found {processed_items} / {self._provided_item_count} unique items."
                 )
             for i in range(0, len(unique_item_ids), self.CHUNK_SIZE):
-                tmp_response = self._service_provider.subsets.add_items(
+                tmp_response = self._service_provider.explore.add_items_to_subset(
                     project=self.project,
                     item_ids=unique_item_ids[i : i + self.CHUNK_SIZE],  # noqa
                     subset=subset,

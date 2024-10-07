@@ -8,10 +8,10 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Union
 
-from lib.app.exceptions import AppException
 from lib.app.interface.base_interface import Tracker
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ProjectType
+from lib.core.exceptions import AppException
 from typing_extensions import Literal
 
 from .export_from_sa_conversions import export_from_sa
@@ -198,7 +198,7 @@ def export_annotation(
         ProjectType.VIDEO.name,
         ProjectType.DOCUMENT.name,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[ProjectType.get_value(project_type)])
+        raise AppException(LIMITED_FUNCTIONS[ProjectType(project_type).value])
 
     params_info = [
         (input_dir, "input_dir", (str, Path)),

@@ -28,8 +28,8 @@ class BaseTestCase(TestCase):
             for project in projects:
                 try:
                     sa.delete_project(project)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(str(e))
         except Exception as e:
             print(str(e))
 

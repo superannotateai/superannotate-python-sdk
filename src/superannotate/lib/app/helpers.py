@@ -8,10 +8,10 @@ from typing import Union
 import boto3
 import numpy as np
 import pandas as pd
-from superannotate.lib.app.exceptions import AppException
-from superannotate.lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
-from superannotate.lib.core import PIXEL_ANNOTATION_POSTFIX
-from superannotate.lib.core import VECTOR_ANNOTATION_POSTFIX
+from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
+from lib.core import PIXEL_ANNOTATION_POSTFIX
+from lib.core import VECTOR_ANNOTATION_POSTFIX
+from lib.core.exceptions import AppException
 
 
 def get_annotation_paths(folder_path, s3_bucket=None, recursive=False):
@@ -123,5 +123,5 @@ def wrap_error(errors_list: List[Tuple[str, str]]) -> str:
         _tabulation = tabulation - len(key)
         if not key:
             key, value, _tabulation = value, "", 0
-        msgs.append("{}{}{}".format(key, " " * _tabulation, value))
+        msgs.append(f'{key}{ " " * _tabulation}{value}')
     return "\n".join(msgs)

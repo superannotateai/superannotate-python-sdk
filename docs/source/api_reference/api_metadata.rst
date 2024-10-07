@@ -30,6 +30,21 @@ Project metadata example:
 
 ----------
 
+Folder metadata
+_________________
+
+Folder metadata example:
+
+.. code-block:: python
+
+   {
+    "name": "Example folder",
+    "status": "NotStarted"
+   }
+
+
+----------
+
 Setting metadata
 _________________
 
@@ -89,45 +104,29 @@ Item metadata example:
 .. code-block:: python
 
   {
-   "name": "example.jpeg",
-   "path": "project/folder_1/meow.jpeg",
-   "url": "https://sa-public-files.s3.../text_file_example_1.jpeg",
-   "annotation_status": "NotStarted",
-   "annotator_name": None,
-   "qa_name": None,
-   "entropy_value": None,
-   "createdAt": "2022-02-15T20:46:44.000Z",
-   "updatedAt": "2022-02-15T20:46:44.000Z"
-    }
-
-----------
-
-
-Image metadata
-_______________
-
-
-Image metadata example:
-
-.. code-block:: python
-
-   {
-      "name": "000000000001.jpg",
-      "annotation_status": "Completed",
-      "prediction_status": "NotStarted",
-      "segmentation_status": "NotStarted",
-      "annotator_id": None,
-      "annotator_name": None,
-      "qa_id": None,
-      "qa_name": None,
-      "entropy_value": None,
-      "approval_status": None,
-      "createdAt": "2020-08-18T07:30:06.000Z",
-      "updatedAt": "2020-08-18T07:30:06.000Z"
-      "is_pinned": 0,
-      "...": "...",
+   "createdAt": "2022-09-14T07:06:53.000Z",
+   "updatedAt": "2022-09-30T13:14:26.000Z",
+   "id": 33027004,
+   "name": "5199856037_03d1929b7b_o.jpg",
+   "path": "New Classes",
+   "url": "None",
+   "assignments": [
+      {
+         "user_role": "Annotator",
+         "user_id": "annotator@example.com"
+      },
+      {
+         "user_role": "QA",
+         "user_id": "qa@example.com"
+      }
+   ],
+   "entropy_value": "None",
+   "custom_metadata": {
+      "study_date": "2021-12-31",
+      "patient_id": "A1234567890",
+      "medical_specialist": "dr.smith@clinic.com",
    }
-
+   }
 
 ----------
 
