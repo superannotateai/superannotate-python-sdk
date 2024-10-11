@@ -108,7 +108,7 @@ class ProjectType(BaseTitledEnum):
     TILED = "Tiled", 5
     OTHER = "Other", 6
     POINT_CLOUD = "PointCloud", 7
-    GEN_AI = "GenAI", 8
+    MULTIMODAL = "Multimodal", 8
     UNSUPPORTED_TYPE_1 = "UnsupportedType", 9
     UNSUPPORTED_TYPE_2 = "UnsupportedType", 10
 

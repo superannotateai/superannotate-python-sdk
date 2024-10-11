@@ -82,7 +82,10 @@ class PrepareExportUseCase(BaseUseCase):
                 raise AppValidationException(
                     "COCO format is not supported for this project."
                 )
-        elif self._export_type == 3 and self._project.type != ProjectType.GEN_AI.value:
+        elif (
+            self._export_type == 3
+            and self._project.type != ProjectType.MULTIMODAL.value
+        ):
             raise AppValidationException(
                 "CSV format is not supported for this project."
             )

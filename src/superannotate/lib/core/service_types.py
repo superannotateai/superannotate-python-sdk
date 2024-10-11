@@ -246,5 +246,5 @@ PROJECT_TYPE_RESPONSE_MAP = {
     ProjectType.PIXEL: ImageResponse,
     ProjectType.DOCUMENT: DocumentResponse,
     ProjectType.POINT_CLOUD: PointCloudResponse,
-    ProjectType.GEN_AI: ImageResponse,
+    ProjectType.MULTIMODAL: ImageResponse,
 }

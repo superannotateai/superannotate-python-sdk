@@ -11,9 +11,9 @@ from tests.integration.base import BaseTestCase
 sa = SAClient()
 
 
-class TestGenAIProjectBasic(BaseTestCase):
-    PROJECT_NAME = "TestGenAICreate"
-    PROJECT_TYPE = "GenAI"
+class TestMultimodalProjectBasic(BaseTestCase):
+    PROJECT_NAME = "TestMultimodalCreate"
+    PROJECT_TYPE = "Multimodal"
     PROJECT_DESCRIPTION = "DESCRIPTION"
     ANNOTATION_PATH = (
         "data_set/sample_project_vector/example_image_1.jpg___objects.json"
