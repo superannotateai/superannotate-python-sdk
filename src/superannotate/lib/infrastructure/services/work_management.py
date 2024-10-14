@@ -13,6 +13,8 @@ class WorkManagementService(BaseWorkManagementService):
     URL_LIST = "workflows"
     URL_LIST_STATUSES = "workflows/{workflow_id}/workflowstatuses"
     URL_LIST_ROLES = "workflows/{workflow_id}/workflowroles"
+    URL_CREATE_ROLE = "roles"
+    URL_CREATE_STATUS = "statuses"
 
     def get_workflow(self, pk: int) -> WorkflowEntity:
         response = self.list_workflows(Filter("id", pk, OperatorEnum.EQ))
@@ -64,4 +66,32 @@ class WorkManagementService(BaseWorkManagementService):
             params={
                 "join": "role",
             },
+        )
+
+    def create_custom_role(self, org_id: str, data: dict):
+        return self.client.request(
+            url=self.URL_CREATE_ROLE,
+            method="post",
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},"organization_id":"{org_id}"}}'.encode(
+                        "utf-8"
+                    )
+                ).decode()
+            },
+            data=data,
+        )
+
+    def create_custom_status(self, org_id: str, data: dict):
+        return self.client.request(
+            url=self.URL_CREATE_STATUS,
+            method="post",
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},"organization_id":"{org_id}"}}'.encode(
+                        "utf-8"
+                    )
+                ).decode()
+            },
+            data=data,
         )

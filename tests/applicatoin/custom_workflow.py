@@ -1,4 +1,5 @@
 import contextvars
+import json
 import os
 import re
 import time
@@ -24,9 +25,39 @@ class TestWorkflow(TestCase):
     CLASSES_PATH = "sample_project_vector/classes/classes.json"
     ANNOTATIONS_PATH = "sample_project_vector"
     PROJECT_TYPE = "Vector"
+    CUSTOM_WORKFLOW = "application/custom_workflow_payload.json"
 
     @classmethod
     def setUpClass(cls, *args, **kwargs):
+
+        # setup custom role
+        sa.controller.service_provider.work_management.create_custom_role(
+            org_id=sa.controller.org_id,
+            data={
+                "name": "CustomRole",
+                "description": "Test custom role",
+                "rolePermissions": [{"permission_id": 11}, {"permission_id": 12}],
+            },
+        )
+
+        # setup custom status
+        sa.controller.service_provider.work_management.create_custom_status(
+            org_id=sa.controller.org_id,
+            data={
+                "name": "CustomStatus",
+                "icon_id": 7,
+                "shortcut_id": 7,
+                "description": "test status",
+            },
+        )
+
+        # setup custom workflow
+        with open(os.path.join(DATA_SET_PATH, cls.CUSTOM_WORKFLOW)) as f:
+            sa.controller.service_provider.create_custom_workflow(
+                org_id=sa.controller.org_id,
+                data=json.load(f),
+            )
+
         cls.tearDownClass()
         cls._project = sa.create_project(
             cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE, workflow="ttp"
@@ -37,12 +68,9 @@ class TestWorkflow(TestCase):
         try:
             projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
             for project in projects:
-                try:
-                    sa.delete_project(project)
-                except Exception as e:
-                    print(str(e))
-        except Exception as e:
-            print(str(e))
+                sa.delete_project(project)
+        except Exception:
+            pass
 
     @property
     def classes_path(self):
