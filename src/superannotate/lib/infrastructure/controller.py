@@ -910,6 +910,10 @@ class BaseController(metaclass=ABCMeta):
         self.integrations = IntegrationManager(self.service_provider)
 
     @property
+    def org_id(self):
+        return self._team.owner_id
+
+    @property
     def current_user(self):
         return self._user
 

@@ -7,7 +7,7 @@ sa = SAClient()
 
 
 class TestVectorValidators(TestCase):
-    PROJECT_TYPE = "GenAi"
+    PROJECT_TYPE = "Multimodal"
 
     @patch("builtins.print")
     def test_validate_annotation_without_metadata(self, mock_print):
