@@ -1215,11 +1215,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param only_pinned: enable only pinned output in export. This option disables all other types of output.
         :type only_pinned: bool
 
-        :param kwargs:
-             Arbitrary kwargs:
+        :param kwargs: Arbitrary keyword arguments:
 
-             - integration_name: can be provided which will be used as a storage to store export file
-             - format: can be CSV for the Gen AI projects
+             - integration_name: The name of the integration within the platform that is being used.
+             - format: The format in which the data will be exported in multimodal projects.
+               It can be either CSV or JSON. If None, the data will be exported in the default JSON format.
         :return: metadata object of the prepared export
         :rtype: dict
 
@@ -1232,7 +1232,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project = "Project Name",
                 folder_names = ["Folder 1", "Folder 2"],
                 annotation_statuses = ["Completed","QualityCheck"],
-                export_type = "CSV"
+                format = "CSV"
             )
 
             client.download_export("Project Name", export, "path_to_download")
