@@ -1,6 +1,7 @@
 import time
 from typing import Dict
 from typing import List
+from typing import Literal
 
 from lib.core import entities
 from lib.core.exceptions import AppException
@@ -19,6 +20,7 @@ class ItemService(BaseItemService):
     URL_COPY_PROGRESS = "images/copy-image-progress"
     URL_DELETE_ITEMS = "image/delete/images"
     URL_SET_APPROVAL_STATUSES = "/items/bulk/change"
+    URL_COPY_MOVE_MULTIPLE = "images/copy-move-images-folders"
 
     def update(self, project: entities.ProjectEntity, item: entities.BaseItemEntity):
         return self.client.request(
@@ -111,6 +113,62 @@ class ItemService(BaseItemService):
                 "source_folder_id": from_folder.id,
             },
         )
+
+    def copy_move_multiple(
+        self,
+        project: entities.ProjectEntity,
+        from_folder: entities.FolderEntity,
+        to_folder: entities.FolderEntity,
+        item_names: List[str],
+        duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
+        operation: Literal["copy", "move"],
+        include_annotations: bool = False,
+        include_pin: bool = False,
+    ):
+        """
+        Returns poll id.
+        """
+        duplicate_behaviour_map = {
+            "skip": "skip_duplicates",
+            "replace": "replace_all",
+            "replace_annotations_only": "replace_annotation",
+        }
+        return self.client.request(
+            self.URL_COPY_MOVE_MULTIPLE,
+            "post",
+            params={"project_id": project.id},
+            data={
+                "is_folder_copy": False,
+                "image_names": item_names,
+                "destination_folder_id": to_folder.id,
+                "source_folder_id": from_folder.id,
+                "include_annotations": include_annotations,
+                "keep_pin_status": include_pin,
+                "duplicate_behaviour": duplicate_behaviour_map[duplicate_strategy],
+                "operate_function": operation,
+            },
+        )
+
+    def await_copy_move(
+        self, project: entities.ProjectEntity, poll_id: int, items_count
+    ):
+        try:
+            await_time = items_count * 0.3
+            timeout_start = time.time()
+            while time.time() < timeout_start + await_time:
+                response = self.client.request(
+                    self.URL_COPY_PROGRESS,
+                    "get",
+                    params={"project_id": project.id, "poll_id": poll_id},
+                )
+                if not response.ok:
+                    return response
+                progress = response.data.get("progress")
+                if progress == "finished":
+                    break
+                time.sleep(4)
+        except (AppException, Exception) as e:
+            raise BackendError(e)
 
     def set_statuses(
         self,
