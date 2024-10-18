@@ -33,6 +33,7 @@ from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.folders import SearchFoldersUseCase
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
+from typing_extensions import Literal
 
 logger = logging.getLogger("sa")
 
@@ -534,6 +535,154 @@ class MoveItems(BaseReportableUseCase):
             )
 
             self._response.data = list(set(items) - set(moved_images))
+        return self._response
+
+
+class CopyMoveItems(BaseReportableUseCase):
+    """
+    Copy/Move items in bulk between folders in a project.
+    Return skipped item names.
+    """
+
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        from_folder: FolderEntity,
+        to_folder: FolderEntity,
+        item_names: List[str],
+        service_provider: BaseServiceProvider,
+        include_annotations: bool,
+        duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
+        operation: Literal["copy", "move"],
+        chunk_size: int = 1000,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._from_folder = from_folder
+        self._to_folder = to_folder
+        self._item_names = item_names
+        self._service_provider = service_provider
+        self._include_annotations = include_annotations
+        self._duplicate_strategy = duplicate_strategy
+        self._operation = operation
+        self._chunk_size = chunk_size
+
+    def _validate_limitations(self, items_count):
+        response = self._service_provider.get_limitations(
+            project=self._project,
+            folder=self._to_folder,
+        )
+        if not response.ok:
+            raise AppValidationException(response.error)
+        if self._operation == "copy":
+            folder_limit_err_msg = constants.COPY_FOLDER_LIMIT_ERROR_MESSAGE
+            project_limit_err_msg = constants.COPY_PROJECT_LIMIT_ERROR_MESSAGE
+        else:
+            folder_limit_err_msg = constants.MOVE_FOLDER_LIMIT_ERROR_MESSAGE
+            project_limit_err_msg = constants.MOVE_PROJECT_LIMIT_ERROR_MESSAGE
+        if items_count > response.data.folder_limit.remaining_image_count:
+            raise AppValidationException(folder_limit_err_msg)
+        if items_count > response.data.project_limit.remaining_image_count:
+            raise AppValidationException(project_limit_err_msg)
+
+    def validate_item_names(self):
+        if self._item_names:
+            self._item_names = list(set(self._item_names))
+
+    def execute(self):
+        if self.is_valid():
+            if self._item_names:
+                items = self._item_names
+            else:
+                res = self._service_provider.item_service.list(
+                    self._project.id, self._from_folder.id, EmptyQuery()
+                )
+                if res.error:
+                    raise AppException(res.error)
+                items = [i.name for i in res.data]
+            try:
+                self._validate_limitations(len(items))
+            except AppValidationException as e:
+                self._response.errors = e
+                return self._response
+            skipped_items = []
+            if self._duplicate_strategy == "skip":
+                existing_items = []
+                for i in range(0, len(items), self._chunk_size):
+                    query = Filter(
+                        "name", items[i : i + self._chunk_size], OperatorEnum.IN
+                    )  # noqa
+                    res = self._service_provider.item_service.list(
+                        self._project.id, self._to_folder.id, query
+                    )
+                    if res.error:
+                        raise AppException(res.error)
+                    if not res.data:
+                        continue
+                    existing_items += res.data
+                duplications = [item.name for item in existing_items]
+                items_to_processing = list(set(items) - set(duplications))
+                skipped_items.extend(duplications)
+            else:
+                items_to_processing = items
+            if items_to_processing:
+                for i in range(0, len(items_to_processing), self._chunk_size):
+                    chunk_to_process = items_to_processing[
+                        i : i + self._chunk_size
+                    ]  # noqa: E203
+                    response = self._service_provider.items.copy_move_multiple(
+                        project=self._project,
+                        from_folder=self._from_folder,
+                        to_folder=self._to_folder,
+                        item_names=chunk_to_process,
+                        include_annotations=self._include_annotations,
+                        duplicate_strategy=self._duplicate_strategy,
+                        operation=self._operation,
+                    )
+                    if not response.ok or not response.data.get("poll_id"):
+                        skipped_items.extend(chunk_to_process)
+                        continue
+                    try:
+                        self._service_provider.items.await_copy_move(
+                            project=self._project,
+                            poll_id=response.data["poll_id"],
+                            items_count=len(chunk_to_process),
+                        )
+                    except BackendError as e:
+                        self._response.errors = AppException(e)
+                        return self._response
+                existing_items = []
+                for i in range(0, len(items_to_processing), self._chunk_size):
+                    res = self._service_provider.item_service.list(
+                        self._project.id,
+                        self._to_folder.id,
+                        Filter(
+                            "name",
+                            items_to_processing[i : i + self._chunk_size],
+                            OperatorEnum.IN,
+                        ),  # noqa
+                    )
+                    if res.error:
+                        raise AppException(res.error)
+
+                    existing_items += res.data
+
+                existing_item_names_set = {item.name for item in existing_items}
+                items_to_processing_names_set = set(items_to_processing)
+                processed_items = existing_item_names_set.intersection(
+                    items_to_processing_names_set
+                )
+                skipped_items.extend(
+                    list(items_to_processing_names_set - processed_items)
+                )
+                operation_processing_map = {"copy": "Copied", "move": "Moved"}
+                self.reporter.log_info(
+                    f"{operation_processing_map[self._operation]} {len(processed_items)}/{len(items_to_processing)} item(s) from "
+                    f"{self._project.name}{'' if self._from_folder.is_root else f'/{self._from_folder.name}'} to "
+                    f"{self._project.name}{'' if self._to_folder.is_root else f'/{self._to_folder.name}'}"
+                )
+            self._response.data = list(set(skipped_items))
         return self._response
 
 

@@ -5,6 +5,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Literal
 
 from lib.core import entities
 from lib.core.conditions import Condition
@@ -288,7 +289,27 @@ class BaseItemService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def copy_move_multiple(
+        self,
+        project: entities.ProjectEntity,
+        from_folder: entities.FolderEntity,
+        to_folder: entities.FolderEntity,
+        item_names: List[str],
+        duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
+        operation: Literal["copy", "move"],
+        include_annotations: bool = False,
+        include_pin: bool = False,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def await_copy(self, project: entities.ProjectEntity, poll_id: int, items_count):
+        raise NotImplementedError
+
+    @abstractmethod
+    def await_copy_move(
+        self, project: entities.ProjectEntity, poll_id: int, items_count
+    ):
         raise NotImplementedError
 
     @abstractmethod

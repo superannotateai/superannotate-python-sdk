@@ -79,7 +79,9 @@ class TestCopyItems(BaseTestCase):
         skipped_items = sa.copy_items(
             self.PROJECT_NAME,
             f"{self.PROJECT_NAME}/{self.FOLDER_1}",
-            items=["as", "asd"],
+            items=["as", "asd", self.IMAGE_NAME],
         )
+        items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        assert len(items) == 1
+        assert items[0]["name"] == self.IMAGE_NAME
         assert Counter(skipped_items) == Counter(["as", "asd"])
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0
