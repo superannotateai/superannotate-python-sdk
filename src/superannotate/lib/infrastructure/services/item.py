@@ -122,7 +122,7 @@ class ItemService(BaseItemService):
         item_names: List[str],
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         operation: Literal["copy", "move"],
-        include_annotations: bool = False,
+        include_annotations: bool = True,
         include_pin: bool = False,
     ):
         """
@@ -153,7 +153,7 @@ class ItemService(BaseItemService):
         self, project: entities.ProjectEntity, poll_id: int, items_count
     ):
         try:
-            await_time = items_count * 0.3
+            await_time = 60 + items_count * 0.3  # time for waiting backend processing
             timeout_start = time.time()
             while time.time() < timeout_start + await_time:
                 response = self.client.request(

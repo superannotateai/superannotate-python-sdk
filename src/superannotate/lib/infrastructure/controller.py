@@ -544,7 +544,7 @@ class ItemManager(BaseManager):
         to_folder: FolderEntity,
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         item_names: List[str] = None,
-        include_annotations: bool = False,
+        include_annotations: bool = True,
     ):
         if project.type == ProjectType.PIXEL:
             use_case = usecases.CopyItems(

@@ -297,7 +297,7 @@ class BaseItemService(SuperannotateServiceProvider):
         item_names: List[str],
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         operation: Literal["copy", "move"],
-        include_annotations: bool = False,
+        include_annotations: bool = True,
         include_pin: bool = False,
     ) -> ServiceResponse:
         raise NotImplementedError
