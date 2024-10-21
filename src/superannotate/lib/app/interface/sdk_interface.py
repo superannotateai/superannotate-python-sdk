@@ -2318,7 +2318,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_annotations(
         self,
-        project: Union[int, NotEmptyStr],
+        project: Union[NotEmptyStr, int],
         items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
     ):
         """Returns annotations for the given list of items.
