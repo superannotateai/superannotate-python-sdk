@@ -1,4 +1,6 @@
 import os
+import random
+import string
 from pathlib import Path
 
 from src.superannotate import AppException
@@ -47,3 +49,15 @@ class TestListItems(BaseTestCase):
             sa.list_items(self.PROJECT_NAME, assignments__user_role="Dummy")
         with self.assertRaisesRegexp(AppException, "Invalid status provided."):
             sa.list_items(self.PROJECT_NAME, annotation_status="Dummy")
+
+    def test_list_items_URL_limit(self):
+        items_for_attache = []
+        item_names = []
+        for i in range(125):
+            name = f"{''.join(random.choice(string.ascii_letters + string.digits) for _ in range(120))}"
+            item_names.append(name)
+            items_for_attache.append({"name": name, "url": f"{name}-{i}"})
+
+        sa.attach_items(self.PROJECT_NAME, items_for_attache)
+        items = sa.list_items(self.PROJECT_NAME, name__in=item_names)
+        assert len(items) == 125

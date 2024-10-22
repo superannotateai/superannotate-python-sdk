@@ -14,6 +14,7 @@ class TestCopyItems(BaseTestCase):
     PROJECT_DESCRIPTION = "TestCopyItemsVector"
     PROJECT_TYPE = "Vector"
     IMAGE_NAME = "test_image"
+    IMAGE_NAME_2 = "test_image_2"
     FOLDER_1 = "folder_1"
     FOLDER_2 = "folder_2"
     CSV_PATH = "data_set/attach_urls.csv"
@@ -75,11 +76,19 @@ class TestCopyItems(BaseTestCase):
                 }
             ],
         )
+        sa.set_approval_statuses(self.PROJECT_NAME, "Approved", items=[self.IMAGE_NAME])
+        sa.set_annotation_statuses(
+            self.PROJECT_NAME, "Completed", items=[self.IMAGE_NAME]
+        )
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
         skipped_items = sa.copy_items(
             self.PROJECT_NAME,
             f"{self.PROJECT_NAME}/{self.FOLDER_1}",
-            items=["as", "asd"],
+            items=["as", "asd", self.IMAGE_NAME],
         )
+        items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        assert len(items) == 1
+        assert items[0]["name"] == self.IMAGE_NAME
+        assert items[0]["annotation_status"] == "Completed"
+        assert items[0]["approval_status"] == "Approved"
         assert Counter(skipped_items) == Counter(["as", "asd"])
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0
