@@ -2663,8 +2663,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def list_items(
         self,
-        project: Union[int, str],
-        folder: Optional[Union[int, str]] = None,
+        project: Union[NotEmptyStr, int],
+        folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
         include: List[Literal["custom_metadata"]] = None,
         **filters,
@@ -2672,14 +2672,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         Search items by filtering criteria.
 
-        :param project: The project name, project ID, or folder path (e.g., "project1/folder1") to search within.
+        :param project: The project name, project ID, or folder path (e.g., "project1") to search within.
                         This can refer to the root of the project or a specific subfolder.
-        :type project: Union[int, str]
+        :type project: Union[NotEmptyStr, int]
 
         :param folder: The folder name or ID to search within. If None, the search will be done in the root folder of
                        the project. If both “project” and “folder” specify folders, the “project”
                        value will take priority.
-        :type folder: Union[int, str], optional
+        :type folder: Union[NotEmptyStr, int], optional
 
         :param include: Specifies additional fields to include in the response.
 
@@ -2694,8 +2694,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
 
                 Supported operations:
-                    - __ne: Value is in the list.
-                    - __in: Value is not equal.
+                    - __ne: Value is not equal.
+                    - __in: Value is in the list.
                     - __notin: Value is not in the list.
                     - __contains: Value has the substring.
                     - __starts: Value starts with the prefix.
@@ -2710,6 +2710,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 - name__contains: str
                 - name__starts: str
                 - name__ends: str
+                - annotation_status: str
+                - annotation_status__in: list[str]
+                - annotation_status__ne: list[str]
                 - approval_status: Literal["Approved", "Disapproved", None]
                 - assignments__user_id: str
                 - assignments__user_id__ne: str
