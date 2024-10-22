@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import typing
 from typing import Callable
@@ -12,6 +13,8 @@ _seconds = 2**10
 TIMEOUT = aiohttp.ClientTimeout(
     total=_seconds, sock_connect=_seconds, sock_read=_seconds
 )
+
+logger = logging.getLogger("sa")
 
 
 class StreamedAnnotations:
@@ -46,21 +49,28 @@ class StreamedAnnotations:
         data: dict = None,
         params: dict = None,
     ):
-        kwargs = {"params": params, "json": {}}
-        if "folder_id" in kwargs["params"]:
-            kwargs["json"] = {"folder_id": kwargs["params"].pop("folder_id")}
+        kwargs = {"params": params, "json": data}
         if data:
             kwargs["json"].update(data)
         response = await session.request(method, url, **kwargs, timeout=TIMEOUT)  # noqa
-        buffer = b""
-        async for line in response.content.iter_any():
-            slices = (buffer + line).split(self.DELIMITER)
-            for _slice in slices[:-1]:
-                yield self.get_json(_slice)
-            buffer = slices[-1]
-        if buffer:
-            yield self.get_json(buffer)
-            self._reporter.update_progress()
+        if not response.ok:
+            logger.error(response.text)
+        decoder = json.JSONDecoder()
+        buffer = ""
+        async for line, _end_of_http_chunk in response.content.iter_chunks():
+            buffer += line.decode("utf-8")
+            if not _end_of_http_chunk:
+                continue
+            while buffer:
+                try:
+                    json_obj, index = decoder.raw_decode(buffer)
+                    yield json_obj
+                    buffer = buffer[index + len(self.DELIMITER) :].lstrip()
+                except json.decoder.JSONDecodeError as e:
+                    logger.debug(
+                        f"Failed to parse buffer, buffer_len: {len(buffer)}// buffer_end: ...{buffer[-100:]}, error: {e}"
+                    )
+                    break
 
     async def list_annotations(
         self,
