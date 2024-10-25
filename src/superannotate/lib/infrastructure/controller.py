@@ -599,7 +599,7 @@ class ItemManager(BaseManager):
                 duplicate_strategy=duplicate_strategy,
                 include_annotations=True,
                 operation="move",
-                chunk_size=1000,
+                chunk_size=500,
             )
         return use_case.execute()
 

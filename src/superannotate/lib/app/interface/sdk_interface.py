@@ -2927,7 +2927,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         source: Union[NotEmptyStr, dict],
         destination: Union[NotEmptyStr, dict],
         items: Optional[List[NotEmptyStr]] = None,
-        include_annotations: Optional[bool] = True,
+        include_annotations: bool = True,
         duplicate_strategy: Literal[
             "skip", "replace", "replace_annotations_only"
         ] = "skip",
@@ -2960,6 +2960,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: list of skipped item names
         :rtype: list of strs
         """
+
+        if not include_annotations and duplicate_strategy != "skip":
+            duplicate_strategy = "skip"
+            logger.warning(
+                "Copy operation continuing without annotations and metadata due to include_annotations=False."
+            )
 
         project_name, source_folder = extract_project_folder(source)
         to_project_name, destination_folder = extract_project_folder(destination)
