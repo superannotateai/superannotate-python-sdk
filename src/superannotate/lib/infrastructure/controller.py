@@ -60,6 +60,7 @@ class ItemFilters(TypedDict, total=False):
     name__ends: Optional[str]
     annotation_status: Optional[str]
     annotation_status__in: Optional[List[str]]
+    annotation_status__ne: Optional[List[str]]
     approval_status: Optional[str]
     approval_status__in: Optional[List[str]]
     approval_status__ne: Optional[str]
