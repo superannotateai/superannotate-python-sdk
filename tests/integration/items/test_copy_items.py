@@ -14,9 +14,20 @@ class TestCopyItems(BaseTestCase):
     PROJECT_DESCRIPTION = "TestCopyItemsVector"
     PROJECT_TYPE = "Vector"
     IMAGE_NAME = "test_image"
+    IMAGE_NAME_2 = "test_image_2"
     FOLDER_1 = "folder_1"
     FOLDER_2 = "folder_2"
     CSV_PATH = "data_set/attach_urls.csv"
+    Attachment = [
+        {
+            "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
+            "name": IMAGE_NAME,
+        },
+        {
+            "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7Zw",
+            "name": IMAGE_NAME_2,
+        },
+    ]
 
     @property
     def scv_path(self):
@@ -68,18 +79,65 @@ class TestCopyItems(BaseTestCase):
     def test_copy_items_wrong_items_list(self):
         uploaded, _, _ = sa.attach_items(
             self.PROJECT_NAME,
-            [
-                {
-                    "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
-                    "name": self.IMAGE_NAME,
-                }
-            ],
+            self.Attachment,
+        )
+        sa.set_approval_statuses(self.PROJECT_NAME, "Approved", items=[self.IMAGE_NAME])
+        sa.set_annotation_statuses(
+            self.PROJECT_NAME, "Completed", items=[self.IMAGE_NAME]
         )
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
         skipped_items = sa.copy_items(
             self.PROJECT_NAME,
             f"{self.PROJECT_NAME}/{self.FOLDER_1}",
-            items=["as", "asd"],
+            items=["as", "asd", self.IMAGE_NAME],
         )
+        items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        assert len(items) == 1
+        assert items[0]["name"] == self.IMAGE_NAME
+        assert items[0]["annotation_status"] == "Completed"
+        assert items[0]["approval_status"] == "Approved"
         assert Counter(skipped_items) == Counter(["as", "asd"])
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0
+
+    def test_copy_duplicated_items_without_data_with_replace_strategy(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_2)
+        uploaded, _, _ = sa.attach_items(
+            f"{self.PROJECT_NAME}/{self.FOLDER_1}", self.Attachment
+        )
+        assert len(uploaded) == 2
+        sa.set_approval_statuses(
+            f"{self.PROJECT_NAME}/{self.FOLDER_1}",
+            "Approved",
+            items=[self.IMAGE_NAME, self.IMAGE_NAME_2],
+        )
+        sa.set_annotation_statuses(
+            f"{self.PROJECT_NAME}/{self.FOLDER_1}",
+            "Completed",
+            items=[self.IMAGE_NAME, self.IMAGE_NAME_2],
+        )
+
+        uploaded_2, _, _ = sa.attach_items(
+            f"{self.PROJECT_NAME}/{self.FOLDER_2}", self.Attachment
+        )
+        assert len(uploaded_2) == 2
+
+        with self.assertLogs("sa", level="WARNING") as cm:
+            skipped_items = sa.copy_items(
+                f"{self.PROJECT_NAME}/{self.FOLDER_1}",
+                f"{self.PROJECT_NAME}/{self.FOLDER_2}",
+                include_annotations=False,
+                duplicate_strategy="replace",
+            )
+            assert (
+                "WARNING:sa:Copy operation continuing without annotations and metadata"
+                " due to include_annotations=False." == cm.output[0]
+            )
+        assert len(skipped_items) == 2
+        folder_1_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        folder_2_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        assert len(folder_1_items) == 2
+        assert len(folder_2_items) == 2
+
+        folder_2_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        assert folder_2_items[0]["annotation_status"] == "NotStarted"
+        assert not folder_2_items[0]["approval_status"]

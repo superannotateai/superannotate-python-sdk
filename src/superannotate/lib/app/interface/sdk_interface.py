@@ -2927,25 +2927,45 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         source: Union[NotEmptyStr, dict],
         destination: Union[NotEmptyStr, dict],
         items: Optional[List[NotEmptyStr]] = None,
-        include_annotations: Optional[bool] = True,
+        include_annotations: bool = True,
+        duplicate_strategy: Literal[
+            "skip", "replace", "replace_annotations_only"
+        ] = "skip",
     ):
         """Copy images in bulk between folders in a project
 
-        :param source: project name or folder path to select items from (e.g., “project1/folder1”).
+        :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
         :type source: str
 
-        :param destination: project name (root) or folder path to place copied items.
+        :param destination: project name (root) or folder path to place copied items (e.g., “project1/folder2”).
         :type destination: str
 
         :param items: names of items to copy. If None, all items from the source directory will be copied.
         :type items: list of str
 
-        :param include_annotations: enables annotations copy
+        :param include_annotations: enables the copying of item data, including annotations, status, priority score,
+         approval state, and category. If set to False, only the items will be copied without additional data.
         :type include_annotations: bool
+
+        :param duplicate_strategy: Specifies the strategy for handling duplicate items in the destination.
+         The default value is "skip".
+
+            - "skip": skips duplicate items in the destination and continues with the next item.
+            - "replace": replaces the annotations, status, priority score, approval state, and category of duplicate items.
+            - "replace_annotations_only": replaces only the annotations of duplicate items,
+              leaving other data (status, priority score, approval state, and category) unchanged.
+
+        :type duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"]
 
         :return: list of skipped item names
         :rtype: list of strs
         """
+
+        if not include_annotations and duplicate_strategy != "skip":
+            duplicate_strategy = "skip"
+            logger.warning(
+                "Copy operation continuing without annotations and metadata due to include_annotations=False."
+            )
 
         project_name, source_folder = extract_project_folder(source)
         to_project_name, destination_folder = extract_project_folder(destination)
@@ -2960,6 +2980,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             to_folder=to_folder,
             item_names=items,
             include_annotations=include_annotations,
+            duplicate_strategy=duplicate_strategy,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2971,17 +2992,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         source: Union[NotEmptyStr, dict],
         destination: Union[NotEmptyStr, dict],
         items: Optional[List[NotEmptyStr]] = None,
+        duplicate_strategy: Literal[
+            "skip", "replace", "replace_annotations_only"
+        ] = "skip",
     ):
         """Move images in bulk between folders in a project
 
-        :param source: project name or folder path to pick items from (e.g., “project1/folder1”).
+        :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
         :type source: str
 
-        :param destination: project name (root) or folder path to move items to.
+        :param destination: project name (root) or folder path to move items to (e.g., “project1/folder2”).
         :type destination: str
 
         :param items: names of items to move. If None, all items from the source directory will be moved.
         :type items: list of str
+
+        :param duplicate_strategy: Specifies the strategy for handling duplicate items in the destination.
+         The default value is "skip".
+
+            - "skip": skips duplicate items in the destination and continues with the next item.
+            - "replace": replaces the annotations, status, priority score, approval state, and category of duplicate items.
+            - "replace_annotations_only": replaces only the annotations of duplicate items,
+              leaving other data (status, priority score, approval state, and category) unchanged.
+
+        :type duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"]
 
         :return: list of skipped item names
         :rtype: list of strs
@@ -3000,6 +3034,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             from_folder=source_folder,
             to_folder=destination_folder,
             item_names=items,
+            duplicate_strategy=duplicate_strategy,
         )
         if response.errors:
             raise AppException(response.errors)
