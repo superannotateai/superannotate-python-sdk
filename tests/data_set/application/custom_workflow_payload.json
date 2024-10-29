@@ -1,0 +1,80 @@
+{
+    "name": "ttp",
+    "description": "mock workflow for test",
+    "raw_config": {
+        "roles": [
+            "Annotator",
+            "QA",
+            "CustomRole"
+        ],
+        "statuses": [
+            "NotStarted",
+            "QualityCheck",
+            "Returned",
+            "Skipped",
+            "Completed",
+            "CustomStatus"
+        ],
+        "transitions": [
+            {
+                "to": "QualityCheck",
+                "from": "NotStarted",
+                "name": "move to in progress",
+                "allowed_roles": [
+                    "Annotator"
+                ]
+            },
+            {
+                "to": "QualityCheck",
+                "from": "Returned",
+                "name": "move to quality check",
+                "allowed_roles": [
+                    "Annotator",
+                    "QA"
+                ]
+            },
+            {
+                "to": "Returned",
+                "from": "QualityCheck",
+                "name": "move back to in progress",
+                "allowed_roles": [
+                    "Annotator",
+                    "QA"
+                ]
+            },
+            {
+                "to": "Completed",
+                "from": "QualityCheck",
+                "name": "move to completed",
+                "allowed_roles": [
+                    "QA"
+                ]
+            }
+        ],
+        "start_status": "Returned",
+        "allowed_resources_to_roles": {
+            "QA": {
+                "view_items": {
+                    "statuses": [
+                        "QualityCheck"
+                    ]
+                }
+            },
+            "Annotator": {
+                "view_items": {
+                    "statuses": [
+                        "NotStarted",
+                        "Returned"
+                    ]
+                }
+            },
+            "CustomRole": {
+                "view_items": {
+                    "statuses": [
+                        "CustomStatus"
+                    ]
+                }
+            }
+        }
+    }
+}

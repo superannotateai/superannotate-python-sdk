@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -28,6 +29,7 @@ from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
@@ -58,6 +60,7 @@ class ItemFilters(TypedDict, total=False):
     name__ends: Optional[str]
     annotation_status: Optional[str]
     annotation_status__in: Optional[List[str]]
+    annotation_status__ne: Optional[List[str]]
     approval_status: Optional[str]
     approval_status__in: Optional[List[str]]
     approval_status__ne: Optional[str]
@@ -540,18 +543,33 @@ class ItemManager(BaseManager):
         project: ProjectEntity,
         from_folder: FolderEntity,
         to_folder: FolderEntity,
+        duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         item_names: List[str] = None,
-        include_annotations: bool = False,
+        include_annotations: bool = True,
     ):
-        use_case = usecases.CopyItems(
-            reporter=Reporter(),
-            project=project,
-            from_folder=from_folder,
-            to_folder=to_folder,
-            item_names=item_names,
-            service_provider=self.service_provider,
-            include_annotations=include_annotations,
-        )
+        if project.type == ProjectType.PIXEL:
+            use_case = usecases.CopyItems(
+                reporter=Reporter(),
+                project=project,
+                from_folder=from_folder,
+                to_folder=to_folder,
+                item_names=item_names,
+                service_provider=self.service_provider,
+                include_annotations=include_annotations,
+            )
+        else:
+            use_case = usecases.CopyMoveItems(
+                reporter=Reporter(),
+                project=project,
+                from_folder=from_folder,
+                to_folder=to_folder,
+                item_names=item_names,
+                service_provider=self.service_provider,
+                include_annotations=include_annotations,
+                duplicate_strategy=duplicate_strategy,
+                operation="copy",
+                chunk_size=500,
+            )
         return use_case.execute()
 
     def move_multiple(
@@ -559,16 +577,31 @@ class ItemManager(BaseManager):
         project: ProjectEntity,
         from_folder: FolderEntity,
         to_folder: FolderEntity,
+        duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         item_names: List[str] = None,
     ):
-        use_case = usecases.MoveItems(
-            reporter=Reporter(),
-            project=project,
-            from_folder=from_folder,
-            to_folder=to_folder,
-            item_names=item_names,
-            service_provider=self.service_provider,
-        )
+        if project.type == ProjectType.PIXEL:
+            use_case = usecases.MoveItems(
+                reporter=Reporter(),
+                project=project,
+                from_folder=from_folder,
+                to_folder=to_folder,
+                item_names=item_names,
+                service_provider=self.service_provider,
+            )
+        else:
+            use_case = usecases.CopyMoveItems(
+                reporter=Reporter(),
+                project=project,
+                from_folder=from_folder,
+                to_folder=to_folder,
+                item_names=item_names,
+                service_provider=self.service_provider,
+                duplicate_strategy=duplicate_strategy,
+                include_annotations=True,
+                operation="move",
+                chunk_size=500,
+            )
         return use_case.execute()
 
     def set_annotation_statuses(
@@ -908,6 +941,10 @@ class BaseController(metaclass=ABCMeta):
         self.custom_fields = CustomFieldManager(self.service_provider)
         self.subsets = SubsetManager(self.service_provider)
         self.integrations = IntegrationManager(self.service_provider)
+
+    @property
+    def org_id(self):
+        return self._team.owner_id
 
     @property
     def current_user(self):

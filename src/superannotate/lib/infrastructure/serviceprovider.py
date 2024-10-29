@@ -1,3 +1,4 @@
+import base64
 import datetime
 from typing import List
 
@@ -36,6 +37,7 @@ class ServiceProvider(BaseServiceProvider):
     URL_FOLDERS_IMAGES = "images-folders"
     URL_INVITE_CONTRIBUTORS = "api/v1/team/{}/inviteUsers"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
+    URL_CREATE_WORKFLOW = "api/v1/workflows/submit"
 
     def __init__(self, client: HttpClient):
         self.enum_mapping = {"approval_status": ApprovalStatus.get_mapping()}
@@ -253,4 +255,18 @@ class ServiceProvider(BaseServiceProvider):
             self.URL_INVITE_CONTRIBUTORS.format(team_id),
             "post",
             data=dict(emails=emails, team_role=team_role),
+        )
+
+    def create_custom_workflow(self, org_id: str, data: dict):
+        return self.client.request(
+            url=self.URL_CREATE_WORKFLOW,
+            method="post",
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},"organization_id":"{org_id}"}}'.encode(
+                        "utf-8"
+                    )
+                ).decode()
+            },
+            data=data,
         )

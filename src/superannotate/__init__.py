@@ -3,7 +3,7 @@ import os
 import sys
 
 
-__version__ = "4.4.25"
+__version__ = "4.4.26"
 
 os.environ.update({"sa_version": __version__})
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
@@ -18,7 +18,7 @@ from lib.core.exceptions import AppException
 from lib.app.input_converters import convert_project_type
 from lib.app.input_converters import export_annotation
 from lib.app.input_converters import import_annotation
-from lib.app.interface.sdk_interface import SAClient
+from superannotate.lib.app.interface.sdk_interface import SAClient
 
 
 SESSIONS = {}

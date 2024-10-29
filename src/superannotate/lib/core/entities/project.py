@@ -163,6 +163,7 @@ class TeamEntity(BaseModel):
     users: Optional[List[UserEntity]]
     pending_invitations: Optional[List[Any]]
     creator_id: Optional[str]
+    owner_id: Optional[str]
 
     class Config:
         extra = Extra.ignore

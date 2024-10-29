@@ -79,7 +79,7 @@ PROJECT_TYPE = Literal[
     "Document",
     "Tiled",
     "PointCloud",
-    "GenAI",
+    "Multimodal",
 ]
 
 
@@ -307,7 +307,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_description: the new project's description
         :type project_description: str
 
-        :param project_type: the new project type, Vector, Pixel, Video, Document, Tiled, PointCloud, GenAI.
+        :param project_type: the new project type, Vector, Pixel, Video, Document, Tiled, PointCloud, Multimodal.
         :type project_type: str
 
         :param settings: list of settings objects
@@ -1215,11 +1215,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param only_pinned: enable only pinned output in export. This option disables all other types of output.
         :type only_pinned: bool
 
-        :param kwargs:
-             Arbitrary kwargs:
+        :param kwargs: Arbitrary keyword arguments:
 
-             - integration_name: can be provided which will be used as a storage to store export file
-             - format: can be CSV for the Gen AI projects
+             - integration_name: The name of the integration within the platform that is being used.
+             - format: The format in which the data will be exported in multimodal projects.
+               It can be either CSV or JSON. If None, the data will be exported in the default JSON format.
         :return: metadata object of the prepared export
         :rtype: dict
 
@@ -1232,7 +1232,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project = "Project Name",
                 folder_names = ["Folder 1", "Folder 2"],
                 annotation_statuses = ["Completed","QualityCheck"],
-                export_type = "CSV"
+                format = "CSV"
             )
 
             client.download_export("Project Name", export, "path_to_download")
@@ -2318,7 +2318,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_annotations(
         self,
-        project: Union[int, NotEmptyStr],
+        project: Union[NotEmptyStr, int],
         items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
     ):
         """Returns annotations for the given list of items.
@@ -2663,8 +2663,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def list_items(
         self,
-        project: Union[int, str],
-        folder: Optional[Union[int, str]] = None,
+        project: Union[NotEmptyStr, int],
+        folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
         include: List[Literal["custom_metadata"]] = None,
         **filters,
@@ -2672,14 +2672,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         Search items by filtering criteria.
 
-        :param project: The project name, project ID, or folder path (e.g., "project1/folder1") to search within.
+        :param project: The project name, project ID, or folder path (e.g., "project1") to search within.
                         This can refer to the root of the project or a specific subfolder.
-        :type project: Union[int, str]
+        :type project: Union[NotEmptyStr, int]
 
         :param folder: The folder name or ID to search within. If None, the search will be done in the root folder of
                        the project. If both “project” and “folder” specify folders, the “project”
                        value will take priority.
-        :type folder: Union[int, str], optional
+        :type folder: Union[NotEmptyStr, int], optional
 
         :param include: Specifies additional fields to include in the response.
 
@@ -2694,8 +2694,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
 
                 Supported operations:
-                    - __ne: Value is in the list.
-                    - __in: Value is not equal.
+                    - __ne: Value is not equal.
+                    - __in: Value is in the list.
                     - __notin: Value is not in the list.
                     - __contains: Value has the substring.
                     - __starts: Value starts with the prefix.
@@ -2710,6 +2710,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 - name__contains: str
                 - name__starts: str
                 - name__ends: str
+                - annotation_status: str
+                - annotation_status__in: list[str]
+                - annotation_status__ne: list[str]
                 - approval_status: Literal["Approved", "Disapproved", None]
                 - assignments__user_id: str
                 - assignments__user_id__ne: str
@@ -2927,25 +2930,45 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         source: Union[NotEmptyStr, dict],
         destination: Union[NotEmptyStr, dict],
         items: Optional[List[NotEmptyStr]] = None,
-        include_annotations: Optional[bool] = True,
+        include_annotations: bool = True,
+        duplicate_strategy: Literal[
+            "skip", "replace", "replace_annotations_only"
+        ] = "skip",
     ):
         """Copy images in bulk between folders in a project
 
-        :param source: project name or folder path to select items from (e.g., “project1/folder1”).
+        :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
         :type source: str
 
-        :param destination: project name (root) or folder path to place copied items.
+        :param destination: project name (root) or folder path to place copied items (e.g., “project1/folder2”).
         :type destination: str
 
         :param items: names of items to copy. If None, all items from the source directory will be copied.
         :type items: list of str
 
-        :param include_annotations: enables annotations copy
+        :param include_annotations: enables the copying of item data, including annotations, status, priority score,
+         approval state, and category. If set to False, only the items will be copied without additional data.
         :type include_annotations: bool
+
+        :param duplicate_strategy: Specifies the strategy for handling duplicate items in the destination.
+         The default value is "skip".
+
+            - "skip": skips duplicate items in the destination and continues with the next item.
+            - "replace": replaces the annotations, status, priority score, approval state, and category of duplicate items.
+            - "replace_annotations_only": replaces only the annotations of duplicate items,
+              leaving other data (status, priority score, approval state, and category) unchanged.
+
+        :type duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"]
 
         :return: list of skipped item names
         :rtype: list of strs
         """
+
+        if not include_annotations and duplicate_strategy != "skip":
+            duplicate_strategy = "skip"
+            logger.warning(
+                "Copy operation continuing without annotations and metadata due to include_annotations=False."
+            )
 
         project_name, source_folder = extract_project_folder(source)
         to_project_name, destination_folder = extract_project_folder(destination)
@@ -2960,6 +2983,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             to_folder=to_folder,
             item_names=items,
             include_annotations=include_annotations,
+            duplicate_strategy=duplicate_strategy,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2971,17 +2995,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         source: Union[NotEmptyStr, dict],
         destination: Union[NotEmptyStr, dict],
         items: Optional[List[NotEmptyStr]] = None,
+        duplicate_strategy: Literal[
+            "skip", "replace", "replace_annotations_only"
+        ] = "skip",
     ):
         """Move images in bulk between folders in a project
 
-        :param source: project name or folder path to pick items from (e.g., “project1/folder1”).
+        :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
         :type source: str
 
-        :param destination: project name (root) or folder path to move items to.
+        :param destination: project name (root) or folder path to move items to (e.g., “project1/folder2”).
         :type destination: str
 
         :param items: names of items to move. If None, all items from the source directory will be moved.
         :type items: list of str
+
+        :param duplicate_strategy: Specifies the strategy for handling duplicate items in the destination.
+         The default value is "skip".
+
+            - "skip": skips duplicate items in the destination and continues with the next item.
+            - "replace": replaces the annotations, status, priority score, approval state, and category of duplicate items.
+            - "replace_annotations_only": replaces only the annotations of duplicate items,
+              leaving other data (status, priority score, approval state, and category) unchanged.
+
+        :type duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"]
 
         :return: list of skipped item names
         :rtype: list of strs
@@ -3000,6 +3037,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             from_folder=source_folder,
             to_folder=destination_folder,
             item_names=items,
+            duplicate_strategy=duplicate_strategy,
         )
         if response.errors:
             raise AppException(response.errors)

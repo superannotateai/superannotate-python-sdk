@@ -91,7 +91,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
     def test_create_project_with_wrong_type(self):
         with self.assertRaisesRegexp(
             AppException,
-            "Available values are 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'PointCloud', 'GenAI'.",
+            "Available values are 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.",
         ):
             sa.create_project(self.PROJECT, "desc", "wrong_type")
 
