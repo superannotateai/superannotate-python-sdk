@@ -5,6 +5,19 @@ History
 =======
 
 All release highlights of this project will be documented in this file.
+
+4.4.26 - Oct 29, 2024
+________________________
+
+**Added**
+
+    - ``SAClient.copy_items/move_items`` method, added the ability to copy/move categories and duplicate strategies ("skip", "replace", "replace_annotations_only").
+**Updated**
+
+    - Fixed `SAClient.get_annotations() To handle annotations that contain all UTF-8 characters.`
+    - Renamed project type GenAI to Multimodal
+
+
 4.4.25 - Sep 30, 2024
 ________________________
 
