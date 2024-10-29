@@ -588,7 +588,12 @@ class CopyMoveItems(BaseReportableUseCase):
 
     def validate_item_names(self):
         if self._item_names:
+            provided_items_count = len(self._item_names)
             self._item_names = list(set(self._item_names))
+            if len(self._item_names) > provided_items_count:
+                self.reporter.log_info(
+                    f"Dropping duplicates. Found {len(self._item_names)}/{provided_items_count} unique items."
+                )
 
     def execute(self):
         if self.is_valid():
@@ -678,7 +683,7 @@ class CopyMoveItems(BaseReportableUseCase):
                 )
                 operation_processing_map = {"copy": "Copied", "move": "Moved"}
                 self.reporter.log_info(
-                    f"{operation_processing_map[self._operation]} {len(processed_items)}/{len(items_to_processing)} item(s) from "
+                    f"{operation_processing_map[self._operation]} {len(processed_items)}/{len(items)} item(s) from "
                     f"{self._project.name}{'' if self._from_folder.is_root else f'/{self._from_folder.name}'} to "
                     f"{self._project.name}{'' if self._to_folder.is_root else f'/{self._to_folder.name}'}"
                 )
