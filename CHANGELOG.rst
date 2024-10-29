@@ -18,7 +18,8 @@ ________________________
     - Renamed project type GenAI to Multimodal
 
 
-4.4.25 - Sep 30, 2024
+
+4.4.25 - Oct 7, 2024
 ________________________
 
 **Added**
