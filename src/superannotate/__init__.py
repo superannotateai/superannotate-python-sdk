@@ -15,9 +15,9 @@ from lib.core import PACKAGE_VERSION_UPGRADE
 from lib.core import PACKAGE_VERSION_INFO_MESSAGE
 from lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
 from lib.core.exceptions import AppException
-from lib.app.input_converters import convert_project_type
-from lib.app.input_converters import export_annotation
-from lib.app.input_converters import import_annotation
+from superannotate.lib.app.input_converters import convert_project_type
+from superannotate.lib.app.input_converters import export_annotation
+from superannotate.lib.app.input_converters import import_annotation
 from superannotate.lib.app.interface.sdk_interface import SAClient
 
 

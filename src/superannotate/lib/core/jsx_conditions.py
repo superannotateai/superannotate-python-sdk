@@ -54,6 +54,18 @@ class Filter(Query):
         self._operator = operator
         self.condition_set = [self]
 
+    @property
+    def key(self) -> str:
+        return self._key
+
+    @property
+    def operator(self) -> OperatorEnum:
+        return self._operator
+
+    @property
+    def value(self) -> Any:
+        return self._value
+
     def _build(self):
         if isinstance(self._value, (list, set, tuple)):
             return f"{self._key}||{self._operator.value}||{','.join(map(urllib.parse.quote, map(str, self._value)))}"
