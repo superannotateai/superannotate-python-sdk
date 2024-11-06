@@ -12,6 +12,7 @@ ________________________
 **Added**
 
     - ``SAClient.copy_items/move_items`` method, added the ability to copy/move categories and duplicate strategies ("skip", "replace", "replace_annotations_only").
+
 **Updated**
 
     - Fixed `SAClient.get_annotations() To handle annotations that contain all UTF-8 characters.`

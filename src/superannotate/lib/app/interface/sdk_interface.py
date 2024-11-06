@@ -2556,19 +2556,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             If recursive=False=True, then only the project name is required.
         :type project: str
 
-        :param name_contains:  Returns those items, where the given string is found anywhere within an item’s name.
+        :param name_contains:  returns those items, where the given string is found anywhere within an item’s name.
             If None, all items returned, in accordance with the recursive=False parameter.
         :type name_contains: str
 
-        :param annotation_status: if not None, filters items by annotation status. \n
-            Available statuses are::
+        :param annotation_status: returns items with the specified annotation status, which must match a predefined
+            status in the project workflow. If None, all items are returned.
 
-                     * NotStarted
-                     * InProgress
-                     * QualityCheck
-                     * Returned
-                     * Completed
-                     * Skipped
         :type annotation_status: str
 
         :param annotator_email: returns those items’ names that are assigned to the specified annotator.
@@ -3049,20 +3043,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_status: NotEmptyStr,
         items: Optional[List[NotEmptyStr]] = None,
     ):
-        """Sets annotation statuses of items
+        """Sets annotation statuses of items.
 
         :param project: project name or folder path (e.g., “project1/folder1”).
         :type project: str
 
-        :param annotation_status: annotation status to set. \n
-            Available statuses are::
-
-                 * NotStarted
-                 * InProgress
-                 * QualityCheck
-                 * Returned
-                 * Completed
-                 * Skipped
+        :param annotation_status: The desired status to set for the annotation.
+            This status should match one of the predefined statuses available in the project workflow.
         :type annotation_status: str
 
         :param items:  item names. If None, all the items in the specified directory will be used.
