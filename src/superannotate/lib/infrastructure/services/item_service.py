@@ -96,7 +96,7 @@ class ItemService(SuperannotateServiceProvider):
                 raise AppException("The filter is too complicated.")
             long_filter = long_filters[0]
             available_slots = available_slots - cumulative_length
-            values = long_filter.value
+            values = list(long_filter.value)
             results = []
             chunks = []
             current_chunk = []
@@ -110,6 +110,8 @@ class ItemService(SuperannotateServiceProvider):
                     chunks.append(current_chunk)
                     current_chunk = [val]
                     char_counter = len(val)
+            if current_chunk:
+                chunks.append(current_chunk)
             for chunk in chunks:
                 chunk_filter = Filter(long_filter.key, chunk, OperatorEnum.IN)
                 chunk_query = copy.deepcopy(base_filter) & chunk_filter
@@ -126,7 +128,7 @@ class ItemService(SuperannotateServiceProvider):
                 if not response.ok:
                     raise AppException(response.error)
                 results.extend(response.data)
-                return results
+            return results
         response = self.client.paginate(
             f"{base_uri}{query_string}",
             item_type=BaseItemEntity,

@@ -109,7 +109,7 @@ class TestAttachItemsVector(BaseTestCase):
         import time
 
         time.sleep(4)
-        items = sa.list_items(self.PROJECT_NAME)
+        items = sa.list_items(self.PROJECT_NAME, name__in=[i["name"] for i in csv_json])
 
         assert {i["name"] for i in items} == {i["name"] for i in csv_json}
 
