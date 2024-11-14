@@ -16,6 +16,7 @@ class TestVideo(BaseTestCase):
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_NAME = "new_folder"
     TEST_VIDEO_FOLDER_PATH = "data_set/sample_videos/single"
+    TEST_MULTIPLE_VIDEO_FOLDER_PATH = "data_set/sample_videos"
     TEST_VIDEO_FOLDER_PATH_BIG = "data_set/sample_videos/earth_video"
     TEST_VIDEO_NAME = "video.mp4"
     TEST_FOLDER_NAME_BIG_VIDEO = "big"
@@ -23,6 +24,12 @@ class TestVideo(BaseTestCase):
     @property
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_VIDEO_FOLDER_PATH)
+
+    @property
+    def folder_multiple_path(self):
+        return os.path.join(
+            dirname(dirname(__file__)), self.TEST_MULTIPLE_VIDEO_FOLDER_PATH
+        )
 
     @property
     def folder_path_big(self):
@@ -43,11 +50,23 @@ class TestVideo(BaseTestCase):
             for project in projects:
                 sa.delete_project(project)
 
+    def test_videos_upload_from_folder(self):
+        res = sa.upload_videos_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_multiple_path, target_fps=1
+        )
+        assert len(res) == 16
+
     def test_video_upload_from_folder(self):
-        sa.upload_videos_from_folder_to_project(
+        res = sa.upload_videos_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, target_fps=1
         )
-
+        assert res == [
+            "video_001.jpg",
+            "video_002.jpg",
+            "video_004.jpg",
+            "video_005.jpg",
+            "video_003.jpg",
+        ]
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         sa.upload_videos_from_folder_to_project(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}",
