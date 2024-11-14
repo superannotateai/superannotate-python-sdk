@@ -1,4 +1,6 @@
 import os
+import random
+import string
 from pathlib import Path
 from unittest import TestCase
 
@@ -88,6 +90,28 @@ class TestAttachItemsVector(BaseTestCase):
         self.assertRaises(
             Exception, sa.attach_items, self.PROJECT_NAME, self.scv_path_50k
         )
+
+    def test_long_names_limitation_pass(self):
+        csv_json = []
+        for _ in range(500):
+            csv_json.append(
+                {
+                    "name": "".join(
+                        random.choices(
+                            string.ascii_letters + string.digits,
+                            k=random.randint(100, 120),
+                        )
+                    ),
+                    "url": "dummy.url",
+                }
+            )
+        sa.attach_items(self.PROJECT_NAME, csv_json)
+        import time
+
+        time.sleep(4)
+        items = sa.list_items(self.PROJECT_NAME, name__in=[i["name"] for i in csv_json])
+
+        assert {i["name"] for i in items} == {i["name"] for i in csv_json}
 
 
 class TestAttachItemsVectorArguments(TestCase):

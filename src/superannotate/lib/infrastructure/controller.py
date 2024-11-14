@@ -493,12 +493,8 @@ class ItemManager(BaseManager):
     ) -> List[BaseItemEntity]:
 
         query = self._build_query(project, filters, include)
-        response = self.service_provider.item_service.list(project.id, folder.id, query)
-        if response.error:
-            raise AppException(response.error)
-        return self.process_response(
-            self.service_provider, response.data, project, folder
-        )
+        data = self.service_provider.item_service.list(project.id, folder.id, query)
+        return self.process_response(self.service_provider, data, project, folder)
 
     def attach(
         self,

@@ -334,14 +334,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         existing_items = []
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-            res = self._service_provider.item_service.list(
+            data = self._service_provider.item_service.list(
                 self._project.id,
                 self._folder.id,
                 Filter("name", items_to_check, OperatorEnum.IN),
             )
-            if not res.ok:
-                raise AppException(res.error)
-            existing_items.extend(res.data)
+            existing_items.extend(data)
         return existing_items
 
     async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
@@ -681,13 +679,12 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         existing_name_item_mapping = {}
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-            res = self._service_provider.item_service.list(
+            data = self._service_provider.item_service.list(
                 self._project.id,
                 self._folder.id,
                 Filter("name", items_to_check, OperatorEnum.IN),
             )
-            if res.ok:
-                existing_name_item_mapping.update({i.name: i for i in res.data})
+            existing_name_item_mapping.update({i.name: i for i in data})
         return existing_name_item_mapping
 
     @property
@@ -1593,30 +1590,27 @@ class GetAnnotations(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
+            items = []
             if self._items:
                 if isinstance(self._items[0], str):
                     items = []
                     for names in divide_to_chunks(self._items, 1000):
-                        response = self._service_provider.item_service.list(
+                        data = self._service_provider.item_service.list(
                             self._project.id,
                             self._folder.id,
                             Filter("name", names, OperatorEnum.IN),
                         )
-                        if not response.ok:
-                            raise AppException(response.error)
-                        items.extend(response.data)
+                        items.extend(data)
                 else:
                     items: List[BaseItemEntity] = []
                     for i in range(0, len(self._items), self.CHUNK_SIZE):
                         search_ids = self._items[i : i + self.CHUNK_SIZE]  # noqa
-                        response = self._service_provider.item_service.list(
+                        data = self._service_provider.item_service.list(
                             self._project.id,
                             None,
                             Filter("id", search_ids, OperatorEnum.IN),
                         )
-                        if not response.ok:
-                            raise AppException(response.error)
-                        items.extend(response.data)
+                        items.extend(data)
                     self._item_id_name_map = {i.id: i.name for i in items}
                 len_items, len_provided_items = len(items), len(self._items)
                 if len_items != len_provided_items:
@@ -1624,13 +1618,9 @@ class GetAnnotations(BaseReportableUseCase):
                         f"Could not find annotations for {len_provided_items - len_items}/{len_provided_items} items."
                     )
             elif self._items is None:
-                items = get_or_raise(
-                    self._service_provider.item_service.list(
-                        self._project.id, self._folder.id, EmptyQuery()
-                    )
+                items = self._service_provider.item_service.list(
+                    self._project.id, self._folder.id, EmptyQuery()
                 )
-            else:
-                items = []
             if not items:
                 logger.info("No annotations to download.")
                 self._response.data = []
@@ -1818,21 +1808,16 @@ class DownloadAnnotations(BaseReportableUseCase):
                 if self._item_names:
                     items = []
                     for chunk in divide_to_chunks(self._item_names, 500):
-                        response = self._service_provider.item_service.list(
+                        data = self._service_provider.item_service.list(
                             self._project.id,
                             folder.id,
                             Filter("name", chunk, OperatorEnum.IN),
                         )
-                        if response.error:
-                            raise AppException(response.error)
-                        items.extend(response.data)
+                        items.extend(data)
                 else:
-                    response = self._service_provider.item_service.list(
+                    items = self._service_provider.item_service.list(
                         self._project.id, folder.id, EmptyQuery()
                     )
-                    if not response.ok:
-                        raise AppException(response.error)
-                    items = response.data
                 if not items:
                     continue
                 new_export_path = self.destination

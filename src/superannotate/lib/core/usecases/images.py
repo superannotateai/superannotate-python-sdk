@@ -68,17 +68,14 @@ class GetImageUseCase(BaseUseCase):
         self._service_provider = service_provider
 
     def execute(self):
-        response = self._service_provider.item_service.list(
+        data = self._service_provider.item_service.list(
             self._project.id,
             self._folder.id,
             Filter("name", self._image_name, OperatorEnum.EQ),
         )
-        error = AppException("Image not found.")
-        if not response.ok:
-            raise error
-        image = next(iter(response.data), None)
-        if not image:
-            raise error
+        if not data:
+            raise AppException("Image not found.")
+        image = next(iter(data), None)
         self._response.data = image
         return self._response
 
@@ -125,14 +122,12 @@ class AttachFileUrlsUseCase(BaseUseCase):
         attachment_names = [image.name for image in self._attachments]
         duplications = []
         for names in divide_to_chunks(attachment_names, 500):
-            response = self._service_provider.item_service.list(
+            data = self._service_provider.item_service.list(
                 self._project.id,
                 self._folder.id,
                 Filter("name", names, OperatorEnum.IN),
             )
-            if not response.ok:
-                raise AppException(response.error)
-            duplications.extend([image.name for image in response.data])
+            duplications.extend([image.name for image in data])
         meta = {}
         to_upload = []
         for image in self._attachments:
@@ -810,7 +805,7 @@ class UploadImageToProject(BaseUseCase):
                 self._image_name if self._image_name else Path(self._image_path).name,
                 OperatorEnum.EQ,
             ),
-        ).data
+        )
         if image_entities:
             raise AppValidationException("Image with this name already exists.")
 
@@ -1040,7 +1035,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
 
         image_list = []
         for i in range(0, len(filtered_paths), CHUNK_SIZE):
-            response = self._service_provider.item_service.list(
+            data = self._service_provider.item_service.list(
                 self._project.id,
                 self._folder.id,
                 Filter(
@@ -1052,10 +1047,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     OperatorEnum.IN,
                 ),
             )
-
-            if not response.ok:
-                raise AppException(response.error)
-            image_list.extend([image.name for image in response.data])
+            image_list.extend([image.name for image in data])
 
         image_list = set(image_list)
         images_to_upload = []
@@ -1782,14 +1774,12 @@ class UploadVideosAsImages(BaseReportableUseCase):
                     )
                     duplicate_images = []
                     for names in divide_to_chunks(frame_names, 500):
-                        response = self._service_provider.item_service.list(
+                        _items = self._service_provider.item_service.list(
                             self._project.id,
                             self._folder.id,
                             Filter("name", names, OperatorEnum.IN),
                         )
-                        if not response.ok:
-                            raise AppException(response.error)
-                        duplicate_images.extend(response.data)
+                        duplicate_images.extend(_items)
                     duplicate_images = [image.name for image in duplicate_images]
                     frames_generator_use_case = ExtractFramesUseCase(
                         service_provider=self._service_provider,
@@ -1826,7 +1816,6 @@ class UploadVideosAsImages(BaseReportableUseCase):
                         )
                     if set(duplicate_images) == set(frame_names):
                         continue
-                    uploaded_paths = []
                     with Progress(
                         total_frames_count, f"Uploading {Path(path).name}"
                     ) as progress:
@@ -1849,7 +1838,7 @@ class UploadVideosAsImages(BaseReportableUseCase):
                                     progress.update()
 
                                 uploaded, failed_images, _ = use_case.response.data
-                                uploaded_paths.extend(uploaded)
+                                data.extend(uploaded)
                                 if failed_images:
                                     self.reporter.log_warning(
                                         f"Failed {len(failed_images)}."
@@ -1860,6 +1849,5 @@ class UploadVideosAsImages(BaseReportableUseCase):
                                     os.remove(image_path)
                             else:
                                 raise AppException(use_case.response.errors)
-                data.extend(uploaded_paths)
             self._response.data = data
         return self._response
