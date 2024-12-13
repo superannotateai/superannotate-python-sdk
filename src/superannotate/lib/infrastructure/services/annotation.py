@@ -30,7 +30,7 @@ logger = logging.getLogger("sa")
 
 
 class AnnotationService(BaseAnnotationService):
-    ASSETS_PROVIDER_VERSION = "v3.01"
+    ASSETS_PROVIDER_VERSION = "v4"
     DEFAULT_CHUNK_SIZE = 5000
 
     URL_GET_ANNOTATIONS = "items/annotations/download"
@@ -43,20 +43,21 @@ class AnnotationService(BaseAnnotationService):
     URL_START_FILE_SYNC = "items/{item_id}/annotations/sync"
     URL_START_FILE_SEND_PART = "items/{item_id}/annotations/upload/multipart/part"
     URL_DELETE_ANNOTATIONS = "annotations/remove"
+    URL_RETRIEVE_ANNOTATIONS = "items/{item_id}/annotations/download"
+    URL_SET_ITEM_ANNOTATIONS = "items/{item_id}/annotations/upload"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_ANNOTATION_SCHEMAS = "items/annotations/schema"
 
-    @property
-    def assets_provider_url(self):
-
+    def get_assets_provider_url(self, version: str = None):
+        if not version:
+            version = self.ASSETS_PROVIDER_VERSION
         if self.client.api_url != constants.BACKEND_URL:
-            return f"https://assets-provider.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
-            # return f"https://assets-provider-ed01.devsuperannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
-        return f"https://assets-provider.superannotate.com/api/{self.ASSETS_PROVIDER_VERSION}/"
+            return f"https://assets-provider.devsuperannotate.com/api/{version}/"
+        return f"https://assets-provider.superannotate.com/api/{version}/"
 
     def get_schema(self, project_type: int, version: str):
         return self.client.request(
-            urljoin(self.assets_provider_url, self.URL_ANNOTATION_SCHEMAS),
+            urljoin(self.get_assets_provider_url(), self.URL_ANNOTATION_SCHEMAS),
             "get",
             params={
                 "project_type": project_type,
@@ -75,7 +76,7 @@ class AnnotationService(BaseAnnotationService):
             "desired_source": "secondary",
         }
         sync_url = urljoin(
-            self.assets_provider_url,
+            self.get_assets_provider_url(),
             self.URL_START_FILE_SYNC.format(item_id=item_id),
         )
         async with AIOHttpSession(
@@ -89,7 +90,7 @@ class AnnotationService(BaseAnnotationService):
 
             synced = False
             sync_status_url = urljoin(
-                self.assets_provider_url,
+                self.get_assets_provider_url(),
                 self.URL_START_FILE_SYNC_STATUS.format(item_id=item_id),
             )
             while synced != "SUCCESS":
@@ -103,10 +104,11 @@ class AnnotationService(BaseAnnotationService):
         self,
         project: entities.ProjectEntity,
         item: entities.BaseItemEntity,
-        reporter: Reporter,
+        reporter: Reporter = None,
+        transform_version: str = None,
     ) -> dict:
         url = urljoin(
-            self.assets_provider_url,
+            self.get_assets_provider_url("v3.01"),
             self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item.id),
         )
 
@@ -116,6 +118,8 @@ class AnnotationService(BaseAnnotationService):
             "annotation_type": "MAIN",
             "version": "V1.00",
         }
+        if transform_version:
+            query_params["desired_transform_version"] = transform_version
 
         await self._sync_large_annotation(
             team_id=project.team_id, project_id=project.id, item_id=item.id
@@ -128,8 +132,8 @@ class AnnotationService(BaseAnnotationService):
         ) as session:
             start_response = await session.request("post", url, params=query_params)
             large_annotation = await start_response.json()
-
-        reporter.update_progress()
+        if reporter:
+            reporter.update_progress()
         return large_annotation
 
     async def list_small_annotations(
@@ -139,12 +143,15 @@ class AnnotationService(BaseAnnotationService):
         item_ids: List[int],
         reporter: Reporter,
         callback: Callable = None,
+        transform_version: str = None,
     ) -> List[dict]:
         query_params = {
             "team_id": project.team_id,
             "project_id": project.id,
             # "folder_id": folder.id,
         }
+        if transform_version is not None:
+            query_params["transform_version"] = transform_version
 
         handler = StreamedAnnotations(
             self.client.default_headers,
@@ -154,7 +161,7 @@ class AnnotationService(BaseAnnotationService):
         )
         return await handler.list_annotations(
             method="post",
-            url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+            url=urljoin(self.get_assets_provider_url(), self.URL_GET_ANNOTATIONS),
             data=item_ids,
             params=query_params,
         )
@@ -166,7 +173,7 @@ class AnnotationService(BaseAnnotationService):
     ) -> Dict[str, List]:
         response_data = {"small": [], "large": []}
         response = self.client.request(
-            url=urljoin(self.assets_provider_url, self.URL_CLASSIFY_ITEM_SIZE),
+            url=urljoin(self.get_assets_provider_url(), self.URL_CLASSIFY_ITEM_SIZE),
             method="POST",
             params={"limit": len(item_ids)},
             data={"project_id": project.id, "item_ids": item_ids},
@@ -196,7 +203,7 @@ class AnnotationService(BaseAnnotationService):
         }
 
         url = urljoin(
-            self.assets_provider_url,
+            self.get_assets_provider_url(),
             self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id),
         )
 
@@ -242,7 +249,7 @@ class AnnotationService(BaseAnnotationService):
 
         return await handler.download_annotations(
             method="post",
-            url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+            url=urljoin(self.get_assets_provider_url(), self.URL_GET_ANNOTATIONS),
             data=item_ids,
             params=query_params,
             download_path=download_path,
@@ -253,6 +260,7 @@ class AnnotationService(BaseAnnotationService):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         items_name_data_map: Dict[str, dict],
+        transform_version: str = None,
     ) -> UploadAnnotationsResponse:
         params = [
             ("team_id", project.team_id),
@@ -260,7 +268,9 @@ class AnnotationService(BaseAnnotationService):
             ("folder_id", folder.id),
             *[("image_names[]", item_name) for item_name in items_name_data_map.keys()],
         ]
-        url = urljoin(self.assets_provider_url, f"{self.URL_UPLOAD_ANNOTATIONS}")
+        if transform_version:
+            params.append(("transform_version", transform_version))
+        url = urljoin(self.get_assets_provider_url(), f"{self.URL_UPLOAD_ANNOTATIONS}")
         headers = copy.copy(self.client.default_headers)
         del headers["Content-Type"]
         async with AIOHttpSession(
@@ -305,6 +315,7 @@ class AnnotationService(BaseAnnotationService):
         item_id: int,
         data: io.StringIO,
         chunk_size: int,
+        transform_version: str = None,
     ) -> bool:
         async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
@@ -315,8 +326,10 @@ class AnnotationService(BaseAnnotationService):
                 "project_id": project.id,
                 "folder_id": folder.id,
             }
+            if transform_version:
+                params["desired_transform_version"] = transform_version
             url = urljoin(
-                self.assets_provider_url,
+                self.get_assets_provider_url("v3.01"),
                 self.URL_START_FILE_UPLOAD_PROCESS.format(item_id=item_id),
             )
             start_response = await session.request("post", url, params=params)
@@ -336,7 +349,7 @@ class AnnotationService(BaseAnnotationService):
                     response = await session.request(
                         "post",
                         urljoin(
-                            self.assets_provider_url,
+                            self.get_assets_provider_url(),
                             self.URL_START_FILE_SEND_PART.format(item_id=item_id),
                         ),
                         params=params,
@@ -354,7 +367,7 @@ class AnnotationService(BaseAnnotationService):
             response = await session.request(
                 "post",
                 urljoin(
-                    self.assets_provider_url,
+                    self.get_assets_provider_url(),
                     self.URL_START_FILE_SEND_FINISH.format(item_id=item_id),
                 ),
                 headers=headers,
@@ -366,7 +379,7 @@ class AnnotationService(BaseAnnotationService):
             response = await session.request(
                 "post",
                 urljoin(
-                    self.assets_provider_url,
+                    self.get_assets_provider_url(),
                     self.URL_START_FILE_SYNC.format(item_id=item_id),
                 ),
                 params=params,
@@ -378,7 +391,7 @@ class AnnotationService(BaseAnnotationService):
                 response = await session.request(
                     "get",
                     urljoin(
-                        self.assets_provider_url,
+                        self.get_assets_provider_url(),
                         self.URL_START_FILE_SYNC_STATUS.format(item_id=item_id),
                     ),
                     params=params,
@@ -417,3 +430,55 @@ class AnnotationService(BaseAnnotationService):
             "get",
             params={"project_id": project.id, "poll_id": poll_id},
         )
+
+    def get_item_annotations(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_id: int,
+        transform_version: str = "llmJsonV2",
+    ):
+        response = self.client.request(
+            urljoin(
+                self.get_assets_provider_url(),
+                self.URL_RETRIEVE_ANNOTATIONS.format(item_id=item_id),
+            ),
+            "get",
+            params={
+                "project_id": project.id,
+                "folder_id": folder.id,
+                "project_type": project.type.value,
+                "transform_version": transform_version,
+            },
+        )
+        return response
+
+    def set_item_annotations(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_id: int,
+        data: dict,
+        overwrite: bool,
+        transform_version: str = "llmJsonV2",
+        etag: str = None,
+    ):
+        params = {
+            "project_id": project.id,
+            "folder_id": folder.id,
+            "project_type": project.type.value,
+            "transform_version": transform_version,
+            "overwrite": overwrite,
+        }
+        if etag:
+            params["etag"] = etag
+        response = self.client.request(
+            urljoin(
+                self.get_assets_provider_url(),
+                self.URL_SET_ITEM_ANNOTATIONS.format(item_id=item_id),
+            ),
+            "put",
+            params=params,
+            data=data,
+        )
+        return response

@@ -1,0 +1,76 @@
+[
+  {
+    "createdAt": "2024-02-13T11:58:31.000Z",
+    "updatedAt": "2024-02-13T11:58:31.000Z",
+    "type": "object",
+    "name": "component_id_0",
+    "color": "#2D1C8F",
+    "attribute_groups": [
+      {
+        "createdAt": "2024-02-13T11:58:31.000Z",
+        "updatedAt": "2024-02-13T11:58:31.000Z",
+        "group_type": "checklist",
+        "name": "value_component_id_0",
+        "attributes": [
+          {
+            "createdAt": "2024-02-13T11:58:31.000Z",
+            "updatedAt": "2024-02-13T11:58:31.000Z",
+            "name": "Partially complete, needs review",
+            "default": 0
+          },
+          {
+            "createdAt": "2024-02-13T11:58:31.000Z",
+            "updatedAt": "2024-02-13T11:58:31.000Z",
+            "name": "Incomplete",
+            "default": 0
+          },
+          {
+            "createdAt": "2024-02-13T11:58:31.000Z",
+            "updatedAt": "2024-02-13T11:58:31.000Z",
+            "name": "Complete",
+            "default": 0
+          },
+          {
+            "createdAt": "2024-02-13T11:58:31.000Z",
+            "updatedAt": "2024-02-13T11:58:31.000Z",
+            "name": "4",
+            "default": 0
+          }
+        ],
+        "default_value": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2024-02-05T07:48:23.000Z",
+    "updatedAt": "2024-02-05T07:48:23.000Z",
+    "type": "object",
+    "name": "component_id_2",
+    "color": "#F4E1C2",
+    "attribute_groups": [
+      {
+        "createdAt": "2024-02-05T07:48:23.000Z",
+        "updatedAt": "2024-02-05T07:48:23.000Z",
+        "group_type": "numeric",
+        "name": "value_component_id_2",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2024-02-05T07:48:23.000Z",
+    "updatedAt": "2024-02-05T07:48:23.000Z",
+    "type": "object",
+    "name": "component_id_1",
+    "color": "#AC40F2",
+    "attribute_groups": [
+      {
+        "createdAt": "2024-02-05T07:48:23.000Z",
+        "updatedAt": "2024-02-05T07:48:23.000Z",
+        "group_type": "text",
+        "name": "value_component_id_1",
+        "attributes": []
+      }
+    ]
+  }
+]

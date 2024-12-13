@@ -31,6 +31,7 @@ from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
+from lib.core.exceptions import FileChangedError
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import Join
@@ -651,12 +652,52 @@ class AnnotationManager(BaseManager):
         super().__init__(service_provider)
         self._config = config
 
+    def set_item_annotations(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item_id: int,
+        data: dict,
+        overwrite: bool,
+        transform_version: str = "llmJsonV2",
+        etag: str = None,
+    ):
+        response = self.service_provider.annotations.set_item_annotations(
+            project, folder, item_id, data, overwrite, transform_version, etag
+        )
+        if not response.ok:
+            if response.status_code == 412 and any(
+                True for i in response.error if i["code"] == "PRECONDITION_FAILED"
+            ):
+                raise FileChangedError(
+                    "The file has changed and overwrite is set to False."
+                )
+        response.raise_for_status()
+        return response.data
+
+    def get_item_annotations(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item_id: int,
+        transform_version: str = "llmJsonV2",
+    ):
+        response = self.service_provider.annotations.get_item_annotations(
+            project, folder, item_id, transform_version
+        )
+        if not response.ok:
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+        return response
+
     def list(
         self,
         project: ProjectEntity,
         folder: FolderEntity = None,
         items: Union[List[str], List[int]] = None,
         verbose=True,
+        transform_version: str = None,
     ):
         use_case = usecases.GetAnnotations(
             config=self._config,
@@ -665,6 +706,7 @@ class AnnotationManager(BaseManager):
             folder=folder,
             items=items,
             service_provider=self.service_provider,
+            transform_version=transform_version,
         )
         return use_case.execute()
 
@@ -727,6 +769,7 @@ class AnnotationManager(BaseManager):
         annotations: List[dict],
         keep_status: bool,
         user: UserEntity,
+        transform_version: str = None,
     ):
         use_case = usecases.UploadAnnotationsUseCase(
             reporter=Reporter(),
@@ -736,6 +779,7 @@ class AnnotationManager(BaseManager):
             service_provider=self.service_provider,
             keep_status=keep_status,
             user=user,
+            transform_version=transform_version,
         )
         return use_case.execute()
 
@@ -937,6 +981,10 @@ class BaseController(metaclass=ABCMeta):
         self.custom_fields = CustomFieldManager(self.service_provider)
         self.subsets = SubsetManager(self.service_provider)
         self.integrations = IntegrationManager(self.service_provider)
+
+    @property
+    def reporter(self):
+        return self._reporter
 
     @property
     def org_id(self):

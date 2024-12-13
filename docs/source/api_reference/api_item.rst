@@ -8,6 +8,7 @@ Items
 .. automethod:: superannotate.SAClient.list_items
 .. automethod:: superannotate.SAClient.search_items
 .. automethod:: superannotate.SAClient.attach_items
+.. automethod:: superannotate.SAClient.item_context
 .. automethod:: superannotate.SAClient.copy_items
 .. automethod:: superannotate.SAClient.move_items
 .. automethod:: superannotate.SAClient.delete_items
