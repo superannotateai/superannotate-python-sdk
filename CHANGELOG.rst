@@ -8,9 +8,9 @@ All release highlights of this project will be documented in this file.
 
 4.4.28 - Dec 13, 2024
 ________________________
-**Fixed**
+**Added**
 
-    - ``SAClient.item_context`` creates an “ItemContext” for managing item annotations and metadata..
+    - ``SAClient.item_context`` creates an “ItemContext” for managing item annotations and metadata.
 
 4.4.27 - Nov 14, 2024
 ________________________
