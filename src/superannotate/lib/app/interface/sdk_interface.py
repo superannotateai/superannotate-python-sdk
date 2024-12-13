@@ -3661,44 +3661,46 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         **Examples:**
 
         Create an `ItemContext` using a string path and item name:
-        ```python
-        with client.item_context("project_name/folder_name", "item_name") as item_context:
-            metadata = item_context.get_metadata()
-            value = item_context.get_component_value("prompts")
-            item_context.set_component_value("prompts", value)
-        ```
+
+        .. code-block:: python
+
+            with client.item_context("project_name/folder_name", "item_name") as item_context:
+                metadata = item_context.get_metadata()
+                value = item_context.get_component_value("prompts")
+                item_context.set_component_value("prompts", value)
 
         Create an `ItemContext` using a tuple of strings and an item ID:
-        ```python
-        with client.item_context(("project_name", "folder_name"), 12345) as context:
-            metadata = context.get_metadata()
-            print(metadata)
-        ```
+
+        .. code-block:: python
+
+            with client.item_context(("project_name", "folder_name"), 12345) as context:
+                metadata = context.get_metadata()
+                print(metadata)
 
         Create an `ItemContext` using a tuple of IDs and an item name:
-        ```python
-        with client.item_context((101, 202), "item_name") as context:
-            value = context.get_component_value("component_id")
-            print(value)
-        ```
+
+        .. code-block:: python
+            with client.item_context((101, 202), "item_name") as context:
+                value = context.get_component_value("component_id")
+                print(value)
 
         Save annotations automatically after modifying component values:
-        ```python
-        with client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
-            context.set_component_value("component_id", "new_value")
-        # No need to call .save(), changes are saved automatically on context exit.
-        ```
+
+        .. code-block:: python
+            with client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
+                context.set_component_value("component_id", "new_value")
+            # No need to call .save(), changes are saved automatically on context exit.
 
         Handle exceptions during context execution:
-        ```python
-        from superannotate import FileChangedError
 
-        try:
-            with client.item_context((101, 202), "item_name") as context:
-                context.set_component_value("component_id", "new_value")
-        except FileChangedError as e:
-            print(f"An error occurred: {e}")
-        ```
+        .. code-block:: python
+            from superannotate import FileChangedError
+
+            try:
+                with client.item_context((101, 202), "item_name") as context:
+                    context.set_component_value("component_id", "new_value")
+            except FileChangedError as e:
+                print(f"An error occurred: {e}")
         """
         if isinstance(path, str):
             project, folder = self.controller.get_project_folder_by_path(path)
