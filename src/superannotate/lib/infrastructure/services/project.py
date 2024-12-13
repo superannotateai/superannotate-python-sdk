@@ -20,6 +20,7 @@ class ProjectService(BaseProjectService):
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
     URL_GET_BY_ID = "api/v1/project/{project_id}"
+    URL_EDITOR_TEMPLATE = "/project/{project_id}/custom-editor-template"
 
     def get_by_id(self, project_id: int):
         params = {}
@@ -35,6 +36,28 @@ class ProjectService(BaseProjectService):
         entity.team_id = self.client.team_id
         return self.client.request(
             self.URL, "post", data=entity, content_type=ProjectResponse
+        )
+
+    def attach_editor_template(
+        self, team: entities.TeamEntity, project: entities.ProjectEntity, template: dict
+    ) -> dict:
+        url = self.URL_EDITOR_TEMPLATE.format(project_id=project.id)
+        params = {
+            "organization_id": team.owner_id,
+        }
+        return self.client.request(
+            url, "post", data=template, content_type=ServiceResponse, params=params
+        )
+
+    def get_editor_template(
+        self, team: entities.TeamEntity, project: entities.ProjectEntity
+    ) -> bool:
+        url = self.URL_EDITOR_TEMPLATE.format(project_id=project.id)
+        params = {
+            "organization_id": team.owner_id,
+        }
+        return self.client.request(
+            url, "get", content_type=ServiceResponse, params=params
         )
 
     def list(self, condition: Condition = None):

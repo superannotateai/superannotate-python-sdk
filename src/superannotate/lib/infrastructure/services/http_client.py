@@ -279,14 +279,15 @@ class AIOHttpSession(aiohttp.ClientSession):
                             f"Got {response.status} response from backend: {txt}"
                         )
                     return response
-                if isinstance(kwargs["data"], aiohttp.FormData):
+                if "data" in kwargs and isinstance(kwargs["data"], aiohttp.FormData):
                     raise RuntimeError(await response.text())
             except (aiohttp.ClientError, RuntimeError) as e:
                 logger.debug(f"AsyncClient got {str(e)} response from backend")
                 if attempts <= 1:
                     raise
-                data = kwargs["data"]
-                if isinstance(data, aiohttp.FormData):
-                    kwargs["data"] = self._copy_form_data(data)
+                if "data" in kwargs:
+                    data = kwargs["data"]
+                    if isinstance(data, aiohttp.FormData):
+                        kwargs["data"] = self._copy_form_data(data)
             attempts -= 1
             await asyncio.sleep(delay)

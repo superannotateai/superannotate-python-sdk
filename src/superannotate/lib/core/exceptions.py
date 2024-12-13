@@ -35,3 +35,9 @@ class PathError(AppException):
     """
     User input Error
     """
+
+
+class FileChangedError(AppException):
+    """
+    User input Error
+    """

@@ -178,6 +178,7 @@ PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "UploadFileType",
     "Tokenization",
     "ImageAutoAssignEnable",
+    "TemplateState",
 ]
 
 __alL__ = (
