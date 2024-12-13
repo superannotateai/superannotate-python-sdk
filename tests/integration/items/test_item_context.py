@@ -48,23 +48,18 @@ class TestMultimodalProjectBasic(BaseTestCase):
 
     def _base_test(self, path, item):
         with sa.item_context(path, item, overwrite=True) as ic:
-            print(1111111)
             ic.set_component_value("component_id_1", None)
         with sa.item_context(path, item, overwrite=False) as ic:
-            print(222222)
             assert ic.get_component_value("component_id_1") is None
-            print(333333)
             ic.set_component_value("component_id_1", "value")
         with self.assertRaisesRegexp(
             FileChangedError, "The file has changed and overwrite is set to False."
         ):
             with sa.item_context(path, item, overwrite=False) as ic:
-                print(4444444)
                 assert ic.get_component_value("component_id_1") == "value"
                 sa.item_context(path, item, overwrite=True).set_component_value(
                     "component_id_1", "to crash"
                 ).save()
-                print(555555)
                 ic.set_component_value("component_id_1", "value")
 
     def test_overwrite_false(self):
@@ -72,24 +67,24 @@ class TestMultimodalProjectBasic(BaseTestCase):
         self._attach_item(self.PROJECT_NAME, "dummy")
         time.sleep(2)
         self._base_test(self.PROJECT_NAME, "dummy")
-        #
-        # folder = sa.create_folder(self.PROJECT_NAME, folder_name="folder")
-        # # test from folder by project and folder names
-        # time.sleep(2)
-        # path = f"{self.PROJECT_NAME}/folder"
-        # self._attach_item(path, "dummy")
-        # self._base_test(path, "dummy")
-        #
-        # # test from folder by project and folder names as tuple
-        # path = (self.PROJECT_NAME, 'folder')
-        # self._base_test(path, "dummy")
-        #
-        # # test from folder by project and folder ids as tuple item name as dict
-        # self._base_test((self._project['id'], folder['id']), "dummy")
-        #
-        # # test from folder by project and folder ids as tuple and item id
-        # item = sa.search_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
-        # self._base_test((self._project['id'], folder['id']), item['id'])
+
+        folder = sa.create_folder(self.PROJECT_NAME, folder_name="folder")
+        # test from folder by project and folder names
+        time.sleep(2)
+        path = f"{self.PROJECT_NAME}/folder"
+        self._attach_item(path, "dummy")
+        self._base_test(path, "dummy")
+
+        # test from folder by project and folder names as tuple
+        path = (self.PROJECT_NAME, "folder")
+        self._base_test(path, "dummy")
+
+        # test from folder by project and folder ids as tuple item name as dict
+        self._base_test((self._project["id"], folder["id"]), "dummy")
+
+        # test from folder by project and folder ids as tuple and item id
+        item = sa.search_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
+        self._base_test((self._project["id"], folder["id"]), item["id"])
 
 
 def test_():

@@ -3632,13 +3632,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         overwrite: bool = True,
     ) -> ItemContext:
         """
-        Creates an `ItemContext` instance for managing item annotations and metadata.
+        Creates an “ItemContext” for managing item annotations and metadata.
 
-        The function retrieves the specified project and folder based on the given `path`
-        (can be a string path or a tuple of project and folder names/IDs) and locates the
-        item by name or ID. It then returns an `ItemContext` object to handle the annotations
-        of the specified item. Changes to annotations are automatically saved upon exiting
-        the context.
+        This function allows you to manage annotations and metadata for an item located within a
+        specified project and folder. The path to the item can be provided either as a string or a tuple,
+        and you can specify the item using its name or ID.
+        It returns an “ItemContext” that automatically saves any changes to annotations when the context is exited.
 
         :param path: Specifies the project and folder containing the item. Can be one of:
             - A string path, e.g., "project_name/folder_name".
@@ -3649,7 +3648,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param item: The name or ID of the item for which the context is being created.
         :type item: Union[str, int]
 
-        :param overwrite: If `True`, annotations are overwritten during saving. Defaults to `True`.
+        :param overwrite: If `True`, annotations are overwritten during saving. Defaults is `True`.
             If `False`, raises a `FileChangedError` if the item was modified concurrently.
         :type overwrite: bool
 
@@ -3680,6 +3679,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Create an `ItemContext` using a tuple of IDs and an item name:
 
         .. code-block:: python
+
             with client.item_context((101, 202), "item_name") as context:
                 value = context.get_component_value("component_id")
                 print(value)
@@ -3687,6 +3687,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Save annotations automatically after modifying component values:
 
         .. code-block:: python
+
             with client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
                 context.set_component_value("component_id", "new_value")
             # No need to call .save(), changes are saved automatically on context exit.
@@ -3694,6 +3695,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Handle exceptions during context execution:
 
         .. code-block:: python
+
             from superannotate import FileChangedError
 
             try:
