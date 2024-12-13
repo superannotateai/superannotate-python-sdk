@@ -114,6 +114,10 @@ class ServiceResponse(BaseModel):
             return 199 < self.status < 300
         return False
 
+    def raise_for_status(self):
+        if not self.ok:
+            raise AppException(self.error)
+
     @property
     def error(self):
         if self.res_error:

@@ -1,0 +1,62 @@
+{
+  "components": [
+    {
+      "id": "component_id_0",
+      "type": "select",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "Select",
+      "isRequired": false,
+      "value": [],
+      "options": [
+        {
+          "value": "Partially complete, needs review",
+          "checked": false
+        },
+        {
+          "value": "Incomplete",
+          "checked": false
+        },
+        {
+          "value": "Complete",
+          "checked": false
+        },
+        {
+          "value": "4",
+          "checked": false
+        }
+      ],
+      "exclude": false,
+      "isMultiselect": true,
+      "placeholder": "Select"
+    },
+    {
+      "id": "component_id_1",
+      "type": "input",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "Text input",
+      "placeholder": "Placeholder",
+      "isRequired": false,
+      "value": "",
+      "min": 0,
+      "max": 300,
+      "exclude": false
+    },
+    {
+      "id": "component_id_2",
+      "type": "number",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "Number",
+      "exclude": false,
+      "isRequired": false,
+      "value": null,
+      "min": null,
+      "max": null,
+      "step": 1
+    }
+  ],
+  "code": "from typing import List, Union\n# import requests.asyncs as requests\nimport requests\nimport sa\n\nnumber_component_id_2 = ['component_id_2']\nselect_component_id_0 = ['component_id_0']\ninput_component_id_1 = ['component_id_1']\n\ndef before_save_hook(old_status: str, new_status: str) -> bool:\n    # Your code goes here\n    return\n\ndef on_saved_hook():\n    # Your code goes here\n    return\n\ndef before_status_change_hook(old_status: str, new_status: str) -> bool:\n    # Your code goes here\n    return\n\ndef on_status_changed_hook(old_status: str, new_status: str):\n    # Your code goes here\n    return\n\ndef post_hook():\n    # Your code goes here\n    return\n\ndef on_component_id_2_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_component_id_0_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_component_id_1_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n",
+  "environments": []
+}

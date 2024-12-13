@@ -98,6 +98,18 @@ class BaseProjectService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def attach_editor_template(
+        self, team: entities.TeamEntity, project: entities.ProjectEntity, template: dict
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_editor_template(
+        self, team: entities.TeamEntity, project: entities.ProjectEntity
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def list(self, condition: Condition = None) -> ProjectListResponse:
         raise NotImplementedError
 
@@ -346,6 +358,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         item: entities.BaseItemEntity,
         reporter: Reporter,
+        transform_version: str = None,
     ) -> dict:
         raise NotImplementedError
 
@@ -357,6 +370,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         item_ids: List[int],
         reporter: Reporter,
         callback: Callable = None,
+        transform_version: str = None,
     ) -> List[dict]:
         raise NotImplementedError
 
@@ -396,6 +410,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         items_name_data_map: Dict[str, dict],
+        transform_version: str = None,
     ) -> UploadAnnotationsResponse:
         raise NotImplementedError
 
@@ -407,6 +422,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         item_id: int,
         data: io.StringIO,
         chunk_size: int,
+        transform_version: str = None,
     ) -> bool:
         raise NotImplementedError
 
@@ -427,6 +443,29 @@ class BaseAnnotationService(SuperannotateServiceProvider):
 
     @abstractmethod
     def get_schema(self, project_type: int, version: str) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_item_annotations(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_id: int,
+        transform_version: str = "llmJsonV2",
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_item_annotations(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity,
+        item_id: int,
+        data: dict,
+        overwrite: bool,
+        transform_version: str = "llmJsonV2",
+        etag: str = None,
+    ) -> ServiceResponse:
         raise NotImplementedError
 
 

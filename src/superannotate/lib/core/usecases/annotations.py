@@ -9,12 +9,10 @@ import platform
 import re
 import time
 import traceback
-import typing
 from dataclasses import dataclass
 from itertools import islice
 from operator import itemgetter
 from pathlib import Path
-from threading import Thread
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -48,6 +46,7 @@ from lib.core.serviceproviders import ServiceResponse
 from lib.core.serviceproviders import UploadAnnotationsResponse
 from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
+from lib.core.utils import run_async
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
 
@@ -64,51 +63,6 @@ if platform.system().lower() == "windows":
 BIG_FILE_THRESHOLD = 15 * 1024 * 1024
 ANNOTATION_CHUNK_SIZE_MB = 10 * 1024 * 1024
 URI_THRESHOLD = 4 * 1024 - 120
-
-
-class AsyncThread(Thread):
-    def __init__(
-        self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None
-    ):
-        super().__init__(
-            group=group,
-            target=target,
-            name=name,
-            args=args,
-            kwargs=kwargs,
-            daemon=daemon,
-        )
-        self._exc = None
-        self._response = None
-
-    @property
-    def response(self):
-        return self._response
-
-    def run(self):
-        try:
-            self._response = super().run()
-        except BaseException as e:
-            self._exc = e
-
-    def join(self, timeout=None) -> typing.Any:
-        Thread.join(self, timeout=timeout)
-        if self._exc:
-            raise self._exc
-        return self._response
-
-
-def run_async(f):
-    response = [None]
-
-    def wrapper(func: typing.Callable):
-        response[0] = asyncio.run(func)  # noqa
-        return response[0]
-
-    thread = AsyncThread(target=wrapper, args=(f,))
-    thread.start()
-    thread.join()
-    return response[0]
 
 
 @dataclass
@@ -188,6 +142,7 @@ async def upload_small_annotations(
     reporter: Reporter,
     report: Report,
     callback: Callable = None,
+    transform_version: str = None,
 ):
     async def upload(_chunk: List[ItemToUpload]):
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
@@ -204,6 +159,7 @@ async def upload_small_annotations(
                 project=project,
                 folder=folder,
                 items_name_data_map=items_name_data_map,
+                transform_version=transform_version,
             )
             if response.ok:
                 if response.data.failed_items:  # noqa
@@ -304,6 +260,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         service_provider: BaseServiceProvider,
         user: UserEntity,
         keep_status: bool = False,
+        transform_version: str = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -313,6 +270,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._keep_status = keep_status
         self._report = Report([], [], [], [])
         self._user = user
+        self._transform_version = transform_version
 
     def validate_project_type(self):
         if self._project.type == constants.ProjectType.PIXEL.value:
@@ -420,6 +378,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 service_provider=self._service_provider,
                 reporter=self.reporter,
                 report=self._report,
+                transform_version=self._transform_version,
             )
         )
 
@@ -1474,6 +1433,7 @@ class GetAnnotations(BaseReportableUseCase):
         service_provider: BaseServiceProvider,
         folder: FolderEntity = None,
         items: Optional[Union[List[str], List[int]]] = None,
+        transform_version: str = None,
     ):
         super().__init__(reporter)
         self._config = config
@@ -1484,6 +1444,7 @@ class GetAnnotations(BaseReportableUseCase):
         self._item_id_name_map = {}
         self._item_names_provided = True
         self._big_annotations_queue = None
+        self._transform_version = transform_version
 
     def validate_project_type(self):
         if self._project.type == constants.ProjectType.PIXEL.value:
@@ -1548,6 +1509,7 @@ class GetAnnotations(BaseReportableUseCase):
             folder=self._folder,
             item_ids=item_ids,
             reporter=self.reporter,
+            transform_version=self._transform_version,
         )
 
     async def run_workers(

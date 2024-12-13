@@ -28,11 +28,13 @@ import boto3
 from tqdm import tqdm
 
 import lib.core as constants
+from lib.infrastructure.controller import Controller
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
 from lib.app.helpers import wrap_error as wrap_validation_errors
 from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
+
 from lib.app.interface.types import EmailStr
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import FolderSerializer
@@ -45,7 +47,7 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
 from lib.core.jsx_conditions import Filter, OperatorEnum
 from lib.core.conditions import EmptyCondition
-from lib.core.entities import AttachmentEntity
+from lib.core.entities import AttachmentEntity, FolderEntity, BaseItemEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
@@ -61,6 +63,9 @@ from lib.core.pydantic_v1 import ValidationError
 from lib.core.pydantic_v1 import constr
 from lib.core.pydantic_v1 import conlist
 from lib.core.pydantic_v1 import parse_obj_as
+from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
+from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
+from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 
@@ -68,7 +73,6 @@ logger = logging.getLogger("sa")
 
 # NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 NotEmptyStr = constr(strict=True, min_length=1)
-
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
@@ -81,7 +85,6 @@ PROJECT_TYPE = Literal[
     "PointCloud",
     "Multimodal",
 ]
-
 
 APPROVAL_STATUS = Literal["Approved", "Disapproved", None]
 
@@ -108,6 +111,87 @@ class Attachment(TypedDict, total=False):
     url: Required[str]  # noqa
     name: NotRequired[str]  # noqa
     integration: NotRequired[str]  # noqa
+
+
+class ItemContext:
+    def __init__(
+        self,
+        controller: Controller,
+        project: Project,
+        folder: FolderEntity,
+        item: BaseItemEntity,
+        overwrite: bool = True,
+    ):
+        self.controller = controller
+        self.project = project
+        self.folder = folder
+        self.item = item
+        self._annotation_adapter: Optional[BaseMultimodalAnnotationAdapter] = None
+        self._overwrite = overwrite
+        self._annotation = None
+
+    def _set_small_annotation_adapter(self, annotation: dict = None):
+        self._annotation_adapter = MultimodalSmallAnnotationAdapter(
+            project=self.project,
+            folder=self.folder,
+            item=self.item,
+            controller=self.controller,
+            overwrite=self._overwrite,
+            annotation=annotation,
+        )
+
+    def _set_large_annotation_adapter(self, annotation: dict = None):
+        self._annotation_adapter = MultimodalLargeAnnotationAdapter(
+            project=self.project,
+            folder=self.folder,
+            item=self.item,
+            controller=self.controller,
+            annotation=annotation,
+        )
+
+    @property
+    def annotation_adapter(self) -> BaseMultimodalAnnotationAdapter:
+        if self._annotation_adapter is None:
+            res = self.controller.service_provider.annotations.get_upload_chunks(
+                project=self.project, item_ids=[self.item.id]
+            )
+            small_item = next(iter(res["small"]), None)
+            if small_item:
+                self._set_small_annotation_adapter()
+            else:
+                self._set_large_annotation_adapter()
+        return self._annotation_adapter
+
+    @property
+    def annotation(self):
+        return self.annotation_adapter.annotation
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            return False
+
+        self.save()
+        return True
+
+    def save(self):
+        if len(json.dumps(self.annotation).encode("utf-8")) > 16 * 1024 * 1024:
+            self._set_large_annotation_adapter(self.annotation)
+        else:
+            self._set_small_annotation_adapter(self.annotation)
+        self._annotation_adapter.save()
+
+    def get_metadata(self):
+        return self.annotation["metadata"]
+
+    def get_component_value(self, component_id: str):
+        return self.annotation_adapter.get_component_value(component_id)
+
+    def set_component_value(self, component_id: str, value: Any):
+        self.annotation_adapter.set_component_value(component_id, value)
+        return self
 
 
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
@@ -3540,3 +3624,115 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
+
+    def item_context(
+        self,
+        path: Union[str, Tuple[NotEmptyStr, NotEmptyStr], Tuple[int, int]],
+        item: Union[NotEmptyStr, int],
+        overwrite: bool = True,
+    ) -> ItemContext:
+        """
+        Creates an “ItemContext” for managing item annotations and metadata.
+
+        This function allows you to manage annotations and metadata for an item located within a
+        specified project and folder. The path to the item can be provided either as a string or a tuple,
+        and you can specify the item using its name or ID.
+        It returns an “ItemContext” that automatically saves any changes to annotations when the context is exited.
+
+        :param path: Specifies the project and folder containing the item. Can be one of:
+            - A string path, e.g., "project_name/folder_name".
+            - A tuple of strings, e.g., ("project_name", "folder_name").
+            - A tuple of integers (IDs), e.g., (project_id, folder_id).
+        :type path: Union[str, Tuple[str, str], Tuple[int, int]]
+
+        :param item: The name or ID of the item for which the context is being created.
+        :type item: Union[str, int]
+
+        :param overwrite: If `True`, annotations are overwritten during saving. Defaults is `True`.
+            If `False`, raises a `FileChangedError` if the item was modified concurrently.
+        :type overwrite: bool
+
+        :raises AppException: If the provided `path` is invalid or if the item cannot be located.
+
+        :return: An `ItemContext` object to manage the specified item's annotations and metadata.
+        :rtype: ItemContext
+
+        **Examples:**
+
+        Create an `ItemContext` using a string path and item name:
+
+        .. code-block:: python
+
+            with client.item_context("project_name/folder_name", "item_name") as item_context:
+                metadata = item_context.get_metadata()
+                value = item_context.get_component_value("prompts")
+                item_context.set_component_value("prompts", value)
+
+        Create an `ItemContext` using a tuple of strings and an item ID:
+
+        .. code-block:: python
+
+            with client.item_context(("project_name", "folder_name"), 12345) as context:
+                metadata = context.get_metadata()
+                print(metadata)
+
+        Create an `ItemContext` using a tuple of IDs and an item name:
+
+        .. code-block:: python
+
+            with client.item_context((101, 202), "item_name") as context:
+                value = context.get_component_value("component_id")
+                print(value)
+
+        Save annotations automatically after modifying component values:
+
+        .. code-block:: python
+
+            with client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
+                context.set_component_value("component_id", "new_value")
+            # No need to call .save(), changes are saved automatically on context exit.
+
+        Handle exceptions during context execution:
+
+        .. code-block:: python
+
+            from superannotate import FileChangedError
+
+            try:
+                with client.item_context((101, 202), "item_name") as context:
+                    context.set_component_value("component_id", "new_value")
+            except FileChangedError as e:
+                print(f"An error occurred: {e}")
+        """
+        if isinstance(path, str):
+            project, folder = self.controller.get_project_folder_by_path(path)
+        elif len(path) == 2 and all([isinstance(i, str) for i in path]):
+            project = self.controller.get_project(path[0])
+            folder = self.controller.get_folder(project, path[1])
+        elif len(path) == 2 and all([isinstance(i, int) for i in path]):
+            project = self.controller.get_project_by_id(path[0]).data
+            folder = self.controller.get_folder_by_id(path[1], project.id).data
+        else:
+            raise AppException("Invalid path provided.")
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+        if isinstance(item, int):
+            _item = self.controller.get_item_by_id(item_id=item, project=project)
+        else:
+            items = self.controller.items.list_items(project, folder, name=item)
+            if not items:
+                raise AppException("Item not found.")
+            _item = items[0]
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                f"The function is not supported for {project.type.name} projects."
+            )
+        return ItemContext(
+            controller=self.controller,
+            project=project,
+            folder=folder,
+            item=_item,
+            overwrite=overwrite,
+        )

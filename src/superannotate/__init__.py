@@ -3,7 +3,7 @@ import os
 import sys
 
 
-__version__ = "4.4.27"
+__version__ = "4.4.28dev1"
 
 os.environ.update({"sa_version": __version__})
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
@@ -15,6 +15,7 @@ from lib.core import PACKAGE_VERSION_UPGRADE
 from lib.core import PACKAGE_VERSION_INFO_MESSAGE
 from lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
 from lib.core.exceptions import AppException
+from lib.core.exceptions import FileChangedError
 from superannotate.lib.app.input_converters import convert_project_type
 from superannotate.lib.app.input_converters import export_annotation
 from superannotate.lib.app.input_converters import import_annotation
@@ -30,6 +31,7 @@ __all__ = [
     # Utils
     "enums",
     "AppException",
+    "FileChangedError",
     "import_annotation",
     "export_annotation",
     "convert_project_type",
