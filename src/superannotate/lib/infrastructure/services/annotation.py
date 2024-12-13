@@ -203,7 +203,7 @@ class AnnotationService(BaseAnnotationService):
         }
 
         url = urljoin(
-            self.get_assets_provider_url(),
+            self.get_assets_provider_url("v3.01"),
             self.URL_DOWNLOAD_LARGE_ANNOTATION.format(item_id=item_id),
         )
 

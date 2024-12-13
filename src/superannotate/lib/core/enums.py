@@ -175,6 +175,7 @@ class IntegrationTypeEnum(BaseTitledEnum):
     AZURE = "azure", 3
     CUSTOM = "custom", 4
     DATABRICKS = "databricks", 5
+    SNOWFLAKE = "snowflake", 6
 
 
 class TrainingStatus(BaseTitledEnum):
