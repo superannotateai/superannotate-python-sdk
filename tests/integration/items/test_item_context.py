@@ -85,18 +85,3 @@ class TestMultimodalProjectBasic(BaseTestCase):
         # test from folder by project and folder ids as tuple and item id
         item = sa.search_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
         self._base_test((self._project["id"], folder["id"]), item["id"])
-
-
-def test_():
-    p_name = "gg"
-    i_name = "ii"
-    sa.delete_items(p_name)
-    sa.attach_items(p_name, [{"name": i_name, "url": "url"}])
-    size_in_mb = 16
-    bytes_per_mb = 1048576
-    size_in_bytes = size_in_mb * bytes_per_mb
-    with sa.item_context(p_name, i_name, overwrite=True) as ic:
-        ic.set_component_value("component_id_1", "A" * size_in_bytes)
-
-    with sa.item_context(p_name, i_name, overwrite=True) as ic:
-        assert len(ic.get_component_value("component_id_1")) == size_in_bytes

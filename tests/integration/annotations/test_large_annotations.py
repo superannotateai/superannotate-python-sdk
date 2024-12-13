@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -7,6 +8,9 @@ from src.superannotate import SAClient
 from src.superannotate.lib.app.helpers import get_annotation_paths
 from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 sa = SAClient()
 

@@ -3714,6 +3714,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder = self.controller.get_folder_by_id(path[1], project.id).data
         else:
             raise AppException("Invalid path provided.")
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
         if isinstance(item, int):
             _item = self.controller.get_item_by_id(item_id=item, project=project)
         else:
