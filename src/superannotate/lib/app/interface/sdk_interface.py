@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import sys
+import typing
 import warnings
 from pathlib import Path
 from typing import Any
@@ -276,6 +277,55 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         response = self.controller.get_team()
         return TeamSerializer(response.data).serialize()
+
+    def get_editor_context(self, project: Union[NotEmptyStr, int], component_id: str):
+        """
+        Retrieves the editor context for a given project and component ID.
+
+        :param project: The identifier of the project, which can be a string or an integer representing the project ID.
+        :type project: Union[str, int]
+
+        :param component_id: The ID of the component for which the context is to be retrieved.
+        :type component_id: str
+
+        :return: The context associated with the `webComponent`.
+        :rtype: Any
+
+        :raises AppException: If the project type is not `MULTIMODAL` or no `webComponent` context is found.
+        """
+
+        def retrieve_context(
+            component_data: List[dict], component_pk: str
+        ) -> Tuple[bool, typing.Any]:
+            for component in component_data:
+                if (
+                    component["type"] == "webComponent"
+                    and component["id"] == component_pk
+                ):
+                    return True, component.get("context")
+                if component["type"] == "group" and "children" in component:
+                    found, val = retrieve_context(component["children"], component_pk)
+                    if found:
+                        return found, val
+            return False, None
+
+        project = (
+            self.controller.get_project(project)
+            if isinstance(project, int)
+            else self.controller.get_project_by_id(project)
+        )
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+
+        editor_template = self.controller.projects.get_editor_template(project)
+        components = editor_template.get("components", [])
+
+        _found, _context = retrieve_context(components, component_id)
+        if not _found:
+            raise AppException("No component context found for project.")
+        return _context
 
     def search_team_contributors(
         self,
