@@ -88,6 +88,10 @@ class BaseManager:
 
 
 class ProjectManager(BaseManager):
+    def __init__(self, service_provider: ServiceProvider, team: TeamEntity):
+        super().__init__(service_provider)
+        self._team = team
+
     def get_by_id(self, project_id):
         use_case = usecases.GetProjectByIDUseCase(
             project_id=project_id, service_provider=self.service_provider
@@ -238,6 +242,13 @@ class ProjectManager(BaseManager):
             project_folder_name=project_folder_name,
         )
         return use_case.execute()
+
+    def get_editor_template(self, project: ProjectEntity) -> dict:
+        response = self.service_provider.projects.get_editor_template(
+            team=self._team, project=project
+        )
+        response.raise_for_status()
+        return response.data
 
 
 class AnnotationClassManager(BaseManager):
@@ -974,7 +985,7 @@ class BaseController(metaclass=ABCMeta):
         self._user = self.get_current_user()
         self._team = self.get_team().data
         self.annotation_classes = AnnotationClassManager(self.service_provider)
-        self.projects = ProjectManager(self.service_provider)
+        self.projects = ProjectManager(self.service_provider, team=self._team)
         self.folders = FolderManager(self.service_provider)
         self.items = ItemManager(self.service_provider)
         self.annotations = AnnotationManager(self.service_provider, config)
