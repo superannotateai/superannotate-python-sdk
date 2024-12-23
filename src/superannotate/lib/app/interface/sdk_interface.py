@@ -310,9 +310,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             return False, None
 
         project = (
-            self.controller.get_project(project)
+            self.controller.get_project_by_id(project).data
             if isinstance(project, int)
-            else self.controller.get_project_by_id(project)
+            else self.controller.get_project(project)
         )
         if project.type != ProjectType.MULTIMODAL:
             raise AppException(
@@ -2926,7 +2926,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project=project, item_ids=[i.id for i in res]
             )
             for i in res:
-                i["custom_metadata"] = item_custom_fields[i.id]
+                i.custom_metadata = item_custom_fields[i.id]
         exclude = {"meta", "annotator_email", "qa_email"}
         if include:
             if "custom_metadata" not in include:

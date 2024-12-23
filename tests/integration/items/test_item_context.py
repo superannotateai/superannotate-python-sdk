@@ -85,3 +85,42 @@ class TestMultimodalProjectBasic(BaseTestCase):
         # test from folder by project and folder ids as tuple and item id
         item = sa.search_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
         self._base_test((self._project["id"], folder["id"]), item["id"])
+
+
+class TestEditorContext(BaseTestCase):
+    PROJECT_NAME = "TestEditorContext"
+    PROJECT_TYPE = "Multimodal"
+    PROJECT_DESCRIPTION = "DESCRIPTION"
+    COMPONENT_ID = "web_1"
+    EDITOR_TEMPLATE_PATH = os.path.join(
+        Path(__file__).parent.parent.parent,
+        "data_set/sample_llm_editor_context/form.json",
+    )
+
+    def setUp(self, *args, **kwargs):
+
+        self._project = sa.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
+            settings=[{"attribute": "TemplateState", "value": 1}],
+        )
+        team = sa.controller.team
+        project = sa.controller.get_project(self.PROJECT_NAME)
+        time.sleep(10)
+        with open(self.EDITOR_TEMPLATE_PATH) as f:
+            res = sa.controller.service_provider.projects.attach_editor_template(
+                team, project, template=json.load(f)
+            )
+            assert res.ok
+        ...
+
+    def tearDown(self) -> None:
+        try:
+            sa.delete_project(self.PROJECT_NAME)
+        except Exception:
+            ...
+
+    def test_(self):
+        val = sa.get_editor_context(self.PROJECT_NAME, self.COMPONENT_ID)
+        assert val == "12121121212"

@@ -1,0 +1,21 @@
+{
+  "components": [
+    {
+      "id": "web_1",
+      "type": "webComponent",
+      "permissions": [],
+      "hasTooltip": false,
+      "exclude": true,
+      "value": "",
+      "code": "<!-- V11 -->\n<!DOCTYPE html>\n<html lang=\"en\">\n\n<head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Custom Component</title>\n</head>\n<body>\n    <div id=\"saContainer\"></div>\n\n    <script>\n        const containerEl = document.getElementById(\"saContainer\");\n        let contextValue = window.SA_CONTEXT;\n        if (window.IS_BUILDER && window.IS_CONFIG_MODE) {\n            const contextValueEl = document.createElement(\"input\");\n            contextValueEl.setAttribute(\"type\", \"text\");\n            contextValueEl.value = contextValue;\n            contextValueEl.setAttribute(\"id\", \"contextValue\");\n\n            const setContextBtn = document.createElement(\"button\");\n            setContextBtn.innerHTML = \"Set Context\";\n            setContextBtn.setAttribute(\"id\", \"setContextBtn\");\n            \n            containerEl.appendChild(contextValueEl);\n            containerEl.appendChild(setContextBtn);\n\n            setContextBtn.addEventListener(\"click\", async () => {\n                const value = contextValueEl.value;\n                console.log(\"> > > > \", value)\n                await window.SA.setContext(value);\n            });\n        } else {\n            containerEl.innerHTML = `Contect value: ${contextValue}`;\n        }\n    </script>\n</body>\n\n</html>",
+      "context": "\"12121121212\""
+    }
+  ],
+  "code": [
+    [
+      "__init__",
+      "from typing import List, Union\n# import requests.asyncs as requests\nimport requests\nimport sa\n\nwebComponent_web_1 = ['web_1']\n\ndef before_save_hook(old_status: str, new_status: str) -> bool:\n    # Your code goes here\n    return\n\ndef on_saved_hook():\n    # Your code goes here\n    return\n\ndef before_status_change_hook(old_status: str, new_status: str) -> bool:\n    # Your code goes here\n    return\n\ndef on_status_changed_hook(old_status: str, new_status: str):\n    # Your code goes here\n    return\n\ndef post_hook():\n    # Your code goes here\n    return\n\ndef on_session_start():\n    # Your code goes here\n    return\n\ndef on_session_end():\n    # Your code goes here\n    return\n\ndef on_web_1_message(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_web_1_wcevent(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n"
+    ]
+  ],
+  "environments": []
+}
