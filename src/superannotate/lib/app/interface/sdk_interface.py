@@ -2750,7 +2750,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ]
         """
         project, folder = self.controller.get_project_folder_by_path(project)
-        query_kwargs = {}
+        query_kwargs = {"include": ["assignments"]}
         if name_contains:
             query_kwargs["name__contains"] = name_contains
         if annotation_status:
@@ -2768,7 +2768,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     f"{project.name}{f'/{folder.name}' if not folder.is_root else ''}"
                 )
                 _items = self.controller.items.list_items(
-                    project, folder, **query_kwargs
+                    project,
+                    folder,
+                    **query_kwargs,
                 )
                 for i in _items:
                     i.path = path
@@ -2914,7 +2916,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 ).data
             else:
                 folder = self.controller.get_folder(project, folder)
-        include = include or []
+        _include = {"assignments"}
+        if include:
+            _include.update(set(include))
+        include = list(_include)
         include_custom_metadata = "custom_metadata" in include
         if include_custom_metadata:
             include.remove("custom_metadata")

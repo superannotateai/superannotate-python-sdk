@@ -53,7 +53,6 @@ class ItemService(SuperannotateServiceProvider):
 
     def list(self, project_id: int, folder_id: Optional[int], query: Query):
         query &= Join("metadata", ["path"])
-        query &= Join("assignments")
         entity_context = [
             f'"team_id":{self.client.team_id}',
             f'"project_id":{project_id}',
