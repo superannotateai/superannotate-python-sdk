@@ -278,9 +278,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.get_team()
         return TeamSerializer(response.data).serialize()
 
-    def get_editor_context(self, project: Union[NotEmptyStr, int], component_id: str):
+    def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
-        Retrieves the editor context for a given project and component ID.
+        Retrieves the configuration for a given project and component ID.
 
         :param project: The identifier of the project, which can be a string or an integer representing the project ID.
         :type project: Union[str, int]
