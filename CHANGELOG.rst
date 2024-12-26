@@ -6,6 +6,12 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.29 - Dec 26, 2024
+________________________
+**Added**
+
+    - ``SAClient.get_component_config`` Retrieves the configuration for a given project and component ID.
+
 4.4.28 - Dec 13, 2024
 ________________________
 **Added**
@@ -31,8 +37,6 @@ ________________________
     - Fixed `SAClient.get_annotations() To handle annotations that contain all UTF-8 characters.`
     - Renamed project type GenAI to Multimodal
 
-
-
 4.4.25 - Oct 7, 2024
 ________________________
 
@@ -54,7 +58,6 @@ ________________________
 
 4.4.24 - July 2, 2024
 _______________________
-
 
 **Removed**
 

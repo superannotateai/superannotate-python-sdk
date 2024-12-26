@@ -14,7 +14,7 @@ from superannotate import AppException
 
 
 class ItemService(SuperannotateServiceProvider):
-    MAX_URI_LENGTH = 16_000
+    MAX_URI_LENGTH = 15_000
     URL_LIST = "items"
     URL_GET = "items/{item_id}"
 
@@ -103,13 +103,14 @@ class ItemService(SuperannotateServiceProvider):
             char_counter = 0
             while values:
                 val = values.pop()
-                if char_counter + len(val) < available_slots:
+                _len = len(str(val)) + 1  # computing ,
+                if char_counter + _len < available_slots:
                     current_chunk.append(val)
-                    char_counter += len(val)
+                    char_counter += _len
                 else:
                     chunks.append(current_chunk)
                     current_chunk = [val]
-                    char_counter = len(val)
+                    char_counter = _len
             if current_chunk:
                 chunks.append(current_chunk)
             for chunk in chunks:

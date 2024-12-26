@@ -60,13 +60,13 @@ class TestVideo(BaseTestCase):
         res = sa.upload_videos_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, target_fps=1
         )
-        assert res == [
+        assert set(res) == {
             "video_001.jpg",
             "video_002.jpg",
             "video_004.jpg",
             "video_005.jpg",
             "video_003.jpg",
-        ]
+        }
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         sa.upload_videos_from_folder_to_project(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}",

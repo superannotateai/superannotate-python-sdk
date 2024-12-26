@@ -26,3 +26,4 @@ Projects
 .. automethod:: superannotate.SAClient.get_project_steps
 .. automethod:: superannotate.SAClient.set_project_workflow
 .. automethod:: superannotate.SAClient.get_project_workflow
+.. automethod:: superannotate.SAClient.get_component_config
