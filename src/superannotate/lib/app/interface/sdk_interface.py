@@ -764,6 +764,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         include_workflow: Optional[bool] = False,
         include_contributors: Optional[bool] = False,
         include_complete_item_count: Optional[bool] = False,
+        include_custom_fields: Optional[bool] = False,
     ):
         """Returns project metadata
 
@@ -789,6 +790,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                  the key "completed_items_count"
         :type include_complete_item_count: bool
 
+        :param include_custom_fields: include custom fields that have been created for the project.
+        :type include_custom_fields: bool
+
         :return: metadata of project
         :rtype: dict
         """
@@ -807,6 +811,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_settings,
             include_contributors,
             include_complete_item_count,
+            include_custom_fields,
         )
         if response.errors:
             raise AppException(response.errors)

@@ -1,6 +1,7 @@
 import decimal
 import logging
 from collections import defaultdict
+from datetime import datetime
 from typing import List
 
 import lib.core as constances
@@ -107,6 +108,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         include_settings: bool,
         include_contributors: bool,
         include_complete_image_count: bool,
+        include_custom_fields: bool,
     ):
         super().__init__()
         self._project = project
@@ -116,6 +118,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         self._include_settings = include_settings
         self._include_contributors = include_contributors
         self._include_complete_image_count = include_complete_image_count
+        self._include_custom_fields = include_custom_fields
 
     def execute(self):
         project = self._service_provider.projects.get_by_id(self._project.id).data
@@ -149,6 +152,40 @@ class GetProjectMetaDataUseCase(BaseUseCase):
             project.contributors = project.users
         else:
             project.users = []
+        if self._include_custom_fields:
+            custom_field_templates = (
+                self._service_provider.work_management.list_custom_field_templates(
+                    project_id=self._project.id
+                )
+            )
+            custom_fields_id_template_map = {
+                str(i["id"]): i for i in custom_field_templates.data["data"]
+            }
+            project_custom_entities = (
+                self._service_provider.work_management.list_project_custom_entities(
+                    project_id=self._project.id
+                )
+            )
+            project_custom_fields = project_custom_entities.data["customField"]
+            if project_custom_fields:
+                custom_fields_id_value_map = project_custom_fields[
+                    "custom_field_values"
+                ]
+                custom_fields_name_value_map = {}
+                for k, t in custom_fields_id_template_map.items():
+                    field_value = (
+                        custom_fields_id_value_map[k]
+                        if k in custom_fields_id_value_map.keys()
+                        else None
+                    )
+
+                    # handle the Date Picker case: Convert the timestamp to date string (e.g., Dec 20, 2024)
+                    if field_value and t["component_id"] == 4:
+                        field_value = datetime.fromtimestamp(
+                            field_value / 1000
+                        ).strftime("%b %d, %Y")
+                    custom_fields_name_value_map[t["name"]] = field_value
+                project.custom_fields = custom_fields_name_value_map
         self._response.data = project
         return self._response
 

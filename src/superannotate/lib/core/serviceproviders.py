@@ -87,6 +87,14 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def list_workflow_roles(self, project_id: int, workflow_id: int):
         raise NotImplementedError
 
+    @abstractmethod
+    def list_custom_field_templates(self, project_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_project_custom_entities(self, project_id: int):
+        raise NotImplementedError
+
 
 class BaseProjectService(SuperannotateServiceProvider):
     @abstractmethod

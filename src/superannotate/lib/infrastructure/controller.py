@@ -115,6 +115,7 @@ class ProjectManager(BaseManager):
         include_settings: bool = False,
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
+        include_custom_fields: bool = False,
     ):
         use_case = usecases.GetProjectMetaDataUseCase(
             project=project,
@@ -123,6 +124,7 @@ class ProjectManager(BaseManager):
             include_settings=include_settings,
             include_contributors=include_contributors,
             include_complete_image_count=include_complete_image_count,
+            include_custom_fields=include_custom_fields,
         )
         return use_case.execute()
 

@@ -15,6 +15,8 @@ class WorkManagementService(BaseWorkManagementService):
     URL_LIST_ROLES = "workflows/{workflow_id}/workflowroles"
     URL_CREATE_ROLE = "roles"
     URL_CREATE_STATUS = "statuses"
+    URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
+    URL_PROJECT_CUSTOM_ENTITIES = "customentities/{project_id}"
 
     def get_workflow(self, pk: int) -> WorkflowEntity:
         response = self.list_workflows(Filter("id", pk, OperatorEnum.EQ))
@@ -94,4 +96,38 @@ class WorkManagementService(BaseWorkManagementService):
                 ).decode()
             },
             data=data,
+        )
+
+    def list_custom_field_templates(self, project_id: int):
+        return self.client.request(
+            url=self.URL_CUSTOM_FIELD_TEMPLATES,
+            method="get",
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},"project_id":{project_id}}}'.encode(
+                        "utf-8"
+                    )
+                ).decode()
+            },
+            params={
+                "entity": "Project",
+                "parentEntity": "Team",
+            },
+        )
+
+    def list_project_custom_entities(self, project_id: int):
+        return self.client.request(
+            url=self.URL_PROJECT_CUSTOM_ENTITIES.format(project_id=project_id),
+            method="get",
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},"project_id":{project_id}}}'.encode(
+                        "utf-8"
+                    )
+                ).decode()
+            },
+            params={
+                "entity": "Project",
+                "parentEntity": "Team",
+            },
         )
