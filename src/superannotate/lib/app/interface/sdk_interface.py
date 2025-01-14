@@ -303,7 +303,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     and component["id"] == component_pk
                 ):
                     return True, component.get("context")
-                if component["type"] == "group" and "children" in component:
+                if component["type"] in ("group", "grid") and "children" in component:
                     found, val = retrieve_context(component["children"], component_pk)
                     if found:
                         return found, val
