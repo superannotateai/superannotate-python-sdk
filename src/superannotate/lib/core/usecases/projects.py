@@ -2,6 +2,7 @@ import decimal
 import logging
 from collections import defaultdict
 from datetime import datetime
+from typing import Any
 from typing import List
 
 import lib.core as constances
@@ -161,16 +162,17 @@ class GetProjectMetaDataUseCase(BaseUseCase):
             custom_fields_id_template_map = {
                 str(i["id"]): i for i in custom_field_templates.data["data"]
             }
-            project_custom_entities = (
-                self._service_provider.work_management.list_project_custom_entities(
-                    project_id=self._project.id
+            if custom_fields_id_template_map:
+                project_custom_fields = (
+                    self._service_provider.work_management.list_project_custom_entities(
+                        project_id=self._project.id
+                    )
+                ).data["customField"]
+                custom_fields_id_value_map = (
+                    project_custom_fields["custom_field_values"]
+                    if project_custom_fields
+                    else {}
                 )
-            )
-            project_custom_fields = project_custom_entities.data["customField"]
-            if project_custom_fields:
-                custom_fields_id_value_map = project_custom_fields[
-                    "custom_field_values"
-                ]
                 custom_fields_name_value_map = {}
                 for k, t in custom_fields_id_template_map.items():
                     field_value = (
@@ -178,7 +180,6 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                         if k in custom_fields_id_value_map.keys()
                         else None
                     )
-
                     # handle the Date Picker case: Convert the timestamp to date string (e.g., Dec 20, 2024)
                     if field_value and t["component_id"] == 4:
                         field_value = datetime.fromtimestamp(
@@ -188,6 +189,41 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 project.custom_fields = custom_fields_name_value_map
         self._response.data = project
         return self._response
+
+
+class SetProjectCustomFieldUseCase(BaseUseCase):
+    def __init__(
+        self,
+        project: ProjectEntity,
+        service_provider: BaseServiceProvider,
+        custom_field_name: str,
+        value: Any,
+    ):
+        super().__init__()
+        self._project = project
+        self._service_provider = service_provider
+        self._custom_field_name = custom_field_name
+        self._value = value
+
+    def execute(self):
+        custom_field_templates = (
+            self._service_provider.work_management.list_custom_field_templates(
+                project_id=self._project.id
+            )
+        )
+        custom_fields_name_template_map = {
+            i["name"]: i for i in custom_field_templates.data["data"]
+        }
+        if self._custom_field_name not in custom_fields_name_template_map.keys():
+            raise AppException("Invalid custom field name provided.")
+        custom_template_id = custom_fields_name_template_map[self._custom_field_name][
+            "id"
+        ]
+        patch_data = {custom_template_id: self._value}
+        # TODO add error handling
+        self._service_provider.work_management.set_project_custom_field_value(
+            project_id=self._project.id, data=patch_data
+        )
 
 
 class CreateProjectUseCase(BaseUseCase):

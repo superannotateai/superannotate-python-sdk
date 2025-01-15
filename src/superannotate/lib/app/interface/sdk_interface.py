@@ -946,6 +946,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(f"Failed to change {project.name} status.")
         logger.info(f"Successfully updated {project.name} status to {status}")
 
+    def set_project_custom_field(
+        self, project: Union[NotEmptyStr, int], custom_field_name: str, value: Any
+    ):
+        """Sets or updates the value of a custom field for a specified project.
+
+        :param project: The name or ID of the project for which the custom field should be set or updated.
+        :type project: str or int
+
+        :param custom_field_name: The name of the custom field to update or set.
+         This field must already exist for the project.
+        :type custom_field_name: str
+
+        :param value: The value assigned to the custom field, with the type depending on the field's configuration.
+        :type value: Any
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.projects.set_project_custom_field(
+            project, custom_field_name, value
+        )
+
     def set_folder_status(
         self, project: NotEmptyStr, folder: NotEmptyStr, status: FOLDER_STATUS
     ):

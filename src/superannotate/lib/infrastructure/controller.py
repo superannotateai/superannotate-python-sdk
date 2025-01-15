@@ -3,6 +3,7 @@ import logging
 import os
 from abc import ABCMeta
 from pathlib import Path
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -125,6 +126,17 @@ class ProjectManager(BaseManager):
             include_contributors=include_contributors,
             include_complete_image_count=include_complete_image_count,
             include_custom_fields=include_custom_fields,
+        )
+        return use_case.execute()
+
+    def set_project_custom_field(
+        self, project: ProjectEntity, custom_field_name: str, value: Any
+    ):
+        use_case = usecases.SetProjectCustomFieldUseCase(
+            project=project,
+            service_provider=self.service_provider,
+            custom_field_name=custom_field_name,
+            value=value,
         )
         return use_case.execute()
 

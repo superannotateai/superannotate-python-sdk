@@ -131,3 +131,21 @@ class WorkManagementService(BaseWorkManagementService):
                 "parentEntity": "Team",
             },
         )
+
+    def set_project_custom_field_value(self, project_id: int, data: dict):
+        return self.client.request(
+            url=self.URL_PROJECT_CUSTOM_ENTITIES.format(project_id=project_id),
+            method="patch",
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id},"project_id":{project_id}}}'.encode(
+                        "utf-8"
+                    )
+                ).decode()
+            },
+            data={"customField": {"custom_field_values": data}},
+            params={
+                "entity": "Project",
+                "parentEntity": "Team",
+            },
+        )
