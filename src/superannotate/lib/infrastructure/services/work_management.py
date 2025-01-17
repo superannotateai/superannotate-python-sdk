@@ -8,6 +8,8 @@ from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
+from lib.core.service_types import ListCategoryResponse
+from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseWorkManagementService
 
 
@@ -26,7 +28,7 @@ class WorkManagementService(BaseWorkManagementService):
         encoded_context = base64.b64encode(json.dumps(kwargs).encode("utf-8"))
         return encoded_context.decode("utf-8")
 
-    def list_project_categories(self, project_id: int) -> List[CategoryEntity]:
+    def list_project_categories(self, project_id: int) -> ListCategoryResponse:
         return self.client.paginate(
             self.URL_LIST_CATEGORIES,
             item_type=CategoryEntity,
@@ -39,15 +41,21 @@ class WorkManagementService(BaseWorkManagementService):
         )
 
     def create_project_categories(
-        self, project_id: int, categories: List[CategoryEntity]
-    ):
+        self, project_id: int, categories: List[str]
+    ) -> ServiceResponse:
         response = self.client.request(
-            "post",
+            method="post",
             url=self.URL_CREATE_CATEGORIES,
-            pararms={"project_id": project_id},
-            data={"bulk": [i["name"] for i in categories]},
+            params={"project_id": project_id},
+            data={"bulk": [{"name": i} for i in categories]},
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
         )
         response.raise_for_status()
+        return response
 
     def get_workflow(self, pk: int) -> WorkflowEntity:
         response = self.list_workflows(Filter("id", pk, OperatorEnum.EQ))

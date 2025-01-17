@@ -179,6 +179,7 @@ PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "Tokenization",
     "ImageAutoAssignEnable",
     "TemplateState",
+    "CategorizeItems",
 ]
 
 __alL__ = (

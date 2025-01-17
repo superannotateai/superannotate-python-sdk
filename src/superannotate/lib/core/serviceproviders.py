@@ -9,13 +9,13 @@ from typing import Literal
 
 from lib.core import entities
 from lib.core.conditions import Condition
-from lib.core.entities import CategoryEntity
 from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
 from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
+from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
@@ -89,13 +89,13 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def list_project_categories(self, project_id: int) -> List[entities.CategoryEntity]:
+    def list_project_categories(self, project_id: int) -> ListCategoryResponse:
         raise NotImplementedError
 
     @abstractmethod
     def create_project_categories(
-        self, project_id: int, categories: List[CategoryEntity]
-    ):
+        self, project_id: int, categories: List[str]
+    ) -> ServiceResponse:
         raise NotImplementedError
 
 
@@ -362,7 +362,9 @@ class BaseItemService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def bulk_attach_categories(self, project_id: int, folder_id: int, item_category_map: Dict[int, int]) -> bool:
+    def bulk_attach_categories(
+        self, project_id: int, folder_id: int, item_category_map: Dict[int, int]
+    ) -> bool:
         raise NotImplementedError
 
 

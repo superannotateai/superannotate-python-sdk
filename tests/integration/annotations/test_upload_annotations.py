@@ -143,6 +143,9 @@ class MultiModalUploadAnnotations(BaseTestCase):
     JSONL_ANNOTATIONS_PATH = os.path.join(
         DATA_SET_PATH, "multimodal/annotations/jsonl/form1.jsonl"
     )
+    JSONL_ANNOTATIONS_WITH_CATEGORIES_PATH = os.path.join(
+        DATA_SET_PATH, "multimodal/annotations/jsonl/form1_with_categories.jsonl"
+    )
     CLASSES_TEMPLATE_PATH = os.path.join(
         Path(__file__).parent.parent.parent,
         "data_set/editor_templates/from1_classes.json",
@@ -154,10 +157,13 @@ class MultiModalUploadAnnotations(BaseTestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             "Multimodal",
-            settings=[{"attribute": "TemplateState", "value": 1}],
+            settings=[
+                {"attribute": "CategorizeItems", "value": 1},
+                {"attribute": "TemplateState", "value": 1},
+            ],
         )
         project = sa.controller.get_project(self.PROJECT_NAME)
-        time.sleep(5)
+        time.sleep(2)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 sa.controller.team, project, template=json.load(f)
@@ -195,3 +201,10 @@ class MultiModalUploadAnnotations(BaseTestCase):
                 "You can't include a folder when uploading from within a folder.",
             ):
                 sa.upload_annotations(f"{self.PROJECT_NAME}/tmp", annotations=data)
+
+    def test_upload_with_categories(self):
+        with open(self.JSONL_ANNOTATIONS_WITH_CATEGORIES_PATH) as f:
+            data = [json.loads(line) for line in f]
+            sa.upload_annotations(f"{self.PROJECT_NAME}", annotations=data)
+            annotations = sa.get_annotations(f"{self.PROJECT_NAME}/test_folder")
+            assert len(annotations) == 3

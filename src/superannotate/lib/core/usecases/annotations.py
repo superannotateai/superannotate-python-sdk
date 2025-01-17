@@ -10,6 +10,7 @@ import re
 import time
 import traceback
 from collections import defaultdict
+from contextlib import suppress
 from dataclasses import dataclass
 from itertools import islice
 from operator import itemgetter
@@ -1846,6 +1847,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         self._transform_version = (
             "llmJsonV2" if transform_version is None else transform_version
         )
+        self._category_name_to_id_map = {}
 
     @property
     def files_queue(self):
@@ -1994,11 +1996,12 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
+            # TODO check categories status in the project
+            skip_categorization = False
             serialized_original_folder_map = {}
             failed, skipped, uploaded = [], [], []
-            distributed_items: Dict[str, Dict[str, Any]] = defaultdict(
-                dict
-            )  # folder_id -> item_name -> annotation
+            # folder_id -> item_name -> annotation
+            distributed_items: Dict[str, Dict[str, Any]] = defaultdict(dict)
             valid_items_count = 0
             for annotation in self._annotations:
                 if self._validate_json(annotation):
@@ -2068,6 +2071,17 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                     {i.item.name for i in items_to_upload}
                     - set(failed_annotations).union(skipped)
                 )
+                if not skip_categorization:
+                    item_id_category_map = {}
+                    for item_name in uploaded_annotations:
+                        category = name_annotation_map[item_name]["metadata"].get(
+                            "item_category"
+                        )
+                        if category:
+                            item_id_category_map[name_item_map[item_name].id] = category
+                    self._attach_categories(
+                        folder_id=folder.id, item_id_category_map=item_id_category_map
+                    )
                 workflow = self._service_provider.work_management.get_workflow(
                     self._project.workflow_id
                 )
@@ -2096,3 +2110,44 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                 "skipped": skipped,
             }
             return self._response
+
+    def _attach_categories(self, folder_id: int, item_id_category_map: Dict[int, str]):
+        categories_to_create: List[str] = []
+        item_id_category_id_map: Dict[int, int] = {}
+        if not self._category_name_to_id_map:
+            response = self._service_provider.work_management.list_project_categories(
+                self._project.id
+            )
+            response.raise_for_status()
+            categories = response.data
+            self._category_name_to_id_map = {c.name: c.id for c in categories}
+        for item_id in list(item_id_category_map.keys()):
+            category_name = item_id_category_map[item_id]
+            if category_name not in self._category_name_to_id_map:
+                categories_to_create.append(category_name)
+            else:
+                item_id_category_id_map[item_id] = self._category_name_to_id_map[
+                    category_name
+                ]
+                item_id_category_map.pop(item_id)
+
+        if categories_to_create:
+            _categories = (
+                self._service_provider.work_management.create_project_categories(
+                    project_id=self._project.id,
+                    categories=categories_to_create,
+                ).data["data"]
+            )
+            for c in _categories:
+                self._category_name_to_id_map[c["name"]] = c["id"]
+            for item_id, category_name in item_id_category_map.items():
+                with suppress(KeyError):
+                    item_id_category_id_map[item_id] = self._category_name_to_id_map[
+                        category_name
+                    ]
+        if item_id_category_id_map:
+            self._service_provider.items.bulk_attach_categories(
+                project_id=self._project.id,
+                folder_id=folder_id,
+                item_category_map=item_id_category_id_map,
+            )
