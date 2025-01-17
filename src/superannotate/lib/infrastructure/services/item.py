@@ -21,6 +21,7 @@ class ItemService(BaseItemService):
     URL_DELETE_ITEMS = "image/delete/images"
     URL_SET_APPROVAL_STATUSES = "/items/bulk/change"
     URL_COPY_MOVE_MULTIPLE = "images/copy-move-images-folders"
+    URL_ATTACH_CATEGORIES #
 
     def update(self, project: entities.ProjectEntity, item: entities.BaseItemEntity):
         return self.client.request(
@@ -211,4 +212,14 @@ class ItemService(BaseItemService):
             "put",
             params={"project_id": project.id},
             data={"image_ids": item_ids},
+        )
+
+
+    def bulk_attach_categories(self, project_id: int, folder_id: int, item_category_map: Dict[int, int]) -> bool:
+        params = {
+            "project_id": project_id,
+            "folder_id": folder_id
+        }
+        response = self.client.request(
+            self.
         )
