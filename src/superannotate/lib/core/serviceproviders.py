@@ -15,6 +15,7 @@ from lib.core.service_types import AnnotationClassListResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
+from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
@@ -85,6 +86,16 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def list_workflow_roles(self, project_id: int, workflow_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_project_categories(self, project_id: int) -> ListCategoryResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_project_categories(
+        self, project_id: int, categories: List[str]
+    ) -> ServiceResponse:
         raise NotImplementedError
 
 
@@ -348,6 +359,12 @@ class BaseItemService(SuperannotateServiceProvider):
     def delete_multiple(
         self, project: entities.ProjectEntity, item_ids: List[int]
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def bulk_attach_categories(
+        self, project_id: int, folder_id: int, item_category_map: Dict[int, int]
+    ) -> bool:
         raise NotImplementedError
 
 
