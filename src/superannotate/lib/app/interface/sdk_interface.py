@@ -1965,6 +1965,31 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                "skipped": []
             }
 
+        Example Usage with JSONL Upload:
+        ::
+            import json
+            from pathlib import Path
+            from superannotate import SAClient
+
+            # Assuming annotations are stored in JSONL format
+            annotations_path = Path("annotations.jsonl")
+            annotations = []
+
+            # Reading the JSONL file and converting it into a list of dictionaries
+            with annotations_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    annotations.append(json.loads(line))
+
+            # Initialize the Superannotate client
+            sa = SAClient()
+
+            # Call the upload_annotations function
+            response = client.upload_annotations(
+                project="project1/folder1",
+                annotations=annotations,
+                keep_status=True
+            )
+
         """
         if keep_status is not None:
             warnings.warn(

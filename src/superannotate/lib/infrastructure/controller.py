@@ -782,16 +782,28 @@ class AnnotationManager(BaseManager):
         user: UserEntity,
         transform_version: str = None,
     ):
-        use_case = usecases.UploadAnnotationsUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            annotations=annotations,
-            service_provider=self.service_provider,
-            keep_status=keep_status,
-            user=user,
-            transform_version=transform_version,
-        )
+        if project.type == ProjectType.MULTIMODAL:
+            use_case = usecases.UploadMultiModalAnnotationsUseCase(
+                reporter=Reporter(),
+                project=project,
+                root_folder=folder,
+                annotations=annotations,
+                service_provider=self.service_provider,
+                keep_status=keep_status,
+                user=user,
+                transform_version=transform_version,
+            )
+        else:
+            use_case = usecases.UploadAnnotationsUseCase(
+                reporter=Reporter(),
+                project=project,
+                folder=folder,
+                annotations=annotations,
+                service_provider=self.service_provider,
+                keep_status=keep_status,
+                user=user,
+                transform_version=transform_version,
+            )
         return use_case.execute()
 
     def upload_from_folder(

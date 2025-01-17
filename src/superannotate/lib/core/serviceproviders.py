@@ -9,6 +9,7 @@ from typing import Literal
 
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.entities import CategoryEntity
 from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
 from lib.core.service_types import AnnotationClassListResponse
@@ -85,6 +86,16 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def list_workflow_roles(self, project_id: int, workflow_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_project_categories(self, project_id: int) -> List[entities.CategoryEntity]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_project_categories(
+        self, project_id: int, categories: List[CategoryEntity]
+    ):
         raise NotImplementedError
 
 

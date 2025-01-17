@@ -9,6 +9,7 @@ import platform
 import re
 import time
 import traceback
+from collections import defaultdict
 from dataclasses import dataclass
 from itertools import islice
 from operator import itemgetter
@@ -28,6 +29,7 @@ import lib.core as constants
 import superannotate_schemas
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
+from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
@@ -46,6 +48,8 @@ from lib.core.serviceproviders import ServiceResponse
 from lib.core.serviceproviders import UploadAnnotationsResponse
 from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
+from lib.core.usecases.folders import CreateFolderUseCase
+from lib.core.usecases.items import AttachItems
 from lib.core.utils import run_async
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
@@ -1812,3 +1816,283 @@ class DownloadAnnotations(BaseReportableUseCase):
             self.download_annotation_classes(self.destination)
             self._response.data = os.path.abspath(self.destination)
         return self._response
+
+
+class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
+    CHUNK_SIZE = 500
+    CHUNK_SIZE_MB = 10 * 1024 * 1024
+    URI_THRESHOLD = 4 * 1024 - 120
+
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        root_folder: FolderEntity,
+        annotations: List[dict],
+        service_provider: BaseServiceProvider,
+        user: UserEntity,
+        keep_status: bool = False,
+        transform_version: str = None,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._root_folder = root_folder
+        self._annotations = annotations
+        self._service_provider = service_provider
+        self._keep_status = keep_status
+        self._report = Report([], [], [], [])
+        self._user = user
+        self._files_queue = None
+        self._transform_version = (
+            "llmJsonV2" if transform_version is None else transform_version
+        )
+
+    @property
+    def files_queue(self):
+        if self._files_queue is None:
+            self._files_queue = asyncio.Queue()
+        return self._files_queue
+
+    def validate_project_type(self):
+        if self._project.type != constants.ProjectType.MULTIMODAL.value:
+            raise AppException("Unsupported project type.")
+
+    @staticmethod
+    def _validate_json(json_data: dict) -> bool:
+        return "metadata" in json_data and "name" in json_data["metadata"]
+
+    def list_items(
+        self, folder: FolderEntity, item_names: List[str]
+    ) -> List[BaseItemEntity]:
+        existing_items = []
+        for i in range(0, len(item_names), self.CHUNK_SIZE):
+            items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
+            data = self._service_provider.item_service.list(
+                self._project.id,
+                folder.id,
+                Filter("name", items_to_check, OperatorEnum.IN),
+            )
+            existing_items.extend(data)
+        return existing_items
+
+    async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
+        data = [[i, False] for i in items_to_upload]
+        items_count = len(items_to_upload)
+        processed_count = 0
+        while processed_count < items_count:
+            for idx, (item_to_upload, processed) in enumerate(data):
+                if not processed:
+                    try:
+                        file = io.StringIO()
+                        json.dump(
+                            item_to_upload.annotation_json,
+                            file,
+                            allow_nan=False,
+                        )
+                        file.seek(0, os.SEEK_END)
+                        item_to_upload.file_size = file.tell()
+                        while True:
+                            if item_to_upload.file_size > BIG_FILE_THRESHOLD:
+                                self._report.failed_annotations.append(
+                                    item_to_upload.name
+                                )
+                                continue
+                            else:
+                                # TODO add validation
+                                self._files_queue.put_nowait(item_to_upload)
+                                break
+                    except Exception as e:
+                        name = item_to_upload.name
+                        if isinstance(e, ValueError):
+                            logger.debug(f"Invalid annotation {name}: {e}")
+                        else:
+                            logger.debug(traceback.format_exc())
+                        self._report.failed_annotations.append(name)
+                        self.reporter.update_progress()
+                        data[idx][1] = True  # noqa
+                        processed_count += 1
+                    data[idx][1] = True  # noqa
+                    processed_count += 1
+        self._files_queue.put_nowait(None)
+
+    async def run_workers(
+        self, folder: FolderEntity, items_to_upload: List[ItemToUpload]
+    ):
+        await asyncio.gather(
+            self.distribute_queues(items_to_upload),
+            *[
+                upload_small_annotations(
+                    project=self._project,
+                    folder=folder,
+                    queue=self.files_queue,
+                    service_provider=self._service_provider,
+                    reporter=self.reporter,
+                    report=self._report,
+                    transform_version=self._transform_version,
+                )
+                for _ in range(3)
+            ],
+        )
+
+    def get_or_create_folder(self, folder_name: str) -> FolderEntity:
+        if folder_name is None:
+            return self._root_folder
+        response = self._service_provider.folders.get_by_name(
+            self._project, folder_name
+        )
+        if response.status != 404:
+            response.raise_for_status()
+        response = CreateFolderUseCase(
+            project=self._project,
+            folder=FolderEntity(name=folder_name),
+            service_provider=self._service_provider,
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        else:
+            return response.data
+
+    def attach_items(
+        self, folder: FolderEntity, item_names: List[str]
+    ) -> List[BaseItemEntity]:
+        """
+        @param folder:
+        @param item_names:
+        @return: Attached and duplicated items names
+        """
+        response = AttachItems(
+            reporter=self.reporter,
+            project=self._project,
+            folder=folder,
+            attachments=[
+                AttachmentEntity(name=item_name, url="") for item_name in item_names
+            ],
+            service_provider=self._service_provider,
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        attached_item_names = response.data[0]
+        return self.list_items(folder, attached_item_names)
+
+    def set_defaults(self, annotation: dict):
+        annotation["metadata"]["lastAction"] = {
+            "email": self._project.team_id,
+            "timestamp": int(round(time.time() * 1000)),
+        }
+        return annotation
+
+    @staticmethod
+    def serialize_folder_name(val):
+        special_characters = r"/\:*?”<>|\""
+        replacement_char = "_"
+        translation_table = str.maketrans(
+            dict.fromkeys(special_characters, replacement_char)
+        )
+        if str(val).strip():
+            val = val.strip().translate(translation_table)
+        return val.lower()
+
+    def execute(self):
+        if self.is_valid():
+            serialized_original_folder_map = {}
+            failed, skipped, uploaded = [], [], []
+            distributed_items: Dict[str, Dict[str, Any]] = defaultdict(
+                dict
+            )  # folder_id -> item_name -> annotation
+            valid_items_count = 0
+            for annotation in self._annotations:
+                if self._validate_json(annotation):
+                    folder_name = annotation["metadata"].get("folder_name", "").strip()
+                    serialized_folder_name = self.serialize_folder_name(folder_name)
+                    distributed_items[serialized_folder_name][
+                        annotation["metadata"]["name"]
+                    ] = annotation
+                    valid_items_count += 1
+                    if serialized_folder_name not in serialized_original_folder_map:
+                        serialized_original_folder_map[
+                            serialized_folder_name
+                        ] = folder_name
+                else:
+                    failed.append(annotation)
+            logger.info(
+                f"Uploading {valid_items_count}/{len(self._annotations)} "
+                f"annotations to the project {self._project.name}."
+            )
+            if not self._root_folder.is_root:
+                if len(distributed_items) > 1 or None not in distributed_items:
+                    raise AppException(
+                        "You can't include a folder when uploading from within a folder."
+                    )
+            for folder_name, name_annotation_map in distributed_items.items():
+                folder = (
+                    self.get_or_create_folder(
+                        serialized_original_folder_map[folder_name]
+                    )
+                    if folder_name
+                    else self._root_folder
+                )
+                existing_items = self.list_items(
+                    folder, list(name_annotation_map.keys())
+                )
+                items_to_create = name_annotation_map.keys() - {
+                    i.name for i in existing_items
+                }
+                attached_items = self.attach_items(folder, list(items_to_create))
+                name_item_map = {
+                    **{i.name: i for i in existing_items},
+                    **{i.name: i for i in attached_items},
+                }
+
+                items_to_upload: List[ItemToUpload] = []
+                for name, annotation in name_annotation_map.items():
+                    item = name_item_map.get(name)
+                    if item:
+                        annotation = self.set_defaults(annotation)
+                        items_to_upload.append(
+                            ItemToUpload(item=item, annotation_json=annotation)
+                        )
+                    else:
+                        skipped.append(name)
+                self.reporter.start_progress(
+                    len(items_to_upload),
+                    description=f"Uploading annotations to folder {folder.name}",
+                )
+                try:
+                    run_async(self.run_workers(folder, items_to_upload))
+                except AppException:
+                    logger.debug(traceback.format_exc())
+                    self._response.errors = AppException("Can't upload annotations.")
+                failed_annotations = self._report.failed_annotations
+                failed.extend(failed_annotations)
+                uploaded_annotations = list(
+                    {i.item.name for i in items_to_upload}
+                    - set(failed_annotations).union(skipped)
+                )
+                workflow = self._service_provider.work_management.get_workflow(
+                    self._project.workflow_id
+                )
+                uploaded.extend(uploaded_annotations)
+                if workflow.is_system():
+                    if uploaded_annotations and not self._keep_status:
+                        statuses_changed = set_annotation_statuses_in_progress(
+                            service_provider=self._service_provider,
+                            project=self._project,
+                            folder=folder,
+                            item_names=uploaded_annotations,
+                        )
+                        if not statuses_changed:
+                            self._response.errors = AppException(
+                                "Failed to change status."
+                            )
+
+                self.reporter.finish_progress()
+                self._report.failed_annotations = []
+
+            log_report(self._report)
+
+            self._response.data = {
+                "succeeded": uploaded,
+                "failed": failed,
+                "skipped": skipped,
+            }
+            return self._response
