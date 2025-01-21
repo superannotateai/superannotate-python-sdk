@@ -24,6 +24,7 @@ from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
+from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WorkflowListResponse
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
@@ -64,6 +65,19 @@ class BaseClient(ABC):
     ) -> ServiceResponse:
         raise NotImplementedError
 
+    @abstractmethod
+    def jsx_paginate(
+        self,
+        url: str,
+        method: str = Literal["get", "post"],
+        body_query: Query = None,
+        query_params: Dict = None,
+        headers: Dict = None,
+        chunk_size: int = 100,
+        item_type: Any = None,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
 
 class SuperannotateServiceProvider(ABC):
     def __init__(self, client: BaseClient):
@@ -88,7 +102,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def list_custom_field_templates(self, project_id: int):
+    def list_project_custom_field_templates(self):
         raise NotImplementedError
 
     @abstractmethod
@@ -97,6 +111,12 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def set_project_custom_field_value(self, project_id: int, data: dict):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_projects(
+        self, body_query: Query, chunk_size: int = 100
+    ) -> WMProjectListResponse:
         raise NotImplementedError
 
 
@@ -692,4 +712,20 @@ class BaseServiceProvider:
     def invite_contributors(
         self, team_id: int, team_role: int, emails: List[str]
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_project_custom_field_names(self) -> List[str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_project_custom_field_id(self, field_name: str) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_project_custom_field_name(self, field_id: int) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_project_custom_field_component_id(self, field_id: int) -> str:
         raise NotImplementedError

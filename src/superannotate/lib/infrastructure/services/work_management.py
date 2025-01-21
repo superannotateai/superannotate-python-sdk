@@ -1,10 +1,12 @@
 import base64
 
 from lib.core.entities import WorkflowEntity
+from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
+from lib.core.service_types import WMProjectListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
 
 
@@ -17,6 +19,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_CREATE_STATUS = "statuses"
     URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
     URL_PROJECT_CUSTOM_ENTITIES = "customentities/{project_id}"
+    LIST_PROJECTS = "customentities/search"
 
     def get_workflow(self, pk: int) -> WorkflowEntity:
         response = self.list_workflows(Filter("id", pk, OperatorEnum.EQ))
@@ -98,15 +101,13 @@ class WorkManagementService(BaseWorkManagementService):
             data=data,
         )
 
-    def list_custom_field_templates(self, project_id: int):
+    def list_project_custom_field_templates(self):
         return self.client.request(
             url=self.URL_CUSTOM_FIELD_TEMPLATES,
             method="get",
             headers={
                 "x-sa-entity-context": base64.b64encode(
-                    f'{{"team_id":{self.client.team_id},"project_id":{project_id}}}'.encode(
-                        "utf-8"
-                    )
+                    f'{{"team_id":{self.client.team_id}}}'.encode("utf-8")
                 ).decode()
             },
             params={
@@ -148,4 +149,22 @@ class WorkManagementService(BaseWorkManagementService):
                 "entity": "Project",
                 "parentEntity": "Team",
             },
+        )
+
+    def list_projects(self, body_query: Query, chunk_size=100) -> WMProjectListResponse:
+        return self.client.jsx_paginate(
+            url=self.LIST_PROJECTS,
+            method="post",
+            body_query=body_query,
+            query_params={
+                "entity": "Project",
+                "parentEntity": "Team",
+            },
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id}}}'.encode("utf-8")
+                ).decode()
+            },
+            chunk_size=chunk_size,
+            item_type=WMProjectEntity,
         )

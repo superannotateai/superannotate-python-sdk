@@ -69,6 +69,7 @@ from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapt
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
+from lib.app.serializers import WMProjectSerializer
 
 logger = logging.getLogger("sa")
 
@@ -2966,6 +2967,62 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if "custom_metadata" not in include:
                 exclude.add("custom_metadata")
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
+
+    def list_projects(
+        self,
+        *,
+        include: List[Literal["custom_fields"]] = None,
+        **filters,
+    ):
+        # TODO finalize doc
+        """
+        Search projects by filtering criteria.
+
+        :param include: Specifies additional fields to include in the response.
+
+                Possible values are
+
+                - "custom_fields": Includes custom field added to the project.
+        :type include: list of str, optional
+
+        :param filters: Specifies filtering criteria (e.g., name, ID, status), with all conditions combined using
+                        logical AND. Only projects matching all criteria are returned. If no operation is specified,
+                        an exact match is applied.
+
+
+                Supported operations:
+                    - __ne: Value is not equal.
+                    - __in: Value is in the list.
+                    - __notin: Value is not in the list.
+                    - __contains: Value has the substring.
+                    - __starts: Value starts with the prefix.
+                    - __ends: Value ends with the suffix.
+
+                Filter params::
+
+                - id: int
+                - id__in: list[int]
+                - name: str
+                - name__in:  list[str]
+                - name__contains: str
+                - name__starts: str
+                - name__ends: str
+                - status: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+                - status__ne: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+                - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+                - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+                - custom_field: Optional[dict] – Specifies custom fields attributes to filter projects by.
+                  Custom fields can be accessed using the `custom_field__` prefix followed by the attribute name.
+
+        :type filters: ProjectFilters
+
+        :return: A list of project metadata that matches the filtering criteria.
+        :rtype: list of dicts
+        """
+        return [
+            WMProjectSerializer(p).serialize()
+            for p in self.controller.projects.list_projects(include=include, **filters)
+        ]
 
     def attach_items(
         self,

@@ -1,7 +1,6 @@
 import decimal
 import logging
 from collections import defaultdict
-from datetime import datetime
 from typing import Any
 from typing import List
 
@@ -12,6 +11,7 @@ from lib.core.entities import ContributorEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
+from lib.core.entities.work_managament import ProjectCustomFieldType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.response import Response
@@ -154,15 +154,10 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         else:
             project.users = []
         if self._include_custom_fields:
-            custom_field_templates = (
-                self._service_provider.work_management.list_custom_field_templates(
-                    project_id=self._project.id
-                )
+            custom_fields_names = (
+                self._service_provider.list_project_custom_field_names()
             )
-            custom_fields_id_template_map = {
-                str(i["id"]): i for i in custom_field_templates.data["data"]
-            }
-            if custom_fields_id_template_map:
+            if custom_fields_names:
                 project_custom_fields = (
                     self._service_provider.work_management.list_project_custom_entities(
                         project_id=self._project.id
@@ -174,18 +169,25 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                     else {}
                 )
                 custom_fields_name_value_map = {}
-                for k, t in custom_fields_id_template_map.items():
+                for name in custom_fields_names:
+                    field_id = self._service_provider.get_project_custom_field_id(name)
                     field_value = (
-                        custom_fields_id_value_map[k]
-                        if k in custom_fields_id_value_map.keys()
+                        custom_fields_id_value_map[str(field_id)]
+                        if str(field_id) in custom_fields_id_value_map.keys()
                         else None
                     )
-                    # handle the Date Picker case: Convert the timestamp to date string (e.g., Dec 20, 2024)
-                    if field_value and t["component_id"] == 4:
-                        field_value = datetime.fromtimestamp(
-                            field_value / 1000
-                        ).strftime("%b %d, %Y")
-                    custom_fields_name_value_map[t["name"]] = field_value
+                    # timestamp: convert milliseconds to seconds
+                    component_id = (
+                        self._service_provider.get_project_custom_field_component_id(
+                            field_id
+                        )
+                    )
+                    if (
+                        field_value
+                        and component_id == ProjectCustomFieldType.DATE_PICKER.value
+                    ):
+                        field_value = field_value / 1000
+                    custom_fields_name_value_map[name] = field_value
                 project.custom_fields = custom_fields_name_value_map
         self._response.data = project
         return self._response
@@ -206,20 +208,24 @@ class SetProjectCustomFieldUseCase(BaseUseCase):
         self._value = value
 
     def execute(self):
-        custom_field_templates = (
-            self._service_provider.work_management.list_custom_field_templates(
-                project_id=self._project.id
-            )
-        )
-        custom_fields_name_template_map = {
-            i["name"]: i for i in custom_field_templates.data["data"]
-        }
-        if self._custom_field_name not in custom_fields_name_template_map.keys():
+        if (
+            self._custom_field_name
+            not in self._service_provider.list_project_custom_field_names()
+        ):
             raise AppException("Invalid custom field name provided.")
-        custom_template_id = custom_fields_name_template_map[self._custom_field_name][
-            "id"
-        ]
-        patch_data = {custom_template_id: self._value}
+        custom_field_id = self._service_provider.get_project_custom_field_id(
+            self._custom_field_name
+        )
+        component_id = self._service_provider.get_project_custom_field_component_id(
+            custom_field_id
+        )
+        # timestamp: convert seconds to milliseconds
+        if component_id == ProjectCustomFieldType.DATE_PICKER.value:
+            try:
+                self._value = self._value * 1000
+            except Exception:
+                raise AppException("Invalid custom field value provided.")
+        patch_data = {custom_field_id: self._value}
         # TODO add error handling
         self._service_provider.work_management.set_project_custom_field_value(
             project_id=self._project.id, data=patch_data
