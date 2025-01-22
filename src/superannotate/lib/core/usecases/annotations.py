@@ -1949,7 +1949,9 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         if not folder_name:
             return self._root_folder
 
-        response = self._service_provider.folders.get_by_name(self._project, folder_name)
+        response = self._service_provider.folders.get_by_name(
+            self._project, folder_name
+        )
         if response.ok:
             return response.data
 
@@ -1968,7 +1970,6 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             raise AppException(response.errors)
 
         return response.data
-
 
     def attach_items(
         self, folder: FolderEntity, item_names: List[str]
@@ -2010,10 +2011,18 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             val = val.strip().translate(translation_table)
         return val.lower()
 
+    @property
+    def categorization_enabled(self):
+        settings = self._service_provider.projects.list_settings(self._project).data
+        for setting in settings:
+            if setting.attribute == "CategorizeItems":
+                return bool(setting.value)
+        return False
+
     def execute(self):
         if self.is_valid():
             # TODO check categories status in the project
-            skip_categorization = False
+            categorization_enabled = self.categorization_enabled
             serialized_original_folder_map = {}
             failed, skipped, uploaded = [], [], []
             # folder_id -> item_name -> annotation
@@ -2087,7 +2096,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                     {i.item.name for i in items_to_upload}
                     - set(failed_annotations).union(skipped)
                 )
-                if not skip_categorization:
+                if categorization_enabled:
                     item_id_category_map = {}
                     for item_name in uploaded_annotations:
                         category = name_annotation_map[item_name]["metadata"].get(
