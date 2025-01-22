@@ -1937,22 +1937,38 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         )
 
     def get_or_create_folder(self, folder_name: str) -> FolderEntity:
-        if folder_name is None:
+        """
+        Retrieve an existing folder by name or create it if it doesn't exist.
+
+        Args:
+            folder_name (str): The name of the folder to retrieve or create.
+
+        Returns:
+            FolderEntity: The retrieved or newly created folder entity.
+        """
+        if not folder_name:
             return self._root_folder
-        response = self._service_provider.folders.get_by_name(
-            self._project, folder_name
-        )
+
+        response = self._service_provider.folders.get_by_name(self._project, folder_name)
+        if response.ok:
+            return response.data
+
+        # Handle non-404 errors
         if response.status != 404:
             response.raise_for_status()
+
+        # Create the folder if it doesn't exist
         response = CreateFolderUseCase(
             project=self._project,
             folder=FolderEntity(name=folder_name),
             service_provider=self._service_provider,
         ).execute()
+
         if response.errors:
             raise AppException(response.errors)
-        else:
-            return response.data
+
+        return response.data
+
 
     def attach_items(
         self, folder: FolderEntity, item_names: List[str]

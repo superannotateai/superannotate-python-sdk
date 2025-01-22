@@ -163,7 +163,7 @@ class MultiModalUploadAnnotations(BaseTestCase):
             ],
         )
         project = sa.controller.get_project(self.PROJECT_NAME)
-        time.sleep(2)
+        time.sleep(4)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 sa.controller.team, project, template=json.load(f)
@@ -191,6 +191,10 @@ class MultiModalUploadAnnotations(BaseTestCase):
             assert len(response["succeeded"]) == 3
             annotations = sa.get_annotations(f"{self.PROJECT_NAME}/test_folder")
             assert all([len(i["instances"]) == 3 for i in annotations]) is True
+            folders = sa.search_folders(self.PROJECT_NAME)
+            assert len(folders) == 1
+            sa.upload_annotations(self.PROJECT_NAME, annotations=data)
+            assert len(folders) == 1
 
     def test_error_upload_from_folder_to_folder_(self):
         with open(self.JSONL_ANNOTATIONS_PATH) as f:
