@@ -18,6 +18,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_CREATE_ROLE = "roles"
     URL_CREATE_STATUS = "statuses"
     URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
+    URL_CUSTOM_FIELD_TEMPLATE_DELETE = "customfieldtemplates/{template_id}"
     URL_PROJECT_CUSTOM_ENTITIES = "customentities/{project_id}"
     LIST_PROJECTS = "customentities/search"
 
@@ -105,6 +106,37 @@ class WorkManagementService(BaseWorkManagementService):
         return self.client.request(
             url=self.URL_CUSTOM_FIELD_TEMPLATES,
             method="get",
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id}}}'.encode("utf-8")
+                ).decode()
+            },
+            params={
+                "entity": "Project",
+                "parentEntity": "Team",
+            },
+        )
+
+    def create_project_custom_field_template(self, data: dict):
+        return self.client.request(
+            url=self.URL_CUSTOM_FIELD_TEMPLATES,
+            method="post",
+            data=data,
+            headers={
+                "x-sa-entity-context": base64.b64encode(
+                    f'{{"team_id":{self.client.team_id}}}'.encode("utf-8")
+                ).decode()
+            },
+            params={
+                "entity": "Project",
+                "parentEntity": "Team",
+            },
+        )
+
+    def delete_project_custom_field_template(self, pk: int):
+        return self.client.request(
+            url=self.URL_CUSTOM_FIELD_TEMPLATE_DELETE.format(template_id=pk),
+            method="delete",
             headers={
                 "x-sa-entity-context": base64.b64encode(
                     f'{{"team_id":{self.client.team_id}}}'.encode("utf-8")

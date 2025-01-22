@@ -318,7 +318,7 @@ class ProjectManager(BaseManager):
         include: List[str] = None,
         **filters: Unpack[ProjectFilters],
     ) -> List[ProjectEntity]:
-        if "custom_fields" in include:
+        if include and "custom_fields" in include:
             body_query = self._build_body_query(filters)
             response = self.service_provider.work_management.list_projects(
                 body_query=body_query

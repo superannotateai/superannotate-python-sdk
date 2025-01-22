@@ -129,7 +129,7 @@ class CachedWorkManagementRepository:
         raise AppException("Invalid assignments role provided.")
 
     def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
-        self._sync(project, "roles")
+        self._sync_project_data(project, "roles")
         mapping = self._role_id_name_map.get(project.id, {})
         if role_id in mapping:
             return mapping[role_id]

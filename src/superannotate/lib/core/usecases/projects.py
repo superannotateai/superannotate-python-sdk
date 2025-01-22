@@ -227,9 +227,11 @@ class SetProjectCustomFieldUseCase(BaseUseCase):
                 raise AppException("Invalid custom field value provided.")
         patch_data = {custom_field_id: self._value}
         # TODO add error handling
-        self._service_provider.work_management.set_project_custom_field_value(
+        res = self._service_provider.work_management.set_project_custom_field_value(
             project_id=self._project.id, data=patch_data
         )
+        if res.error:
+            raise AppException(res.error)
 
 
 class CreateProjectUseCase(BaseUseCase):
