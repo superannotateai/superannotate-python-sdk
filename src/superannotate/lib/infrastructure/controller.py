@@ -780,9 +780,9 @@ class AnnotationManager(BaseManager):
         annotations: List[dict],
         keep_status: bool,
         user: UserEntity,
-        transform_version: str = None,
+        output_format: str = None,
     ):
-        if project.type == ProjectType.MULTIMODAL:
+        if project.type == ProjectType.MULTIMODAL and output_format == 'multimodal':
             use_case = usecases.UploadMultiModalAnnotationsUseCase(
                 reporter=Reporter(),
                 project=project,
@@ -791,7 +791,7 @@ class AnnotationManager(BaseManager):
                 service_provider=self.service_provider,
                 keep_status=keep_status,
                 user=user,
-                transform_version=transform_version,
+                transform_version='llmJsonV2',
             )
         else:
             use_case = usecases.UploadAnnotationsUseCase(
@@ -802,7 +802,7 @@ class AnnotationManager(BaseManager):
                 service_provider=self.service_provider,
                 keep_status=keep_status,
                 user=user,
-                transform_version=transform_version,
+                transform_version=None,
             )
         return use_case.execute()
 
