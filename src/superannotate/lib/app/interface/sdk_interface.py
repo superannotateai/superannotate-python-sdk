@@ -298,16 +298,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         def retrieve_context(
             component_data: List[dict], component_pk: str
         ) -> Tuple[bool, typing.Any]:
-            for component in component_data:
-                if (
-                    component["type"] == "webComponent"
-                    and component["id"] == component_pk
-                ):
-                    return True, component.get("context")
-                if component["type"] == "group" and "children" in component:
-                    found, val = retrieve_context(component["children"], component_pk)
-                    if found:
-                        return found, val
+            try:
+                for component in component_data:
+                    if (
+                        component["type"] == "webComponent"
+                        and component["id"] == component_pk
+                    ):
+                        return True, component.get("context")
+                    if (
+                        component["type"] in ("group", "grid")
+                        and "children" in component
+                    ):
+                        found, val = retrieve_context(
+                            component["children"], component_pk
+                        )
+                        if found:
+                            return found, val
+            except KeyError as e:
+                logger.debug("Got key error:", component_data)
+                raise e
             return False, None
 
         project = (
@@ -1968,33 +1977,70 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_annotations(
-        self, project: NotEmptyStr, annotations: List[dict], keep_status: bool = None
+        self,
+        project: NotEmptyStr,
+        annotations: List[dict],
+        keep_status: bool = None,
+        *,
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
-        """Uploads a list of annotation dicts as annotations to the SuperAnnotate directory.
+        """Uploads a list of annotation dictionaries to the specified SuperAnnotate project or folder.
 
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str or dict
+        :param project: The project name or folder path where annotations will be uploaded
+            (e.g., "project1/folder1").
+        :type project: str
 
-        :param annotations:  list of annotation dictionaries corresponding to SuperAnnotate format
-        :type annotations: list of dicts
+        :param annotations: A list of annotation dictionaries formatted according to the SuperAnnotate standards.
+        :type annotations: list of dict
 
-        :param keep_status: If False, the annotation status will be automatically
-            updated to "InProgress," otherwise the current status will be kept.
-        :type keep_status: bool
+        :param keep_status: If False, the annotation status will be automatically updated to "InProgress."
+            If True, the current status will remain unchanged.
+        :type keep_status: bool, optional
 
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
 
-        :return: a dictionary containing lists of successfully uploaded, failed and skipped name
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and modality-specific data representation.
+        :type data_spec: str, optional
+
+        :return: A dictionary containing the results of the upload, categorized into successfully uploaded,
+            failed, and skipped annotations.
         :rtype: dict
 
-        Response Example:
-        ::
+        Response Example::
 
             {
                "succeeded": [],
-               "failed":[],
+               "failed": [],
                "skipped": []
             }
 
+        Example Usage with JSONL Upload for Multimodal Projects::
+
+            import json
+            from pathlib import Path
+            from superannotate import SAClient
+
+            annotations_path = Path("annotations.jsonl")
+            annotations = []
+
+            # Reading the JSONL file and converting it into a list of dictionaries
+            with annotations_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    annotations.append(json.loads(line))
+
+            # Initialize the SuperAnnotate client
+            sa = SAClient()
+
+            # Call the upload_annotations function
+            response = sa.upload_annotations(
+                project="project1/folder1",
+                annotations=annotations,
+                keep_status=True,
+                data_spec='multimodal'
+            )
         """
         if keep_status is not None:
             warnings.warn(
@@ -2010,6 +2056,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotations=annotations,
             keep_status=keep_status,
             user=self.controller.current_user,
+            output_format=data_spec,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2484,6 +2531,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, int],
         items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
+        *,
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Returns annotations for the given list of items.
 
@@ -2492,6 +2541,29 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param items:  item names. If None, all the items in the specified directory will be used.
         :type items: list of strs or list of ints
+
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
+
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and modality-specific data representation.
+
+        :type data_spec: str, optional
+
+        Example Usage of Multimodal Projects::
+
+            from superannotate import SAClient
+
+
+            sa = SAClient()
+
+            # Call the upload_annotations function
+            response = sa.upload_annotations(
+                project="project1/folder1",
+                items=["item_1", "item_2"],
+                data_spec='multimodal'
+            )
 
         :return: list of annotations
         :rtype: list of dict
@@ -2503,7 +2575,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder = self.controller.get_folder_by_id(
                 project_id=project.id, folder_id=project.folder_id
             ).data
-        response = self.controller.annotations.list(project, folder, items)
+        response = self.controller.annotations.list(
+            project,
+            folder,
+            items,
+            transform_version="llmJsonV2" if data_spec == "multimodal" else None,
+        )
         if response.errors:
             raise AppException(response.errors)
         return response.data
@@ -2826,7 +2903,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, int],
         folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
-        include: List[Literal["custom_metadata"]] = None,
+        include: List[Literal["custom_metadata", "category"]] = None,
         **filters,
     ):
         """
@@ -2963,9 +3040,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for i in res:
                 i.custom_metadata = item_custom_fields[i.id]
         exclude = {"meta", "annotator_email", "qa_email"}
-        if include:
-            if "custom_metadata" not in include:
-                exclude.add("custom_metadata")
+        if not include_custom_metadata:
+            exclude.add("custom_metadata")
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
 
     def list_projects(

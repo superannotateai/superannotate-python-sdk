@@ -5,6 +5,7 @@ Projects
 .. _ref_search_projects:
 .. automethod:: superannotate.SAClient.create_project
 .. automethod:: superannotate.SAClient.search_projects
+.. automethod:: superannotate.SAClient.list_projects
 .. automethod:: superannotate.SAClient.clone_project
 .. automethod:: superannotate.SAClient.rename_project
 .. automethod:: superannotate.SAClient.delete_project

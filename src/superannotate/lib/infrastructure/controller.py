@@ -325,7 +325,7 @@ class ProjectManager(BaseManager):
             )
         else:
             # TODO add call after BED update
-            response = []
+            raise NotImplementedError
         # set custom field names
         if response.error:
             raise AppException(response.error)
@@ -883,18 +883,30 @@ class AnnotationManager(BaseManager):
         annotations: List[dict],
         keep_status: bool,
         user: UserEntity,
-        transform_version: str = None,
+        output_format: str = None,
     ):
-        use_case = usecases.UploadAnnotationsUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            annotations=annotations,
-            service_provider=self.service_provider,
-            keep_status=keep_status,
-            user=user,
-            transform_version=transform_version,
-        )
+        if project.type == ProjectType.MULTIMODAL and output_format == "multimodal":
+            use_case = usecases.UploadMultiModalAnnotationsUseCase(
+                reporter=Reporter(),
+                project=project,
+                root_folder=folder,
+                annotations=annotations,
+                service_provider=self.service_provider,
+                keep_status=keep_status,
+                user=user,
+                transform_version="llmJsonV2",
+            )
+        else:
+            use_case = usecases.UploadAnnotationsUseCase(
+                reporter=Reporter(),
+                project=project,
+                folder=folder,
+                annotations=annotations,
+                service_provider=self.service_provider,
+                keep_status=keep_status,
+                user=user,
+                transform_version=None,
+            )
         return use_case.execute()
 
     def upload_from_folder(

@@ -180,3 +180,8 @@ class WorkflowEntity(BaseModel):
 
     class Config:
         extra = Extra.ignore
+
+
+class CategoryEntity(BaseModel):
+    id: Optional[int]
+    name: Optional[str]
