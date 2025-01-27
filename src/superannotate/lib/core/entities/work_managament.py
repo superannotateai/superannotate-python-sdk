@@ -87,3 +87,14 @@ class WMProjectEntity(TimedBaseModel):
         if "exclude" not in kwargs:
             kwargs["exclude"] = {"custom_fields"}
         return super().json(**kwargs)
+
+
+class UserEntity(TimedBaseModel):
+    id: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: Optional[str]
+    user_role: Optional[int]
+
+    class Config:
+        extra = Extra.ignore

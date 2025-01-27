@@ -12,6 +12,7 @@ from lib.core.jsx_conditions import Query
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import WMProjectListResponse
+from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
 
 
@@ -27,7 +28,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
     URL_CUSTOM_FIELD_TEMPLATE_DELETE = "customfieldtemplates/{template_id}"
     URL_PROJECT_CUSTOM_ENTITIES = "customentities/{project_id}"
-    LIST_PROJECTS = "customentities/search"
+    SEARCH_CUSTOM_ENTITIES = "customentities/search"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -214,11 +215,29 @@ class WorkManagementService(BaseWorkManagementService):
 
     def list_projects(self, body_query: Query, chunk_size=100) -> WMProjectListResponse:
         return self.client.jsx_paginate(
-            url=self.LIST_PROJECTS,
+            url=self.SEARCH_CUSTOM_ENTITIES,
             method="post",
             body_query=body_query,
             query_params={
                 "entity": "Project",
+                "parentEntity": "Team",
+            },
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            chunk_size=chunk_size,
+            item_type=WMProjectEntity,
+        )
+
+    def list_users(self, body_query: Query, chunk_size=100) -> WMUserListResponse:
+        return self.client.jsx_paginate(
+            url=self.SEARCH_CUSTOM_ENTITIES,
+            method="post",
+            body_query=body_query,
+            query_params={
+                "entity": "Contributor",
                 "parentEntity": "Team",
             },
             headers={

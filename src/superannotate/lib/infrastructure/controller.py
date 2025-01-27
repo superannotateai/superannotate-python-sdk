@@ -1362,6 +1362,11 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
+    def get_user_metadata(
+        self, pk: Union[str, int], include: List[Literal["custom_fields"]] = None
+    ):
+        self.service_provider.work_management.list_projects()
+
     def _get_image(
         self,
         project: ProjectEntity,

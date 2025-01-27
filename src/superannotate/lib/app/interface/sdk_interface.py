@@ -279,6 +279,29 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.get_team()
         return TeamSerializer(response.data).serialize()
 
+    def get_user_metadata(
+        self, pk: Union[str, int], include: List[Literal["custom_fields"]] = None
+    ):
+        """
+        Returns team contributor metadata
+
+        :param pk: The email address or ID of the team contributor.
+        :type pk: str or int
+
+        :param include: Specifies additional fields to include in the response.
+
+                Possible values are
+
+                    - "custom_fields": whether to include custom fields that have been created for the team user.
+
+        :type include: list of str, optional
+
+        :return: metadata of team contributor
+        :rtype: dict
+        """
+        response = self.controller.get_user_metadata()
+        return TeamSerializer(response.data).serialize()
+
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
         Retrieves the configuration for a given project and component ID.
@@ -3088,6 +3111,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
                 - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
                 - custom_field: Optional[dict] – Specifies custom fields attributes to filter projects by.
+
                   Custom fields can be accessed using the `custom_field__` prefix followed by the attribute name.
 
         :type filters: ProjectFilters
