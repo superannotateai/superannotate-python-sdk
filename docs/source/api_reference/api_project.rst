@@ -5,6 +5,7 @@ Projects
 .. _ref_search_projects:
 .. automethod:: superannotate.SAClient.create_project
 .. automethod:: superannotate.SAClient.search_projects
+.. automethod:: superannotate.SAClient.list_projects
 .. automethod:: superannotate.SAClient.clone_project
 .. automethod:: superannotate.SAClient.rename_project
 .. automethod:: superannotate.SAClient.delete_project
@@ -15,6 +16,7 @@ Projects
 .. automethod:: superannotate.SAClient.upload_images_to_project
 .. automethod:: superannotate.SAClient.attach_items_from_integrated_storage
 .. automethod:: superannotate.SAClient.upload_image_to_project
+.. automethod:: superannotate.SAClient.set_project_custom_field
 .. _ref_upload_images_from_folder_to_project:
 .. automethod:: superannotate.SAClient.upload_images_from_folder_to_project
 .. automethod:: superannotate.SAClient.upload_video_to_project

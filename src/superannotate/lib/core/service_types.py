@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from lib.core import entities
+from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import BaseModel
@@ -240,6 +241,10 @@ class WorkflowListResponse(ServiceResponse):
 
 class ProjectListResponse(ServiceResponse):
     res_data: List[entities.ProjectEntity] = None
+
+
+class WMProjectListResponse(ServiceResponse):
+    res_data: List[WMProjectEntity] = None
 
 
 class SettingsListResponse(ServiceResponse):

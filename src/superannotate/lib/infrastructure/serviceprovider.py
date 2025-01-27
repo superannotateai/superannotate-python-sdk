@@ -68,6 +68,26 @@ class ServiceProvider(BaseServiceProvider):
             5, self.work_management
         )
 
+    def list_project_custom_field_names(self) -> List[str]:
+        return self._cached_work_management_repository.list_project_custom_field_names(
+            self.client.team_id
+        )
+
+    def get_project_custom_field_id(self, field_name: str) -> int:
+        return self._cached_work_management_repository.get_project_custom_field_id(
+            self.client.team_id, field_name
+        )
+
+    def get_project_custom_field_name(self, field_id: int) -> str:
+        return self._cached_work_management_repository.get_project_custom_field_name(
+            self.client.team_id, field_id
+        )
+
+    def get_project_custom_field_component_id(self, field_id: int) -> str:
+        return self._cached_work_management_repository.get_project_custom_field_component_id(
+            self.client.team_id, field_id
+        )
+
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
         return self._cached_work_management_repository.get_role_id(project, role_name)
 

@@ -179,21 +179,31 @@ class MultiModalUploadAnnotations(BaseTestCase):
             data[0]["metadata"]["folder_name"] = ""
             data[0]["metadata"]["folder_name"] = "root"
             del data[0]["metadata"]["folder_name"]
-            response = sa.upload_annotations(self.PROJECT_NAME, annotations=data, data_spec='multimodal')
+            response = sa.upload_annotations(
+                self.PROJECT_NAME, annotations=data, data_spec="multimodal"
+            )
             assert len(response["succeeded"]) == 3
-            annotations = sa.get_annotations(f"{self.PROJECT_NAME}", data_spec='multimodal')
+            annotations = sa.get_annotations(
+                f"{self.PROJECT_NAME}", data_spec="multimodal"
+            )
             assert all([len(i["data"].keys()) == 3 for i in annotations]) is True
 
     def test_upload_from_root_to_folder(self):
         with open(self.JSONL_ANNOTATIONS_PATH) as f:
             data = [json.loads(line) for line in f]
-            response = sa.upload_annotations(self.PROJECT_NAME, annotations=data, data_spec='multimodal')
+            response = sa.upload_annotations(
+                self.PROJECT_NAME, annotations=data, data_spec="multimodal"
+            )
             assert len(response["succeeded"]) == 3
-            annotations = sa.get_annotations(f"{self.PROJECT_NAME}/test_folder", data_spec='multimodal')
+            annotations = sa.get_annotations(
+                f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
+            )
             assert all([len(i["data"].keys()) == 3 for i in annotations]) is True
             folders = sa.search_folders(self.PROJECT_NAME)
             assert len(folders) == 1
-            sa.upload_annotations(self.PROJECT_NAME, annotations=data, data_spec='multimodal')
+            sa.upload_annotations(
+                self.PROJECT_NAME, annotations=data, data_spec="multimodal"
+            )
             assert len(folders) == 1
 
     def test_error_upload_from_folder_to_folder_(self):
@@ -204,11 +214,17 @@ class MultiModalUploadAnnotations(BaseTestCase):
                 AppException,
                 "You can't include a folder when uploading from within a folder.",
             ):
-                sa.upload_annotations(f"{self.PROJECT_NAME}/tmp", annotations=data, data_spec='multimodal')
+                sa.upload_annotations(
+                    f"{self.PROJECT_NAME}/tmp", annotations=data, data_spec="multimodal"
+                )
 
     def test_upload_with_categories(self):
         with open(self.JSONL_ANNOTATIONS_WITH_CATEGORIES_PATH) as f:
             data = [json.loads(line) for line in f]
-            sa.upload_annotations(f"{self.PROJECT_NAME}", annotations=data, data_spec='multimodal')
-            annotations = sa.get_annotations(f"{self.PROJECT_NAME}/test_folder", data_spec='multimodal')
+            sa.upload_annotations(
+                f"{self.PROJECT_NAME}", annotations=data, data_spec="multimodal"
+            )
+            annotations = sa.get_annotations(
+                f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
+            )
             assert len(annotations) == 3

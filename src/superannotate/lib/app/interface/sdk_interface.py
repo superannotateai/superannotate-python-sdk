@@ -69,6 +69,7 @@ from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapt
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
+from lib.app.serializers import WMProjectSerializer
 
 logger = logging.getLogger("sa")
 
@@ -300,12 +301,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             try:
                 for component in component_data:
                     if (
-                            component["type"] == "webComponent"
-                            and component["id"] == component_pk
+                        component["type"] == "webComponent"
+                        and component["id"] == component_pk
                     ):
                         return True, component.get("context")
-                    if component["type"] in ("group", "grid") and "children" in component:
-                        found, val = retrieve_context(component["children"], component_pk)
+                    if (
+                        component["type"] in ("group", "grid")
+                        and "children" in component
+                    ):
+                        found, val = retrieve_context(
+                            component["children"], component_pk
+                        )
                         if found:
                             return found, val
             except KeyError as e:
@@ -768,6 +774,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         include_workflow: Optional[bool] = False,
         include_contributors: Optional[bool] = False,
         include_complete_item_count: Optional[bool] = False,
+        include_custom_fields: Optional[bool] = False,
     ):
         """Returns project metadata
 
@@ -793,6 +800,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                  the key "completed_items_count"
         :type include_complete_item_count: bool
 
+        :param include_custom_fields: include custom fields that have been created for the project.
+        :type include_custom_fields: bool
+
         :return: metadata of project
         :rtype: dict
         """
@@ -811,6 +821,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_settings,
             include_contributors,
             include_complete_item_count,
+            include_custom_fields,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -944,6 +955,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(f"Failed to change {project.name} status.")
         logger.info(f"Successfully updated {project.name} status to {status}")
+
+    def set_project_custom_field(
+        self, project: Union[NotEmptyStr, int], custom_field_name: str, value: Any
+    ):
+        """Sets or updates the value of a custom field for a specified project.
+
+        :param project: The name or ID of the project for which the custom field should be set or updated.
+        :type project: str or int
+
+        :param custom_field_name: The name of the custom field to update or set.
+         This field must already exist for the project.
+        :type custom_field_name: str
+
+        :param value: The value assigned to the custom field, with the type depending on the field's configuration.
+        :type value: Any
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.projects.set_project_custom_field(
+            project, custom_field_name, value
+        )
 
     def set_folder_status(
         self, project: NotEmptyStr, folder: NotEmptyStr, status: FOLDER_STATUS
@@ -1941,14 +1976,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(f"Downloaded image {image_name} to {local_dir_path} ")
         return response.data
 
-
     def upload_annotations(
-            self,
-            project: NotEmptyStr,
-            annotations: List[dict],
-            keep_status: bool = None,
-            *,
-            data_spec: Literal['default', 'multimodal'] = 'default'
+        self,
+        project: NotEmptyStr,
+        annotations: List[dict],
+        keep_status: bool = None,
+        *,
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Uploads a list of annotation dictionaries to the specified SuperAnnotate project or folder.
 
@@ -2022,7 +2056,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotations=annotations,
             keep_status=keep_status,
             user=self.controller.current_user,
-            output_format=data_spec
+            output_format=data_spec,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2498,7 +2532,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, int],
         items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
         *,
-        data_spec: Literal['default', 'multimodal'] = 'default'
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Returns annotations for the given list of items.
 
@@ -2542,8 +2576,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project_id=project.id, folder_id=project.folder_id
             ).data
         response = self.controller.annotations.list(
-            project, folder, items,
-            transform_version='llmJsonV2' if data_spec == 'multimodal' else None
+            project,
+            folder,
+            items,
+            transform_version="llmJsonV2" if data_spec == "multimodal" else None,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -3004,10 +3040,65 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for i in res:
                 i.custom_metadata = item_custom_fields[i.id]
         exclude = {"meta", "annotator_email", "qa_email"}
-        if include:
-            if "custom_metadata" not in include:
-                exclude.add("custom_metadata")
+        if not include_custom_metadata:
+            exclude.add("custom_metadata")
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
+
+    def list_projects(
+        self,
+        *,
+        include: List[Literal["custom_fields"]] = None,
+        **filters,
+    ):
+        # TODO finalize doc
+        """
+        Search projects by filtering criteria.
+
+        :param include: Specifies additional fields to include in the response.
+
+                Possible values are
+
+                - "custom_fields": Includes custom field added to the project.
+        :type include: list of str, optional
+
+        :param filters: Specifies filtering criteria (e.g., name, ID, status), with all conditions combined using
+                        logical AND. Only projects matching all criteria are returned. If no operation is specified,
+                        an exact match is applied.
+
+
+                Supported operations:
+                    - __ne: Value is not equal.
+                    - __in: Value is in the list.
+                    - __notin: Value is not in the list.
+                    - __contains: Value has the substring.
+                    - __starts: Value starts with the prefix.
+                    - __ends: Value ends with the suffix.
+
+                Filter params::
+
+                - id: int
+                - id__in: list[int]
+                - name: str
+                - name__in:  list[str]
+                - name__contains: str
+                - name__starts: str
+                - name__ends: str
+                - status: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+                - status__ne: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+                - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+                - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+                - custom_field: Optional[dict] – Specifies custom fields attributes to filter projects by.
+                  Custom fields can be accessed using the `custom_field__` prefix followed by the attribute name.
+
+        :type filters: ProjectFilters
+
+        :return: A list of project metadata that matches the filtering criteria.
+        :rtype: list of dicts
+        """
+        return [
+            WMProjectSerializer(p).serialize()
+            for p in self.controller.projects.list_projects(include=include, **filters)
+        ]
 
     def attach_items(
         self,

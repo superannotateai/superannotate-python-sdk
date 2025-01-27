@@ -3,6 +3,7 @@ import logging
 import os
 from abc import ABCMeta
 from pathlib import Path
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -13,6 +14,7 @@ from typing import Union
 
 import lib.core as constances
 from lib.core import ApprovalStatus
+from lib.core import ProjectStatus
 from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
@@ -28,7 +30,10 @@ from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.filters import ItemFilters
+from lib.core.entities.filters import ProjectFilters
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.entities.work_managament import ProjectCustomFieldType
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import FileChangedError
@@ -47,31 +52,7 @@ from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
-from typing_extensions import TypedDict
 from typing_extensions import Unpack
-
-
-class ItemFilters(TypedDict, total=False):
-    id: Optional[int]
-    id__in: Optional[List[int]]
-    name: Optional[str]
-    name__in: Optional[List[str]]
-    name__contains: Optional[str]
-    name__starts: Optional[str]
-    name__ends: Optional[str]
-    annotation_status: Optional[str]
-    annotation_status__in: Optional[List[str]]
-    annotation_status__ne: Optional[List[str]]
-    approval_status: Optional[str]
-    approval_status__in: Optional[List[str]]
-    approval_status__ne: Optional[str]
-    assignments__user_id: Optional[str]
-    assignments__user_id__in: Optional[List[str]]
-    assignments__user_id__ne: Optional[str]
-    assignments__user_role: Optional[str]
-    assignments__user_role__in: Optional[List[str]]
-    assignments__user_role__ne: Optional[str]
-    assignments__user_role__notin: Optional[List[str]]
 
 
 def build_condition(**kwargs) -> Condition:
@@ -115,6 +96,7 @@ class ProjectManager(BaseManager):
         include_settings: bool = False,
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
+        include_custom_fields: bool = False,
     ):
         use_case = usecases.GetProjectMetaDataUseCase(
             project=project,
@@ -123,6 +105,18 @@ class ProjectManager(BaseManager):
             include_settings=include_settings,
             include_contributors=include_contributors,
             include_complete_image_count=include_complete_image_count,
+            include_custom_fields=include_custom_fields,
+        )
+        return use_case.execute()
+
+    def set_project_custom_field(
+        self, project: ProjectEntity, custom_field_name: str, value: Any
+    ):
+        use_case = usecases.SetProjectCustomFieldUseCase(
+            project=project,
+            service_provider=self.service_provider,
+            custom_field_name=custom_field_name,
+            value=value,
         )
         return use_case.execute()
 
@@ -248,6 +242,115 @@ class ProjectManager(BaseManager):
             team=self._team, project=project
         )
         response.raise_for_status()
+        return response.data
+
+    def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
+        for custom_field in sorted(
+            self.service_provider.list_project_custom_field_names(),
+            key=len,
+            reverse=True,
+        ):
+            if custom_field in key:
+                return key.replace(
+                    custom_field,
+                    str(
+                        self.service_provider.get_project_custom_field_id(custom_field)
+                    ),
+                ).split("__")
+        raise AppException("Invalid custom field name provided.")
+
+    @staticmethod
+    def _determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
+        """Determine the condition and key from the filters."""
+        condition: Optional[OperatorEnum] = None
+        key: Optional[str] = None
+
+        if len(keys) == 1 and "custom_field" not in keys:
+            condition, key = OperatorEnum.EQ, keys[0]
+        if "custom_field" in keys:
+            _keys = "customField", "custom_field_values"
+            if len(keys) == 2 or len(keys) == 3:
+                key = ".".join((*_keys, keys[1]))
+            else:
+                raise AppException("Invalid custom field name provided.")
+        if not condition:
+            condition = (
+                OperatorEnum[keys.pop().upper()]
+                if keys[-1].upper() in OperatorEnum.__members__
+                else OperatorEnum.EQ
+            )
+        if not key:
+            key = ".".join(keys)
+        return condition, key
+
+    @staticmethod
+    def _handle_special_fields(keys: List[str], val):
+        """
+        Handle special fields like 'status'.
+        """
+        if keys[0] == "status":
+            val = (
+                [ProjectStatus(i).value for i in val]
+                if isinstance(val, (list, tuple, set))
+                else ProjectStatus(val).value
+            )
+        return val
+
+    def _build_body_query(self, filters: dict, include: List[str] = None) -> Query:
+        """Build the body query based on filters and include fields."""
+        project_filters = ProjectFilters.__annotations__.keys()
+        query = EmptyQuery()
+        _include = set(include if include else set())
+        for key, val in filters.items():
+            _keys = key.split("__")
+            if _keys[0] in project_filters or _keys[0] == "custom_field":
+                if _keys[0] == "custom_field":
+                    _keys = self._handle_custom_field_key(key)
+                val = self._handle_special_fields(_keys, val)
+                condition, _key = self._determine_condition_and_key(_keys)
+                query &= Filter(_key, val, condition)
+        for i in _include:
+            query &= Join(i)
+        return query
+
+    def list_projects(
+        self,
+        include: List[str] = None,
+        **filters: Unpack[ProjectFilters],
+    ) -> List[ProjectEntity]:
+        if include and "custom_fields" in include:
+            body_query = self._build_body_query(filters)
+            response = self.service_provider.work_management.list_projects(
+                body_query=body_query
+            )
+        else:
+            # TODO add call after BED update
+            raise NotImplementedError
+        # set custom field names
+        if response.error:
+            raise AppException(response.error)
+
+        custom_field_name_id_map = {
+            name: self.service_provider.get_project_custom_field_id(name)
+            for name in self.service_provider.list_project_custom_field_names()
+        }
+        for p in response.data:
+            custom_fields = {}
+            for field_name, field_id in custom_field_name_id_map.items():
+                field_value = p.custom_fields.get(str(field_id))
+                # timestamp: convert milliseconds to seconds
+                component_id = (
+                    self.service_provider.get_project_custom_field_component_id(
+                        field_id
+                    )
+                )
+                if (
+                    field_value
+                    and component_id == ProjectCustomFieldType.DATE_PICKER.value
+                ):
+                    field_value = field_value / 1000
+                custom_fields[field_name] = field_value
+            p.custom_fields = custom_fields
         return response.data
 
 
@@ -782,7 +885,7 @@ class AnnotationManager(BaseManager):
         user: UserEntity,
         output_format: str = None,
     ):
-        if project.type == ProjectType.MULTIMODAL and output_format == 'multimodal':
+        if project.type == ProjectType.MULTIMODAL and output_format == "multimodal":
             use_case = usecases.UploadMultiModalAnnotationsUseCase(
                 reporter=Reporter(),
                 project=project,
@@ -791,7 +894,7 @@ class AnnotationManager(BaseManager):
                 service_provider=self.service_provider,
                 keep_status=keep_status,
                 user=user,
-                transform_version='llmJsonV2',
+                transform_version="llmJsonV2",
             )
         else:
             use_case = usecases.UploadAnnotationsUseCase(

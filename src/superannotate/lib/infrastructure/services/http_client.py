@@ -13,10 +13,14 @@ from functools import lru_cache
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Literal
 
 import aiohttp
 import requests
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import Limit
+from lib.core.jsx_conditions import Offset
+from lib.core.jsx_conditions import Query
 from lib.core.service_types import ServiceResponse
 from lib.core.serviceproviders import BaseClient
 from requests.adapters import HTTPAdapter
@@ -177,6 +181,56 @@ class HttpClient(BaseClient):
                 params=query_params,
                 dispatcher="data",
                 headers=headers,
+            )
+            if _response.ok:
+                if _response.data:
+                    total.extend(_response.data)
+                else:
+                    break
+                data_len = len(_response.data)
+                offset += data_len
+                if data_len < chunk_size or _response.total_count - offset < 0:
+                    break
+            else:
+                break
+
+        if item_type:
+            response = ServiceResponse(
+                status=_response.status,
+                res_data=parse_obj_as(List[item_type], total),
+            )
+        else:
+            response = ServiceResponse(
+                status=_response.status,
+                res_data=total,
+            )
+        if not _response.ok:
+            response.set_error(_response.error)
+            response.status = _response.status
+        return response
+
+    def jsx_paginate(
+        self,
+        url: str,
+        method: str = Literal["get", "post"],
+        body_query: Query = None,
+        query_params: Dict = None,
+        headers: Dict = None,
+        chunk_size: int = 100,
+        item_type: Any = None,
+    ) -> ServiceResponse:
+        offset = 0
+        total = []
+
+        while True:
+            paginated_query = body_query & Limit(chunk_size) & Offset(offset)
+            _response = self.request(
+                url=url,
+                method=method,
+                data=paginated_query.body_builder(),
+                params=query_params,
+                headers=headers,
+                dispatcher="data",
             )
             if _response.ok:
                 if _response.data:

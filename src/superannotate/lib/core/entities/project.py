@@ -113,6 +113,7 @@ class ProjectEntity(TimedBaseModel):
     root_folder_completed_items_count: Optional[int] = Field(
         None, alias="rootFolderCompletedImagesCount"
     )
+    custom_fields: dict = {}
 
     class Config:
         extra = Extra.ignore

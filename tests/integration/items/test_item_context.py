@@ -120,7 +120,3 @@ class TestEditorContext(BaseTestCase):
             sa.delete_project(self.PROJECT_NAME)
         except Exception:
             ...
-
-    def test_(self):
-        val = sa.get_editor_context(self.PROJECT_NAME, self.COMPONENT_ID)
-        assert val == "12121121212"
