@@ -55,6 +55,7 @@ from lib.core.entities.classes import AttributeGroup
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
+from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
@@ -280,10 +281,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return TeamSerializer(response.data).serialize()
 
     def get_user_metadata(
-        self, pk: Union[str, int], include: List[Literal["custom_fields"]] = None
+        self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
     ):
         """
-        Returns team contributor metadata
+        Returns user metadata
 
         :param pk: The email address or ID of the team contributor.
         :type pk: str or int
@@ -299,8 +300,58 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of team contributor
         :rtype: dict
         """
-        response = self.controller.get_user_metadata()
-        return TeamSerializer(response.data).serialize()
+        user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
+        return BaseSerializer(user).serialize(by_alias=False)
+
+    def set_user_custom_field(
+        self, pk: Union[int, str], custom_field_name: str, value: Any
+    ):
+        """
+        Set the custom field for team contributors.
+
+        :param pk: The email address or ID of the team contributor.
+        :type pk: str or int
+
+        :param custom_field_name: the name of the custom field created for the team contributor,
+                                    used to set or update its value.
+
+        :type custom_field_name: str
+
+        :param value: The value
+        :type value: Any
+
+         Request Example:
+        ::
+            from superannotate import SAClient
+
+
+            sa = SAClient()
+
+            client.set_user_custom_field(
+                "example@email.com",
+                custom_field_name="Due date",
+                value="Dec 20, 2024"
+            )
+        """
+        user_id = self.controller.work_management.get_user_metadata(pk=pk).id
+        self.controller.work_management.set_custom_field_value(
+            entity_id=user_id,
+            field_name=custom_field_name,
+            value=value,
+            entity=CustomFieldEntityEnum.CONTRIBUTOR,
+            parent_entity=CustomFieldEntityEnum.TEAM,
+        )
+
+    def list_users(self, *, include: List[Literal["custom_fields"]] = None, **filters):
+        """
+
+        @param include:
+        @param filters:
+        @return:
+        """
+        return BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_users(include=include, **filters)
+        )
 
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """

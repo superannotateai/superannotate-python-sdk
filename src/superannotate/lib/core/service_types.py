@@ -252,6 +252,10 @@ class WMUserListResponse(ServiceResponse):
     res_data: List[WMUserEntity] = None
 
 
+class WMCustomFieldResponse(ServiceResponse):
+    res_data: List[entities.CustomFieldEntity] = None
+
+
 class SettingsListResponse(ServiceResponse):
     res_data: List[entities.SettingEntity] = None
 

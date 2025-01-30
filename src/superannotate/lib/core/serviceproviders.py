@@ -6,9 +6,11 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Literal
+from typing import Optional
 
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.enums import CustomFieldEntityEnum
 from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
 from lib.core.service_types import AnnotationClassListResponse
@@ -25,7 +27,9 @@ from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
+from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
+from lib.core.service_types import WMUserListResponse
 from lib.core.service_types import WorkflowListResponse
 from lib.core.types import Attachment
 from lib.core.types import AttachmentMeta
@@ -103,13 +107,15 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def list_project_custom_field_templates(self):
+    def list_custom_field_templates(
+        self,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        context: dict = None,
+    ):
         raise NotImplementedError
 
     def create_project_custom_field_template(self, data: dict):
-        raise NotImplementedError
-
-    def delete_project_custom_field_template(self, pk: int):
         raise NotImplementedError
 
     @abstractmethod
@@ -134,6 +140,47 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def create_project_categories(
         self, project_id: int, categories: List[str]
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_users(
+        self, body_query: Query, chunk_size=100, include_custom_fields=False
+    ) -> WMUserListResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_custom_field_template(
+        self,
+        name: str,
+        component_id: int,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        component_payload: Optional[dict] = None,
+        access: Optional[dict] = None,
+        entity_context: Optional[dict] = None,
+    ) -> WMCustomFieldResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_custom_field_template(
+        self,
+        pk: int,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        entity_context: Optional[dict] = None,
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_custom_field_value(
+        self,
+        entity_id: int,
+        template_id: int,
+        data: dict,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        context: Optional[dict] = None,
+    ):
         raise NotImplementedError
 
 
@@ -738,17 +785,23 @@ class BaseServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
-    def list_project_custom_field_names(self) -> List[str]:
+    def list_custom_field_names(self, entity: CustomFieldEntityEnum) -> List[str]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_project_custom_field_id(self, field_name: str) -> int:
+    def get_custom_field_id(
+        self, field_name: str, entity: CustomFieldEntityEnum
+    ) -> int:
         raise NotImplementedError
 
     @abstractmethod
-    def get_project_custom_field_name(self, field_id: int) -> str:
+    def get_custom_field_name(
+        self, field_id: int, entity: CustomFieldEntityEnum
+    ) -> str:
         raise NotImplementedError
 
     @abstractmethod
-    def get_project_custom_field_component_id(self, field_id: int) -> str:
+    def get_custom_field_component_id(
+        self, field_id: int, entity: CustomFieldEntityEnum
+    ) -> str:
         raise NotImplementedError

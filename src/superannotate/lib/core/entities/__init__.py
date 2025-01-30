@@ -14,6 +14,7 @@ from lib.core.entities.items import VideoEntity
 from lib.core.entities.project import AttachmentEntity
 from lib.core.entities.project import CategoryEntity
 from lib.core.entities.project import ContributorEntity
+from lib.core.entities.project import CustomFieldEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
 from lib.core.entities.project import StepEntity
@@ -28,6 +29,7 @@ __all__ = [
     "ConfigEntity",
     "SettingEntity",
     "SubSetEntity",
+    "CustomFieldEntity",
     # items
     "BaseEntity",
     "ImageEntity",
