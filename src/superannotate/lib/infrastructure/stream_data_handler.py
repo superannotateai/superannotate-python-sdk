@@ -18,7 +18,8 @@ logger = logging.getLogger("sa")
 
 
 class StreamedAnnotations:
-    DELIMITER = b"\\n;)\\n"
+    DELIMITER = "\\n;)\\n"
+    DELIMITER_LEN = len(DELIMITER)
 
     def __init__(
         self,
@@ -67,12 +68,19 @@ class StreamedAnnotations:
                 continue
             while buffer:
                 try:
+                    if buffer.startswith(self.DELIMITER):
+                        buffer = buffer[self.DELIMITER_LEN :]
                     json_obj, index = decoder.raw_decode(buffer)
                     yield json_obj
-                    buffer = buffer[index + len(self.DELIMITER) :].lstrip()
+                    if len(buffer[index:]) >= self.DELIMITER_LEN:
+                        buffer = buffer[index + self.DELIMITER_LEN :]
+                    else:
+                        buffer = buffer[index:]
+                        break
                 except json.decoder.JSONDecodeError as e:
                     logger.debug(
-                        f"Failed to parse buffer, buffer_len: {len(buffer)}// buffer_end: ...{buffer[-100:]}, error: {e}"
+                        f"Failed to parse buffer, buffer_len: {len(buffer)} || start buffer:"
+                        f" {buffer[:50]} || buffer_end: ...{buffer[-50:]} || error: {e}"
                     )
                     break
 
