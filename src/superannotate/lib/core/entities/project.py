@@ -170,6 +170,13 @@ class TeamEntity(BaseModel):
         extra = Extra.ignore
 
 
+class CustomFieldEntity(BaseModel):
+    ...
+
+    class Config:
+        extra = Extra.allow
+
+
 class WorkflowEntity(BaseModel):
     id: Optional[int]
     name: Optional[str]

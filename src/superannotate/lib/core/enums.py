@@ -185,3 +185,17 @@ class TrainingStatus(BaseTitledEnum):
     FAILED_BEFORE_EVALUATION = "FailedBeforeEvaluation", 4
     FAILED_AFTER_EVALUATION = "FailedAfterEvaluation", 5
     FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL = "FailedAfterEvaluationWithSavedModel", 6
+
+
+class CustomFieldEntityEnum(str, Enum):
+    CONTRIBUTOR = "Contributor"
+    TEAM = "Team"
+    PROJECT = "Project"
+
+
+class CustomFieldType(Enum):
+    Text = 1
+    MULTI_SELECT = 2
+    SINGLE_SELECT = 3
+    DATE_PICKER = 4
+    NUMERIC = 5

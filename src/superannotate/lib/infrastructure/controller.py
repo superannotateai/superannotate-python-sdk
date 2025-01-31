@@ -14,7 +14,6 @@ from typing import Union
 
 import lib.core as constances
 from lib.core import ApprovalStatus
-from lib.core import ProjectStatus
 from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
@@ -22,6 +21,7 @@ from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import ContributorEntity
+from lib.core.entities import CustomFieldEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import PROJECT_ITEM_ENTITY_MAP
@@ -32,8 +32,10 @@ from lib.core.entities import UserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
+from lib.core.entities.filters import UserFilters
 from lib.core.entities.integrations import IntegrationEntity
-from lib.core.entities.work_managament import ProjectCustomFieldType
+from lib.core.enums import CustomFieldEntityEnum
+from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import FileChangedError
@@ -47,6 +49,12 @@ from lib.core.response import Response
 from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
 from lib.core.usecases import serialize_item_entity
 from lib.infrastructure.helpers import timed_lru_cache
+from lib.infrastructure.query_builder import FieldValidationHandler
+from lib.infrastructure.query_builder import IncludeHandler
+from lib.infrastructure.query_builder import ItemFilterHandler
+from lib.infrastructure.query_builder import ProjectFilterHandler
+from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.query_builder import UserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
@@ -63,9 +71,112 @@ def build_condition(**kwargs) -> Condition:
     return condition
 
 
+def serialize_custom_fields(
+    service_provider: ServiceProvider, data: List[dict], entity: CustomFieldEntityEnum
+) -> List[dict]:
+    existing_custom_fields = service_provider.list_custom_field_names(
+        CustomFieldEntityEnum.PROJECT
+    )
+    for i in range(len(data)):
+        if not data[i]:
+            data[i] = {}
+        updated_fields = {}
+
+        for custom_field_name, field_value in data[i].items():
+            field_id = int(custom_field_name)
+            try:
+                component_id = service_provider.get_custom_field_component_id(
+                    field_id, entity=entity
+                )
+            except AppException:
+                # The component template can be deleted, but not from the entity, so it will be skipped.
+                continue
+
+            if field_value and component_id == CustomFieldType.DATE_PICKER.value:
+                field_value /= 1000  # Convert timestamp
+
+            new_field_name = service_provider.get_custom_field_name(
+                field_id, entity=entity
+            )
+            updated_fields[new_field_name] = field_value
+
+        data[i].clear()
+        data[i].update(updated_fields)
+
+        for existing_custom_field in existing_custom_fields:
+            if existing_custom_field not in data[i]:
+                data[i][existing_custom_field] = None
+
+    return data
+
+
 class BaseManager:
     def __init__(self, service_provider: ServiceProvider):
         self.service_provider = service_provider
+
+
+class WorkManagementManager(BaseManager):
+    def get_user_metadata(
+        self, pk: Union[str, int], include: List[Literal["custom_fields"]] = None
+    ):
+        if isinstance(pk, int):
+            filters = {"id": pk}
+        else:
+            filters = {"email": pk}
+        users = self.list_users(include=include, **filters)
+        return users[0]
+
+    def set_custom_field_value(
+        self,
+        entity_id: int,
+        entity: CustomFieldEntity,
+        parent_entity: CustomFieldEntityEnum,
+        field_name: str,
+        value: dict,
+    ):
+        _context = {}
+        if entity == CustomFieldEntityEnum.PROJECT:
+            _context["project_id"] = entity_id
+        template_id = self.service_provider.get_custom_field_id(
+            field_name, entity=entity
+        )
+        self.service_provider.work_management.set_custom_field_value(
+            entity_id=entity_id,
+            entity=entity,
+            parent_entity=parent_entity,
+            template_id=template_id,
+            data=value,
+            context=_context,
+        )
+
+    def list_users(self, include: List[Literal["custom_fields"]] = None, **filters):
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(UserFilters.__annotations__.keys()),
+                UserFilterHandler(
+                    service_provider=self.service_provider,
+                    entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                ),
+            ]
+        )
+        query = chain.handle(filters, EmptyQuery())
+        if include and "custom_fields" in include:
+            response = self.service_provider.work_management.list_users(
+                query, include_custom_fields=True
+            )
+            if not response.ok:
+                raise AppException(response.error)
+            users = response.data
+            custom_fields_list = [user.custom_fields for user in users]
+            serialized_fields = serialize_custom_fields(
+                self.service_provider,
+                custom_fields_list,
+                CustomFieldEntityEnum.CONTRIBUTOR,
+            )
+            for users, serialized_custom_fields in zip(users, serialized_fields):
+                users.custom_fields = serialized_custom_fields
+            return response.data
+        return self.service_provider.work_management.list_users(query).data
 
 
 class ProjectManager(BaseManager):
@@ -244,84 +355,23 @@ class ProjectManager(BaseManager):
         response.raise_for_status()
         return response.data
 
-    def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
-        for custom_field in sorted(
-            self.service_provider.list_project_custom_field_names(),
-            key=len,
-            reverse=True,
-        ):
-            if custom_field in key:
-                return key.replace(
-                    custom_field,
-                    str(
-                        self.service_provider.get_project_custom_field_id(custom_field)
-                    ),
-                ).split("__")
-        raise AppException("Invalid custom field name provided.")
-
-    @staticmethod
-    def _determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
-        """Determine the condition and key from the filters."""
-        condition: Optional[OperatorEnum] = None
-        key: Optional[str] = None
-
-        if len(keys) == 1 and "custom_field" not in keys:
-            condition, key = OperatorEnum.EQ, keys[0]
-        if "custom_field" in keys:
-            _keys = "customField", "custom_field_values"
-            if len(keys) == 2 or len(keys) == 3:
-                key = ".".join((*_keys, keys[1]))
-            else:
-                raise AppException("Invalid custom field name provided.")
-        if not condition:
-            condition = (
-                OperatorEnum[keys.pop().upper()]
-                if keys[-1].upper() in OperatorEnum.__members__
-                else OperatorEnum.EQ
-            )
-        if not key:
-            key = ".".join(keys)
-        return condition, key
-
-    @staticmethod
-    def _handle_special_fields(keys: List[str], val):
-        """
-        Handle special fields like 'status'.
-        """
-        if keys[0] == "status":
-            val = (
-                [ProjectStatus(i).value for i in val]
-                if isinstance(val, (list, tuple, set))
-                else ProjectStatus(val).value
-            )
-        return val
-
-    def _build_body_query(self, filters: dict, include: List[str] = None) -> Query:
-        """Build the body query based on filters and include fields."""
-        project_filters = ProjectFilters.__annotations__.keys()
-        query = EmptyQuery()
-        _include = set(include if include else set())
-        for key, val in filters.items():
-            _keys = key.split("__")
-            if _keys[0] in project_filters or _keys[0] == "custom_field":
-                if _keys[0] == "custom_field":
-                    _keys = self._handle_custom_field_key(key)
-                val = self._handle_special_fields(_keys, val)
-                condition, _key = self._determine_condition_and_key(_keys)
-                query &= Filter(_key, val, condition)
-        for i in _include:
-            query &= Join(i)
-        return query
-
     def list_projects(
         self,
         include: List[str] = None,
         **filters: Unpack[ProjectFilters],
     ) -> List[ProjectEntity]:
         if include and "custom_fields" in include:
-            body_query = self._build_body_query(filters)
+            chain = QueryBuilderChain(
+                [
+                    FieldValidationHandler(ProjectFilters.__annotations__.keys()),
+                    ProjectFilterHandler(
+                        self.service_provider, entity=CustomFieldEntityEnum.PROJECT
+                    ),
+                ]
+            )
+            query = chain.handle(filters, EmptyQuery())
             response = self.service_provider.work_management.list_projects(
-                body_query=body_query
+                body_query=query
             )
         else:
             # TODO add call after BED update
@@ -329,29 +379,14 @@ class ProjectManager(BaseManager):
         # set custom field names
         if response.error:
             raise AppException(response.error)
-
-        custom_field_name_id_map = {
-            name: self.service_provider.get_project_custom_field_id(name)
-            for name in self.service_provider.list_project_custom_field_names()
-        }
-        for p in response.data:
-            custom_fields = {}
-            for field_name, field_id in custom_field_name_id_map.items():
-                field_value = p.custom_fields.get(str(field_id))
-                # timestamp: convert milliseconds to seconds
-                component_id = (
-                    self.service_provider.get_project_custom_field_component_id(
-                        field_id
-                    )
-                )
-                if (
-                    field_value
-                    and component_id == ProjectCustomFieldType.DATE_PICKER.value
-                ):
-                    field_value = field_value / 1000
-                custom_fields[field_name] = field_value
-            p.custom_fields = custom_fields
-        return response.data
+        projects = response.data
+        custom_fields_list = [project.custom_fields for project in projects]
+        serialized_fields = serialize_custom_fields(
+            self.service_provider, custom_fields_list, CustomFieldEntityEnum.PROJECT
+        )
+        for project, serialized_custom_fields in zip(projects, serialized_fields):
+            project.custom_fields = serialized_custom_fields
+        return projects
 
 
 class AnnotationClassManager(BaseManager):
@@ -607,7 +642,19 @@ class ItemManager(BaseManager):
         **filters: Unpack[ItemFilters],
     ) -> List[BaseItemEntity]:
 
-        query = self._build_query(project, filters, include)
+        entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(ItemFilters.__annotations__.keys()),
+                ItemFilterHandler(
+                    project=project,
+                    service_provider=self.service_provider,
+                    entity=entity,
+                ),
+                IncludeHandler(include=include),
+            ]
+        )
+        query = chain.handle(filters, EmptyQuery())
         data = self.service_provider.item_service.list(project.id, folder.id, query)
         return self.process_response(self.service_provider, data, project, folder)
 
@@ -1101,6 +1148,7 @@ class BaseController(metaclass=ABCMeta):
         self._team = self.get_team().data
         self.annotation_classes = AnnotationClassManager(self.service_provider)
         self.projects = ProjectManager(self.service_provider, team=self._team)
+        self.work_management = WorkManagementManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
         self.items = ItemManager(self.service_provider)
         self.annotations = AnnotationManager(self.service_provider, config)

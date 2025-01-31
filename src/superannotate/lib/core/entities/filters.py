@@ -37,3 +37,19 @@ class ProjectFilters(BaseFilters):
     status__ne: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
     status__in: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
     status__notin: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
+    custom_field: Optional[str]  # dummy field to pass first level validation
+
+
+class UserFilters(TypedDict, total=False):
+    id: Optional[int]
+    id__in: Optional[List[int]]
+    email: Optional[str]
+    email__in: Optional[List[str]]
+    email__contains: Optional[str]
+    email__starts: Optional[str]
+    email__ends: Optional[str]
+    state: Optional[str]
+    state__in: Optional[List[str]]
+    role: Optional[str]
+    role__in: Optional[List[str]]
+    custom_field: Optional[str]  # dummy field to pass first level validation

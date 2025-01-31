@@ -55,6 +55,7 @@ from lib.core.entities.classes import AttributeGroup
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
+from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
@@ -278,6 +279,79 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         response = self.controller.get_team()
         return TeamSerializer(response.data).serialize()
+
+    def get_user_metadata(
+        self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
+    ):
+        """
+        Returns user metadata
+
+        :param pk: The email address or ID of the team contributor.
+        :type pk: str or int
+
+        :param include: Specifies additional fields to include in the response.
+
+                Possible values are
+
+                    - "custom_fields": whether to include custom fields that have been created for the team user.
+
+        :type include: list of str, optional
+
+        :return: metadata of team contributor
+        :rtype: dict
+        """
+        user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
+        return BaseSerializer(user).serialize(by_alias=False)
+
+    def set_user_custom_field(
+        self, pk: Union[int, str], custom_field_name: str, value: Any
+    ):
+        """
+        Set the custom field for team contributors.
+
+        :param pk: The email address or ID of the team contributor.
+        :type pk: str or int
+
+        :param custom_field_name: the name of the custom field created for the team contributor,
+                                    used to set or update its value.
+
+        :type custom_field_name: str
+
+        :param value: The value
+        :type value: Any
+
+         Request Example:
+        ::
+            from superannotate import SAClient
+
+
+            sa = SAClient()
+
+            client.set_user_custom_field(
+                "example@email.com",
+                custom_field_name="Due date",
+                value="Dec 20, 2024"
+            )
+        """
+        user_id = self.controller.work_management.get_user_metadata(pk=pk).id
+        self.controller.work_management.set_custom_field_value(
+            entity_id=user_id,
+            field_name=custom_field_name,
+            value=value,
+            entity=CustomFieldEntityEnum.CONTRIBUTOR,
+            parent_entity=CustomFieldEntityEnum.TEAM,
+        )
+
+    def list_users(self, *, include: List[Literal["custom_fields"]] = None, **filters):
+        """
+
+        @param include:
+        @param filters:
+        @return:
+        """
+        return BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_users(include=include, **filters)
+        )
 
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
@@ -2903,7 +2977,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, int],
         folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
-        include: List[Literal["custom_metadata", "category"]] = None,
+        include: List[Literal["custom_metadata", "categories"]] = None,
         **filters,
     ):
         """
@@ -2923,6 +2997,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 Possible values are
 
                 - "custom_metadata": Includes custom metadata attached to the item.
+                - "categories": Includes categories attached to the item.
         :type include: list of str, optional
 
         :param filters: Specifies filtering criteria (e.g., name, ID, annotation status),
@@ -2993,6 +3068,40 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
 
+        Request Example with include categories:
+        ::
+
+            client.list_items(
+                project="My Multimodal",
+                folder="folder1",
+                include=["categories"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "id": 48909383,
+                    "name": "scan_123.jpeg",
+                    "path": "Medical Annotations/folder1",
+                    "url": "https://sa-public-files.s3.../scan_123.jpeg",
+                    "annotation_status": "InProgress",
+                    "createdAt": "2022-02-10T14:32:21.000Z",
+                    "updatedAt": "2022-02-15T20:46:44.000Z",
+                    "entropy_value": None,
+                    "assignments": [],
+                    "categories": [
+                        {
+                            "createdAt": "2025-01-29T13:51:39.000Z",
+                            "updatedAt": "2025-01-29T13:51:39.000Z",
+                            "id": 328577,
+                            "name": "my_category",
+                        },
+                    ],
+                }
+            ]
+
         Additional Filter Examples:
         ::
 
@@ -3014,6 +3123,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if isinstance(project, int)
             else self.controller.get_project(project)
         )
+        if (
+            include
+            and "categories" in include
+            and project.type != ProjectType.MULTIMODAL.value
+        ):
+            raise AppException(
+                "The 'categories' option in the 'include' field is only supported for Multimodal projects."
+            )
         if folder is None:
             folder = self.controller.get_folder(project, "root")
         else:
@@ -3088,6 +3205,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
                 - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
                 - custom_field: Optional[dict] – Specifies custom fields attributes to filter projects by.
+
                   Custom fields can be accessed using the `custom_field__` prefix followed by the attribute name.
 
         :type filters: ProjectFilters

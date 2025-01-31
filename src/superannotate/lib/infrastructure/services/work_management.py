@@ -1,17 +1,22 @@
 import base64
 import json
 from typing import List
+from typing import Optional
 
 from lib.core.entities import CategoryEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.work_managament import WMProjectEntity
+from lib.core.entities.work_managament import WMUserEntity
+from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ServiceResponse
+from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
+from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
 
 
@@ -26,8 +31,9 @@ class WorkManagementService(BaseWorkManagementService):
     URL_CREATE_CATEGORIES = "categories/bulk"
     URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
     URL_CUSTOM_FIELD_TEMPLATE_DELETE = "customfieldtemplates/{template_id}"
-    URL_PROJECT_CUSTOM_ENTITIES = "customentities/{project_id}"
-    LIST_PROJECTS = "customentities/search"
+    URL_SET_CUSTOM_ENTITIES = "customentities/{pk}"
+    URL_SEARCH_CUSTOM_ENTITIES = "customentities/search"
+    URL_SEARCH_TEAM_USERS = "teamusers/search"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -135,18 +141,25 @@ class WorkManagementService(BaseWorkManagementService):
             data=data,
         )
 
-    def list_project_custom_field_templates(self):
+    def list_custom_field_templates(
+        self,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        context: dict = None,
+    ):
+        if context is None:
+            context = {}
         return self.client.request(
             url=self.URL_CUSTOM_FIELD_TEMPLATES,
             method="get",
             headers={
                 "x-sa-entity-context": self._generate_context(
-                    team_id=self.client.team_id
+                    team_id=self.client.team_id, **context
                 ),
             },
             params={
-                "entity": "Project",
-                "parentEntity": "Team",
+                "entity": entity.value,
+                "parentEntity": parent_entity.value,
             },
         )
 
@@ -166,24 +179,9 @@ class WorkManagementService(BaseWorkManagementService):
             },
         )
 
-    def delete_project_custom_field_template(self, pk: int):
-        return self.client.request(
-            url=self.URL_CUSTOM_FIELD_TEMPLATE_DELETE.format(template_id=pk),
-            method="delete",
-            headers={
-                "x-sa-entity-context": self._generate_context(
-                    team_id=self.client.team_id
-                ),
-            },
-            params={
-                "entity": "Project",
-                "parentEntity": "Team",
-            },
-        )
-
     def list_project_custom_entities(self, project_id: int):
         return self.client.request(
-            url=self.URL_PROJECT_CUSTOM_ENTITIES.format(project_id=project_id),
+            url=self.URL_SET_CUSTOM_ENTITIES.format(pk=project_id),
             method="get",
             headers={
                 "x-sa-entity-context": self._generate_context(
@@ -198,7 +196,7 @@ class WorkManagementService(BaseWorkManagementService):
 
     def set_project_custom_field_value(self, project_id: int, data: dict):
         return self.client.request(
-            url=self.URL_PROJECT_CUSTOM_ENTITIES.format(project_id=project_id),
+            url=self.URL_SET_CUSTOM_ENTITIES.format(pk=project_id),
             method="patch",
             headers={
                 "x-sa-entity-context": self._generate_context(
@@ -214,7 +212,7 @@ class WorkManagementService(BaseWorkManagementService):
 
     def list_projects(self, body_query: Query, chunk_size=100) -> WMProjectListResponse:
         return self.client.jsx_paginate(
-            url=self.LIST_PROJECTS,
+            url=self.URL_SEARCH_CUSTOM_ENTITIES,
             method="post",
             body_query=body_query,
             query_params={
@@ -229,3 +227,110 @@ class WorkManagementService(BaseWorkManagementService):
             chunk_size=chunk_size,
             item_type=WMProjectEntity,
         )
+
+    def list_users(
+        self, body_query: Query, chunk_size=100, include_custom_fields=False
+    ) -> WMUserListResponse:
+        if include_custom_fields:
+            url = self.URL_SEARCH_CUSTOM_ENTITIES
+        else:
+            url = self.URL_SEARCH_TEAM_USERS
+        return self.client.jsx_paginate(
+            url=url,
+            method="post",
+            body_query=body_query,
+            query_params={
+                "entity": "Contributor",
+                "parentEntity": "Team",
+            },
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            chunk_size=chunk_size,
+            item_type=WMUserEntity,
+        )
+
+    def create_custom_field_template(
+        self,
+        name: str,
+        component_id: int,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        component_payload: dict = None,
+        access: dict = None,
+        entity_context: Optional[dict] = None,
+    ) -> WMCustomFieldResponse:
+        if entity_context is None:
+            entity_context = {}
+        return self.client.request(
+            method="post",
+            url=f"{self.URL_CUSTOM_FIELD_TEMPLATES}",
+            params={
+                "entity": entity.value,
+                "parentEntity": parent_entity.value,
+            },
+            data={
+                "name": name,
+                "component_id": component_id,
+                "component_payload": component_payload
+                if component_payload is not None
+                else {},
+                "access": access if access is not None else {},
+            },
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, **entity_context
+                ),
+            },
+        )
+
+    def delete_custom_field_template(
+        self,
+        pk: int,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        entity_context: Optional[dict] = None,
+    ):
+        if entity_context is None:
+            entity_context = {}
+        response = self.client.request(
+            method="delete",
+            url=self.URL_CUSTOM_FIELD_TEMPLATE_DELETE.format(template_id=pk),
+            params={
+                "entity": entity,
+                "parentEntity": parent_entity,
+            },
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, **entity_context
+                ),
+            },
+        )
+        response.raise_for_status()
+
+    def set_custom_field_value(
+        self,
+        entity_id: int,
+        template_id: int,
+        data: dict,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
+        context: Optional[dict] = None,
+    ):
+        response = self.client.request(
+            url=self.URL_SET_CUSTOM_ENTITIES.format(pk=entity_id),
+            method="patch",
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, **context
+                ),
+            },
+            data={"customField": {"custom_field_values": {template_id: data}}},
+            params={
+                "entity": entity.value,
+                "parentEntity": parent_entity.value,
+            },
+        )
+        response.raise_for_status()

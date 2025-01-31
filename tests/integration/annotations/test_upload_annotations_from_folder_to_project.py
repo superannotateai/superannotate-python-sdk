@@ -166,3 +166,8 @@ class TestExportUploadPixel(BaseTestCase):
                 contents1 = f1.read()
                 contents2 = f2.read()
                 assert contents1 == contents2
+
+
+def test():
+    a = sa.get_user_metadata(pk=244700, include=["custom_fields"])
+    print(a)

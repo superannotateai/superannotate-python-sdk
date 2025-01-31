@@ -6,6 +6,7 @@ from typing import Union
 
 from lib.core import entities
 from lib.core.entities.work_managament import WMProjectEntity
+from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import BaseModel
@@ -245,6 +246,14 @@ class ProjectListResponse(ServiceResponse):
 
 class WMProjectListResponse(ServiceResponse):
     res_data: List[WMProjectEntity] = None
+
+
+class WMUserListResponse(ServiceResponse):
+    res_data: List[WMUserEntity] = None
+
+
+class WMCustomFieldResponse(ServiceResponse):
+    res_data: List[entities.CustomFieldEntity] = None
 
 
 class SettingsListResponse(ServiceResponse):

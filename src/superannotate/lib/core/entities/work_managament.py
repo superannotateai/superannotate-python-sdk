@@ -1,4 +1,5 @@
 import datetime
+from enum import auto
 from enum import Enum
 from typing import Optional
 
@@ -7,14 +8,6 @@ from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
 from lib.core.pydantic_v1 import validator
-
-
-class ProjectCustomFieldType(Enum):
-    Text = 1
-    MULTI_SELECT = 2
-    SINGLE_SELECT = 3
-    DATE_PICKER = 4
-    NUMERIC = 5
 
 
 class ProjectType(str, Enum):
@@ -26,6 +19,25 @@ class ProjectType(str, Enum):
     Other = "CLASSIFICATION"
     PointCloud = "POINT_CLOUD"
     Multimodal = "CUSTOM_LLM"
+
+
+class WMUserStateEnum(str, Enum):
+    Pending = "PENDING"
+    Confirmed = "CONFIRMED"
+    Video = "PUBLIC_VIDEO"
+    Document = "PUBLIC_TEXT"
+    Tiled = "TILED"
+    Other = "CLASSIFICATION"
+    PointCloud = "POINT_CLOUD"
+    Multimodal = "CUSTOM_LLM"
+
+
+class WMUserTypeEnum(int, Enum):
+    Contributor = 4
+    TeamAdmin = 7
+    TeamOwner = 12
+    OrganizationAdmin = 15
+    other = auto()
 
 
 class ProjectStatus(str, Enum):
@@ -82,6 +94,36 @@ class WMProjectEntity(TimedBaseModel):
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def json(self, **kwargs):
+        if "exclude" not in kwargs:
+            kwargs["exclude"] = {"custom_fields"}
+        return super().json(**kwargs)
+
+
+class WMUserEntity(TimedBaseModel):
+    id: Optional[int]
+    team_id: Optional[int]
+    role: WMUserTypeEnum
+    email: Optional[str]
+    state: Optional[WMUserStateEnum]
+    custom_fields: Optional[dict] = Field(dict(), alias="customField")
+
+    class Config:
+        extra = Extra.ignore
+        use_enum_names = True
+
+        json_encoders = {
+            Enum: lambda v: v.value,
+            datetime.date: lambda v: v.isoformat(),
+            datetime.datetime: lambda v: v.isoformat(),
+        }
+
+    @validator("custom_fields")
+    def custom_fields_transformer(cls, v):
+        if v and "custom_field_values" in v:
+            return v.get("custom_field_values", {})
+        return {}
 
     def json(self, **kwargs):
         if "exclude" not in kwargs:
