@@ -1,6 +1,7 @@
 from typing import Optional
 
 from lib.core.entities.base import BaseItemEntity
+from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import ProjectType
 from lib.core.pydantic_v1 import Extra
@@ -11,6 +12,21 @@ class ImageEntity(BaseItemEntity):
     approval_status: Optional[ApprovalStatus] = Field(None)
     is_pinned: Optional[bool]
     meta: Optional[dict]
+
+    class Config:
+        extra = Extra.ignore
+
+
+class MultiModalItemCategoryEntity(TimedBaseModel):
+    id: int = Field(None, alias="category_id")
+    name: str = Field(None, alias="category_name")
+
+    class Config:
+        extra = Extra.ignore
+
+
+class MultiModalItemEntity(BaseItemEntity):
+    categories: Optional[list[MultiModalItemCategoryEntity]]
 
     class Config:
         extra = Extra.ignore
@@ -51,4 +67,5 @@ PROJECT_ITEM_ENTITY_MAP = {
     ProjectType.TILED: ImageEntity,
     ProjectType.VIDEO: VideoEntity,
     ProjectType.DOCUMENT: DocumentEntity,
+    ProjectType.MULTIMODAL: MultiModalItemEntity,
 }

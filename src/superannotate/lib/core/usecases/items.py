@@ -17,6 +17,7 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import VideoEntity
+from lib.core.entities.items import MultiModalItemEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import BackendError
@@ -60,6 +61,8 @@ def serialize_item_entity(
         return VideoEntity(**entity.dict(by_alias=True))
     elif project.type == constants.ProjectType.DOCUMENT.value:
         return DocumentEntity(**entity.dict(by_alias=True))
+    elif project.type == constants.ProjectType.MULTIMODAL.value:
+        return MultiModalItemEntity(**entity.dict(by_alias=True))
     return entity
 
 

@@ -2977,7 +2977,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, int],
         folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
-        include: List[Literal["custom_metadata", "category"]] = None,
+        include: List[Literal["custom_metadata", "categories"]] = None,
         **filters,
     ):
         """
@@ -2997,6 +2997,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 Possible values are
 
                 - "custom_metadata": Includes custom metadata attached to the item.
+                - "categories": Includes categories attached to the item.
         :type include: list of str, optional
 
         :param filters: Specifies filtering criteria (e.g., name, ID, annotation status),
@@ -3067,6 +3068,40 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
 
+        Request Example with include categories:
+        ::
+
+            client.list_items(
+                project="My Multimodal",
+                folder="folder1",
+                include=["categories"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "id": 48909383,
+                    "name": "scan_123.jpeg",
+                    "path": "Medical Annotations/folder1",
+                    "url": "https://sa-public-files.s3.../scan_123.jpeg",
+                    "annotation_status": "InProgress",
+                    "createdAt": "2022-02-10T14:32:21.000Z",
+                    "updatedAt": "2022-02-15T20:46:44.000Z",
+                    "entropy_value": None,
+                    "assignments": [],
+                    "categories": [
+                        {
+                            "createdAt": "2025-01-29T13:51:39.000Z",
+                            "updatedAt": "2025-01-29T13:51:39.000Z",
+                            "id": 328577,
+                            "name": "my_category",
+                        },
+                    ],
+                }
+            ]
+
         Additional Filter Examples:
         ::
 
@@ -3088,6 +3123,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if isinstance(project, int)
             else self.controller.get_project(project)
         )
+        if (
+            include
+            and "categories" in include
+            and project.type != ProjectType.MULTIMODAL.value
+        ):
+            raise AppException(
+                "The 'categories' option in the 'include' field is only supported for Multimodal projects."
+            )
         if folder is None:
             folder = self.controller.get_folder(project, "root")
         else:
