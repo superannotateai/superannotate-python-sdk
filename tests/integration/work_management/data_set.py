@@ -29,17 +29,23 @@ CUSTOM_FIELD_PAYLOADS = [
         "component_payload": {"options": [{"value": "option1"}, {"value": "option2"}]},
     },
     {
-        "name": "SDK_test_multy_select",
+        "name": "SDK_test_multi_select",
         "access": {},
         "component_id": CustomFieldType.MULTI_SELECT.value,
-        "component_payload": {"options": [{"value": "option1"}, {"value": "option2"}]},
+        "component_payload": {
+            "options": [
+                {"value": "option1"},
+                {"value": "option2"},
+                {"value": "option3"},
+            ]
+        },
     },
 ]
 
 FIELD_VALUE_MAP = {
     "SDK_test_text": "test_text_value",
-    "SDK_test_date_picker": float(int(time.time())),
+    "SDK_test_date_picker": round(time.time(), 3),
     "SDK_test_numeric": 123,
     "SDK_test_single_select": "option1",
-    "SDK_test_multy_select": ["option1", "option2"],
+    "SDK_test_multi_select": ["option1", "option2"],
 }

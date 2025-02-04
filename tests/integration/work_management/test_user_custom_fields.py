@@ -1,5 +1,7 @@
+import time
 from unittest import TestCase
 
+from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 from src.superannotate.lib.core.enums import CustomFieldEntityEnum
 from tests.integration.work_management.data_set import CUSTOM_FIELD_PAYLOADS
@@ -49,22 +51,105 @@ class TestWorkManagement(TestCase):
         users = sa.list_users()
         scapegoat = [u for u in users if u["role"] == "Contributor"][0]
         assert not scapegoat["custom_fields"]
-        custom_field_to_set = CUSTOM_FIELD_PAYLOADS[0]
         sa.set_user_custom_field(
             scapegoat["email"],
-            custom_field_name=custom_field_to_set["name"],
+            custom_field_name="SDK_test_text",
             value="Dummy data",
         )
         scapegoat = sa.list_users(include=["custom_fields"], email=scapegoat["email"])[
             0
         ]
-        assert scapegoat["custom_fields"][custom_field_to_set["name"]] == "Dummy data"
+        assert scapegoat["custom_fields"]["SDK_test_text"] == "Dummy data"
         scapegoat = sa.get_user_metadata(scapegoat["email"], include=["custom_fields"])
-        assert scapegoat["custom_fields"][custom_field_to_set["name"]] == "Dummy data"
+        assert scapegoat["custom_fields"]["SDK_test_text"] == "Dummy data"
         kwargs = {
             "include": ["custom_fields"],
-            f"custom_field__{custom_field_to_set['name']}__contains": "mmy",
+            "custom_field__SDK_test_text__contains": "mmy",
         }
         users = sa.list_users(**kwargs)
         assert len(users) == 1
-        assert users[0]["custom_fields"][custom_field_to_set["name"]] == "Dummy data"
+        assert users[0]["custom_fields"]["SDK_test_text"] == "Dummy data"
+
+    def test_list_users(self):
+        users = sa.list_users()
+        all_contributors = [u for u in users if u["role"] == "Contributor"]
+        all_confirmed = [u for u in users if u["state"] == "Confirmed"]
+        all_pending = [u for u in users if u["state"] == "Pending"]
+        scapegoat = all_contributors[0]
+        assert not scapegoat["custom_fields"]
+
+        # by date_picker
+        value = round(time.time(), 3)
+        sa.set_user_custom_field(
+            scapegoat["email"],
+            custom_field_name="SDK_test_date_picker",
+            value=value,
+        )
+        scapegoat = sa.list_users(
+            include=["custom_fields"],
+            email=scapegoat["email"],
+            custom_field__SDK_test_date_picker=value,
+        )[0]
+        assert scapegoat["custom_fields"]["SDK_test_date_picker"] == value
+
+        # by email__contains
+        assert len(sa.list_users(email__contains="@superannotate.com")) == len(users)
+
+        # by role
+        assert len(sa.list_users(role="contributor")) == len(all_contributors)
+        assert len(sa.list_users(role__in=["contributor"])) == len(all_contributors)
+        with self.assertRaisesRegexp(AppException, "Invalid user role provided."):
+            sa.list_users(role__in=["invalid_role"])
+
+        # by state
+        assert len(sa.list_users(state="CONFIRMED")) == len(all_confirmed)
+        assert len(sa.list_users(state__in=["PENDING"])) == len(all_pending)
+        with self.assertRaisesRegexp(AppException, "Invalid user state provided."):
+            assert len(sa.list_users(state__in=["invalid_state"])) == len(all_pending)
+
+    def test_get_user_metadata_invalid(self):
+        with self.assertRaisesRegexp(AppException, "User not found."):
+            sa.get_user_metadata("invalid_user")
+
+    def test_set_user_custom_field_validation(self):
+        error_template = (
+            "Invalid input: The provided value is not valid.\nExpected type: {type}."
+        )
+        error_template_select = error_template + "\nValid options are: {options}."
+        users = sa.list_users()
+        scapegoat = [u for u in users if u["role"] == "Contributor"][0]
+        # test for text
+        with self.assertRaisesRegexp(AppException, error_template.format(type="str")):
+            sa.set_user_custom_field(scapegoat["email"], "SDK_test_text", 123)
+
+        # test for numeric
+        with self.assertRaisesRegexp(
+            AppException, error_template.format(type="numeric")
+        ):
+            sa.set_user_custom_field(
+                scapegoat["email"], "SDK_test_numeric", "invalid value"
+            )
+
+        # test for date_picker
+        with self.assertRaisesRegexp(
+            AppException, error_template.format(type="numeric")
+        ):
+            sa.set_user_custom_field(
+                scapegoat["email"], "SDK_test_date_picker", "invalid value"
+            )
+
+        # test for multi_select
+        with self.assertRaisesRegexp(
+            AppException,
+            error_template_select.format(type="list", options="option1, option2"),
+        ):
+            sa.set_user_custom_field(
+                scapegoat["email"], "SDK_test_multi_select", "invalid value"
+            )
+
+        # test for select
+        with self.assertRaisesRegexp(
+            AppException,
+            error_template_select.format(type="str", options="option1, option2"),
+        ):
+            sa.set_user_custom_field(scapegoat["email"], "SDK_test_single_select", 123)

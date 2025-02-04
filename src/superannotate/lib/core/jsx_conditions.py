@@ -111,9 +111,22 @@ class Filter(Query):
         return f"filter={self._build()}"
 
     def body_build(self) -> Tuple[str, List[Dict]]:
-        filter_value = [{self._key: {self._operator.value: self._value}}]
-        if self._key.startswith("customField.custom_field_values."):
-            filter_value.append({self._key: {"$notnull": True}})
+        filter_value: List[Dict] = []
+        if self._value is None and self._operator == OperatorEnum.EQ:
+            filter_value.append({self._key: {"$isnull": True}})
+        elif self._operator == OperatorEnum.NOTIN:
+            filter_value.append(
+                {
+                    "$or": [
+                        {self._key: {self._operator.value: self._value}},
+                        {self._key: {"$isnull": True}},
+                    ]
+                }
+            )
+        else:
+            filter_value.append({self._key: {self._operator.value: self._value}})
+            if self._key.startswith("customField.custom_field_values."):
+                filter_value.append({self._key: {"$notnull": True}})
         return "$and", filter_value
 
 

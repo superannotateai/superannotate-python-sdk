@@ -11,7 +11,9 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
+from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectStatus
+from lib.core.enums import UserRole
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
@@ -72,12 +74,12 @@ class FieldValidationHandler(AbstractQueryHandler):
         self._valid_fields = valid_fields
 
     def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
-        if filters and not any(
-            filter_name.startswith(field)
-            for filter_name in filters
-            for field in self._valid_fields
-        ):
-            raise AppException("Invalid filter param provided.")
+        for param in filters.keys():
+            if (
+                not param.startswith("custom_field__")
+                and param not in self._valid_fields
+            ):
+                raise AppException("Invalid filter param provided.")
         return super().handle(filters, query)
 
 
@@ -218,16 +220,44 @@ class ItemFilterHandler(AbstractQueryHandler):
 
 
 class UserFilterHandler(BaseCustomFieldHandler):
-    @staticmethod
-    def _handle_special_fields(keys: List[str], val):
+    def _handle_special_fields(self, keys: List[str], val):
+        """
+        Handle special fields like 'custom_fields__'.
+        """
+        if keys[0] == "custom_field":
+            component_id = self._service_provider.get_custom_field_component_id(
+                field_id=int(keys[1]), entity=self._entity
+            )
+            if component_id == CustomFieldType.DATE_PICKER.value:
+                try:
+                    val = val * 1000
+                except Exception:
+                    raise AppException("Invalid custom field value provided.")
+        elif keys[0] == "role":
+            try:
+                if isinstance(val, list):
+                    val = [UserRole.__getitem__(i.upper()).value for i in val]
+                elif isinstance(val, str):
+                    val = UserRole.__getitem__(val.upper()).value
+                else:
+                    raise AppException("Invalid user role provided.")
+            except (KeyError, AttributeError):
+                raise AppException("Invalid user role provided.")
+        elif keys[0] == "state":
+            valid_states = ["PENDING", "CONFIRMED"]
+            if isinstance(val, list):
+                for state in val:
+                    if state not in valid_states:
+                        raise AppException("Invalid user state provided.")
+            elif val not in valid_states:
+                raise AppException("Invalid user state provided.")
         return val
 
 
 class ProjectFilterHandler(BaseCustomFieldHandler):
-    @staticmethod
-    def _handle_special_fields(keys: List[str], val):
+    def _handle_special_fields(self, keys: List[str], val):
         """
-        Handle special fields like 'status'.
+        Handle special fields like 'status' and 'custom_fields__'.
         """
         if keys[0] == "status":
             val = (
@@ -235,6 +265,15 @@ class ProjectFilterHandler(BaseCustomFieldHandler):
                 if isinstance(val, (list, tuple, set))
                 else ProjectStatus(val).value
             )
+        elif keys[0] == "custom_field":
+            component_id = self._service_provider.get_custom_field_component_id(
+                field_id=int(keys[1]), entity=self._entity
+            )
+            if component_id == CustomFieldType.DATE_PICKER.value:
+                try:
+                    val = val * 1000
+                except Exception:
+                    raise AppException("Invalid custom field value provided.")
         return val
 
 

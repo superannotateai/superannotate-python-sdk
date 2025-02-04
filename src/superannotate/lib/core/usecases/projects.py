@@ -1,7 +1,6 @@
 import decimal
 import logging
 from collections import defaultdict
-from typing import Any
 from typing import List
 
 import lib.core as constances
@@ -192,49 +191,6 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 project.custom_fields = custom_fields_name_value_map
         self._response.data = project
         return self._response
-
-
-class SetProjectCustomFieldUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        service_provider: BaseServiceProvider,
-        custom_field_name: str,
-        value: Any,
-    ):
-        super().__init__()
-        self._project = project
-        self._service_provider = service_provider
-        self._custom_field_name = custom_field_name
-        self._value = value
-
-    def execute(self):
-        if (
-            self._custom_field_name
-            not in self._service_provider.list_custom_field_names(
-                entity=CustomFieldEntityEnum.PROJECT
-            )
-        ):
-            raise AppException("Invalid custom field name provided.")
-        custom_field_id = self._service_provider.get_custom_field_id(
-            self._custom_field_name, entity=CustomFieldEntityEnum.PROJECT
-        )
-        component_id = self._service_provider.get_custom_field_component_id(
-            custom_field_id, entity=CustomFieldEntityEnum.PROJECT
-        )
-        # timestamp: convert seconds to milliseconds
-        if component_id == CustomFieldType.DATE_PICKER.value:
-            try:
-                self._value = self._value * 1000
-            except Exception:
-                raise AppException("Invalid custom field value provided.")
-        patch_data = {custom_field_id: self._value}
-        # TODO add error handling
-        res = self._service_provider.work_management.set_project_custom_field_value(
-            project_id=self._project.id, data=patch_data
-        )
-        if res.error:
-            raise AppException(res.error)
 
 
 class CreateProjectUseCase(BaseUseCase):

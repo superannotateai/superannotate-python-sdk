@@ -284,21 +284,47 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
     ):
         """
-        Returns user metadata
+        Returns user metadata including optionally, custom fields
 
-        :param pk: The email address or ID of the team contributor.
+        :param pk: The email address or ID of the team user.
         :type pk: str or int
 
         :param include: Specifies additional fields to include in the response.
 
-                Possible values are
+            Possible values are
 
-                    - "custom_fields": whether to include custom fields that have been created for the team user.
+            - "custom_fields": If provided, the response will include custom fields associated with the team user.
 
         :type include: list of str, optional
 
-        :return: metadata of team contributor
+        :return: metadata of team user.
         :rtype: dict
+
+        Request Example:
+        ::
+
+            client.get_user_metadata(
+                "example@email.com",
+                include=["custom_fields"]
+            )
+
+        Response Example:
+        ::
+
+            {
+                "createdAt": "2023-11-27T07:10:24.000Z",
+                "updatedAt": "2025-02-03T13:35:09.000Z",
+                "custom_fields": {
+                    "ann_quality_threshold": 80,
+                    "tag": ["Tag1", "Tag2", "Tag3"],
+                    "due_date": 1738671238.7,
+                },
+                "email": "example@email.com",
+                "id": 124341,
+                "role": "Contributor",
+                "state": "Confirmed",
+                "team_id": 23245,
+            }
         """
         user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
         return BaseSerializer(user).serialize(by_alias=False)
@@ -307,30 +333,29 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self, pk: Union[int, str], custom_field_name: str, value: Any
     ):
         """
-        Set the custom field for team contributors.
+        Set the custom field for team user.
 
-        :param pk: The email address or ID of the team contributor.
+        :param pk: The email address or ID of the team user.
         :type pk: str or int
 
-        :param custom_field_name: the name of the custom field created for the team contributor,
-                                    used to set or update its value.
-
+        :param custom_field_name: The name of the existing custom field assigned to the user.
         :type custom_field_name: str
 
-        :param value: The value
+        :param value: The new value for the custom field.
+
+            - This can be a string, a list of strings, a number, or None depending on the custom field type.
+            - Multi-select fields must be provided as a list of strings (e.g., ["Tag1", "Tag2"]).
+            - Date fields must be in Unix timestamp format (e.g., "1738281600").
+            - Other fields (e.g., text, numbers) should match the expected type as defined in the project schema.
         :type value: Any
 
-         Request Example:
+        Request Example:
         ::
-            from superannotate import SAClient
-
-
-            sa = SAClient()
 
             client.set_user_custom_field(
                 "example@email.com",
-                custom_field_name="Due date",
-                value="Dec 20, 2024"
+                custom_field_name="due_date",
+                value=1738671238.7
             )
         """
         user_id = self.controller.work_management.get_user_metadata(pk=pk).id
@@ -344,10 +369,85 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def list_users(self, *, include: List[Literal["custom_fields"]] = None, **filters):
         """
+        Search users by filtering criteria
 
-        @param include:
-        @param filters:
-        @return:
+        :param include: Specifies additional fields to be included in the response.
+
+            Possible values are
+
+            - "custom_fields": Includes the custom fields assigned to each user.
+        :type include: list of str, optional
+
+        :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
+
+            - Only users matching all filter conditions are returned.
+
+            - If no filter operation is provided, an exact match is applied
+
+            Supported operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+            - __gt: Value is greater than the given number.
+            - __gte: Value is greater than or equal to the given number.
+            - __lt: Value is less than the given number.
+            - __lte: Value is less than or equal to the given number.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - email: str
+            - email__in:  list[str]
+            - email__contains: str
+            - email__starts: str
+            - email__ends: str
+            - state: Literal[“CONFIRMED”, “PENDING”]
+            - state__in: List[Literal[“CONFIRMED”, “PENDING”]]
+            - role: Literal[“admin”, “contributor”]
+            - role__in: List[Literal[“admin”, “contributor”]]
+
+            Custom Fields Filtering:
+                - Custom fields must be prefixed with custom_field__.
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+
+        :type filters: UserFilters, optional
+
+        :return: A list of team users metadata that matches the filtering criteria
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.list_users(
+                email__contains="@superannotate.com",
+                include=["custom_fields"],
+                state__in=["CONFIRMED"]
+                custom_fields__Tag__in=["Tag1", "Tag3"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2023-02-02T14:25:42.000Z",
+                    "updatedAt": "2025-01-23T16:39:03.000Z",
+                    "custom_fields": {
+                        "Ann Quality threshold": 80,
+                        "Tag": ["Tag1", "Tag2", "Tag3"],
+                    },
+                    "email": "example@superannotate.com",
+                    "id": 30328,
+                    "role": "TeamOwner",
+                    "state": "Confirmed",
+                    "team_id": 44311,
+                }
+            ]
         """
         return BaseSerializer.serialize_iterable(
             self.controller.work_management.list_users(include=include, **filters)
@@ -879,6 +979,51 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :return: metadata of project
         :rtype: dict
+
+
+        Request Example:
+        ::
+
+            client.get_project_metadata(
+                project="Medical Annotations",
+                include_custom_fields=True
+            )
+
+
+        Response Example:
+        ::
+
+            {
+                "classes": [],
+                "completed_items_count": None,
+                "contributors": [],
+                "createdAt": "2025-02-04T12:04:01+00:00",
+                "creator_id": "ecample@email.com",
+                "custom_fields": {
+                    "Notes": "Something",
+                    "Ann Quality threshold": 80,
+                    "Tag": ["Tag1", "Tag2", "Tag3"],
+                    "Due date": 1738281600.0,
+                    "Other_Custom_Field": None,
+                },
+                "description": "DESCRIPTION",
+                "entropy_status": 1,
+                "folder_id": 1191383,
+                "id": 902174,
+                "instructions_link": None,
+                "item_count": None,
+                "name": "Medical Annotations",
+                "root_folder_completed_items_count": None,
+                "settings": [],
+                "sharing_status": None,
+                "status": "NotStarted",
+                "team_id": 233435,
+                "type": "Vector",
+                "updatedAt": "2024-02-04T12:04:01+00:00",
+                "upload_state": "INITIAL",
+                "users": [],
+                "workflow_id": 1,
+            }
         """
         project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
@@ -1043,15 +1188,31 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type custom_field_name: str
 
         :param value: The value assigned to the custom field, with the type depending on the field's configuration.
+            Multi-select fields must be provided as a list of strings (e.g., ["Tag1", "Tag2"]).
+            Date fields must be in Unix timestamp format (e.g., "1738281600").
+            Other fields (e.g., text, numbers) should match the expected type as defined in the project schema.
         :type value: Any
+
+        Request Example:
+        ::
+
+            client.set_project_custom_field(
+                project="Medical Annotations",
+                custom_field_name="due_date",
+                value=1738671238.759,
+            )
         """
         project = (
             self.controller.get_project_by_id(project).data
             if isinstance(project, int)
             else self.controller.get_project(project)
         )
-        self.controller.projects.set_project_custom_field(
-            project, custom_field_name, value
+        self.controller.work_management.set_custom_field_value(
+            entity_id=project.id,
+            field_name=custom_field_name,
+            value=value,
+            entity=CustomFieldEntityEnum.PROJECT,
+            parent_entity=CustomFieldEntityEnum.TEAM,
         )
 
     def set_folder_status(
@@ -3167,51 +3328,105 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         include: List[Literal["custom_fields"]] = None,
         **filters,
     ):
-        # TODO finalize doc
         """
         Search projects by filtering criteria.
 
         :param include: Specifies additional fields to include in the response.
 
-                Possible values are
+            Possible values are
 
-                - "custom_fields": Includes custom field added to the project.
+            - "custom_fields": Includes the custom fields assigned to each project.
         :type include: list of str, optional
 
-        :param filters: Specifies filtering criteria (e.g., name, ID, status), with all conditions combined using
-                        logical AND. Only projects matching all criteria are returned. If no operation is specified,
-                        an exact match is applied.
+        :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
 
+            - Only users matching all filter conditions are returned.
 
-                Supported operations:
-                    - __ne: Value is not equal.
-                    - __in: Value is in the list.
-                    - __notin: Value is not in the list.
-                    - __contains: Value has the substring.
-                    - __starts: Value starts with the prefix.
-                    - __ends: Value ends with the suffix.
+            - If no filter operation is provided, an exact match is applied.
 
-                Filter params::
+            Supported operations:
 
-                - id: int
-                - id__in: list[int]
-                - name: str
-                - name__in:  list[str]
-                - name__contains: str
-                - name__starts: str
-                - name__ends: str
-                - status: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
-                - status__ne: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
-                - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
-                - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
-                - custom_field: Optional[dict] – Specifies custom fields attributes to filter projects by.
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+            - __gt: Value is greater than the given number.
+            - __gte: Value is greater than or equal to the given number.
+            - __lt: Value is less than the given number.
+            - __lte: Value is less than or equal to the given number.
 
-                  Custom fields can be accessed using the `custom_field__` prefix followed by the attribute name.
+            Filter params::
 
-        :type filters: ProjectFilters
+            - id: int
+            - id__in: list[int]
+            - name: str
+            - name__in:  list[str]
+            - name__contains: str
+            - name__starts: str
+            - name__ends: str
+            - status: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+            - status__ne: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+            - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+            - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+
+            Custom Fields Filtering:
+                - Custom fields must be prefixed with custom_field__.
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+                - If include does not include "custom_fields" but filter contains custom_fields, an error will be returned
+
+        :type filters: ProjectFilters, optional
 
         :return: A list of project metadata that matches the filtering criteria.
         :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.list_projects(
+                name__contains="Medical",
+                include=["custom_fields"],
+                status__in=["InProgress", "Completed"],
+                custom_fields__Tag__in=["Tag1", "Tag3"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "classes": [],
+                    "completed_items_count": None,
+                    "contributors": [],
+                    "createdAt": "2025-02-04T12:04:01+00:00",
+                    "creator_id": "ecample@email.com",
+                    "custom_fields": {
+                        "Notes": "Something",
+                        "Ann Quality threshold": 80,
+                        "Tag": ["Tag1","Tag2","Tag3"],
+                        "Due date": 1738281600.0,
+                        "Other_Custom_Field": None,
+                    },
+                    "description": "DESCRIPTION",
+                    "entropy_status": 1,
+                    "folder_id": 1191383,
+                    "id": 902174,
+                    "instructions_link": None,
+                    "item_count": None,
+                    "name": "Medical Annotations",
+                    "root_folder_completed_items_count": None,
+                    "settings": [],
+                    "sharing_status": None,
+                    "status": "InProgress",
+                    "team_id": 233435,
+                    "type": "Vector",
+                    "updatedAt": "2024-02-04T12:04:01+00:00",
+                    "upload_state": "INITIAL",
+                    "users": [],
+                    "workflow_id": 1,
+                }
+            ]
         """
         return [
             WMProjectSerializer(p).serialize()

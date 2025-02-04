@@ -124,6 +124,8 @@ class WorkManagementManager(BaseManager):
         else:
             filters = {"email": pk}
         users = self.list_users(include=include, **filters)
+        if not users:
+            raise AppException("User not found.")
         return users[0]
 
     def set_custom_field_value(
@@ -132,7 +134,7 @@ class WorkManagementManager(BaseManager):
         entity: CustomFieldEntity,
         parent_entity: CustomFieldEntityEnum,
         field_name: str,
-        value: dict,
+        value: Any,
     ):
         _context = {}
         if entity == CustomFieldEntityEnum.PROJECT:
@@ -140,6 +142,15 @@ class WorkManagementManager(BaseManager):
         template_id = self.service_provider.get_custom_field_id(
             field_name, entity=entity
         )
+        component_id = self.service_provider.get_custom_field_component_id(
+            template_id, entity=entity
+        )
+        # timestamp: convert seconds to milliseconds
+        if component_id == CustomFieldType.DATE_PICKER.value:
+            try:
+                value = value * 1000
+            except Exception:
+                raise AppException("Invalid custom field value provided.")
         self.service_provider.work_management.set_custom_field_value(
             entity_id=entity_id,
             entity=entity,
@@ -217,17 +228,6 @@ class ProjectManager(BaseManager):
             include_contributors=include_contributors,
             include_complete_image_count=include_complete_image_count,
             include_custom_fields=include_custom_fields,
-        )
-        return use_case.execute()
-
-    def set_project_custom_field(
-        self, project: ProjectEntity, custom_field_name: str, value: Any
-    ):
-        use_case = usecases.SetProjectCustomFieldUseCase(
-            project=project,
-            service_provider=self.service_provider,
-            custom_field_name=custom_field_name,
-            value=value,
         )
         return use_case.execute()
 
@@ -360,32 +360,36 @@ class ProjectManager(BaseManager):
         include: List[str] = None,
         **filters: Unpack[ProjectFilters],
     ) -> List[ProjectEntity]:
-        if include and "custom_fields" in include:
-            chain = QueryBuilderChain(
-                [
-                    FieldValidationHandler(ProjectFilters.__annotations__.keys()),
-                    ProjectFilterHandler(
-                        self.service_provider, entity=CustomFieldEntityEnum.PROJECT
-                    ),
-                ]
-            )
-            query = chain.handle(filters, EmptyQuery())
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(ProjectFilters.__annotations__.keys()),
+                ProjectFilterHandler(
+                    self.service_provider, entity=CustomFieldEntityEnum.PROJECT
+                ),
+            ]
+        )
+        query = chain.handle(filters, EmptyQuery())
+        include_custom_fields: bool = (
+            True if include and "custom_fields" in include else False
+        )
+        if include_custom_fields:
             response = self.service_provider.work_management.list_projects(
                 body_query=query
             )
         else:
-            # TODO add call after BED update
-            raise NotImplementedError
-        # set custom field names
+            response = self.service_provider.work_management.search_projects(
+                body_query=query
+            )
         if response.error:
             raise AppException(response.error)
         projects = response.data
-        custom_fields_list = [project.custom_fields for project in projects]
-        serialized_fields = serialize_custom_fields(
-            self.service_provider, custom_fields_list, CustomFieldEntityEnum.PROJECT
-        )
-        for project, serialized_custom_fields in zip(projects, serialized_fields):
-            project.custom_fields = serialized_custom_fields
+        if include_custom_fields:
+            custom_fields_list = [project.custom_fields for project in projects]
+            serialized_fields = serialize_custom_fields(
+                self.service_provider, custom_fields_list, CustomFieldEntityEnum.PROJECT
+            )
+            for project, serialized_custom_fields in zip(projects, serialized_fields):
+                project.custom_fields = serialized_custom_fields
         return projects
 
 
