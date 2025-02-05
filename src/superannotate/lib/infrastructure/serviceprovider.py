@@ -69,6 +69,11 @@ class ServiceProvider(BaseServiceProvider):
             5, self.work_management
         )
 
+    def get_custom_fields_templates(self, entity: CustomFieldEntityEnum):
+        return self._cached_work_management_repository.list_templates(
+            self.client.team_id, entity=entity
+        )
+
     def list_custom_field_names(self, entity: CustomFieldEntityEnum) -> List[str]:
         return self._cached_work_management_repository.list_custom_field_names(
             self.client.team_id, entity=entity

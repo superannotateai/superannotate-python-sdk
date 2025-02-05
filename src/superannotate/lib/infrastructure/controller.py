@@ -48,6 +48,7 @@ from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
 from lib.core.usecases import serialize_item_entity
+from lib.infrastructure.custom_entities import generate_schema
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.query_builder import FieldValidationHandler
 from lib.infrastructure.query_builder import IncludeHandler
@@ -360,9 +361,15 @@ class ProjectManager(BaseManager):
         include: List[str] = None,
         **filters: Unpack[ProjectFilters],
     ) -> List[ProjectEntity]:
+        valid_fields = generate_schema(
+            ProjectFilters.__annotations__,
+            self.service_provider.get_custom_fields_templates(
+                CustomFieldEntityEnum.PROJECT
+            ),
+        )
         chain = QueryBuilderChain(
             [
-                FieldValidationHandler(ProjectFilters.__annotations__.keys()),
+                FieldValidationHandler(valid_fields.keys()),
                 ProjectFilterHandler(
                     self.service_provider, entity=CustomFieldEntityEnum.PROJECT
                 ),

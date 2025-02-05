@@ -14,6 +14,7 @@ class OperatorEnum(str, Enum):
     NE = "$ne"
     GT = "$gt"
     LT = "$lt"
+    IS = "$is"
     CONTAINS = "$cont"
     STARTS = "$starts"
     ENDS = "$ends"

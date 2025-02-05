@@ -75,10 +75,7 @@ class FieldValidationHandler(AbstractQueryHandler):
 
     def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
         for param in filters.keys():
-            if (
-                not param.startswith("custom_field__")
-                and param not in self._valid_fields
-            ):
+            if param not in self._valid_fields:
                 raise AppException("Invalid filter param provided.")
         return super().handle(filters, query)
 
