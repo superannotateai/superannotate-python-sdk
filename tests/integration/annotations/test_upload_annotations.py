@@ -228,3 +228,19 @@ class MultiModalUploadAnnotations(BaseTestCase):
                 f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
             )
             assert len(annotations) == 3
+
+    def test_upload_with_integer_names(self):
+        data = []
+        with open(self.JSONL_ANNOTATIONS_WITH_CATEGORIES_PATH) as f:
+            for i, line in enumerate(f):
+                _data = json.loads(line)
+                _data["metadata"]["name"] = i
+                data.append(_data)
+            res = sa.upload_annotations(
+                f"{self.PROJECT_NAME}", annotations=data, data_spec="multimodal"
+            )
+            assert len(res["failed"]) == 3
+            annotations = sa.get_annotations(
+                f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
+            )
+            assert len(annotations) == 0
