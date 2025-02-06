@@ -11,7 +11,10 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
+from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectStatus
+from lib.core.enums import UserRole
+from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
@@ -72,12 +75,9 @@ class FieldValidationHandler(AbstractQueryHandler):
         self._valid_fields = valid_fields
 
     def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
-        if filters and not any(
-            filter_name.startswith(field)
-            for filter_name in filters
-            for field in self._valid_fields
-        ):
-            raise AppException("Invalid filter param provided.")
+        for param in filters.keys():
+            if param not in self._valid_fields:
+                raise AppException("Invalid filter param provided.")
         return super().handle(filters, query)
 
 
@@ -93,73 +93,6 @@ class IncludeHandler(AbstractQueryHandler):
         assert query is not None, "Query build fail"
         for field in self.include:
             query &= Join(field)
-        return super().handle(filters, query)
-
-
-class BaseCustomFieldHandler(AbstractQueryHandler):
-    def __init__(
-        self, service_provider: BaseServiceProvider, entity: CustomFieldEntityEnum
-    ):
-        self._service_provider = service_provider
-        self._entity = entity
-
-    def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
-        for custom_field in sorted(
-            self._service_provider.list_custom_field_names(entity=self._entity),
-            key=len,
-            reverse=True,
-        ):
-            if custom_field in key:
-                return key.replace(
-                    custom_field,
-                    str(
-                        self._service_provider.get_custom_field_id(
-                            custom_field, entity=self._entity
-                        )
-                    ),
-                ).split("__")
-        raise AppException("Invalid custom field name provided.")
-
-    @staticmethod
-    def _determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
-        """
-        Determine the condition and key from the filters.
-        """
-        condition: Optional[OperatorEnum] = None
-        key: Optional[str] = None
-
-        if len(keys) == 1 and "custom_field" not in keys:
-            condition, key = OperatorEnum.EQ, keys[0]
-        if "custom_field" in keys:
-            _keys = "customField", "custom_field_values"
-            if len(keys) == 2 or len(keys) == 3:
-                key = ".".join((*_keys, keys[1]))
-            else:
-                raise AppException("Invalid custom field name provided.")
-        if not condition:
-            condition = (
-                OperatorEnum[keys.pop().upper()]
-                if keys[-1].upper() in OperatorEnum.__members__
-                else OperatorEnum.EQ
-            )
-        if not key:
-            key = ".".join(keys)
-        return condition, key
-
-    @staticmethod
-    def _handle_special_fields(keys: List[str], val):
-        return val
-
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
-        if query is None:
-            query = EmptyQuery()
-        for key, val in filters.items():
-            _keys = key.split("__")
-            if _keys[0] == "custom_field":
-                _keys = self._handle_custom_field_key(key)
-            val = self._handle_special_fields(_keys, val)
-            condition, _key = self._determine_condition_and_key(_keys)
-            query &= Filter(_key, val, condition)
         return super().handle(filters, query)
 
 
@@ -217,17 +150,117 @@ class ItemFilterHandler(AbstractQueryHandler):
         return val
 
 
-class UserFilterHandler(BaseCustomFieldHandler):
+class BaseCustomFieldHandler(AbstractQueryHandler):
+    def __init__(
+        self, service_provider: BaseServiceProvider, entity: CustomFieldEntityEnum
+    ):
+        self._service_provider = service_provider
+        self._entity = entity
+
+    def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
+        for custom_field in sorted(
+            self._service_provider.list_custom_field_names(entity=self._entity),
+            key=len,
+            reverse=True,
+        ):
+            if custom_field in key:
+                custom_field_id = self._service_provider.get_custom_field_id(
+                    custom_field, entity=self._entity
+                )
+                component_id = self._service_provider.get_custom_field_component_id(
+                    custom_field_id, entity=self._entity
+                )
+                key = key.replace(
+                    custom_field,
+                    str(custom_field_id),
+                ).split("__")
+                # in case multi_select replace EQ to IN (BED requirement)
+                if component_id == CustomFieldType.MULTI_SELECT.value and len(key) == 2:
+                    key.append(OperatorEnum.IN.name)
+                return key
+        raise AppException("Invalid custom field name provided.")
+
     @staticmethod
-    def _handle_special_fields(keys: List[str], val):
+    def _determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
+        """
+        Determine the condition and key from the filters.
+        """
+        condition: Optional[OperatorEnum] = None
+        key: Optional[str] = None
+
+        if len(keys) == 1 and "custom_field" not in keys:
+            condition, key = OperatorEnum.EQ, keys[0]
+        if "custom_field" in keys:
+            _keys = "customField", "custom_field_values"
+            if len(keys) == 2 or len(keys) == 3:
+                key = ".".join((*_keys, keys[1]))
+            else:
+                raise AppException("Invalid custom field name provided.")
+        if not condition:
+            condition = (
+                OperatorEnum[keys.pop().upper()]
+                if keys[-1].upper() in OperatorEnum.__members__
+                else OperatorEnum.EQ
+            )
+        if not key:
+            key = ".".join(keys)
+        return condition, key
+
+    def _handle_special_fields(self, keys: List[str], val):
+        if keys[0] == "custom_field":
+            component_id = self._service_provider.get_custom_field_component_id(
+                field_id=int(keys[1]), entity=self._entity
+            )
+            if component_id == CustomFieldType.DATE_PICKER.value:
+                try:
+                    val = val * 1000
+                except Exception:
+                    raise AppException("Invalid custom field value provided.")
         return val
+
+    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+        if query is None:
+            query = EmptyQuery()
+        for key, val in filters.items():
+            _keys = key.split("__")
+            if _keys[0] == "custom_field":
+                _keys = self._handle_custom_field_key(key)
+            val = self._handle_special_fields(_keys, val)
+            condition, _key = self._determine_condition_and_key(_keys)
+            query &= Filter(_key, val, condition)
+        return super().handle(filters, query)
+
+
+class UserFilterHandler(BaseCustomFieldHandler):
+    def _handle_special_fields(self, keys: List[str], val):
+        """
+        Handle special fields like 'custom_fields__'.
+        """
+        if keys[0] == "role":
+            try:
+                if isinstance(val, list):
+                    val = [UserRole.__getitem__(i.upper()).value for i in val]
+                elif isinstance(val, str):
+                    val = UserRole.__getitem__(val.upper()).value
+                else:
+                    raise AppException("Invalid user role provided.")
+            except (KeyError, AttributeError):
+                raise AppException("Invalid user role provided.")
+        elif keys[0] == "state":
+            try:
+                if isinstance(val, list):
+                    val = [WMUserStateEnum[i].value for i in val]
+                else:
+                    val = WMUserStateEnum[val].value
+            except (TypeError, KeyError):
+                raise AppException("Invalid user state provided.")
+        return super()._handle_special_fields(keys, val)
 
 
 class ProjectFilterHandler(BaseCustomFieldHandler):
-    @staticmethod
-    def _handle_special_fields(keys: List[str], val):
+    def _handle_special_fields(self, keys: List[str], val):
         """
-        Handle special fields like 'status'.
+        Handle special fields like 'status' and 'custom_fields__'.
         """
         if keys[0] == "status":
             val = (
@@ -235,7 +268,7 @@ class ProjectFilterHandler(BaseCustomFieldHandler):
                 if isinstance(val, (list, tuple, set))
                 else ProjectStatus(val).value
             )
-        return val
+        return super()._handle_special_fields(keys, val)
 
 
 class QueryBuilderChain:

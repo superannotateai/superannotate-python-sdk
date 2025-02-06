@@ -32,12 +32,10 @@ class ItemFilters(BaseFilters):
 
 
 class ProjectFilters(BaseFilters):
-    # TODO finalize fields
     status: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
     status__ne: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
     status__in: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
     status__notin: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
-    custom_field: Optional[str]  # dummy field to pass first level validation
 
 
 class UserFilters(TypedDict, total=False):
@@ -52,4 +50,3 @@ class UserFilters(TypedDict, total=False):
     state__in: Optional[List[str]]
     role: Optional[str]
     role__in: Optional[List[str]]
-    custom_field: Optional[str]  # dummy field to pass first level validation

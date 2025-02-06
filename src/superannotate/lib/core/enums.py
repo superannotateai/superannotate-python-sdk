@@ -199,3 +199,8 @@ class CustomFieldType(Enum):
     SINGLE_SELECT = 3
     DATE_PICKER = 4
     NUMERIC = 5
+
+
+class WMUserStateEnum(str, Enum):
+    Pending = "PENDING"
+    Confirmed = "CONFIRMED"

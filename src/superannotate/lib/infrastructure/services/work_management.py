@@ -20,6 +20,31 @@ from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
 
 
+def prepare_validation_error(func):
+    def wrapper(*args, **kwargs):
+        res = func(*args, **kwargs)
+        if res.error and isinstance(res.error, list):
+            if res.error[0].get("code") == "VALIDATION_ERROR":
+                error_types_map = {
+                    "Array": "list",
+                    "string": "str",
+                    "number": "numeric",
+                }
+                valid_types = res.error[0]["details"]["valid_types"]
+                prepared_valid_types = [error_types_map.get(i, i) for i in valid_types]
+                error_msg = (
+                    f"Invalid input: The provided value is not valid.\n"
+                    f"Expected type: {' or '.join(prepared_valid_types)}."
+                )
+                expected_values = res.error[0]["details"].get("expected_values")
+                if expected_values:
+                    error_msg += f"\nValid options are: {', '.join(expected_values)}."
+                res.res_error = error_msg
+        res.raise_for_status()
+
+    return wrapper
+
+
 class WorkManagementService(BaseWorkManagementService):
     URL_GET = "workflows/{project_id}"
     URL_LIST = "workflows"
@@ -34,6 +59,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SET_CUSTOM_ENTITIES = "customentities/{pk}"
     URL_SEARCH_CUSTOM_ENTITIES = "customentities/search"
     URL_SEARCH_TEAM_USERS = "teamusers/search"
+    URL_SEARCH_PROJECTS = "projects/search"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -194,23 +220,8 @@ class WorkManagementService(BaseWorkManagementService):
             },
         )
 
-    def set_project_custom_field_value(self, project_id: int, data: dict):
-        return self.client.request(
-            url=self.URL_SET_CUSTOM_ENTITIES.format(pk=project_id),
-            method="patch",
-            headers={
-                "x-sa-entity-context": self._generate_context(
-                    team_id=self.client.team_id, project_id=project_id
-                ),
-            },
-            data={"customField": {"custom_field_values": data}},
-            params={
-                "entity": "Project",
-                "parentEntity": "Team",
-            },
-        )
-
     def list_projects(self, body_query: Query, chunk_size=100) -> WMProjectListResponse:
+        """list projects include custom_fields"""
         return self.client.jsx_paginate(
             url=self.URL_SEARCH_CUSTOM_ENTITIES,
             method="post",
@@ -219,6 +230,23 @@ class WorkManagementService(BaseWorkManagementService):
                 "entity": "Project",
                 "parentEntity": "Team",
             },
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            chunk_size=chunk_size,
+            item_type=WMProjectEntity,
+        )
+
+    def search_projects(
+        self, body_query: Query, chunk_size=100
+    ) -> WMProjectListResponse:
+        """list projects without custom_fields"""
+        return self.client.jsx_paginate(
+            url=self.URL_SEARCH_PROJECTS,
+            method="post",
+            body_query=body_query,
             headers={
                 "x-sa-entity-context": self._generate_context(
                     team_id=self.client.team_id
@@ -266,7 +294,7 @@ class WorkManagementService(BaseWorkManagementService):
             entity_context = {}
         return self.client.request(
             method="post",
-            url=f"{self.URL_CUSTOM_FIELD_TEMPLATES}",
+            url=self.URL_CUSTOM_FIELD_TEMPLATES,
             params={
                 "entity": entity.value,
                 "parentEntity": parent_entity.value,
@@ -310,6 +338,7 @@ class WorkManagementService(BaseWorkManagementService):
         )
         response.raise_for_status()
 
+    @prepare_validation_error
     def set_custom_field_value(
         self,
         entity_id: int,
@@ -319,7 +348,7 @@ class WorkManagementService(BaseWorkManagementService):
         parent_entity: CustomFieldEntityEnum,
         context: Optional[dict] = None,
     ):
-        response = self.client.request(
+        return self.client.request(
             url=self.URL_SET_CUSTOM_ENTITIES.format(pk=entity_id),
             method="patch",
             headers={
@@ -333,4 +362,3 @@ class WorkManagementService(BaseWorkManagementService):
                 "parentEntity": parent_entity.value,
             },
         )
-        response.raise_for_status()

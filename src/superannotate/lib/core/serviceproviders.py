@@ -115,6 +115,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     ):
         raise NotImplementedError
 
+    @abstractmethod
     def create_project_custom_field_template(self, data: dict):
         raise NotImplementedError
 
@@ -123,11 +124,13 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def set_project_custom_field_value(self, project_id: int, data: dict):
+    def list_projects(
+        self, body_query: Query, chunk_size: int = 100
+    ) -> WMProjectListResponse:
         raise NotImplementedError
 
     @abstractmethod
-    def list_projects(
+    def search_projects(
         self, body_query: Query, chunk_size: int = 100
     ) -> WMProjectListResponse:
         raise NotImplementedError

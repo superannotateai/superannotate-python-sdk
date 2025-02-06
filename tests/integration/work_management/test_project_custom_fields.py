@@ -1,7 +1,9 @@
+import time
 from typing import Any
 from typing import Dict
 
 from lib.core.enums import CustomFieldEntityEnum
+from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 from tests.integration.work_management.data_set import CUSTOM_FIELD_PAYLOADS
@@ -84,43 +86,77 @@ class TestProjectCustomFields(BaseTestCase):
                 == FIELD_VALUE_MAP[data["name"]]
             )
 
+    def test_set_project_custom_field_validation(
+        self,
+    ):
+        error_template = (
+            "Invalid input: The provided value is not valid.\nExpected type: {type}."
+        )
+        error_template_select = error_template + "\nValid options are: {options}."
+
+        # test for text
+        with self.assertRaisesRegexp(AppException, error_template.format(type="str")):
+            sa.set_project_custom_field(self.PROJECT_NAME, "SDK_test_text", 123)
+
+        # test for numeric
+        with self.assertRaisesRegexp(
+            AppException, error_template.format(type="numeric")
+        ):
+            sa.set_project_custom_field(
+                self.PROJECT_NAME, "SDK_test_numeric", "invalid value"
+            )
+
+        # test for date_picker
+        with self.assertRaisesRegexp(
+            AppException, error_template.format(type="numeric")
+        ):
+            sa.set_project_custom_field(
+                self.PROJECT_NAME, "SDK_test_date_picker", "invalid value"
+            )
+
+        # test for multi_select
+        with self.assertRaisesRegexp(
+            AppException,
+            error_template_select.format(type="list", options="option1, option2"),
+        ):
+            sa.set_project_custom_field(
+                self.PROJECT_NAME, "SDK_test_multi_select", "option"
+            )
+
+        # test for select
+        with self.assertRaisesRegexp(
+            AppException,
+            error_template_select.format(type="str", options="option1, option2"),
+        ):
+            sa.set_project_custom_field(
+                self.PROJECT_NAME, "SDK_test_single_select", 123
+            )
+
+    # TODO BED issue ("projects/search" endpoint return other teams projects)
     def test_list_projects_by_native_fields(self):
-        projects = sa.list_projects(include=["custom_fields"], name=self.PROJECT_NAME)
+        projects = sa.list_projects(name=self.PROJECT_NAME)
         assert len(projects) == 1
         assert projects[0]["name"] == self.PROJECT_NAME
         for data in CUSTOM_FIELD_PAYLOADS:
-            assert data["name"] in projects[0]["custom_fields"].keys()
-            assert not projects[0]["custom_fields"][data["name"]]
+            assert not data["name"] in projects[0]["custom_fields"].keys()
 
-        assert not sa.list_projects(
-            include=["custom_fields"], name__in=["invalid_name_1", "invalid_name_2"]
-        )
+        assert not sa.list_projects(name__in=["invalid_name_1", "invalid_name_2"])
+        assert len(sa.list_projects(name__contains="TestProjectCustomFie")) == 1
         assert (
             len(
                 sa.list_projects(
-                    include=["custom_fields"], name__contains="TestProjectCustomFie"
-                )
-            )
-            == 1
-        )
-        assert (
-            len(
-                sa.list_projects(
-                    include=["custom_fields"],
                     name__in=[self.PROJECT_NAME, "other_name"],
                 )
             )
             == 1
         )
         assert not sa.list_projects(
-            include=["custom_fields"],
             name__in=[self.PROJECT_NAME, "other_name"],
             status="Completed",
         )
         assert (
             len(
                 sa.list_projects(
-                    include=["custom_fields"],
                     name__in=[self.PROJECT_NAME, "other_name"],
                     status__in=["NotStarted"],
                 )
@@ -128,9 +164,47 @@ class TestProjectCustomFields(BaseTestCase):
             == 1
         )
 
+    def test_list_projects_by_native_invalid_fields(self):
+        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+            sa.list_projects(name__in="text", status__gte="text")
+        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+            sa.list_projects(name__invalid="text")
+        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+            sa.list_projects(invalid_field="text")
+
     def test_list_projects_by_custom_fields(self):
-        # project metadata after set custom field values
+        # isnull case , before values set
+        project_names = [
+            p["name"]
+            for p in sa.list_projects(
+                include=["custom_fields"], custom_field__SDK_test_numeric=None
+            )
+        ]
+        assert self.PROJECT_NAME in project_names
         self._set_custom_field_values()
+
+        # isnull case , after values set
+        project_names = [
+            p["name"]
+            for p in sa.list_projects(
+                include=["custom_fields"], custom_field__SDK_test_numeric=None
+            )
+        ]
+        assert self.PROJECT_NAME not in project_names
+
+        # test case __notin
+        other_project_name = f"{self.PROJECT_NAME}_2"
+        sa.create_project(other_project_name, "desc", "Vector")
+        project_names = [
+            i["name"]
+            for i in sa.list_projects(
+                include=["custom_fields"],
+                custom_field__SDK_test_multi_select__notin=["option1", "option2"],
+            )
+        ]
+        assert other_project_name in project_names
+        assert self.PROJECT_NAME not in project_names
+
         projects = sa.list_projects(
             include=["custom_fields"], custom_field__SDK_test_numeric=123
         )
@@ -154,7 +228,68 @@ class TestProjectCustomFields(BaseTestCase):
             len(
                 sa.list_projects(
                     include=["custom_fields"],
-                    custom_field__SDK_test_multy_select__in=["option1", "option2"],
+                    custom_field__SDK_test_date_picker=FIELD_VALUE_MAP[
+                        "SDK_test_date_picker"
+                    ],
+                )
+            )
+            == 1
+        )
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_date_picker__gte=time.time(),
+                )
+            )
+            == 0
+        )
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_date_picker__lte=time.time(),
+                )
+            )
+            == 1
+        )
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_multi_select__in=["option1"],
+                )
+            )
+            == 1
+        )
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_multi_select__in=["option1", "option2"],
+                )
+            )
+            == 1
+        )
+        # multi select EQ case
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_multi_select=["option1", "option2"],
+                )
+            )
+            == 1
+        )
+
+        self._set_custom_field_values(
+            {"SDK_test_multi_select": ["option1", "option2", "option3"]}
+        )
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_multi_select__in=["option1", "option2"],
                 )
             )
             == 1
@@ -172,14 +307,10 @@ class TestProjectCustomFields(BaseTestCase):
             len(
                 sa.list_projects(
                     include=["custom_fields"],
-                    custom_field__SDK_test_multy_select__contains="option2",
+                    custom_field__SDK_test_single_select__contains="option1",
                 )
             )
             == 1
-        )
-        assert not sa.list_projects(
-            include=["custom_fields"],
-            custom_field__SDK_test_multy_select__contains="invalid_option",
         )
         assert (
             len(
@@ -190,3 +321,23 @@ class TestProjectCustomFields(BaseTestCase):
             )
             == 1
         )
+
+    def test_list_projects_by_custom_invalid_field(self):
+        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+            sa.list_projects(
+                include=["custom_fields"],
+                custom_field__INVALID_FIELD="text",
+            )
+
+    # TODO BED issue (custom_field filter without join)
+    def test_list_projects_by_custom_fields_without_join(self):
+        self._set_custom_field_values()
+        assert sa.list_projects(custom_field__SDK_test_numeric=123)
+
+    # TODO BED issue ("projects/search" endpoint return other teams projects)
+    def test_list_projects_by_status_in(self):
+        all_team_ids = [
+            i["team_id"] for i in sa.list_projects(status__in=["inProgress"])
+        ]
+        assert len(set(all_team_ids)) == 1
+        assert all_team_ids[0] == sa.controller.team_id

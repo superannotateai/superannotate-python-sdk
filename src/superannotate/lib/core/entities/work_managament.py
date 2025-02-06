@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Optional
 
 from lib.core.entities.base import TimedBaseModel
+from lib.core.enums import WMUserStateEnum
 from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
@@ -13,17 +14,6 @@ from lib.core.pydantic_v1 import validator
 class ProjectType(str, Enum):
     Vector = "VECTOR"
     Pixel = "PIXEL"
-    Video = "PUBLIC_VIDEO"
-    Document = "PUBLIC_TEXT"
-    Tiled = "TILED"
-    Other = "CLASSIFICATION"
-    PointCloud = "POINT_CLOUD"
-    Multimodal = "CUSTOM_LLM"
-
-
-class WMUserStateEnum(str, Enum):
-    Pending = "PENDING"
-    Confirmed = "CONFIRMED"
     Video = "PUBLIC_VIDEO"
     Document = "PUBLIC_TEXT"
     Tiled = "TILED"

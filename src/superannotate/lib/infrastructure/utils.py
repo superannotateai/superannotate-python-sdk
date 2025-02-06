@@ -65,7 +65,8 @@ class BaseCachedWorkManagementRepository(ABC):
         raise NotImplementedError
 
     def get(self, key, **kwargs):
-        self.sync(**kwargs)
+        if not self._is_cache_valid(key):
+            self.sync(**kwargs)
         return self._K_V_map[key]
 
 
@@ -138,11 +139,13 @@ class CustomFieldCache(BaseCachedWorkManagementRepository):
             "custom_fields_name_id_map": custom_fields_name_id_map,
             "custom_fields_id_name_map": custom_fields_id_name_map,
             "custom_fields_id_component_id_map": custom_fields_id_component_id_map,
+            "templates": response.data["data"],
         }
         self._update_cache_timestamp(team_id)
 
     def get(self, key, **kwargs):
-        self.sync(team_id=key)
+        if not self._is_cache_valid(key):
+            self.sync(team_id=key)
         return self._K_V_map[key]
 
 
@@ -228,3 +231,10 @@ class CachedWorkManagementRepository:
         else:
             custom_field_data = self._user_custom_field_cache.get(team_id)
         return list(custom_field_data["custom_fields_name_id_map"].keys())
+
+    def list_templates(self, team_id: int, entity: CustomFieldEntityEnum):
+        if entity == CustomFieldEntityEnum.PROJECT:
+            custom_field_data = self._project_custom_field_cache.get(team_id)
+        else:
+            custom_field_data = self._user_custom_field_cache.get(team_id)
+        return custom_field_data["templates"]
