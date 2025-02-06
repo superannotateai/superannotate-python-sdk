@@ -109,14 +109,20 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
             reverse=True,
         ):
             if custom_field in key:
-                return key.replace(
+                custom_field_id = self._service_provider.get_custom_field_id(
+                    custom_field, entity=self._entity
+                )
+                component_id = self._service_provider.get_custom_field_component_id(
+                    custom_field_id, entity=self._entity
+                )
+                key = key.replace(
                     custom_field,
-                    str(
-                        self._service_provider.get_custom_field_id(
-                            custom_field, entity=self._entity
-                        )
-                    ),
+                    str(custom_field_id),
                 ).split("__")
+                # in case multi_select replace EQ to IN (BED requirement)
+                if component_id == CustomFieldType.MULTI_SELECT.value and len(key) == 2:
+                    key.append(OperatorEnum.IN.name)
+                return key
         raise AppException("Invalid custom field name provided.")
 
     @staticmethod

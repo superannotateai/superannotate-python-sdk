@@ -51,6 +51,7 @@ class TestWorkManagement(TestCase):
         users = sa.list_users()
         scapegoat = [u for u in users if u["role"] == "Contributor"][0]
         assert not scapegoat["custom_fields"]
+        # text field
         sa.set_user_custom_field(
             scapegoat["email"],
             custom_field_name="SDK_test_text",
@@ -69,6 +70,53 @@ class TestWorkManagement(TestCase):
         users = sa.list_users(**kwargs)
         assert len(users) == 1
         assert users[0]["custom_fields"]["SDK_test_text"] == "Dummy data"
+
+        # multi select field
+        sa.set_user_custom_field(
+            scapegoat["email"],
+            custom_field_name="SDK_test_multi_select",
+            value=["option1", "option2"],
+        )
+        assert (
+            len(
+                sa.list_users(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_multi_select=["option1", "option2"],
+                )
+            )
+            == 1
+        )
+
+        # single select field
+        sa.set_user_custom_field(
+            scapegoat["email"],
+            custom_field_name="SDK_test_single_select",
+            value="option1",
+        )
+        assert (
+            len(
+                sa.list_users(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_single_select__contains="option1",
+                )
+            )
+            == 1
+        )
+
+        # numeric field
+        sa.set_user_custom_field(
+            scapegoat["email"],
+            custom_field_name="SDK_test_numeric",
+            value=5,
+        )
+        assert (
+            len(
+                sa.list_users(
+                    include=["custom_fields"], custom_field__SDK_test_numeric__lt=10
+                )
+            )
+            == 1
+        )
 
     def test_list_users(self):
         users = sa.list_users()

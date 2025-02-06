@@ -1,3 +1,4 @@
+import time
 from typing import Any
 from typing import Dict
 
@@ -131,6 +132,7 @@ class TestProjectCustomFields(BaseTestCase):
                 self.PROJECT_NAME, "SDK_test_single_select", 123
             )
 
+    # TODO BED issue ("projects/search" endpoint return other teams projects)
     def test_list_projects_by_native_fields(self):
         projects = sa.list_projects(name=self.PROJECT_NAME)
         assert len(projects) == 1
@@ -237,6 +239,24 @@ class TestProjectCustomFields(BaseTestCase):
             len(
                 sa.list_projects(
                     include=["custom_fields"],
+                    custom_field__SDK_test_date_picker__gte=time.time(),
+                )
+            )
+            == 0
+        )
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_date_picker__lte=time.time(),
+                )
+            )
+            == 1
+        )
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
                     custom_field__SDK_test_multi_select__in=["option1"],
                 )
             )
@@ -247,6 +267,16 @@ class TestProjectCustomFields(BaseTestCase):
                 sa.list_projects(
                     include=["custom_fields"],
                     custom_field__SDK_test_multi_select__in=["option1", "option2"],
+                )
+            )
+            == 1
+        )
+        # multi select EQ case
+        assert (
+            len(
+                sa.list_projects(
+                    include=["custom_fields"],
+                    custom_field__SDK_test_multi_select=["option1", "option2"],
                 )
             )
             == 1
@@ -268,27 +298,6 @@ class TestProjectCustomFields(BaseTestCase):
             len(
                 sa.list_projects(
                     include=["custom_fields"],
-                    custom_field__SDK_test_multi_select__contains="option3",
-                )
-            )
-            == 1
-        )
-        assert (
-            len(
-                sa.list_projects(
-                    include=["custom_fields"],
-                    custom_field__SDK_test_multi_select__contains=[
-                        "option3",
-                        "option1",
-                    ],
-                )
-            )
-            == 0
-        )
-        assert (
-            len(
-                sa.list_projects(
-                    include=["custom_fields"],
                     custom_field__SDK_test_single_select="option1",
                 )
             )
@@ -298,14 +307,10 @@ class TestProjectCustomFields(BaseTestCase):
             len(
                 sa.list_projects(
                     include=["custom_fields"],
-                    custom_field__SDK_test_multi_select__contains="option2",
+                    custom_field__SDK_test_single_select__contains="option1",
                 )
             )
             == 1
-        )
-        assert not sa.list_projects(
-            include=["custom_fields"],
-            custom_field__SDK_test_multi_select__contains="invalid_option",
         )
         assert (
             len(
@@ -318,9 +323,7 @@ class TestProjectCustomFields(BaseTestCase):
         )
 
     def test_list_projects_by_custom_invalid_field(self):
-        with self.assertRaisesRegexp(
-            AppException, "Invalid custom field name provided."
-        ):
+        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
             sa.list_projects(
                 include=["custom_fields"],
                 custom_field__INVALID_FIELD="text",
@@ -338,11 +341,3 @@ class TestProjectCustomFields(BaseTestCase):
         ]
         assert len(set(all_team_ids)) == 1
         assert all_team_ids[0] == sa.controller.team_id
-
-    # TODO BED issue (in case multiselect exact match)
-    def test_list_projects_by_multi_select_eq(self):
-        self._set_custom_field_values()
-        sa.list_projects(
-            include=["custom_fields"],
-            custom_field__SDK_test_multi_select=["option1", "option2"],
-        )

@@ -10,27 +10,32 @@ FIELD_TYPE_SUPPORTED_OPERATIONS_MAPPING = {
         OperatorEnum.NOTIN,
         OperatorEnum.CONTAINS,
     ],
-    CustomFieldType.MULTI_SELECT: [OperatorEnum.EQ, OperatorEnum.NOTIN],
+    CustomFieldType.MULTI_SELECT: [
+        OperatorEnum.EQ,
+        OperatorEnum.NOTIN,
+        OperatorEnum.IN,
+    ],
     CustomFieldType.SINGLE_SELECT: [
         OperatorEnum.EQ,
         OperatorEnum.IN,
         OperatorEnum.NOTIN,
         OperatorEnum.CONTAINS,
     ],
-    CustomFieldType.DATE_PICKER: [OperatorEnum.GT, OperatorEnum.LT, OperatorEnum.EQ],
+    CustomFieldType.DATE_PICKER: [
+        OperatorEnum.GT,
+        OperatorEnum.LT,
+        OperatorEnum.GTE,
+        OperatorEnum.LTE,
+        OperatorEnum.EQ,
+    ],
     CustomFieldType.NUMERIC: [
         OperatorEnum.GT,
         OperatorEnum.LT,
         OperatorEnum.EQ,
+        OperatorEnum.NE,
         OperatorEnum.IN,
         OperatorEnum.NOTIN,
     ],
-}
-
-# todo implement
-FIELD_TYPE_BED_OPERATIONS_MAPPING = {
-    CustomFieldType.MULTI_SELECT: {OperatorEnum.EQ: OperatorEnum.IN},
-    CustomFieldType.DATE_PICKER: {OperatorEnum.EQ: OperatorEnum.IS},
 }
 
 

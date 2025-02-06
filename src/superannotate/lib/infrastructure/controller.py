@@ -162,9 +162,15 @@ class WorkManagementManager(BaseManager):
         )
 
     def list_users(self, include: List[Literal["custom_fields"]] = None, **filters):
+        valid_fields = generate_schema(
+            UserFilters.__annotations__,
+            self.service_provider.get_custom_fields_templates(
+                CustomFieldEntityEnum.CONTRIBUTOR
+            ),
+        )
         chain = QueryBuilderChain(
             [
-                FieldValidationHandler(UserFilters.__annotations__.keys()),
+                FieldValidationHandler(valid_fields.keys()),
                 UserFilterHandler(
                     service_provider=self.service_provider,
                     entity=CustomFieldEntityEnum.CONTRIBUTOR,

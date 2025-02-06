@@ -65,7 +65,8 @@ class BaseCachedWorkManagementRepository(ABC):
         raise NotImplementedError
 
     def get(self, key, **kwargs):
-        self.sync(**kwargs)
+        if not self._is_cache_valid(key):
+            self.sync(**kwargs)
         return self._K_V_map[key]
 
 
@@ -143,7 +144,8 @@ class CustomFieldCache(BaseCachedWorkManagementRepository):
         self._update_cache_timestamp(team_id)
 
     def get(self, key, **kwargs):
-        self.sync(team_id=key)
+        if not self._is_cache_valid(key):
+            self.sync(team_id=key)
         return self._K_V_map[key]
 
 
