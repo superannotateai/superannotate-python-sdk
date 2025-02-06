@@ -141,7 +141,9 @@ class TestWorkManagement(TestCase):
         assert scapegoat["custom_fields"]["SDK_test_date_picker"] == value
 
         # by email__contains
-        assert len(sa.list_users(email__contains="@superannotate.com")) == len(users)
+        assert len(sa.list_users(email__contains="@superannotate.com")) == len(
+            [i for i in users if i["email"].endswith("@superannotate.com")]
+        )
 
         # by role
         assert len(sa.list_users(role="contributor")) == len(all_contributors)
@@ -150,8 +152,8 @@ class TestWorkManagement(TestCase):
             sa.list_users(role__in=["invalid_role"])
 
         # by state
-        assert len(sa.list_users(state="CONFIRMED")) == len(all_confirmed)
-        assert len(sa.list_users(state__in=["PENDING"])) == len(all_pending)
+        assert len(sa.list_users(state="Confirmed")) == len(all_confirmed)
+        assert len(sa.list_users(state__in=["Pending"])) == len(all_pending)
         with self.assertRaisesRegexp(AppException, "Invalid user state provided."):
             assert len(sa.list_users(state__in=["invalid_state"])) == len(all_pending)
 

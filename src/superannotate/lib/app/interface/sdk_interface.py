@@ -406,13 +406,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - email__contains: str
             - email__starts: str
             - email__ends: str
-            - state: Literal[“CONFIRMED”, “PENDING”]
-            - state__in: List[Literal[“CONFIRMED”, “PENDING”]]
+            - state: Literal[“Confirmed”, “Pending”]
+            - state__in: List[Literal[“Confirmed”, “Pending”]]
             - role: Literal[“admin”, “contributor”]
             - role__in: List[Literal[“admin”, “contributor”]]
 
             Custom Fields Filtering:
-                - Custom fields must be prefixed with custom_field__.
+                - Custom fields must be prefixed with `custom_field__`.
                 - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
 
         :type filters: UserFilters, optional
@@ -426,7 +426,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             client.list_users(
                 email__contains="@superannotate.com",
                 include=["custom_fields"],
-                state__in=["CONFIRMED"]
+                state__in=["Confirmed"]
                 custom_fields__Tag__in=["Tag1", "Tag3"]
             )
 
@@ -3372,7 +3372,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
 
             Custom Fields Filtering:
-                - Custom fields must be prefixed with custom_field__.
+                - Custom fields must be prefixed with `custom_field__`.
                 - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
                 - If include does not include "custom_fields" but filter contains custom_fields, an error will be returned
 

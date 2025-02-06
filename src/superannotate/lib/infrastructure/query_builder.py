@@ -14,6 +14,7 @@ from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectStatus
 from lib.core.enums import UserRole
+from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
@@ -95,6 +96,60 @@ class IncludeHandler(AbstractQueryHandler):
         return super().handle(filters, query)
 
 
+class ItemFilterHandler(AbstractQueryHandler):
+    def __init__(
+        self,
+        project: ProjectEntity,
+        entity: BaseItemEntity,
+        service_provider: BaseServiceProvider,
+    ):
+        self._service_provider = service_provider
+        self._entity = entity
+        self._project = project
+
+    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+        if query is None:
+            query = EmptyQuery()
+        for key, val in filters.items():
+            _keys = key.split("__")
+            val = self._handle_special_fields(_keys, val)
+            condition, _key = determine_condition_and_key(_keys)
+            query &= Filter(_key, val, condition)
+        return super().handle(filters, query)
+
+    @staticmethod
+    def _extract_value_from_mapping(data, extractor=lambda x: x):
+        if isinstance(data, (list, tuple, set)):
+            return [extractor(i) for i in data]
+        return extractor(data)
+
+    def _handle_special_fields(self, keys: List[str], val):
+        """
+        Handle special fields like 'approval_status', 'assignments',  'user_role' and 'annotation_status'.
+        """
+        if keys[0] == "approval_status":
+            val = (
+                [ApprovalStatus(i).value for i in val]
+                if isinstance(val, (list, tuple, set))
+                else ApprovalStatus(val).value
+            )
+        elif keys[0] == "annotation_status":
+            val = self._extract_value_from_mapping(
+                val,
+                lambda x: self._service_provider.get_annotation_status_value(
+                    self._project, x
+                ),
+            )
+        elif keys[0] == "assignments" and keys[1] == "user_role":
+            if isinstance(val, list):
+                val = [
+                    self._service_provider.get_role_id(self._project, i) for i in val
+                ]
+            else:
+                val = self._service_provider.get_role_id(self._project, val)
+        return val
+
+
 class BaseCustomFieldHandler(AbstractQueryHandler):
     def __init__(
         self, service_provider: BaseServiceProvider, entity: CustomFieldEntityEnum
@@ -151,8 +206,16 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
             key = ".".join(keys)
         return condition, key
 
-    @staticmethod
-    def _handle_special_fields(keys: List[str], val):
+    def _handle_special_fields(self, keys: List[str], val):
+        if keys[0] == "custom_field":
+            component_id = self._service_provider.get_custom_field_component_id(
+                field_id=int(keys[1]), entity=self._entity
+            )
+            if component_id == CustomFieldType.DATE_PICKER.value:
+                try:
+                    val = val * 1000
+                except Exception:
+                    raise AppException("Invalid custom field value provided.")
         return val
 
     def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
@@ -168,75 +231,12 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
         return super().handle(filters, query)
 
 
-class ItemFilterHandler(AbstractQueryHandler):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        entity: BaseItemEntity,
-        service_provider: BaseServiceProvider,
-    ):
-        self._service_provider = service_provider
-        self._entity = entity
-        self._project = project
-
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
-        if query is None:
-            query = EmptyQuery()
-        for key, val in filters.items():
-            _keys = key.split("__")
-            val = self._handle_special_fields(_keys, val)
-            condition, _key = determine_condition_and_key(_keys)
-            query &= Filter(_key, val, condition)
-        return super().handle(filters, query)
-
-    @staticmethod
-    def _extract_value_from_mapping(data, extractor=lambda x: x):
-        if isinstance(data, (list, tuple, set)):
-            return [extractor(i) for i in data]
-        return extractor(data)
-
-    def _handle_special_fields(self, keys: List[str], val):
-        """
-        Handle special fields like 'approval_status', 'assignments',  'user_role' and 'annotation_status'.
-        """
-        if keys[0] == "approval_status":
-            val = (
-                [ApprovalStatus(i).value for i in val]
-                if isinstance(val, (list, tuple, set))
-                else ApprovalStatus(val).value
-            )
-        elif keys[0] == "annotation_status":
-            val = self._extract_value_from_mapping(
-                val,
-                lambda x: self._service_provider.get_annotation_status_value(
-                    self._project, x
-                ),
-            )
-        elif keys[0] == "assignments" and keys[1] == "user_role":
-            if isinstance(val, list):
-                val = [
-                    self._service_provider.get_role_id(self._project, i) for i in val
-                ]
-            else:
-                val = self._service_provider.get_role_id(self._project, val)
-        return val
-
-
 class UserFilterHandler(BaseCustomFieldHandler):
     def _handle_special_fields(self, keys: List[str], val):
         """
         Handle special fields like 'custom_fields__'.
         """
-        if keys[0] == "custom_field":
-            component_id = self._service_provider.get_custom_field_component_id(
-                field_id=int(keys[1]), entity=self._entity
-            )
-            if component_id == CustomFieldType.DATE_PICKER.value:
-                try:
-                    val = val * 1000
-                except Exception:
-                    raise AppException("Invalid custom field value provided.")
-        elif keys[0] == "role":
+        if keys[0] == "role":
             try:
                 if isinstance(val, list):
                     val = [UserRole.__getitem__(i.upper()).value for i in val]
@@ -247,14 +247,14 @@ class UserFilterHandler(BaseCustomFieldHandler):
             except (KeyError, AttributeError):
                 raise AppException("Invalid user role provided.")
         elif keys[0] == "state":
-            valid_states = ["PENDING", "CONFIRMED"]
-            if isinstance(val, list):
-                for state in val:
-                    if state not in valid_states:
-                        raise AppException("Invalid user state provided.")
-            elif val not in valid_states:
+            try:
+                if isinstance(val, list):
+                    val = [WMUserStateEnum[i].value for i in val]
+                else:
+                    val = WMUserStateEnum[val].value
+            except (TypeError, KeyError):
                 raise AppException("Invalid user state provided.")
-        return val
+        return super()._handle_special_fields(keys, val)
 
 
 class ProjectFilterHandler(BaseCustomFieldHandler):
@@ -268,16 +268,7 @@ class ProjectFilterHandler(BaseCustomFieldHandler):
                 if isinstance(val, (list, tuple, set))
                 else ProjectStatus(val).value
             )
-        elif keys[0] == "custom_field":
-            component_id = self._service_provider.get_custom_field_component_id(
-                field_id=int(keys[1]), entity=self._entity
-            )
-            if component_id == CustomFieldType.DATE_PICKER.value:
-                try:
-                    val = val * 1000
-                except Exception:
-                    raise AppException("Invalid custom field value provided.")
-        return val
+        return super()._handle_special_fields(keys, val)
 
 
 class QueryBuilderChain:
