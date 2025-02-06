@@ -1,3 +1,4 @@
+from typing import List
 from typing import Optional
 
 from lib.core.entities.base import BaseItemEntity
@@ -26,7 +27,7 @@ class MultiModalItemCategoryEntity(TimedBaseModel):
 
 
 class MultiModalItemEntity(BaseItemEntity):
-    categories: Optional[list[MultiModalItemCategoryEntity]]
+    categories: Optional[List[MultiModalItemCategoryEntity]]
 
     class Config:
         extra = Extra.ignore

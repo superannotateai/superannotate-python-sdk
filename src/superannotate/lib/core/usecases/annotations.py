@@ -1861,7 +1861,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
 
     @staticmethod
     def _validate_json(json_data: dict) -> bool:
-        return "metadata" in json_data and "name" in json_data["metadata"]
+        return isinstance(json_data.get("metadata", {}).get("name"), str)
 
     def list_items(
         self, folder: FolderEntity, item_names: List[str]
@@ -2021,7 +2021,6 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
 
     def execute(self):
         if self.is_valid():
-            # TODO check categories status in the project
             categorization_enabled = self.categorization_enabled
             serialized_original_folder_map = {}
             failed, skipped, uploaded = [], [], []
@@ -2033,7 +2032,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                     folder_name = annotation["metadata"].get("folder_name", "").strip()
                     serialized_folder_name = self.serialize_folder_name(folder_name)
                     distributed_items[serialized_folder_name][
-                        annotation["metadata"]["name"]
+                        str(annotation["metadata"]["name"])
                     ] = annotation
                     valid_items_count += 1
                     if serialized_folder_name not in serialized_original_folder_map:
