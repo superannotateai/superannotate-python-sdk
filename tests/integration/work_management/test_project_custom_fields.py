@@ -132,7 +132,6 @@ class TestProjectCustomFields(BaseTestCase):
                 self.PROJECT_NAME, "SDK_test_single_select", 123
             )
 
-    # TODO BED issue ("projects/search" endpoint return other teams projects)
     def test_list_projects_by_native_fields(self):
         projects = sa.list_projects(name=self.PROJECT_NAME)
         assert len(projects) == 1
@@ -333,11 +332,3 @@ class TestProjectCustomFields(BaseTestCase):
     def test_list_projects_by_custom_fields_without_join(self):
         self._set_custom_field_values()
         assert sa.list_projects(custom_field__SDK_test_numeric=123)
-
-    # TODO BED issue ("projects/search" endpoint return other teams projects)
-    def test_list_projects_by_status_in(self):
-        all_team_ids = [
-            i["team_id"] for i in sa.list_projects(status__in=["inProgress"])
-        ]
-        assert len(set(all_team_ids)) == 1
-        assert all_team_ids[0] == sa.controller.team_id

@@ -75,9 +75,7 @@ def build_condition(**kwargs) -> Condition:
 def serialize_custom_fields(
     service_provider: ServiceProvider, data: List[dict], entity: CustomFieldEntityEnum
 ) -> List[dict]:
-    existing_custom_fields = service_provider.list_custom_field_names(
-        CustomFieldEntityEnum.PROJECT
-    )
+    existing_custom_fields = service_provider.list_custom_field_names(entity)
     for i in range(len(data)):
         if not data[i]:
             data[i] = {}
