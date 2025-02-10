@@ -12,6 +12,7 @@ from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
+from lib.core.pydantic_v1 import Literal
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import WMCustomFieldResponse
@@ -60,6 +61,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_CUSTOM_ENTITIES = "customentities/search"
     URL_SEARCH_TEAM_USERS = "teamusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
+    URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -360,5 +362,24 @@ class WorkManagementService(BaseWorkManagementService):
             params={
                 "entity": entity.value,
                 "parentEntity": parent_entity.value,
+            },
+        )
+
+    def update_user_activity(
+        self, body_query: Query, action=Literal["resume", "pause"]
+    ) -> ServiceResponse:
+        """resume or pause user by projects"""
+        body = body_query.body_builder()
+        body["body"] = {
+            "projectUsers": {"permissions": {"paused": 1 if action == "pause" else 0}}
+        }
+        return self.client.request(
+            url=self.URL_RESUME_PAUSE_USER,
+            method="post",
+            data=body,
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id
+                ),
             },
         )

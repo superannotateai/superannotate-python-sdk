@@ -196,6 +196,44 @@ class WorkManagementManager(BaseManager):
             return response.data
         return self.service_provider.work_management.list_users(query).data
 
+    def update_user_activity(
+        self,
+        user_email: str,
+        provided_projects: Union[List[int], List[str], Literal["*"]],
+        action: Literal["resume", "pause"],
+    ):
+        if isinstance(provided_projects, list):
+            if not provided_projects:
+                raise AppException("Provided projects list cannot be empty.")
+            body_query = EmptyQuery()
+            if isinstance(provided_projects[0], int):
+                body_query &= Filter("id", provided_projects, OperatorEnum.IN)
+            else:
+                body_query &= Filter("name", provided_projects, OperatorEnum.IN)
+            exist_projects = self.service_provider.work_management.search_projects(
+                body_query
+            ).res_data
+
+            # project validation
+            if len(set(provided_projects)) > len(exist_projects):
+                raise AppException("Invalid project(s) provided.")
+        else:
+            exist_projects = self.service_provider.work_management.search_projects(
+                EmptyQuery()
+            ).res_data
+
+        chunked_projects_ids = divide_to_chunks([i.id for i in exist_projects], 50)
+        for chunk in chunked_projects_ids:
+            body_query = EmptyQuery()
+            body_query &= Filter("projects.id", chunk, OperatorEnum.IN)
+            body_query &= Filter(
+                "projects.contributors.email", user_email, OperatorEnum.EQ
+            )
+            res = self.service_provider.work_management.update_user_activity(
+                body_query=body_query, action=action
+            )
+            res.raise_for_status()
+
 
 class ProjectManager(BaseManager):
     def __init__(self, service_provider: ServiceProvider, team: TeamEntity):

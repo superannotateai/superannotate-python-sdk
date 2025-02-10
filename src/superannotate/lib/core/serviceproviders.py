@@ -186,6 +186,12 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     ):
         raise NotImplementedError
 
+    @abstractmethod
+    def update_user_activity(
+        self, body_query: Query, action=Literal["resume", "pause"]
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
 
 class BaseProjectService(SuperannotateServiceProvider):
     @abstractmethod
