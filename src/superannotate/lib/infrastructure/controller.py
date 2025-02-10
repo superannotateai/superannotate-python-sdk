@@ -145,7 +145,7 @@ class WorkManagementManager(BaseManager):
             template_id, entity=entity
         )
         # timestamp: convert seconds to milliseconds
-        if component_id == CustomFieldType.DATE_PICKER.value:
+        if component_id == CustomFieldType.DATE_PICKER.value and value is not None:
             try:
                 value = value * 1000
             except Exception:

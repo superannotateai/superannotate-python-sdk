@@ -43,6 +43,7 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
+from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core import entities
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
@@ -358,9 +359,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 value=1738671238.7
             )
         """
-        user_id = self.controller.work_management.get_user_metadata(pk=pk).id
+        user = self.controller.work_management.get_user_metadata(pk=pk)
+        if user.role == WMUserTypeEnum.TeamOwner:
+            raise AppException(
+                "Setting custom fields for the Team Owner is not allowed."
+            )
         self.controller.work_management.set_custom_field_value(
-            entity_id=user_id,
+            entity_id=user.id,
             field_name=custom_field_name,
             value=value,
             entity=CustomFieldEntityEnum.CONTRIBUTOR,

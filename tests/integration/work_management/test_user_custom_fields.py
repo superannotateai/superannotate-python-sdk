@@ -1,6 +1,7 @@
 import time
 from unittest import TestCase
 
+from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 from src.superannotate.lib.core.enums import CustomFieldEntityEnum
@@ -146,6 +147,19 @@ class TestWorkManagement(TestCase):
         )[0]
         assert scapegoat["custom_fields"]["SDK_test_date_picker"] == value
 
+        # by date_picker None case
+        sa.set_user_custom_field(
+            scapegoat["email"],
+            custom_field_name="SDK_test_date_picker",
+            value=None,
+        )
+        assert len(
+            sa.list_users(
+                include=["custom_fields"],
+                custom_field__SDK_test_date_picker=None,
+            )
+        ) == len(users)
+
         # by email__contains
         assert len(sa.list_users(email__contains="@superannotate.com")) == len(
             [i for i in users if i["email"].endswith("@superannotate.com")]
@@ -173,7 +187,15 @@ class TestWorkManagement(TestCase):
         )
         error_template_select = error_template + "\nValid options are: {options}."
         users = sa.list_users()
+        team_owner = [u for u in users if u["role"] == WMUserTypeEnum.TeamOwner.name][0]
         scapegoat = [u for u in users if u["role"] == "Contributor"][0]
+
+        # test for Team_Owner
+        with self.assertRaisesRegexp(
+            AppException, "Setting custom fields for the Team Owner is not allowed."
+        ):
+            sa.set_user_custom_field(team_owner["email"], "SDK_test_text", 123)
+
         # test for text
         with self.assertRaisesRegexp(AppException, error_template.format(type="str")):
             sa.set_user_custom_field(scapegoat["email"], "SDK_test_text", 123)
