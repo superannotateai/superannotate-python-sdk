@@ -48,7 +48,13 @@ class TestWorkManagement(TestCase):
                 )
 
     def test_get_set_user_metadata(self):
+        users = sa.list_users(include=["custom_fields"])
+        for data in CUSTOM_FIELD_PAYLOADS:
+            assert data["name"] in users[0]["custom_fields"]
+
         users = sa.list_users()
+        for user in users:
+            assert user["custom_fields"] == {}
         scapegoat = [u for u in users if u["role"] == "Contributor"][0]
         assert not scapegoat["custom_fields"]
         # text field
