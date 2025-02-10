@@ -211,7 +211,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
             component_id = self._service_provider.get_custom_field_component_id(
                 field_id=int(keys[1]), entity=self._entity
             )
-            if component_id == CustomFieldType.DATE_PICKER.value:
+            if component_id == CustomFieldType.DATE_PICKER.value and val is not None:
                 try:
                     val = val * 1000
                 except Exception:
