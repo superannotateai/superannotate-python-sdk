@@ -43,7 +43,6 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
-from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core import entities
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
