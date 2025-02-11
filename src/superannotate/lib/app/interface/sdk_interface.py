@@ -72,6 +72,7 @@ from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapt
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 from lib.app.serializers import WMProjectSerializer
+from lib.core.entities.work_managament import WMUserTypeEnum
 
 logger = logging.getLogger("sa")
 
@@ -456,6 +457,32 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         return BaseSerializer.serialize_iterable(
             self.controller.work_management.list_users(include=include, **filters)
+        )
+
+    def pause_user_activity(
+        self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
+    ):
+        user = self.controller.work_management.get_user_metadata(pk=pk)
+        if user.role is not WMUserTypeEnum.Contributor:
+            raise AppException("User must have a contributor role to pause activity.")
+        self.controller.work_management.update_user_activity(
+            user_email=user.email, provided_projects=projects, action="pause"
+        )
+        logger.info(
+            f"User with email {user.email} has been successfully paused from the specified projects: {projects}."
+        )
+
+    def resume_user_activity(
+        self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
+    ):
+        user = self.controller.work_management.get_user_metadata(pk=pk)
+        if user.role is not WMUserTypeEnum.Contributor:
+            raise AppException("User must have a contributor role to resume activity.")
+        self.controller.work_management.update_user_activity(
+            user_email=user.email, provided_projects=projects, action="resume"
+        )
+        logger.info(
+            f"User with email {user.email} has been successfully unblocked from the specified projects: {projects}."
         )
 
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
