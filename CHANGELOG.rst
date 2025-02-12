@@ -6,6 +6,26 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.30 - Feb 13, 2025
+_____________________
+**Added**
+
+    - ``SAClient.list_users`` method lists contributors with optional custom field filtering.
+    - ``SAClient.get_user_metadata`` method retrieves contributor metadata, including option for custom fields.
+    - ``SAClient.set_user_custom_field`` method sets a custom field for a contributor.
+    - ``SAClient.pause_user_activity`` method pauses a contributor's activity on specified projects.
+    - ``SAClient.resume_user_activity`` method resumes a contributor's activity on specified projects.
+    - ``SAClient.list_projects`` method lists projects with optional custom field filtering.
+    - ``SAClient.set_project_custom_field`` method sets a custom field for a project.
+
+**Updated**
+
+    - ``SAClient.upload_annotations`` added ability to specify the format for processing and transforming annotations before upload, including Multimodal projects.
+    - ``SAClient.get_annotations`` added ability to specify the format for processing and transforming annotations before retrieving them.
+    - ``SAClient.list_items`` added ability to retrieve item categories.
+    - ``SAClient.get_project_metadata`` added ability to retrieve custom fields of projects.
+
+
 4.4.29 - Dec 26, 2024
 ________________________
 **Added**

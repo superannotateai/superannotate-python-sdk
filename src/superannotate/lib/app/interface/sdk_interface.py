@@ -2813,7 +2813,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Options are:
                     - default: Retains the annotations in their original format.
                     - multimodal: Converts annotations for multimodal projects, optimizing for
-                                     compact and modality-specific data representation.
+                                     compact and multimodal-specific data representation.
 
         :type data_spec: str, optional
 
@@ -2824,8 +2824,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             sa = SAClient()
 
-            # Call the upload_annotations function
-            response = sa.upload_annotations(
+            # Call the get_annotations function
+            response = sa.get_annotations(
                 project="project1/folder1",
                 items=["item_1", "item_2"],
                 data_spec='multimodal'
