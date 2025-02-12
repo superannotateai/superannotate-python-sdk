@@ -1,6 +1,9 @@
+from unittest import skip
+
 from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
 
 sa = SAClient()
 
@@ -27,20 +30,18 @@ class TestPauseUserActivity(BaseTestCase):
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
         uploaded, _, _ = sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST)
-        users = sa.list_users()
-        self.scapegoat = [u for u in users if u["role"] == "Contributor"][0]
-        sa.add_contributors_to_project(
-            self.PROJECT_NAME, [self.scapegoat["email"]], "QA"
-        )
 
     def test_pause_and_resume_user_activity(self):
+        users = sa.list_users()
+        scapegoat = [
+            u for u in users if u["role"] == "Contributor" and u["state"] == "Confirmed"
+        ][0]
+        sa.add_contributors_to_project(self.PROJECT_NAME, [scapegoat["email"]], "QA")
         with self.assertLogs("sa", level="INFO") as cm:
-            sa.pause_user_activity(
-                pk=self.scapegoat["email"], projects=[self.PROJECT_NAME]
-            )
+            sa.pause_user_activity(pk=scapegoat["email"], projects=[self.PROJECT_NAME])
             assert (
                 cm.output[0]
-                == f"INFO:sa:User with email {self.scapegoat['email']} has been successfully paused"
+                == f"INFO:sa:User with email {scapegoat['email']} has been successfully paused"
                 f" from the specified projects: {[self.PROJECT_NAME]}."
             )
         with self.assertRaisesRegexp(
@@ -50,21 +51,41 @@ class TestPauseUserActivity(BaseTestCase):
             sa.assign_items(
                 self.PROJECT_NAME,
                 [i["name"] for i in self.ATTACHMENT_LIST],
-                self.scapegoat["email"],
+                scapegoat["email"],
             )
 
         with self.assertLogs("sa", level="INFO") as cm:
-            sa.resume_user_activity(
-                pk=self.scapegoat["email"], projects=[self.PROJECT_NAME]
-            )
+            sa.resume_user_activity(pk=scapegoat["email"], projects=[self.PROJECT_NAME])
             assert (
                 cm.output[0]
-                == f"INFO:sa:User with email {self.scapegoat['email']} has been successfully unblocked"
+                == f"INFO:sa:User with email {scapegoat['email']} has been successfully unblocked"
                 f" from the specified projects: {[self.PROJECT_NAME]}."
             )
 
         sa.assign_items(
             self.PROJECT_NAME,
             [i["name"] for i in self.ATTACHMENT_LIST],
-            self.scapegoat["email"],
+            scapegoat["email"],
         )
+
+    @skip("For not send real email")
+    def test_pause_resume_pending_user(self):
+        pending_user = "satest2277@gmail.com"
+        if pending_user not in [u["email"] for u in sa.list_users()]:
+            sa.invite_contributors_to_team(emails=[pending_user])
+        sa.add_contributors_to_project(self.PROJECT_NAME, [pending_user], "QA")
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.pause_user_activity(pk=pending_user, projects=[self.PROJECT_NAME])
+            assert (
+                cm.output[0]
+                == f"INFO:sa:User with email {pending_user} has been successfully paused"
+                f" from the specified projects: {[self.PROJECT_NAME]}."
+            )
+
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.resume_user_activity(pk=pending_user, projects=[self.PROJECT_NAME])
+            assert (
+                cm.output[0]
+                == f"INFO:sa:User with email {pending_user} has been successfully unblocked"
+                f" from the specified projects: {[self.PROJECT_NAME]}."
+            )
