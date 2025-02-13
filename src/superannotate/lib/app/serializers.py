@@ -1,4 +1,5 @@
 from abc import ABC
+from enum import Enum
 from typing import Any
 from typing import List
 from typing import Set
@@ -6,7 +7,6 @@ from typing import Union
 
 import lib.core as constance
 from lib.core.entities import BaseEntity
-from lib.core.enums import BaseTitledEnum
 from lib.core.pydantic_v1 import BaseModel
 
 
@@ -18,7 +18,7 @@ class BaseSerializer(ABC):
     def _fill_enum_values(data: dict):
         if isinstance(data, dict):
             for key, value in data.items():
-                if isinstance(value, BaseTitledEnum):
+                if isinstance(value, Enum):
                     data[key] = value.name
         return data
 
@@ -130,6 +130,26 @@ class ProjectSerializer(BaseSerializer):
 
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
+        return data
+
+
+class WMProjectSerializer(BaseSerializer):
+    def serialize(
+        self,
+        fields: List[str] = None,
+        by_alias: bool = False,
+        flat: bool = False,
+        exclude: Set[str] = None,
+        exclude_unset=False,
+    ):
+
+        to_exclude = {"sync_status": True, "unverified_users": True, "classes": True}
+        if exclude:
+            for field in exclude:
+                to_exclude[field] = True
+        data = super().serialize(fields, by_alias, flat, to_exclude)
+        if not data.get("status"):
+            data["status"] = "Undefined"
         return data
 
 

@@ -1,15 +1,22 @@
 import urllib.parse
 from abc import abstractmethod
+from collections import defaultdict
 from enum import Enum
 from typing import Any
+from typing import Dict
 from typing import List
+from typing import Optional
+from typing import Tuple
 
 
 class OperatorEnum(str, Enum):
     EQ = "$eq"
     NE = "$ne"
     GT = "$gt"
+    GTE = "$gte"
     LT = "$lt"
+    LTE = "$lte"
+    IS = "$is"
     CONTAINS = "$cont"
     STARTS = "$starts"
     ENDS = "$ends"
@@ -26,6 +33,11 @@ class Query:
         """Abstract method to build the query."""
         pass
 
+    @abstractmethod
+    def body_build(self) -> Tuple[str, Any]:
+        """Abstract method to build the body query."""
+        pass
+
     def __and__(self, other: "Query") -> "Query":
         if not isinstance(other, Query):
             raise TypeError("Only Query types are supported in 'and' operations.")
@@ -39,6 +51,32 @@ class Query:
             for condition in self.condition_set
             if not isinstance(condition, EmptyQuery)
         )
+
+    def body_builder(self):
+        search: Dict[str, list] = defaultdict(list)
+        join: List[str] = []
+        limit: Optional[int] = None
+        offset: Optional[int] = None
+
+        for condition in self.condition_set:
+            if not isinstance(condition, EmptyQuery):
+                c_type, c_value = condition.body_build()
+                if isinstance(condition, Filter):
+                    search[c_type].extend(c_value)
+                elif isinstance(condition, Join):
+                    join.append(c_value)
+                elif isinstance(condition, Limit):
+                    limit = c_value
+                elif isinstance(condition, Offset):
+                    offset = c_value
+        return {
+            "query": {
+                "limit": limit,
+                "offset": offset,
+                "search": search,
+                "join": join,
+            }
+        }
 
 
 class EmptyQuery(Query):
@@ -75,6 +113,25 @@ class Filter(Query):
     def build(self) -> str:
         return f"filter={self._build()}"
 
+    def body_build(self) -> Tuple[str, List[Dict]]:
+        filter_value: List[Dict] = []
+        if self._value is None and self._operator == OperatorEnum.EQ:
+            filter_value.append({self._key: {"$isnull": True}})
+        elif self._operator == OperatorEnum.NOTIN:
+            filter_value.append(
+                {
+                    "$or": [
+                        {self._key: {self._operator.value: self._value}},
+                        {self._key: {"$isnull": True}},
+                    ]
+                }
+            )
+        else:
+            filter_value.append({self._key: {self._operator.value: self._value}})
+            if self._key.startswith("customField.custom_field_values."):
+                filter_value.append({self._key: {"$notnull": True}})
+        return "$and", filter_value
+
 
 class OrFilter(Filter):
     def __init__(self, key: str, value: Any, operator: OperatorEnum):
@@ -82,6 +139,9 @@ class OrFilter(Filter):
 
     def build(self) -> str:
         return f"or={self._build()}"
+
+    def body_build(self) -> Tuple[str, List[Dict]]:
+        raise NotImplementedError
 
 
 class Join(Query):
@@ -94,3 +154,33 @@ class Join(Query):
     def build(self) -> str:
         fields_str = f"||{','.join(self._fields)}" if self._fields else ""
         return f"join={self._relation}{fields_str}"
+
+    def body_build(self) -> Tuple[str, str]:
+        fields_str = f"||{','.join(self._fields)}" if self._fields else ""
+        return "join", f"{self._relation}{fields_str}"
+
+
+class Limit(Query):
+    def __init__(self, limit: int):
+        super().__init__()
+        self._limit = limit
+        self.condition_set = [self]
+
+    def build(self) -> str:
+        raise NotImplementedError
+
+    def body_build(self) -> Tuple[str, int]:
+        return "limit", self._limit
+
+
+class Offset(Query):
+    def __init__(self, offset: int):
+        super().__init__()
+        self._offset = offset
+        self.condition_set = [self]
+
+    def build(self) -> str:
+        raise NotImplementedError
+
+    def body_build(self) -> Tuple[str, int]:
+        return "offset", self._offset

@@ -55,6 +55,7 @@ from lib.core.entities.classes import AttributeGroup
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
+from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
@@ -69,6 +70,8 @@ from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapt
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
+from lib.app.serializers import WMProjectSerializer
+from lib.core.entities.work_managament import WMUserTypeEnum
 
 logger = logging.getLogger("sa")
 
@@ -278,6 +281,209 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.get_team()
         return TeamSerializer(response.data).serialize()
 
+    def get_user_metadata(
+        self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
+    ):
+        """
+        Returns user metadata including optionally, custom fields
+
+        :param pk: The email address or ID of the team user.
+        :type pk: str or int
+
+        :param include: Specifies additional fields to include in the response.
+
+            Possible values are
+
+            - "custom_fields": If provided, the response will include custom fields associated with the team user.
+
+        :type include: list of str, optional
+
+        :return: metadata of team user.
+        :rtype: dict
+
+        Request Example:
+        ::
+
+            client.get_user_metadata(
+                "example@email.com",
+                include=["custom_fields"]
+            )
+
+        Response Example:
+        ::
+
+            {
+                "createdAt": "2023-11-27T07:10:24.000Z",
+                "updatedAt": "2025-02-03T13:35:09.000Z",
+                "custom_fields": {
+                    "ann_quality_threshold": 80,
+                    "tag": ["Tag1", "Tag2", "Tag3"],
+                    "due_date": 1738671238.7,
+                },
+                "email": "example@email.com",
+                "id": 124341,
+                "role": "Contributor",
+                "state": "Confirmed",
+                "team_id": 23245,
+            }
+        """
+        user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
+        return BaseSerializer(user).serialize(by_alias=False)
+
+    def set_user_custom_field(
+        self, pk: Union[int, str], custom_field_name: str, value: Any
+    ):
+        """
+        Set the custom field for team user.
+
+        :param pk: The email address or ID of the team user.
+        :type pk: str or int
+
+        :param custom_field_name: The name of the existing custom field assigned to the user.
+        :type custom_field_name: str
+
+        :param value: The new value for the custom field.
+
+            - This can be a string, a list of strings, a number, or None depending on the custom field type.
+            - Multi-select fields must be provided as a list of strings (e.g., ["Tag1", "Tag2"]).
+            - Date fields must be in Unix timestamp format (e.g., "1738281600").
+            - Other fields (e.g., text, numbers) should match the expected type as defined in the project schema.
+        :type value: Any
+
+        Request Example:
+        ::
+
+            client.set_user_custom_field(
+                "example@email.com",
+                custom_field_name="due_date",
+                value=1738671238.7
+            )
+        """
+        user = self.controller.work_management.get_user_metadata(pk=pk)
+        if user.role == WMUserTypeEnum.TeamOwner:
+            raise AppException(
+                "Setting custom fields for the Team Owner is not allowed."
+            )
+        self.controller.work_management.set_custom_field_value(
+            entity_id=user.id,
+            field_name=custom_field_name,
+            value=value,
+            entity=CustomFieldEntityEnum.CONTRIBUTOR,
+            parent_entity=CustomFieldEntityEnum.TEAM,
+        )
+
+    def list_users(self, *, include: List[Literal["custom_fields"]] = None, **filters):
+        """
+        Search users by filtering criteria
+
+        :param include: Specifies additional fields to be included in the response.
+
+            Possible values are
+
+            - "custom_fields": Includes the custom fields assigned to each user.
+        :type include: list of str, optional
+
+        :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
+
+            - Only users matching all filter conditions are returned.
+
+            - If no filter operation is provided, an exact match is applied
+
+            Supported operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+            - __gt: Value is greater than the given number.
+            - __gte: Value is greater than or equal to the given number.
+            - __lt: Value is less than the given number.
+            - __lte: Value is less than or equal to the given number.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - email: str
+            - email__in:  list[str]
+            - email__contains: str
+            - email__starts: str
+            - email__ends: str
+            - state: Literal[“Confirmed”, “Pending”]
+            - state__in: List[Literal[“Confirmed”, “Pending”]]
+            - role: Literal[“admin”, “contributor”]
+            - role__in: List[Literal[“admin”, “contributor”]]
+
+            Custom Fields Filtering:
+                - Custom fields must be prefixed with `custom_field__`.
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+
+        :type filters: UserFilters, optional
+
+        :return: A list of team users metadata that matches the filtering criteria
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.list_users(
+                email__contains="@superannotate.com",
+                include=["custom_fields"],
+                state__in=["Confirmed"]
+                custom_fields__Tag__in=["Tag1", "Tag3"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2023-02-02T14:25:42.000Z",
+                    "updatedAt": "2025-01-23T16:39:03.000Z",
+                    "custom_fields": {
+                        "Ann Quality threshold": 80,
+                        "Tag": ["Tag1", "Tag2", "Tag3"],
+                    },
+                    "email": "example@superannotate.com",
+                    "id": 30328,
+                    "role": "TeamOwner",
+                    "state": "Confirmed",
+                    "team_id": 44311,
+                }
+            ]
+        """
+        return BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_users(include=include, **filters)
+        )
+
+    def pause_user_activity(
+        self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
+    ):
+        user = self.controller.work_management.get_user_metadata(pk=pk)
+        if user.role is not WMUserTypeEnum.Contributor:
+            raise AppException("User must have a contributor role to pause activity.")
+        self.controller.work_management.update_user_activity(
+            user_email=user.email, provided_projects=projects, action="pause"
+        )
+        logger.info(
+            f"User with email {user.email} has been successfully paused from the specified projects: {projects}."
+        )
+
+    def resume_user_activity(
+        self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
+    ):
+        user = self.controller.work_management.get_user_metadata(pk=pk)
+        if user.role is not WMUserTypeEnum.Contributor:
+            raise AppException("User must have a contributor role to resume activity.")
+        self.controller.work_management.update_user_activity(
+            user_email=user.email, provided_projects=projects, action="resume"
+        )
+        logger.info(
+            f"User with email {user.email} has been successfully unblocked from the specified projects: {projects}."
+        )
+
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
         Retrieves the configuration for a given project and component ID.
@@ -297,16 +503,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         def retrieve_context(
             component_data: List[dict], component_pk: str
         ) -> Tuple[bool, typing.Any]:
-            for component in component_data:
-                if (
-                    component["type"] == "webComponent"
-                    and component["id"] == component_pk
-                ):
-                    return True, component.get("context")
-                if component["type"] == "group" and "children" in component:
-                    found, val = retrieve_context(component["children"], component_pk)
-                    if found:
-                        return found, val
+            try:
+                for component in component_data:
+                    if (
+                        component["type"] == "webComponent"
+                        and component["id"] == component_pk
+                    ):
+                        return True, component.get("context")
+                    if (
+                        component["type"] in ("group", "grid")
+                        and "children" in component
+                    ):
+                        found, val = retrieve_context(
+                            component["children"], component_pk
+                        )
+                        if found:
+                            return found, val
+            except KeyError as e:
+                logger.debug("Got key error:", component_data)
+                raise e
             return False, None
 
         project = (
@@ -764,6 +979,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         include_workflow: Optional[bool] = False,
         include_contributors: Optional[bool] = False,
         include_complete_item_count: Optional[bool] = False,
+        include_custom_fields: Optional[bool] = False,
     ):
         """Returns project metadata
 
@@ -789,8 +1005,56 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                  the key "completed_items_count"
         :type include_complete_item_count: bool
 
+        :param include_custom_fields: include custom fields that have been created for the project.
+        :type include_custom_fields: bool
+
         :return: metadata of project
         :rtype: dict
+
+
+        Request Example:
+        ::
+
+            client.get_project_metadata(
+                project="Medical Annotations",
+                include_custom_fields=True
+            )
+
+
+        Response Example:
+        ::
+
+            {
+                "classes": [],
+                "completed_items_count": None,
+                "contributors": [],
+                "createdAt": "2025-02-04T12:04:01+00:00",
+                "creator_id": "ecample@email.com",
+                "custom_fields": {
+                    "Notes": "Something",
+                    "Ann Quality threshold": 80,
+                    "Tag": ["Tag1", "Tag2", "Tag3"],
+                    "Due date": 1738281600.0,
+                    "Other_Custom_Field": None,
+                },
+                "description": "DESCRIPTION",
+                "entropy_status": 1,
+                "folder_id": 1191383,
+                "id": 902174,
+                "instructions_link": None,
+                "item_count": None,
+                "name": "Medical Annotations",
+                "root_folder_completed_items_count": None,
+                "settings": [],
+                "sharing_status": None,
+                "status": "NotStarted",
+                "team_id": 233435,
+                "type": "Vector",
+                "updatedAt": "2024-02-04T12:04:01+00:00",
+                "upload_state": "INITIAL",
+                "users": [],
+                "workflow_id": 1,
+            }
         """
         project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
@@ -807,6 +1071,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include_settings,
             include_contributors,
             include_complete_item_count,
+            include_custom_fields,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -940,6 +1205,46 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(f"Failed to change {project.name} status.")
         logger.info(f"Successfully updated {project.name} status to {status}")
+
+    def set_project_custom_field(
+        self, project: Union[NotEmptyStr, int], custom_field_name: str, value: Any
+    ):
+        """Sets or updates the value of a custom field for a specified project.
+
+        :param project: The name or ID of the project for which the custom field should be set or updated.
+        :type project: str or int
+
+        :param custom_field_name: The name of the custom field to update or set.
+         This field must already exist for the project.
+        :type custom_field_name: str
+
+        :param value: The value assigned to the custom field, with the type depending on the field's configuration.
+            Multi-select fields must be provided as a list of strings (e.g., ["Tag1", "Tag2"]).
+            Date fields must be in Unix timestamp format (e.g., "1738281600").
+            Other fields (e.g., text, numbers) should match the expected type as defined in the project schema.
+        :type value: Any
+
+        Request Example:
+        ::
+
+            client.set_project_custom_field(
+                project="Medical Annotations",
+                custom_field_name="due_date",
+                value=1738671238.759,
+            )
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.work_management.set_custom_field_value(
+            entity_id=project.id,
+            field_name=custom_field_name,
+            value=value,
+            entity=CustomFieldEntityEnum.PROJECT,
+            parent_entity=CustomFieldEntityEnum.TEAM,
+        )
 
     def set_folder_status(
         self, project: NotEmptyStr, folder: NotEmptyStr, status: FOLDER_STATUS
@@ -1938,33 +2243,70 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def upload_annotations(
-        self, project: NotEmptyStr, annotations: List[dict], keep_status: bool = None
+        self,
+        project: NotEmptyStr,
+        annotations: List[dict],
+        keep_status: bool = None,
+        *,
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
-        """Uploads a list of annotation dicts as annotations to the SuperAnnotate directory.
+        """Uploads a list of annotation dictionaries to the specified SuperAnnotate project or folder.
 
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str or dict
+        :param project: The project name or folder path where annotations will be uploaded
+            (e.g., "project1/folder1").
+        :type project: str
 
-        :param annotations:  list of annotation dictionaries corresponding to SuperAnnotate format
-        :type annotations: list of dicts
+        :param annotations: A list of annotation dictionaries formatted according to the SuperAnnotate standards.
+        :type annotations: list of dict
 
-        :param keep_status: If False, the annotation status will be automatically
-            updated to "InProgress," otherwise the current status will be kept.
-        :type keep_status: bool
+        :param keep_status: If False, the annotation status will be automatically updated to "InProgress."
+            If True, the current status will remain unchanged.
+        :type keep_status: bool, optional
 
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
 
-        :return: a dictionary containing lists of successfully uploaded, failed and skipped name
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and modality-specific data representation.
+        :type data_spec: str, optional
+
+        :return: A dictionary containing the results of the upload, categorized into successfully uploaded,
+            failed, and skipped annotations.
         :rtype: dict
 
-        Response Example:
-        ::
+        Response Example::
 
             {
                "succeeded": [],
-               "failed":[],
+               "failed": [],
                "skipped": []
             }
 
+        Example Usage with JSONL Upload for Multimodal Projects::
+
+            import json
+            from pathlib import Path
+            from superannotate import SAClient
+
+            annotations_path = Path("annotations.jsonl")
+            annotations = []
+
+            # Reading the JSONL file and converting it into a list of dictionaries
+            with annotations_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    annotations.append(json.loads(line))
+
+            # Initialize the SuperAnnotate client
+            sa = SAClient()
+
+            # Call the upload_annotations function
+            response = sa.upload_annotations(
+                project="project1/folder1",
+                annotations=annotations,
+                keep_status=True,
+                data_spec='multimodal'
+            )
         """
         if keep_status is not None:
             warnings.warn(
@@ -1980,6 +2322,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotations=annotations,
             keep_status=keep_status,
             user=self.controller.current_user,
+            output_format=data_spec,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2454,6 +2797,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, int],
         items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
+        *,
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Returns annotations for the given list of items.
 
@@ -2462,6 +2807,29 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param items:  item names. If None, all the items in the specified directory will be used.
         :type items: list of strs or list of ints
+
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
+
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and multimodal-specific data representation.
+
+        :type data_spec: str, optional
+
+        Example Usage of Multimodal Projects::
+
+            from superannotate import SAClient
+
+
+            sa = SAClient()
+
+            # Call the get_annotations function
+            response = sa.get_annotations(
+                project="project1/folder1",
+                items=["item_1", "item_2"],
+                data_spec='multimodal'
+            )
 
         :return: list of annotations
         :rtype: list of dict
@@ -2473,7 +2841,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folder = self.controller.get_folder_by_id(
                 project_id=project.id, folder_id=project.folder_id
             ).data
-        response = self.controller.annotations.list(project, folder, items)
+        response = self.controller.annotations.list(
+            project,
+            folder,
+            items,
+            transform_version="llmJsonV2" if data_spec == "multimodal" else None,
+        )
         if response.errors:
             raise AppException(response.errors)
         return response.data
@@ -2796,7 +3169,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, int],
         folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
-        include: List[Literal["custom_metadata"]] = None,
+        include: List[Literal["custom_metadata", "categories"]] = None,
         **filters,
     ):
         """
@@ -2816,6 +3189,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 Possible values are
 
                 - "custom_metadata": Includes custom metadata attached to the item.
+                - "categories": Includes categories attached to the item.
         :type include: list of str, optional
 
         :param filters: Specifies filtering criteria (e.g., name, ID, annotation status),
@@ -2886,6 +3260,40 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
 
+        Request Example with include categories:
+        ::
+
+            client.list_items(
+                project="My Multimodal",
+                folder="folder1",
+                include=["categories"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "id": 48909383,
+                    "name": "scan_123.jpeg",
+                    "path": "Medical Annotations/folder1",
+                    "url": "https://sa-public-files.s3.../scan_123.jpeg",
+                    "annotation_status": "InProgress",
+                    "createdAt": "2022-02-10T14:32:21.000Z",
+                    "updatedAt": "2022-02-15T20:46:44.000Z",
+                    "entropy_value": None,
+                    "assignments": [],
+                    "categories": [
+                        {
+                            "createdAt": "2025-01-29T13:51:39.000Z",
+                            "updatedAt": "2025-01-29T13:51:39.000Z",
+                            "id": 328577,
+                            "name": "my_category",
+                        },
+                    ],
+                }
+            ]
+
         Additional Filter Examples:
         ::
 
@@ -2907,6 +3315,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             if isinstance(project, int)
             else self.controller.get_project(project)
         )
+        if (
+            include
+            and "categories" in include
+            and project.type != ProjectType.MULTIMODAL.value
+        ):
+            raise AppException(
+                "The 'categories' option in the 'include' field is only supported for Multimodal projects."
+            )
         if folder is None:
             folder = self.controller.get_folder(project, "root")
         else:
@@ -2933,10 +3349,120 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for i in res:
                 i.custom_metadata = item_custom_fields[i.id]
         exclude = {"meta", "annotator_email", "qa_email"}
-        if include:
-            if "custom_metadata" not in include:
-                exclude.add("custom_metadata")
+        if not include_custom_metadata:
+            exclude.add("custom_metadata")
         return BaseSerializer.serialize_iterable(res, exclude=exclude)
+
+    def list_projects(
+        self,
+        *,
+        include: List[Literal["custom_fields"]] = None,
+        **filters,
+    ):
+        """
+        Search projects by filtering criteria.
+
+        :param include: Specifies additional fields to include in the response.
+
+            Possible values are
+
+            - "custom_fields": Includes the custom fields assigned to each project.
+        :type include: list of str, optional
+
+        :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
+
+            - Only users matching all filter conditions are returned.
+
+            - If no filter operation is provided, an exact match is applied.
+
+            Supported operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+            - __gt: Value is greater than the given number.
+            - __gte: Value is greater than or equal to the given number.
+            - __lt: Value is less than the given number.
+            - __lte: Value is less than or equal to the given number.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - name: str
+            - name__in:  list[str]
+            - name__contains: str
+            - name__starts: str
+            - name__ends: str
+            - status: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+            - status__ne: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
+            - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+            - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+
+            Custom Fields Filtering:
+                - Custom fields must be prefixed with `custom_field__`.
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+                - If include does not include "custom_fields" but filter contains custom_fields, an error will be returned
+
+        :type filters: ProjectFilters, optional
+
+        :return: A list of project metadata that matches the filtering criteria.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.list_projects(
+                name__contains="Medical",
+                include=["custom_fields"],
+                status__in=["InProgress", "Completed"],
+                custom_fields__Tag__in=["Tag1", "Tag3"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "classes": [],
+                    "completed_items_count": None,
+                    "contributors": [],
+                    "createdAt": "2025-02-04T12:04:01+00:00",
+                    "creator_id": "ecample@email.com",
+                    "custom_fields": {
+                        "Notes": "Something",
+                        "Ann Quality threshold": 80,
+                        "Tag": ["Tag1","Tag2","Tag3"],
+                        "Due date": 1738281600.0,
+                        "Other_Custom_Field": None,
+                    },
+                    "description": "DESCRIPTION",
+                    "entropy_status": 1,
+                    "folder_id": 1191383,
+                    "id": 902174,
+                    "instructions_link": None,
+                    "item_count": None,
+                    "name": "Medical Annotations",
+                    "root_folder_completed_items_count": None,
+                    "settings": [],
+                    "sharing_status": None,
+                    "status": "InProgress",
+                    "team_id": 233435,
+                    "type": "Vector",
+                    "updatedAt": "2024-02-04T12:04:01+00:00",
+                    "upload_state": "INITIAL",
+                    "users": [],
+                    "workflow_id": 1,
+                }
+            ]
+        """
+        return [
+            WMProjectSerializer(p).serialize()
+            for p in self.controller.projects.list_projects(include=include, **filters)
+        ]
 
     def attach_items(
         self,

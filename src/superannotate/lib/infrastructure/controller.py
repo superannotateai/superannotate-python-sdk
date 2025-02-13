@@ -3,6 +3,7 @@ import logging
 import os
 from abc import ABCMeta
 from pathlib import Path
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -20,6 +21,7 @@ from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import ContributorEntity
+from lib.core.entities import CustomFieldEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import PROJECT_ITEM_ENTITY_MAP
@@ -28,7 +30,12 @@ from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.filters import ItemFilters
+from lib.core.entities.filters import ProjectFilters
+from lib.core.entities.filters import UserFilters
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.enums import CustomFieldEntityEnum
+from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import FileChangedError
@@ -41,37 +48,20 @@ from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
 from lib.core.usecases import serialize_item_entity
+from lib.infrastructure.custom_entities import generate_schema
 from lib.infrastructure.helpers import timed_lru_cache
+from lib.infrastructure.query_builder import FieldValidationHandler
+from lib.infrastructure.query_builder import IncludeHandler
+from lib.infrastructure.query_builder import ItemFilterHandler
+from lib.infrastructure.query_builder import ProjectFilterHandler
+from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.query_builder import UserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
-from typing_extensions import TypedDict
 from typing_extensions import Unpack
-
-
-class ItemFilters(TypedDict, total=False):
-    id: Optional[int]
-    id__in: Optional[List[int]]
-    name: Optional[str]
-    name__in: Optional[List[str]]
-    name__contains: Optional[str]
-    name__starts: Optional[str]
-    name__ends: Optional[str]
-    annotation_status: Optional[str]
-    annotation_status__in: Optional[List[str]]
-    annotation_status__ne: Optional[List[str]]
-    approval_status: Optional[str]
-    approval_status__in: Optional[List[str]]
-    approval_status__ne: Optional[str]
-    assignments__user_id: Optional[str]
-    assignments__user_id__in: Optional[List[str]]
-    assignments__user_id__ne: Optional[str]
-    assignments__user_role: Optional[str]
-    assignments__user_role__in: Optional[List[str]]
-    assignments__user_role__ne: Optional[str]
-    assignments__user_role__notin: Optional[List[str]]
 
 
 def build_condition(**kwargs) -> Condition:
@@ -82,9 +72,165 @@ def build_condition(**kwargs) -> Condition:
     return condition
 
 
+def serialize_custom_fields(
+    service_provider: ServiceProvider, data: List[dict], entity: CustomFieldEntityEnum
+) -> List[dict]:
+    existing_custom_fields = service_provider.list_custom_field_names(entity)
+    for i in range(len(data)):
+        if not data[i]:
+            data[i] = {}
+        updated_fields = {}
+
+        for custom_field_name, field_value in data[i].items():
+            field_id = int(custom_field_name)
+            try:
+                component_id = service_provider.get_custom_field_component_id(
+                    field_id, entity=entity
+                )
+            except AppException:
+                # The component template can be deleted, but not from the entity, so it will be skipped.
+                continue
+
+            if field_value and component_id == CustomFieldType.DATE_PICKER.value:
+                field_value /= 1000  # Convert timestamp
+
+            new_field_name = service_provider.get_custom_field_name(
+                field_id, entity=entity
+            )
+            updated_fields[new_field_name] = field_value
+
+        data[i].clear()
+        data[i].update(updated_fields)
+
+        for existing_custom_field in existing_custom_fields:
+            if existing_custom_field not in data[i]:
+                data[i][existing_custom_field] = None
+
+    return data
+
+
 class BaseManager:
     def __init__(self, service_provider: ServiceProvider):
         self.service_provider = service_provider
+
+
+class WorkManagementManager(BaseManager):
+    def get_user_metadata(
+        self, pk: Union[str, int], include: List[Literal["custom_fields"]] = None
+    ):
+        if isinstance(pk, int):
+            filters = {"id": pk}
+        else:
+            filters = {"email": pk}
+        users = self.list_users(include=include, **filters)
+        if not users:
+            raise AppException("User not found.")
+        return users[0]
+
+    def set_custom_field_value(
+        self,
+        entity_id: int,
+        entity: CustomFieldEntity,
+        parent_entity: CustomFieldEntityEnum,
+        field_name: str,
+        value: Any,
+    ):
+        _context = {}
+        if entity == CustomFieldEntityEnum.PROJECT:
+            _context["project_id"] = entity_id
+        template_id = self.service_provider.get_custom_field_id(
+            field_name, entity=entity
+        )
+        component_id = self.service_provider.get_custom_field_component_id(
+            template_id, entity=entity
+        )
+        # timestamp: convert seconds to milliseconds
+        if component_id == CustomFieldType.DATE_PICKER.value and value is not None:
+            try:
+                value = value * 1000
+            except Exception:
+                raise AppException("Invalid custom field value provided.")
+        self.service_provider.work_management.set_custom_field_value(
+            entity_id=entity_id,
+            entity=entity,
+            parent_entity=parent_entity,
+            template_id=template_id,
+            data=value,
+            context=_context,
+        )
+
+    def list_users(self, include: List[Literal["custom_fields"]] = None, **filters):
+        valid_fields = generate_schema(
+            UserFilters.__annotations__,
+            self.service_provider.get_custom_fields_templates(
+                CustomFieldEntityEnum.CONTRIBUTOR
+            ),
+        )
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(valid_fields.keys()),
+                UserFilterHandler(
+                    service_provider=self.service_provider,
+                    entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                ),
+            ]
+        )
+        query = chain.handle(filters, EmptyQuery())
+        if include and "custom_fields" in include:
+            response = self.service_provider.work_management.list_users(
+                query, include_custom_fields=True
+            )
+            if not response.ok:
+                raise AppException(response.error)
+            users = response.data
+            custom_fields_list = [user.custom_fields for user in users]
+            serialized_fields = serialize_custom_fields(
+                self.service_provider,
+                custom_fields_list,
+                CustomFieldEntityEnum.CONTRIBUTOR,
+            )
+            for users, serialized_custom_fields in zip(users, serialized_fields):
+                users.custom_fields = serialized_custom_fields
+            return response.data
+        return self.service_provider.work_management.list_users(query).data
+
+    def update_user_activity(
+        self,
+        user_email: str,
+        provided_projects: Union[List[int], List[str], Literal["*"]],
+        action: Literal["resume", "pause"],
+    ):
+        if isinstance(provided_projects, list):
+            if not provided_projects:
+                raise AppException("Provided projects list cannot be empty.")
+            body_query = EmptyQuery()
+            if isinstance(provided_projects[0], int):
+                body_query &= Filter("id", provided_projects, OperatorEnum.IN)
+            else:
+                body_query &= Filter("name", provided_projects, OperatorEnum.IN)
+            exist_projects = self.service_provider.work_management.search_projects(
+                body_query
+            ).res_data
+
+            # project validation
+            if len(set(provided_projects)) > len(exist_projects):
+                raise AppException("Invalid project(s) provided.")
+        else:
+            exist_projects = self.service_provider.work_management.search_projects(
+                EmptyQuery()
+            ).res_data
+
+        chunked_projects_ids = divide_to_chunks([i.id for i in exist_projects], 50)
+        for chunk in chunked_projects_ids:
+            body_query = EmptyQuery()
+            body_query &= Filter("projects.id", chunk, OperatorEnum.IN)
+            body_query &= Filter(
+                "projects.contributors.email", user_email, OperatorEnum.EQ
+            )
+            res = self.service_provider.work_management.update_user_activity(
+                body_query=body_query, action=action
+            )
+            res.raise_for_status()
 
 
 class ProjectManager(BaseManager):
@@ -115,6 +261,7 @@ class ProjectManager(BaseManager):
         include_settings: bool = False,
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
+        include_custom_fields: bool = False,
     ):
         use_case = usecases.GetProjectMetaDataUseCase(
             project=project,
@@ -123,6 +270,7 @@ class ProjectManager(BaseManager):
             include_settings=include_settings,
             include_contributors=include_contributors,
             include_complete_image_count=include_complete_image_count,
+            include_custom_fields=include_custom_fields,
         )
         return use_case.execute()
 
@@ -249,6 +397,49 @@ class ProjectManager(BaseManager):
         )
         response.raise_for_status()
         return response.data
+
+    def list_projects(
+        self,
+        include: List[str] = None,
+        **filters: Unpack[ProjectFilters],
+    ) -> List[ProjectEntity]:
+        valid_fields = generate_schema(
+            ProjectFilters.__annotations__,
+            self.service_provider.get_custom_fields_templates(
+                CustomFieldEntityEnum.PROJECT
+            ),
+        )
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(valid_fields.keys()),
+                ProjectFilterHandler(
+                    self.service_provider, entity=CustomFieldEntityEnum.PROJECT
+                ),
+            ]
+        )
+        query = chain.handle(filters, EmptyQuery())
+        include_custom_fields: bool = (
+            True if include and "custom_fields" in include else False
+        )
+        if include_custom_fields:
+            response = self.service_provider.work_management.list_projects(
+                body_query=query
+            )
+        else:
+            response = self.service_provider.work_management.search_projects(
+                body_query=query
+            )
+        if response.error:
+            raise AppException(response.error)
+        projects = response.data
+        if include_custom_fields:
+            custom_fields_list = [project.custom_fields for project in projects]
+            serialized_fields = serialize_custom_fields(
+                self.service_provider, custom_fields_list, CustomFieldEntityEnum.PROJECT
+            )
+            for project, serialized_custom_fields in zip(projects, serialized_fields):
+                project.custom_fields = serialized_custom_fields
+        return projects
 
 
 class AnnotationClassManager(BaseManager):
@@ -504,7 +695,19 @@ class ItemManager(BaseManager):
         **filters: Unpack[ItemFilters],
     ) -> List[BaseItemEntity]:
 
-        query = self._build_query(project, filters, include)
+        entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(ItemFilters.__annotations__.keys()),
+                ItemFilterHandler(
+                    project=project,
+                    service_provider=self.service_provider,
+                    entity=entity,
+                ),
+                IncludeHandler(include=include),
+            ]
+        )
+        query = chain.handle(filters, EmptyQuery())
         data = self.service_provider.item_service.list(project.id, folder.id, query)
         return self.process_response(self.service_provider, data, project, folder)
 
@@ -780,18 +983,30 @@ class AnnotationManager(BaseManager):
         annotations: List[dict],
         keep_status: bool,
         user: UserEntity,
-        transform_version: str = None,
+        output_format: str = None,
     ):
-        use_case = usecases.UploadAnnotationsUseCase(
-            reporter=Reporter(),
-            project=project,
-            folder=folder,
-            annotations=annotations,
-            service_provider=self.service_provider,
-            keep_status=keep_status,
-            user=user,
-            transform_version=transform_version,
-        )
+        if project.type == ProjectType.MULTIMODAL and output_format == "multimodal":
+            use_case = usecases.UploadMultiModalAnnotationsUseCase(
+                reporter=Reporter(),
+                project=project,
+                root_folder=folder,
+                annotations=annotations,
+                service_provider=self.service_provider,
+                keep_status=keep_status,
+                user=user,
+                transform_version="llmJsonV2",
+            )
+        else:
+            use_case = usecases.UploadAnnotationsUseCase(
+                reporter=Reporter(),
+                project=project,
+                folder=folder,
+                annotations=annotations,
+                service_provider=self.service_provider,
+                keep_status=keep_status,
+                user=user,
+                transform_version=None,
+            )
         return use_case.execute()
 
     def upload_from_folder(
@@ -986,6 +1201,7 @@ class BaseController(metaclass=ABCMeta):
         self._team = self.get_team().data
         self.annotation_classes = AnnotationClassManager(self.service_provider)
         self.projects = ProjectManager(self.service_provider, team=self._team)
+        self.work_management = WorkManagementManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
         self.items = ItemManager(self.service_provider)
         self.annotations = AnnotationManager(self.service_provider, config)

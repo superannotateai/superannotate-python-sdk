@@ -113,6 +113,7 @@ class ProjectEntity(TimedBaseModel):
     root_folder_completed_items_count: Optional[int] = Field(
         None, alias="rootFolderCompletedImagesCount"
     )
+    custom_fields: dict = {}
 
     class Config:
         extra = Extra.ignore
@@ -169,6 +170,13 @@ class TeamEntity(BaseModel):
         extra = Extra.ignore
 
 
+class CustomFieldEntity(BaseModel):
+    ...
+
+    class Config:
+        extra = Extra.allow
+
+
 class WorkflowEntity(BaseModel):
     id: Optional[int]
     name: Optional[str]
@@ -179,3 +187,8 @@ class WorkflowEntity(BaseModel):
 
     class Config:
         extra = Extra.ignore
+
+
+class CategoryEntity(BaseModel):
+    id: Optional[int]
+    name: Optional[str]

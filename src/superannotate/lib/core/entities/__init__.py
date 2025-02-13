@@ -12,7 +12,9 @@ from lib.core.entities.items import PROJECT_ITEM_ENTITY_MAP
 from lib.core.entities.items import TiledEntity
 from lib.core.entities.items import VideoEntity
 from lib.core.entities.project import AttachmentEntity
+from lib.core.entities.project import CategoryEntity
 from lib.core.entities.project import ContributorEntity
+from lib.core.entities.project import CustomFieldEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
 from lib.core.entities.project import StepEntity
@@ -27,6 +29,7 @@ __all__ = [
     "ConfigEntity",
     "SettingEntity",
     "SubSetEntity",
+    "CustomFieldEntity",
     # items
     "BaseEntity",
     "ImageEntity",
@@ -41,6 +44,7 @@ __all__ = [
     # project
     "ProjectEntity",
     "WorkflowEntity",
+    "CategoryEntity",
     "ContributorEntity",
     "ConfigEntity",
     "StepEntity",

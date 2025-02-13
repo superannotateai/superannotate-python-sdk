@@ -102,7 +102,7 @@ class TestCustomSchema(BaseTestCase):
         )
         assert data[0]["custom_metadata"] == payload
         data = sa.list_items(
-            self.PROJECT_NAME, came__contains=item_name, include=["custom_metadata"]
+            self.PROJECT_NAME, name__contains=item_name, include=["custom_metadata"]
         )
         assert data[0]["custom_metadata"] == payload
         sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])

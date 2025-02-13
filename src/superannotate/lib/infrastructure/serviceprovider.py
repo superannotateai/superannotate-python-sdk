@@ -6,6 +6,7 @@ import lib.core as constants
 from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.enums import ApprovalStatus
+from lib.core.enums import CustomFieldEntityEnum
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UserLimitsResponse
@@ -66,6 +67,37 @@ class ServiceProvider(BaseServiceProvider):
         )
         self._cached_work_management_repository = CachedWorkManagementRepository(
             5, self.work_management
+        )
+
+    def get_custom_fields_templates(self, entity: CustomFieldEntityEnum):
+        return self._cached_work_management_repository.list_templates(
+            self.client.team_id, entity=entity
+        )
+
+    def list_custom_field_names(self, entity: CustomFieldEntityEnum) -> List[str]:
+        return self._cached_work_management_repository.list_custom_field_names(
+            self.client.team_id, entity=entity
+        )
+
+    def get_custom_field_id(
+        self, field_name: str, entity: CustomFieldEntityEnum
+    ) -> int:
+        return self._cached_work_management_repository.get_custom_field_id(
+            self.client.team_id, field_name, entity=entity
+        )
+
+    def get_custom_field_name(
+        self, field_id: int, entity: CustomFieldEntityEnum
+    ) -> str:
+        return self._cached_work_management_repository.get_custom_field_name(
+            self.client.team_id, field_id, entity=entity
+        )
+
+    def get_custom_field_component_id(
+        self, field_id: int, entity: CustomFieldEntityEnum
+    ) -> str:
+        return self._cached_work_management_repository.get_custom_field_component_id(
+            self.client.team_id, field_id, entity=entity
         )
 
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:

@@ -10,6 +10,8 @@ from lib.core.entities import ContributorEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
+from lib.core.enums import CustomFieldEntityEnum
+from lib.core.enums import CustomFieldType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.response import Response
@@ -107,6 +109,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         include_settings: bool,
         include_contributors: bool,
         include_complete_image_count: bool,
+        include_custom_fields: bool,
     ):
         super().__init__()
         self._project = project
@@ -116,6 +119,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         self._include_settings = include_settings
         self._include_contributors = include_contributors
         self._include_complete_image_count = include_complete_image_count
+        self._include_custom_fields = include_custom_fields
 
     def execute(self):
         project = self._service_provider.projects.get_by_id(self._project.id).data
@@ -149,6 +153,42 @@ class GetProjectMetaDataUseCase(BaseUseCase):
             project.contributors = project.users
         else:
             project.users = []
+        if self._include_custom_fields:
+            custom_fields_names = self._service_provider.list_custom_field_names(
+                entity=CustomFieldEntityEnum.PROJECT
+            )
+            if custom_fields_names:
+                project_custom_fields = (
+                    self._service_provider.work_management.list_project_custom_entities(
+                        project_id=self._project.id
+                    )
+                ).data["customField"]
+                custom_fields_id_value_map = (
+                    project_custom_fields["custom_field_values"]
+                    if project_custom_fields
+                    else {}
+                )
+                custom_fields_name_value_map = {}
+                for name in custom_fields_names:
+                    field_id = self._service_provider.get_custom_field_id(
+                        name, entity=CustomFieldEntityEnum.PROJECT
+                    )
+                    field_value = (
+                        custom_fields_id_value_map[str(field_id)]
+                        if str(field_id) in custom_fields_id_value_map.keys()
+                        else None
+                    )
+                    # timestamp: convert milliseconds to seconds
+                    component_id = self._service_provider.get_custom_field_component_id(
+                        field_id, entity=CustomFieldEntityEnum.PROJECT
+                    )
+                    if (
+                        field_value
+                        and component_id == CustomFieldType.DATE_PICKER.value
+                    ):
+                        field_value = field_value / 1000
+                    custom_fields_name_value_map[name] = field_value
+                project.custom_fields = custom_fields_name_value_map
         self._response.data = project
         return self._response
 

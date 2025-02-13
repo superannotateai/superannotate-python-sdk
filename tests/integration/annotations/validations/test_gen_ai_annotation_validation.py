@@ -11,6 +11,7 @@ class TestVectorValidators(TestCase):
 
     @patch("builtins.print")
     def test_validate_annotation_without_metadata(self, mock_print):
+        # Failed because the BED does not have a validation schema for Multimodal projects.
         is_valid = sa.validate_annotations(self.PROJECT_TYPE, {"instances": []})
         assert not is_valid
         mock_print.assert_any_call("'metadata' is a required property")

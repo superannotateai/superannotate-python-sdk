@@ -1,13 +1,16 @@
 import time
+from abc import ABC
+from abc import abstractmethod
 from itertools import islice
 from pathlib import Path
+from typing import Any
 from typing import Dict
-from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from lib.core import entities
+from lib.core.entities import ProjectEntity
+from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
 from lib.core.exceptions import PathError
 from lib.infrastructure.services.work_management import WorkManagementService
@@ -41,113 +44,197 @@ def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[
     raise PathError("Invalid project path")
 
 
-class CachedWorkManagementRepository:
+class BaseCachedWorkManagementRepository(ABC):
     def __init__(self, ttl_seconds: int, work_management: WorkManagementService):
         self.ttl_seconds = ttl_seconds
         self.work_management = work_management
-        self._annotation_status_name_value_mapping: Dict[int, Dict[str, int]] = {}
-        self._annotation_status_value_name_mapping: Dict[int, Dict[int, str]] = {}
-        self._role_name_id_map: Dict[int, Dict[str, int]] = {}
-        self._role_id_name_map: Dict[int, Dict[int, str]] = {}
-        self._cache_timestamps: Dict[
-            int, Dict[str, float]
-        ] = {}  # Tracking separate timestamps for roles and statuses
+        self._K_V_map = {}
+        self._cache_timestamps: Dict[Any, float] = {}
 
-    def _is_cache_valid(
-        self, project_id: int, cache_type: Literal["statuses", "roles"]
-    ) -> bool:
+    def _update_cache_timestamp(self, key):
+        self._cache_timestamps[key] = time.time()
+
+    def _is_cache_valid(self, key):
         current_time = time.time()
-        if (
-            project_id in self._cache_timestamps
-            and cache_type in self._cache_timestamps[project_id]
-        ):
-            return (
-                current_time - self._cache_timestamps[project_id][cache_type]
-                < self.ttl_seconds
-            )
-        return False
+        return key in self._cache_timestamps and (
+            current_time - self._cache_timestamps[key] < self.ttl_seconds
+        )
 
-    def _update_cache_timestamp(self, project_id: int, cache_type: str):
-        if project_id not in self._cache_timestamps:
-            self._cache_timestamps[project_id] = {}
-        self._cache_timestamps[project_id][cache_type] = time.time()
+    @abstractmethod
+    def sync(self, **kwargs):
+        raise NotImplementedError
 
-    def _sync_data(
-        self, project: entities.ProjectEntity, data_type: Literal["statuses", "roles"]
-    ):
-        if data_type == "roles":
-            response = self.work_management.list_workflow_roles(
-                project.id, project.workflow_id
-            )
-            if not response.ok:
-                raise AppException(response.error)
-            roles = response.data["data"]
-            self._role_name_id_map[project.id] = {
+    def get(self, key, **kwargs):
+        if not self._is_cache_valid(key):
+            self.sync(**kwargs)
+        return self._K_V_map[key]
+
+
+class RoleCache(BaseCachedWorkManagementRepository):
+    def sync(self, project: ProjectEntity):
+        response = self.work_management.list_workflow_roles(
+            project.id, project.workflow_id
+        )
+        if not response.ok:
+            raise AppException(response.error)
+        roles = response.data["data"]
+        self._K_V_map[project.id] = {
+            "role_name_id_map": {
                 role["role"]["name"]: role["role_id"] for role in roles
-            }
-            self._role_id_name_map[project.id] = {
+            },
+            "role_id_name_map": {
                 role["role_id"]: role["role"]["name"] for role in roles
-            }
-            self._role_id_name_map[project.id][3] = "Admin"
-            self._role_name_id_map[project.id]["Admin"] = 3
-            self._update_cache_timestamp(project.id, "roles")
+            },
+        }
+        self._update_cache_timestamp(project.id)
 
-        elif data_type == "statuses":
-            response = self.work_management.list_workflow_statuses(
-                project.id, project.workflow_id
-            )
-            if not response.ok:
-                raise AppException(response.error)
-            statuses = response.data["data"]
-            status_name_value_map = {
-                status["status"]["name"]: status["value"] for status in statuses
-            }
-            self._annotation_status_name_value_mapping[
-                project.id
-            ] = status_name_value_map
-            self._annotation_status_value_name_mapping[project.id] = {
-                v: k for k, v in status_name_value_map.items()
-            }
-            self._update_cache_timestamp(project.id, "statuses")
 
-    def _sync(
-        self, project: entities.ProjectEntity, data_type: Literal["statuses", "roles"]
+class StatusCache(BaseCachedWorkManagementRepository):
+    def sync(self, project):
+        response = self.work_management.list_workflow_statuses(
+            project.id, project.workflow_id
+        )
+        if not response.ok:
+            raise AppException(response.error)
+        statuses = response.data["data"]
+        status_name_value_map = {
+            status["status"]["name"]: status["value"] for status in statuses
+        }
+        status_value_name_map = {v: k for k, v in status_name_value_map.items()}
+        self._K_V_map[project.id] = {
+            "status_name_value_map": status_name_value_map,
+            "status_value_name_map": status_value_name_map,
+        }
+        self._update_cache_timestamp(project.id)
+
+
+class CustomFieldCache(BaseCachedWorkManagementRepository):
+    def __init__(
+        self,
+        ttl_seconds: int,
+        work_management: WorkManagementService,
+        entity: CustomFieldEntityEnum,
+        parent_entity: CustomFieldEntityEnum,
     ):
-        if data_type == "roles" and not self._is_cache_valid(project.id, "roles"):
-            self._sync_data(project, "roles")
-        elif data_type == "statuses" and not self._is_cache_valid(
-            project.id, "statuses"
-        ):
-            self._sync_data(project, "statuses")
+        super().__init__(ttl_seconds, work_management)
+        self._entity = entity
+        self._parent_entity = parent_entity
 
-    def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
-        self._sync(project, "roles")
-        mapping = self._role_name_id_map.get(project.id, {})
-        if role_name in mapping:
-            return mapping[role_name]
+    def sync(self, team_id):
+        response = self.work_management.list_custom_field_templates(
+            entity=self._entity, parent_entity=self._parent_entity
+        )
+        if not response.ok:
+            raise AppException(response.error)
+        custom_fields_name_id_map = {
+            field["name"]: field["id"] for field in response.data["data"]
+        }
+        custom_fields_id_name_map = {
+            field["id"]: field["name"] for field in response.data["data"]
+        }
+        custom_fields_id_component_id_map = {
+            field["id"]: field["component_id"] for field in response.data["data"]
+        }
+        self._K_V_map[team_id] = {
+            "custom_fields_name_id_map": custom_fields_name_id_map,
+            "custom_fields_id_name_map": custom_fields_id_name_map,
+            "custom_fields_id_component_id_map": custom_fields_id_component_id_map,
+            "templates": response.data["data"],
+        }
+        self._update_cache_timestamp(team_id)
+
+    def get(self, key, **kwargs):
+        if not self._is_cache_valid(key):
+            self.sync(team_id=key)
+        return self._K_V_map[key]
+
+
+class CachedWorkManagementRepository:
+    def __init__(self, ttl_seconds: int, work_management):
+        self._role_cache = RoleCache(ttl_seconds, work_management)
+        self._status_cache = StatusCache(ttl_seconds, work_management)
+        self._project_custom_field_cache = CustomFieldCache(
+            ttl_seconds,
+            work_management,
+            CustomFieldEntityEnum.PROJECT,
+            CustomFieldEntityEnum.TEAM,
+        )
+        self._user_custom_field_cache = CustomFieldCache(
+            ttl_seconds,
+            work_management,
+            CustomFieldEntityEnum.CONTRIBUTOR,
+            CustomFieldEntityEnum.TEAM,
+        )
+
+    def get_role_id(self, project, role_name: str) -> int:
+        role_data = self._role_cache.get(project.id, project=project)
+        if role_name in role_data["role_name_id_map"]:
+            return role_data["role_name_id_map"][role_name]
         raise AppException("Invalid assignments role provided.")
 
-    def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
-        self._sync(project, "roles")
-        mapping = self._role_id_name_map.get(project.id, {})
-        if role_id in mapping:
-            return mapping[role_id]
-        raise AppException("Invalid assignments role provided.")
+    def get_role_name(self, project, role_id: int) -> str:
+        role_data = self._role_cache.get(project.id, project=project)
+        if role_id in role_data["role_id_name_map"]:
+            return role_data["role_id_name_map"][role_id]
+        raise AppException("Invalid role ID provided.")
 
-    def get_annotation_status_value(
-        self, project: entities.ProjectEntity, status_name: str
+    def get_annotation_status_value(self, project, status_name: str) -> int:
+        status_data = self._status_cache.get(project.id, project=project)
+        if status_name in status_data["status_name_value_map"]:
+            return status_data["status_name_value_map"][status_name]
+        raise AppException("Invalid status provided.")
+
+    def get_annotation_status_name(self, project, status_value: int) -> str:
+        status_data = self._status_cache.get(project.id, project=project)
+        if status_value in status_data["status_value_name_map"]:
+            return status_data["status_value_name_map"][status_value]
+        raise AppException("Invalid status value provided.")
+
+    def get_custom_field_id(
+        self, team_id: int, field_name: str, entity: CustomFieldEntityEnum
     ) -> int:
-        self._sync(project, "statuses")
-        mapping = self._annotation_status_name_value_mapping.get(project.id, {})
-        if status_name in mapping:
-            return mapping[status_name]
-        raise AppException("Invalid status provided.")
+        if entity == CustomFieldEntityEnum.PROJECT:
+            custom_field_data = self._project_custom_field_cache.get(team_id)
+        else:
+            custom_field_data = self._user_custom_field_cache.get(team_id)
+        if field_name in custom_field_data["custom_fields_name_id_map"]:
+            return custom_field_data["custom_fields_name_id_map"][field_name]
+        raise AppException("Invalid custom field name provided.")
 
-    def get_annotation_status_name(
-        self, project: entities.ProjectEntity, status_value: int
+    def get_custom_field_name(
+        self, team_id: int, field_id: int, entity: CustomFieldEntityEnum
     ) -> str:
-        self._sync(project, "statuses")
-        mapping = self._annotation_status_value_name_mapping.get(project.id, {})
-        if status_value in mapping:
-            return mapping[status_value]
-        raise AppException("Invalid status provided.")
+        if entity == CustomFieldEntityEnum.PROJECT:
+            custom_field_data = self._project_custom_field_cache.get(team_id)
+        else:
+            custom_field_data = self._user_custom_field_cache.get(team_id)
+        if field_id in custom_field_data["custom_fields_id_name_map"]:
+            return custom_field_data["custom_fields_id_name_map"][field_id]
+        raise AppException("Invalid custom field ID provided.")
+
+    def get_custom_field_component_id(
+        self, team_id: int, field_id: int, entity: CustomFieldEntityEnum
+    ) -> str:
+        if entity == CustomFieldEntityEnum.PROJECT:
+            custom_field_data = self._project_custom_field_cache.get(team_id)
+        else:
+            custom_field_data = self._user_custom_field_cache.get(team_id)
+        if field_id in custom_field_data["custom_fields_id_component_id_map"]:
+            return custom_field_data["custom_fields_id_component_id_map"][field_id]
+        raise AppException("Invalid custom field ID provided.")
+
+    def list_custom_field_names(
+        self, team_id: int, entity: CustomFieldEntityEnum
+    ) -> list:
+        if entity == CustomFieldEntityEnum.PROJECT:
+            custom_field_data = self._project_custom_field_cache.get(team_id)
+        else:
+            custom_field_data = self._user_custom_field_cache.get(team_id)
+        return list(custom_field_data["custom_fields_name_id_map"].keys())
+
+    def list_templates(self, team_id: int, entity: CustomFieldEntityEnum):
+        if entity == CustomFieldEntityEnum.PROJECT:
+            custom_field_data = self._project_custom_field_cache.get(team_id)
+        else:
+            custom_field_data = self._user_custom_field_cache.get(team_id)
+        return custom_field_data["templates"]
