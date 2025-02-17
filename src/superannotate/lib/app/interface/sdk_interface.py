@@ -501,24 +501,23 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         def retrieve_context(
-            component_data: List[dict], component_pk: str
+                component_data: List[dict], component_pk: str
         ) -> Tuple[bool, typing.Any]:
             try:
                 for component in component_data:
-                    if (
-                        component["type"] == "webComponent"
-                        and component["id"] == component_pk
-                    ):
-                        return True, component.get("context")
-                    if (
-                        component["type"] in ("group", "grid")
-                        and "children" in component
-                    ):
+                    if "children" in component:
                         found, val = retrieve_context(
                             component["children"], component_pk
                         )
                         if found:
                             return found, val
+                    if (
+                            "id" in component and
+                            component["id"] == component_pk
+                            and component["type"] == "webComponent"
+                    ):
+                        return True, json.loads(component.get("context"))
+
             except KeyError as e:
                 logger.debug("Got key error:", component_data)
                 raise e
