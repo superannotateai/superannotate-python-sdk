@@ -1,0 +1,87 @@
+Topic,Function,MM(GenAI/LLM),CSV,JSON,JSONL,INTEGRATION
+Projects,create_project,No,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,search_projects,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,clone_project,No,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,rename_project,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,delete_project,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_project_by_id,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_project_status,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_project_metadata,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,upload_images_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,attach_items_from_integrated_storage,Yes,Not Relevant,Not Relevant,Not Relevant,"AWS, GCP, Azure"
+,upload_image_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,upload_images_from_folder_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,AWS
+,upload_video_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,upload_videos_from_folder_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_project_custom_field,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,add_contributors_to_project,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_project_settings,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_project_default_image_quality_in_editor,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_project_steps,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_project_steps,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_component_config,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+Folders,search_folders(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_folder_status(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,assign_folder(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,unassign_folder(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_folder_by_id(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_folder_metadata(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,create_folder(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,delete_folders(,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+Items,query(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_item_by_id(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,list_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,search_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,attach_items(),Not Relevant,Not Relevant,No,No,Not Relevant
+,item_context(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,copy_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,move_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,delete_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,assign_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,unassign_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_item_metadata(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_approval_statuses(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+Annotations,upload_annotations(),Yes,Yes,Yes,Yes,Not Relevant
+,get_annotations(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,download_annotations(),Yes,No,Yes,No,Not Relevant
+,get_annotations_per_frame(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_annotation_statuses(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,delete_annotations(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,upload_annotations_from_folder_to_project(),No,No,Yes,No,AWS
+"Annotation 
+Classes",create_annotation_class(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,create_annotation_classes_from_classes_json(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,AWS
+,search_annotation_classes(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,download_annotation_classes_json(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,delete_annotation_class(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+Exports,prepare_export(),Yes,Yes,Yes,No,Not Relevant
+,download_export(),Yes,Yes,Yes,Yes,AWS
+,get_exports(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+"Custom 
+Metadata
+",create_custom_fields(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_custom_fields(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,delete_custom_fields(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,upload_custom_values(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,delete_custom_values(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+Subsets,get_subsets(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,add_items_to_subset(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+Images,download_image(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,download_image_annotations(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,upload_image_annotations(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,pin_image(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,upload_priority_scores(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+Team,get_team_metadata(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_integrations(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,invite_contributors_to_team(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,search_team_contributors(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,get_user_metadata(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_user_custom_field(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,list_users(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+"Converting
+Annotations",import_annotation(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,export_annotation(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,convert_project_type(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+"Working w/ 
+Annotations",validate_annotations(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,aggregate_annotations_as_df(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
