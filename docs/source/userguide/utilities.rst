@@ -3,6 +3,14 @@ Utilities
 =========
 
 
+Compatibility with multimodal projects
+--------------------------------------
+
+.. csv-table:: Support for CSV, JSON, JSONL formats
+   :file: SDK_Functions_sheet.csv
+   :widths: 20, 2, 15, 10, 10, 10, 25
+   :header-rows: 1
+
 Converting annotation format
 ----------------------------
 
