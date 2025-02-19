@@ -6,8 +6,12 @@ import typing
 from typing import Callable
 
 import aiohttp
+from lib.core.exceptions import AppException
+from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.infrastructure.services.http_client import AIOHttpSession
+from lib.infrastructure.utils import annotation_is_valid
+from lib.infrastructure.utils import async_retry_on_generator
 
 _seconds = 2**10
 TIMEOUT = aiohttp.ClientTimeout(
@@ -42,6 +46,7 @@ class StreamedAnnotations:
             self._reporter.log_error(f"Invalud chunk: {str(e)}")
             return None
 
+    @async_retry_on_generator((BackendError,))
     async def fetch(
         self,
         method: str,
@@ -59,6 +64,7 @@ class StreamedAnnotations:
         buffer = ""
         line_groups = b""
         decoder = json.JSONDecoder()
+        data_received = False
         async for line in response.content.iter_any():
             line_groups += line
             try:
@@ -71,6 +77,19 @@ class StreamedAnnotations:
                     if buffer.startswith(self.DELIMITER):
                         buffer = buffer[self.DELIMITER_LEN :]
                     json_obj, index = decoder.raw_decode(buffer)
+                    if not annotation_is_valid(json_obj):
+                        logger.warning(
+                            f"Invalid JSON detected in small annotations stream process, json: {json_obj}."
+                        )
+                        if data_received:
+                            raise AppException(
+                                "Invalid JSON detected in small annotations stream process."
+                            )
+                        else:
+                            raise BackendError(
+                                "Invalid JSON detected at the start of the small annotations stream process."
+                            )
+                    data_received = True
                     yield json_obj
                     if len(buffer[index:]) >= self.DELIMITER_LEN:
                         buffer = buffer[index + self.DELIMITER_LEN :]
