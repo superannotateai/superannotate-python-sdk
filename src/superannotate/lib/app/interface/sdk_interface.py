@@ -501,7 +501,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         def retrieve_context(
-                component_data: List[dict], component_pk: str
+            component_data: List[dict], component_pk: str
         ) -> Tuple[bool, typing.Any]:
             try:
                 for component in component_data:
@@ -512,9 +512,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         if found:
                             return found, val
                     if (
-                            "id" in component and
-                            component["id"] == component_pk
-                            and component["type"] == "webComponent"
+                        "id" in component
+                        and component["id"] == component_pk
+                        and component["type"] == "webComponent"
                     ):
                         return True, json.loads(component.get("context"))
 
