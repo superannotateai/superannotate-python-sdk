@@ -593,6 +593,7 @@ class BaseIntegrationService(SuperannotateServiceProvider):
         folder: entities.FolderEntity,
         integration: entities.IntegrationEntity,
         folder_name: str = None,
+        options: Dict[str, str] = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 

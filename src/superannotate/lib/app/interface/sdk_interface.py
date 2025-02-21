@@ -2919,32 +2919,80 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: NotEmptyStr,
         integration: Union[NotEmptyStr, IntegrationEntity],
         folder_path: Optional[NotEmptyStr] = None,
+        *,
+        query: Optional[NotEmptyStr] = None,
+        item_name_column: Optional[NotEmptyStr] = None,
+        custom_item_name: Optional[NotEmptyStr] = None,
+        component_mapping: Optional[Dict[str, str]] = None,
     ):
-        """Link images from integrated external storage to SuperAnnotate.
+        """Link images from integrated external storage to SuperAnnotate from AWS, GCP, Azure, Databricks.
 
         :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
         :type project: str
 
-        :param integration:  existing integration name or metadata dict to pull items from.
-         Mandatory keys in integration metadata’s dict is “name”.
+        :param integration: The existing integration name or metadata dict to pull items from.
+            Mandatory keys in integration metadata’s dict is “name”.
         :type integration: str or dict
 
         :param folder_path: Points to an exact folder/directory within given storage.
-         If None, items     are fetched from the root directory.
+            If None, items     are fetched from the root directory.
         :type folder_path: str
+
+        :param query: (Only for Databricks). The SQL query to retrieve specific columns from Databricks.
+            If provided, the function will execute the query and use the results for mapping and uploading.
+        :type query: Optional[str]
+
+        :param item_name_column: (Only for Databricks). The column name from the SQL query whose values
+            will be used as item names. If this is provided, custom_item_name cannot be used.
+            The column must exist in the query result.
+        :type item_name_column: Optional[str]
+
+        :param custom_item_name: (Only for Databricks). A manually defined prefix for item names.
+            A random 10-character suffix will be appended to ensure uniqueness.
+            If this is provided, item_name_column cannot be used.
+        :type custom_item_name: Optional[str]
+
+        :param component_mapping: (Only for Databricks). A dictionary mapping Databricks
+            columns to SuperAnnotate component IDs.
+        :type component_mapping: Optional[dict]
+
+
+        Request Example:
+        ::
+
+            client.attach_items_from_integrated_storage(
+                project="project_name",
+                integration="databricks_integration",
+                query="SELECT * FROM integration_data LIMIT 10",
+                item_name_column="prompt",
+                component_mapping={
+                    "category": "_item_category",
+                    "prompt_id": "id",
+                    "prompt": "prompt"
+                }
+            )
+
         """
         project, folder = self.controller.get_project_folder_by_path(project)
         _integration = None
         if isinstance(integration, str):
             integration = IntegrationEntity(name=integration)
         for i in self.controller.integrations.list().data:
-            if integration.name == i.name:
+            if integration.name.lower() == i.name.lower():
                 _integration = i
                 break
         else:
             raise AppException("Integration not found.")
+
         response = self.controller.integrations.attach_items(
-            project, folder, _integration, folder_path
+            project=project,
+            folder=folder,
+            integration=_integration,
+            folder_path=folder_path,
+            query=query,
+            item_name_column=item_name_column,
+            custom_item_name=custom_item_name,
+            component_mapping=component_mapping,
         )
         if response.errors:
             raise AppException(response.errors)
