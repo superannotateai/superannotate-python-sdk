@@ -3641,7 +3641,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             "skip", "replace", "replace_annotations_only"
         ] = "skip",
     ):
-        """Copy images in bulk between folders in a project
+        """Copy items in bulk between folders in a project
 
         :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
         :type source: str
@@ -3705,7 +3705,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             "skip", "replace", "replace_annotations_only"
         ] = "skip",
     ):
-        """Move images in bulk between folders in a project
+        """Move items in bulk between folders in a project
 
         :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
         :type source: str
