@@ -48,7 +48,7 @@ Annotations,upload_annotations(),Yes,Yes,Yes,Yes,Not Relevant
 ,set_annotation_statuses(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,delete_annotations(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,upload_annotations_from_folder_to_project(),No,No,Yes,No,AWS
-"Annotation 
+"Annotation
 Classes",create_annotation_class(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,create_annotation_classes_from_classes_json(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,AWS
 ,search_annotation_classes(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
@@ -57,7 +57,7 @@ Classes",create_annotation_class(),Not Relevant,Not Relevant,Not Relevant,Not Re
 Exports,prepare_export(),Yes,Yes,Yes,No,Not Relevant
 ,download_export(),Yes,Yes,Yes,Yes,AWS
 ,get_exports(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
-"Custom 
+"Custom
 Metadata
 ",create_custom_fields(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_custom_fields(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
@@ -82,6 +82,6 @@ Team,get_team_metadata(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not
 Annotations",import_annotation(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,export_annotation(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,convert_project_type(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
-"Working w/ 
+"Working w/
 Annotations",validate_annotations(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,aggregate_annotations_as_df(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
