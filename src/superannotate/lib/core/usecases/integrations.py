@@ -115,7 +115,7 @@ class AttachIntegrations(BaseReportableUseCase):
                     "Item Category must be enabled for a project to use _item_category"
                 )
 
-            item_category_column = next(
+            self._item_category_column = next(
                 (
                     k
                     for k, v in self._component_mapping.items()
@@ -123,10 +123,8 @@ class AttachIntegrations(BaseReportableUseCase):
                 ),
                 None,
             )
-            if item_category_column:
-                self._item_category_column = self._component_mapping.pop(
-                    item_category_column
-                )
+            if self._item_category_column:
+                del self._component_mapping[self._item_category_column]
 
             sa_components = [
                 c.name.lower()
