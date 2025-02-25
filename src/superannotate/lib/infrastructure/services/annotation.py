@@ -18,6 +18,8 @@ from lib.core.service_types import UploadAnnotations
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.serviceproviders import BaseAnnotationService
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
+from lib.infrastructure.utils import annotation_is_valid
+from lib.infrastructure.utils import divide_to_chunks
 
 try:
     from pydantic.v1 import parse_obj_as
@@ -170,21 +172,29 @@ class AnnotationService(BaseAnnotationService):
         self,
         project: entities.ProjectEntity,
         item_ids: List[int],
+        chunk_size: int = 1000,
     ) -> Dict[str, List]:
-        response_data = {"small": [], "large": []}
-        response = self.client.request(
-            url=urljoin(self.get_assets_provider_url(), self.URL_CLASSIFY_ITEM_SIZE),
-            method="POST",
-            params={"limit": len(item_ids)},
-            data={"project_id": project.id, "item_ids": item_ids},
-        )
-        if not response.ok:
-            raise AppException(response.error)
-        response_data["small"] = [
-            i["data"] for i in response.data.get("small", {}).values()
-        ]
-        response_data["large"] = response.data.get("large", [])
-        return response_data
+        small = []
+        large = []
+
+        chunks = divide_to_chunks(item_ids, chunk_size)
+        for chunk in chunks:
+            response = self.client.request(
+                method="POST",
+                url=urljoin(
+                    self.get_assets_provider_url(), self.URL_CLASSIFY_ITEM_SIZE
+                ),
+                params={"limit": len(chunk)},
+                data={
+                    "project_id": project.id,
+                    "item_ids": chunk,
+                },
+            )
+            if not response.ok:
+                raise AppException(response.error)
+            small.extend([i["data"] for i in response.data.get("small", {}).values()])
+            large.extend(response.data.get("large", []))
+        return {"small": small, "large": large}
 
     async def download_big_annotation(
         self,
@@ -218,6 +228,14 @@ class AnnotationService(BaseAnnotationService):
         ) as session:
             start_response = await session.request("post", url, params=query_params)
             res = await start_response.json()
+            if start_response.status > 299 or not annotation_is_valid(res):
+                logger.debug(
+                    f"Failed to download large annotation; item_id [{item_id}];"
+                    f" response: {res}; http_status: {start_response.status}"
+                )
+                raise AppException(
+                    f"Failed to download large annotation, ID: {item_id}"
+                )
             Path(download_path).mkdir(exist_ok=True, parents=True)
 
             dest_path = Path(download_path) / (item_name + ".json")

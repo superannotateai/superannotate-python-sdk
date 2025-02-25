@@ -240,7 +240,7 @@ class MultiModalUploadAnnotations(BaseTestCase):
                 f"{self.PROJECT_NAME}", annotations=data, data_spec="multimodal"
             )
             assert len(res["failed"]) == 3
-            annotations = sa.get_annotations(
-                f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
-            )
-            assert len(annotations) == 0
+            with self.assertRaisesRegexp(AppException, "Folder not found."):
+                sa.get_annotations(
+                    f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
+                )

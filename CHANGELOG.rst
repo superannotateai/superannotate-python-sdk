@@ -6,8 +6,23 @@ History
 
 All release highlights of this project will be documented in this file.
 
+
+4.4.31 - Feb 27, 2025
+_____________________
+
+**Added**
+
+    - Guide for Converting CSV and JSONL Formats.
+    - New SDK Functionality Table.
+
+**Updated**
+
+    - ``SAClient.attach_items_from_integrated_storage`` now supports Databricks integration, enabling efficient
+        data fetching and mapping from Databricks into SuperAnnotate.
+
 4.4.30 - Feb 13, 2025
 _____________________
+
 **Added**
 
     - ``SAClient.list_users`` method lists contributors with optional custom field filtering.

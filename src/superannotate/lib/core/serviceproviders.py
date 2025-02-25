@@ -490,6 +490,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         item_ids: List[int],
+        chunk_size: int = 1000,
     ) -> Dict[str, List]:
         raise NotImplementedError
 
@@ -592,6 +593,7 @@ class BaseIntegrationService(SuperannotateServiceProvider):
         folder: entities.FolderEntity,
         integration: entities.IntegrationEntity,
         folder_name: str = None,
+        options: Dict[str, str] = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 

@@ -1,12 +1,17 @@
+import asyncio
+import logging
 import time
 from abc import ABC
 from abc import abstractmethod
+from functools import wraps
 from itertools import islice
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import Optional
 from typing import Tuple
+from typing import Type
 from typing import Union
 
 from lib.core.entities import ProjectEntity
@@ -14,6 +19,9 @@ from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
 from lib.core.exceptions import PathError
 from lib.infrastructure.services.work_management import WorkManagementService
+
+
+logger = logging.getLogger("sa")
 
 
 def divide_to_chunks(it, size):
@@ -42,6 +50,66 @@ def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[
             raise PathError("Invalid project path")
         return split_project_path(user_input["name"])
     raise PathError("Invalid project path")
+
+
+def async_retry_on_generator(
+    exceptions: Tuple[Type[Exception]],
+    retries: int = 3,
+    delay: float = 0.3,
+    backoff: float = 0.3,
+):
+    """
+    An async retry decorator that retries a function only on specific exceptions.
+
+    Parameters:
+        exceptions (tuple): Tuple of exception classes to retry on.
+        retries (int): Number of retry attempts.
+        delay (float): Initial delay between retries in seconds.
+        backoff (float): Factor to increase the delay after each failure.
+    """
+
+    def decorator(func: Callable):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            attempt = 0
+            current_delay = delay
+            raised_exception = None
+
+            while attempt < retries:
+                try:
+                    async for v in func(*args, **kwargs):
+                        yield v
+                    return
+                except exceptions as e:
+                    raised_exception = e
+                    logger.debug(
+                        f"Attempt {attempt + 1}/{retries} failed with error: {e}. "
+                        f"Retrying in {current_delay} seconds..."
+                    )
+                    await asyncio.sleep(current_delay)
+                    current_delay += backoff  # Exponential backoff
+                finally:
+                    attempt += 1
+            if raised_exception:
+                logger.error(
+                    f"All {retries} attempts failed due to {raised_exception}."
+                )
+                raise raised_exception
+
+        return wrapper
+
+    return decorator
+
+
+def annotation_is_valid(annotation: dict) -> bool:
+    annotation_keys = annotation.keys()
+    if (
+        "errors" in annotation_keys
+        or "error" in annotation_keys
+        or "metadata" not in annotation_keys
+    ):
+        return False
+    return True
 
 
 class BaseCachedWorkManagementRepository(ABC):
