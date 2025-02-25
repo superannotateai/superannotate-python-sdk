@@ -91,6 +91,7 @@ class StreamedAnnotations:
                                 "Invalid JSON detected in small annotations stream process."
                             )
                         else:
+                            self.rest_session()
                             raise BackendError(
                                 "Invalid JSON detected at the start of the small annotations stream process."
                             )
@@ -192,4 +193,4 @@ class StreamedAnnotations:
         return data
 
     def __del__(self):
-        self._get_session.cache_clear()
+        self.rest_session()
