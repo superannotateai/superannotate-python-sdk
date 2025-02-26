@@ -149,11 +149,11 @@ class RoleCache(BaseCachedWorkManagementRepository):
         self._K_V_map[project.id] = {
             "role_name_id_map": {
                 **{role["role"]["name"]: role["role_id"] for role in roles},
-                "ProjectAdmin": 3
+                "ProjectAdmin": 3,
             },
             "role_id_name_map": {
                 **{role["role_id"]: role["role"]["name"] for role in roles},
-                3: "ProjectAdmin"
+                3: "ProjectAdmin",
             },
         }
         self._update_cache_timestamp(project.id)
