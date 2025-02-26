@@ -10,3 +10,5 @@ Team
 .. automethod:: superannotate.SAClient.get_user_metadata
 .. automethod:: superannotate.SAClient.set_user_custom_field
 .. automethod:: superannotate.SAClient.list_users
+.. automethod:: superannotate.SAClient.pause_user_activity
+.. automethod:: superannotate.SAClient.resume_user_activity

@@ -461,6 +461,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def pause_user_activity(
         self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
     ):
+        """
+        Block the team contributor from requesting items from the projects.
+
+        :param pk: The email address or user ID of the team contributor.
+        :type pk: str or int
+
+        :param projects: A list of project names or IDs from which the user should be blocked.
+                        The special value "*" means block access to all projects
+        :type projects: Union[List[int], List[str], Literal["*"]]
+        """
         user = self.controller.work_management.get_user_metadata(pk=pk)
         if user.role is not WMUserTypeEnum.Contributor:
             raise AppException("User must have a contributor role to pause activity.")
@@ -474,6 +484,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def resume_user_activity(
         self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
     ):
+        """
+        Resume the team contributor from requesting items from the projects.
+
+        :param pk: The email address or user ID of the team contributor.
+        :type pk: str or int
+
+        :param projects: A list of project names or IDs from which the user should be resumed.
+                        The special value "*" means resume access to all projects
+        :type projects: Union[List[int], List[str], Literal["*"]]
+        """
         user = self.controller.work_management.get_user_metadata(pk=pk)
         if user.role is not WMUserTypeEnum.Contributor:
             raise AppException("User must have a contributor role to resume activity.")
