@@ -1,3 +1,5 @@
+from typing import Dict
+
 from lib.core import entities
 from lib.core.service_types import IntegrationListResponse
 from lib.core.serviceproviders import BaseIntegrationService
@@ -23,6 +25,7 @@ class IntegrationService(BaseIntegrationService):
         folder: entities.FolderEntity,
         integration: entities.IntegrationEntity,
         folder_name: str = None,
+        options: Dict[str, str] = None,
     ):
         data = {
             "team_id": project.team_id,
@@ -32,6 +35,8 @@ class IntegrationService(BaseIntegrationService):
         }
         if folder_name:
             data["customer_folder_name"] = folder_name
+        if options:
+            data["options"] = options
         return self.client.request(
             self.URL_ATTACH_INTEGRATIONS.format(project.team_id), "post", data=data
         )

@@ -2,12 +2,19 @@ import copy
 import json
 import logging
 import os
+import threading
+import time
 import typing
+from functools import lru_cache
 from typing import Callable
 
 import aiohttp
+from lib.core.exceptions import AppException
+from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.infrastructure.services.http_client import AIOHttpSession
+from lib.infrastructure.utils import annotation_is_valid
+from lib.infrastructure.utils import async_retry_on_generator
 
 _seconds = 2**10
 TIMEOUT = aiohttp.ClientTimeout(
@@ -20,6 +27,7 @@ logger = logging.getLogger("sa")
 class StreamedAnnotations:
     DELIMITER = "\\n;)\\n"
     DELIMITER_LEN = len(DELIMITER)
+    VERIFY_SSL = False
 
     def __init__(
         self,
@@ -42,10 +50,10 @@ class StreamedAnnotations:
             self._reporter.log_error(f"Invalud chunk: {str(e)}")
             return None
 
+    @async_retry_on_generator((BackendError,))
     async def fetch(
         self,
         method: str,
-        session: AIOHttpSession,
         url: str,
         data: dict = None,
         params: dict = None,
@@ -53,12 +61,15 @@ class StreamedAnnotations:
         kwargs = {"params": params, "json": data}
         if data:
             kwargs["json"].update(data)
-        response = await session.request(method, url, **kwargs, timeout=TIMEOUT)  # noqa
+        response = await self.get_session().request(
+            method, url, **kwargs, timeout=TIMEOUT
+        )  # noqa
         if not response.ok:
             logger.error(response.text)
         buffer = ""
         line_groups = b""
         decoder = json.JSONDecoder()
+        data_received = False
         async for line in response.content.iter_any():
             line_groups += line
             try:
@@ -71,6 +82,20 @@ class StreamedAnnotations:
                     if buffer.startswith(self.DELIMITER):
                         buffer = buffer[self.DELIMITER_LEN :]
                     json_obj, index = decoder.raw_decode(buffer)
+                    if not annotation_is_valid(json_obj):
+                        logger.warning(
+                            f"Invalid JSON detected in small annotations stream process, json: {json_obj}."
+                        )
+                        if data_received:
+                            raise AppException(
+                                "Invalid JSON detected in small annotations stream process."
+                            )
+                        else:
+                            self.rest_session()
+                            raise BackendError(
+                                "Invalid JSON detected at the start of the small annotations stream process."
+                            )
+                    data_received = True
                     yield json_obj
                     if len(buffer[index:]) >= self.DELIMITER_LEN:
                         buffer = buffer[index + self.DELIMITER_LEN :]
@@ -84,33 +109,47 @@ class StreamedAnnotations:
                     )
                     break
 
+    @lru_cache(maxsize=32)
+    def _get_session(self, thread_id, ttl=None):  # noqa
+        del ttl
+        del thread_id
+        return AIOHttpSession(
+            headers=self._headers,
+            timeout=TIMEOUT,
+            connector=aiohttp.TCPConnector(
+                ssl=self.VERIFY_SSL, keepalive_timeout=2**32
+            ),
+            raise_for_status=True,
+        )
+
+    def get_session(self):
+        return self._get_session(
+            thread_id=threading.get_ident(), ttl=round(time.time() / 360)
+        )
+
+    def rest_session(self):
+        self._get_session.cache_clear()
+
     async def list_annotations(
         self,
         method: str,
         url: str,
         data: typing.List[int] = None,
         params: dict = None,
-        verify_ssl=False,
     ):
         params = copy.copy(params)
         params["limit"] = len(data)
         annotations = []
-        async with AIOHttpSession(
-            headers=self._headers,
-            timeout=TIMEOUT,
-            connector=aiohttp.TCPConnector(ssl=verify_ssl, keepalive_timeout=2**32),
-            raise_for_status=True,
-        ) as session:
-            async for annotation in self.fetch(
-                method,
-                session,
-                url,
-                self._process_data(data),
-                params=copy.copy(params),
-            ):
-                annotations.append(
-                    self._callback(annotation) if self._callback else annotation
-                )
+
+        async for annotation in self.fetch(
+            method,
+            url,
+            self._process_data(data),
+            params=copy.copy(params),
+        ):
+            annotations.append(
+                self._callback(annotation) if self._callback else annotation
+            )
 
         return annotations
 
@@ -124,28 +163,22 @@ class StreamedAnnotations:
     ):
         params = copy.copy(params)
         params["limit"] = len(data)
-        async with AIOHttpSession(
-            headers=self._headers,
-            timeout=TIMEOUT,
-            connector=aiohttp.TCPConnector(ssl=False, keepalive_timeout=2**32),
-            raise_for_status=True,
-        ) as session:
-            async for annotation in self.fetch(
-                method,
-                session,
-                url,
-                self._process_data(data),
-                params=params,
-            ):
-                self._annotations.append(
-                    self._callback(annotation) if self._callback else annotation
-                )
-                self._store_annotation(
-                    download_path,
-                    annotation,
-                    self._callback,
-                )
-                self._items_downloaded += 1
+
+        async for annotation in self.fetch(
+            method,
+            url,
+            self._process_data(data),
+            params=params,
+        ):
+            self._annotations.append(
+                self._callback(annotation) if self._callback else annotation
+            )
+            self._store_annotation(
+                download_path,
+                annotation,
+                self._callback,
+            )
+            self._items_downloaded += 1
 
     @staticmethod
     def _store_annotation(path, annotation: dict, callback: Callable = None):
@@ -158,3 +191,6 @@ class StreamedAnnotations:
         if data and self._map_function:
             return self._map_function(data)
         return data
+
+    def __del__(self):
+        self.rest_session()

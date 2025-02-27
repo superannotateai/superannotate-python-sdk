@@ -1138,7 +1138,11 @@ class IntegrationManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         integration: IntegrationEntity,
-        folder_path: str,
+        folder_path: str = None,
+        query: Optional[str] = None,
+        item_name_column: Optional[str] = None,
+        custom_item_name: Optional[str] = None,
+        component_mapping: Optional[Dict[str, str]] = None,
     ):
         use_case = usecases.AttachIntegrations(
             reporter=Reporter(),
@@ -1147,6 +1151,10 @@ class IntegrationManager(BaseManager):
             folder=folder,
             integration=integration,
             folder_path=folder_path,
+            query=query,
+            item_name_column=item_name_column,
+            custom_item_name=custom_item_name,
+            component_mapping=component_mapping,
         )
         return use_case.execute()
 
