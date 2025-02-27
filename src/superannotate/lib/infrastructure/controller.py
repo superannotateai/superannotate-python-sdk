@@ -1678,3 +1678,17 @@ class Controller(BaseController):
         return ItemManager.process_response(
             self.service_provider, items, project, folder, map_fields=False
         )
+
+    def query_items_count(self, project_name: str, query: str = None) -> int:
+        project = self.get_project(project_name)
+
+        use_case = usecases.QueryEntitiesCountUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            query=query,
+            service_provider=self.service_provider,
+        )
+        response = use_case.execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data["count"]

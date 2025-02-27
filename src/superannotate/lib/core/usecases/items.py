@@ -163,6 +163,52 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
         return self._response
 
 
+class QueryEntitiesCountUseCase(BaseReportableUseCase):
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        service_provider: BaseServiceProvider,
+        query: str,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._service_provider = service_provider
+        self._query = query
+
+    def validate_arguments(self):
+        if self._query:
+            response = self._service_provider.explore.validate_saqul_query(
+                project=self._project, query=self._query
+            )
+
+            if not response.ok:
+                raise AppException(response.error)
+            if response.data["isValidQuery"]:
+                self._query = response.data["parsedQuery"]
+            else:
+                raise AppException("Incorrect query.")
+        else:
+            response = self._service_provider.explore.validate_saqul_query(
+                self._project, "-"
+            )
+            if not response.ok:
+                raise AppException(response.error)
+
+    def execute(self) -> Response:
+        if self.is_valid():
+            query_kwargs = {"query": self._query}
+            service_response = self._service_provider.explore.query_item_count(
+                self._project,
+                **query_kwargs,
+            )
+            if service_response.ok:
+                self._response.data = service_response.data
+            else:
+                self._response.errors = service_response.data
+        return self._response
+
+
 class AssignItemsUseCase(BaseUseCase):
     CHUNK_SIZE = 500
 

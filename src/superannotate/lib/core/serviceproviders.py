@@ -672,6 +672,14 @@ class BaseExploreService(SuperannotateServiceProvider):
     ) -> ServiceResponse:
         raise NotImplementedError
 
+    @abstractmethod
+    def query_item_count(
+        self,
+        project: entities.ProjectEntity,
+        query: str = None,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
 
 class BaseServiceProvider:
     projects: BaseProjectService
