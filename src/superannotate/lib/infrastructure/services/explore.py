@@ -10,6 +10,7 @@ from lib.core.service_types import ServiceResponse
 from lib.core.service_types import SubsetListResponse
 from lib.core.service_types import UploadCustomFieldValuesResponse
 from lib.core.serviceproviders import BaseExploreService
+from superannotate import AppException
 
 
 class ExploreService(BaseExploreService):
@@ -25,6 +26,7 @@ class ExploreService(BaseExploreService):
     URL_UPLOAD_CUSTOM_VALUE = "custom/metadata/item"
     URL_SAQUL_QUERY = "items/search"
     URL_VALIDATE_SAQUL_QUERY = "items/parse/query"
+    URL_QUERY_COUNT = "items/count"
 
     @property
     def explore_service_url(self):
@@ -200,4 +202,25 @@ class ExploreService(BaseExploreService):
                 response = ServiceResponse(status=response.status_code, res_data=items)
         else:
             response = ServiceResponse(status=200, res_data=[])
+        return response
+
+    def query_item_count(
+        self,
+        project: entities.ProjectEntity,
+        query: str = None,
+    ) -> ServiceResponse:
+
+        params = {
+            "project_id": project.id,
+            "includeFolderNames": True,
+        }
+        data = {"query": query}
+        response = self.client.request(
+            urljoin(self.explore_service_url, self.URL_QUERY_COUNT),
+            "post",
+            params=params,
+            data=data,
+        )
+        if not response.ok:
+            raise AppException(response.error)
         return response
