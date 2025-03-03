@@ -8,7 +8,7 @@ Projects,create_project,No,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,set_project_status,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_project_metadata,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,upload_images_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
-,attach_items_from_integrated_storage,Yes,Not Relevant,Not Relevant,Not Relevant,"AWS, GCP, Azure"
+,attach_items_from_integrated_storage,Yes,Not Relevant,Not Relevant,Not Relevant,"AWS, GCP, Azure, Databricks"
 ,upload_image_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,upload_images_from_folder_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,AWS
 ,upload_video_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
