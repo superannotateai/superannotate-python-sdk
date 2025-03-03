@@ -67,7 +67,9 @@ class AnnotationService(BaseAnnotationService):
             },
         )
 
-    async def _sync_large_annotation(self, team_id, project_id, item_id):
+    async def _sync_large_annotation(
+        self, team_id, project_id, item_id, transform_version: str = None
+    ):
         sync_params = {
             "team_id": team_id,
             "project_id": project_id,
@@ -77,6 +79,8 @@ class AnnotationService(BaseAnnotationService):
             "current_source": "main",
             "desired_source": "secondary",
         }
+        if transform_version:
+            sync_params["transform_version"] = transform_version
         sync_url = urljoin(
             self.get_assets_provider_url(),
             self.URL_START_FILE_SYNC.format(item_id=item_id),
@@ -120,11 +124,12 @@ class AnnotationService(BaseAnnotationService):
             "annotation_type": "MAIN",
             "version": "V1.00",
         }
-        if transform_version:
-            query_params["desired_transform_version"] = transform_version
 
         await self._sync_large_annotation(
-            team_id=project.team_id, project_id=project.id, item_id=item.id
+            team_id=project.team_id,
+            project_id=project.id,
+            item_id=item.id,
+            transform_version=transform_version,
         )
 
         async with AIOHttpSession(
@@ -202,6 +207,7 @@ class AnnotationService(BaseAnnotationService):
         download_path: str,
         item: entities.BaseItemEntity,
         callback: Callable = None,
+        transform_version: str = None,
     ):
         item_id = item.id
         item_name = item.name
@@ -218,7 +224,10 @@ class AnnotationService(BaseAnnotationService):
         )
 
         await self._sync_large_annotation(
-            team_id=project.team_id, project_id=project.id, item_id=item_id
+            team_id=project.team_id,
+            project_id=project.id,
+            item_id=item_id,
+            transform_version=transform_version,
         )
 
         async with AIOHttpSession(
@@ -252,12 +261,15 @@ class AnnotationService(BaseAnnotationService):
         download_path: str,
         item_ids: List[int],
         callback: Callable = None,
+        transform_version: str = None,
     ):
         query_params = {
             "team_id": project.team_id,
             "project_id": project.id,
             "folder_id": folder.id,
         }
+        if transform_version:
+            query_params["transform_version"] = transform_version
         handler = StreamedAnnotations(
             headers=self.client.default_headers,
             reporter=reporter,

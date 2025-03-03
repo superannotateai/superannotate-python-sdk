@@ -501,6 +501,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         download_path: str,
         item: entities.BaseItemEntity,
         callback: Callable = None,
+        transform_version: str = None,
     ):
         raise NotImplementedError
 
@@ -513,6 +514,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         download_path: str,
         item_ids: List[int],
         callback: Callable = None,
+        transform_version: str = None,
     ):
         raise NotImplementedError
 
