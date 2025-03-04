@@ -2046,7 +2046,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                 f"annotations to the project {self._project.name}."
             )
             if not self._root_folder.is_root:
-                if len(distributed_items) > 1 or None not in distributed_items:
+                if len(distributed_items) > 1 or "" not in distributed_items:
                     raise AppException(
                         "You can't include a folder when uploading from within a folder."
                     )

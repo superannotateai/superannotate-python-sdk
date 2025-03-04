@@ -59,7 +59,13 @@ class TestEntitiesSearchVector(BaseTestCase):
     def test_query_on_100(self):
         sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
         entities = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
-        print(len(entities))
+        assert len(entities) == 100
+        assert (
+            sa.controller.query_items_count(
+                self.PROJECT_NAME, "metadata(status = NotStarted)"
+            )
+            == 100
+        )
 
     def test_validate_saqul_query(self):
         try:

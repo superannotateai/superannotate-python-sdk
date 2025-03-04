@@ -116,14 +116,14 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 
 Converting CSV and JSONL Formats for Annotation Management in SuperAnnotate
 ---------------------------------------------------------------------------
-SuperAnnotate primarily uses the **JSONL format** for annotation import/export. However,
-many external tools use **CSV**, requiring users to convert between these formats for seamless data management.
+SuperAnnotate primarily uses the JSONL format for annotation import/export. However,
+many external tools use CSV, requiring users to convert between these formats for seamless data management.
 
 This guide provides:
 
-- CSV to JSONL conversion** for annotation uploads.
-- Fetching annotations from SuperAnnotate** and converting them into JSONL/CSV.
-- Correct metadata mappings** to ensure consistency in the annotation format.
+- CSV to JSONL conversion for annotation uploads.
+- Fetching annotations from SuperAnnotate and converting them into JSONL/CSV.
+- Correct metadata mappings to ensure consistency in the annotation format.
 
 
 SuperAnnotate JSONL Schema Overview
