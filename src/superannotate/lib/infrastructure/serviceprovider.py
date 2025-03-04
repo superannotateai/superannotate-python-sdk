@@ -79,6 +79,13 @@ class ServiceProvider(BaseServiceProvider):
             self.client.team_id, entity=entity
         )
 
+    def get_category_id(
+        self, project: entities.ProjectEntity, category_name: str
+    ) -> int:
+        return self._cached_work_management_repository.get_category_id(
+            project, category_name
+        )
+
     def get_custom_field_id(
         self, field_name: str, entity: CustomFieldEntityEnum
     ) -> int:

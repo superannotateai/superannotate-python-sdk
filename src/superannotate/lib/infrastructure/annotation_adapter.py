@@ -44,7 +44,9 @@ class BaseMultimodalAnnotationAdapter(ABC):
         return None
 
     def set_component_value(self, component_id: str, value: Any):
-        self.annotation.setdefault("data", {}).setdefault(component_id, {})["value"] = value
+        self.annotation.setdefault("data", {}).setdefault(component_id, {})[
+            "value"
+        ] = value
         return self
 
 

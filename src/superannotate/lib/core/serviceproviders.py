@@ -697,6 +697,12 @@ class BaseServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
+    def get_category_id(
+        self, project: entities.ProjectEntity, category_name: str
+    ) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
         raise NotImplementedError
 
