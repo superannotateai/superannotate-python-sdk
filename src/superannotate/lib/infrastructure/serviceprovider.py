@@ -69,35 +69,50 @@ class ServiceProvider(BaseServiceProvider):
             5, self.work_management
         )
 
-    def get_custom_fields_templates(self, entity: CustomFieldEntityEnum):
+    def get_custom_fields_templates(
+        self, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ):
         return self._cached_work_management_repository.list_templates(
-            self.client.team_id, entity=entity
+            self.client.team_id, entity=entity, parent=parent
         )
 
-    def list_custom_field_names(self, entity: CustomFieldEntityEnum) -> List[str]:
+    def list_custom_field_names(
+        self, pk, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ) -> List[str]:
         return self._cached_work_management_repository.list_custom_field_names(
-            self.client.team_id, entity=entity
+            pk,
+            entity=entity,
+            parent=parent,
         )
 
     def get_custom_field_id(
-        self, field_name: str, entity: CustomFieldEntityEnum
+        self,
+        field_name: str,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> int:
         return self._cached_work_management_repository.get_custom_field_id(
-            self.client.team_id, field_name, entity=entity
+            self.client.team_id, field_name, entity=entity, parent=parent
         )
 
     def get_custom_field_name(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
         return self._cached_work_management_repository.get_custom_field_name(
-            self.client.team_id, field_id, entity=entity
+            self.client.team_id, field_id, entity=entity, parent=parent
         )
 
     def get_custom_field_component_id(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
         return self._cached_work_management_repository.get_custom_field_component_id(
-            self.client.team_id, field_id, entity=entity
+            self.client.team_id, field_id, entity=entity, parent=parent
         )
 
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:

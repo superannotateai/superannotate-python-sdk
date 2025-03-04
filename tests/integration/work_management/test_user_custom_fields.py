@@ -5,7 +5,9 @@ from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 from src.superannotate.lib.core.enums import CustomFieldEntityEnum
+from tests.integration.base import BaseTestCase
 from tests.integration.work_management.data_set import CUSTOM_FIELD_PAYLOADS
+
 
 sa = SAClient()
 
@@ -231,3 +233,19 @@ class TestWorkManagement(TestCase):
             error_template_select.format(type="str", options="option1, option2"),
         ):
             sa.set_user_custom_field(scapegoat["email"], "SDK_test_single_select", 123)
+
+
+class TestUserProjectCustomFields(BaseTestCase):
+    PROJECT_NAME = "TestUserProjectCustomFields"
+    PROJECT_TYPE = "Multimodal"
+    PROJECT_DESCRIPTION = "Multimodal"
+
+    def test_project_custom_fields(self):
+        scapegoat = sa.list_users(role="contributor")[0]
+        sa.add_contributors_to_project(
+            self.PROJECT_NAME, [scapegoat["email"]], role="QA"
+        )
+        users = sa.list_users(project=self.PROJECT_NAME)
+        assert users[0]["role"] == "QA"
+        users = sa.list_users(project=self.PROJECT_NAME, include=["custom_fields"])
+        assert users[0]["role"] == "QA"

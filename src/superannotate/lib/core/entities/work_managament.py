@@ -119,3 +119,33 @@ class WMUserEntity(TimedBaseModel):
         if "exclude" not in kwargs:
             kwargs["exclude"] = {"custom_fields"}
         return super().json(**kwargs)
+
+
+class WMProjectUserEntity(TimedBaseModel):
+    id: Optional[int]
+    team_id: Optional[int]
+    role: int
+    email: Optional[str]
+    state: Optional[WMUserStateEnum]
+    custom_fields: Optional[dict] = Field(dict(), alias="customField")
+
+    class Config:
+        extra = Extra.ignore
+        use_enum_names = True
+
+        json_encoders = {
+            Enum: lambda v: v.value,
+            datetime.date: lambda v: v.isoformat(),
+            datetime.datetime: lambda v: v.isoformat(),
+        }
+
+    @validator("custom_fields")
+    def custom_fields_transformer(cls, v):
+        if v and "custom_field_values" in v:
+            return v.get("custom_field_values", {})
+        return {}
+
+    def json(self, **kwargs):
+        if "exclude" not in kwargs:
+            kwargs["exclude"] = {"custom_fields"}
+        return super().json(**kwargs)

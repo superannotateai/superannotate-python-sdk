@@ -152,23 +152,31 @@ class ItemFilterHandler(AbstractQueryHandler):
 
 class BaseCustomFieldHandler(AbstractQueryHandler):
     def __init__(
-        self, service_provider: BaseServiceProvider, entity: CustomFieldEntityEnum
+        self,
+        team_id: int,
+        project_id: Optional[int],
+        service_provider: BaseServiceProvider,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ):
         self._service_provider = service_provider
         self._entity = entity
+        self._parent = parent
 
     def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
         for custom_field in sorted(
-            self._service_provider.list_custom_field_names(entity=self._entity),
+            self._service_provider.list_custom_field_names(
+                entity=self._entity, parent=self._parent
+            ),
             key=len,
             reverse=True,
         ):
             if custom_field in key:
                 custom_field_id = self._service_provider.get_custom_field_id(
-                    custom_field, entity=self._entity
+                    custom_field, entity=self._entity, parent=self._parent
                 )
                 component_id = self._service_provider.get_custom_field_component_id(
-                    custom_field_id, entity=self._entity
+                    custom_field_id, entity=self._entity, parent=self._parent
                 )
                 key = key.replace(
                     custom_field,
@@ -209,7 +217,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
     def _handle_special_fields(self, keys: List[str], val):
         if keys[0] == "custom_field":
             component_id = self._service_provider.get_custom_field_component_id(
-                field_id=int(keys[1]), entity=self._entity
+                field_id=int(keys[1]), entity=self._entity, parent=self._parent
             )
             if component_id == CustomFieldType.DATE_PICKER.value and val is not None:
                 try:

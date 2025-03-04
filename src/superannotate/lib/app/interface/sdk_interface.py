@@ -372,9 +372,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             parent_entity=CustomFieldEntityEnum.TEAM,
         )
 
-    def list_users(self, *, include: List[Literal["custom_fields"]] = None, **filters):
+    def list_users(
+        self,
+        *,
+        project: Union[int, str] = None,
+        include: List[Literal["custom_fields"]] = None,
+        **filters,
+    ):
         """
         Search users by filtering criteria
+        :param project:  Project name or ID, if provided, results will be for project-level,
+         otherwise results will be for team level.
+        :type project: str or int
 
         :param include: Specifies additional fields to be included in the response.
 
@@ -454,9 +463,22 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
         """
-        return BaseSerializer.serialize_iterable(
-            self.controller.work_management.list_users(include=include, **filters)
+        if project is not None:
+            if isinstance(project, int):
+                project = self.controller.get_project_by_id(project)
+            else:
+                project = self.controller.get_project(project)
+        response = BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_users(
+                project=project, include=include, **filters
+            )
         )
+        if project:
+            for user in response:
+                user["role"] = self.controller.service_provider.get_role_name(
+                    project, user["role"]
+                )
+        return response
 
     def pause_user_activity(
         self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
