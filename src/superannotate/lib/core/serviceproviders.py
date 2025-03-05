@@ -147,7 +147,12 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def list_users(
-        self, body_query: Query, chunk_size=100, include_custom_fields=False
+        self,
+        body_query: Query,
+        parent_entity: str = "Team",
+        chunk_size=100,
+        project_id: int = None,
+        include_custom_fields=False,
     ) -> WMUserListResponse:
         raise NotImplementedError
 
@@ -812,23 +817,40 @@ class BaseServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
-    def list_custom_field_names(self, entity: CustomFieldEntityEnum) -> List[str]:
+    def list_custom_field_names(
+        self, pk, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ) -> List[str]:
         raise NotImplementedError
 
     @abstractmethod
     def get_custom_field_id(
-        self, field_name: str, entity: CustomFieldEntityEnum
+        self,
+        field_name: str,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> int:
         raise NotImplementedError
 
     @abstractmethod
     def get_custom_field_name(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
         raise NotImplementedError
 
     @abstractmethod
     def get_custom_field_component_id(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_custom_fields_templates(
+        self, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ):
         raise NotImplementedError

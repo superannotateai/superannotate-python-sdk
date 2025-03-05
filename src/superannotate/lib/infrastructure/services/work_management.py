@@ -6,6 +6,7 @@ from typing import Optional
 from lib.core.entities import CategoryEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.work_managament import WMProjectEntity
+from lib.core.entities.work_managament import WMProjectUserEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
@@ -60,6 +61,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SET_CUSTOM_ENTITIES = "customentities/{pk}"
     URL_SEARCH_CUSTOM_ENTITIES = "customentities/search"
     URL_SEARCH_TEAM_USERS = "teamusers/search"
+    URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
 
@@ -259,27 +261,42 @@ class WorkManagementService(BaseWorkManagementService):
         )
 
     def list_users(
-        self, body_query: Query, chunk_size=100, include_custom_fields=False
+        self,
+        body_query: Query,
+        chunk_size=100,
+        parent_entity: str = "Team",
+        project_id: int = None,
+        include_custom_fields=False,
     ) -> WMUserListResponse:
         if include_custom_fields:
             url = self.URL_SEARCH_CUSTOM_ENTITIES
         else:
-            url = self.URL_SEARCH_TEAM_USERS
+            if parent_entity == "Team":
+                url = self.URL_SEARCH_TEAM_USERS
+            else:
+                url = self.URL_SEARCH_PROJECT_USERS
+        if project_id is None:
+            user_entity = WMUserEntity
+            entity_context = self._generate_context(team_id=self.client.team_id)
+        else:
+            user_entity = WMProjectUserEntity
+            entity_context = self._generate_context(
+                team_id=self.client.team_id,
+                project_id=project_id,
+            )
         return self.client.jsx_paginate(
             url=url,
             method="post",
             body_query=body_query,
             query_params={
                 "entity": "Contributor",
-                "parentEntity": "Team",
+                "parentEntity": parent_entity,
             },
             headers={
-                "x-sa-entity-context": self._generate_context(
-                    team_id=self.client.team_id
-                ),
+                "x-sa-entity-context": entity_context,
             },
             chunk_size=chunk_size,
-            item_type=WMUserEntity,
+            item_type=user_entity,
         )
 
     def create_custom_field_template(
