@@ -4440,8 +4440,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: ItemContext
 
         .. seealso::
-            For more details, see :class:`ItemContext`.
-
+            For more details, see :class:`ItemContext` nested class.
 
         **Examples:**
 
