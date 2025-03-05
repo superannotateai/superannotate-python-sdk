@@ -19,7 +19,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
     )
     CLASSES_TEMPLATE_PATH = os.path.join(
         Path(__file__).parent.parent.parent,
-        "data_set/editor_templates/from1_classes.json",
+        "data_set/editor_templates/form1_classes.json",
     )
 
     def setUp(self, *args, **kwargs):

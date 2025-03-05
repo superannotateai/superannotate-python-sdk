@@ -1699,7 +1699,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
              - integration_name: The name of the integration within the platform that is being used.
              - format: The format in which the data will be exported in multimodal projects.
-               It can be either CSV or JSON. If None, the data will be exported in the default JSON format.
+               The data can be exported in CSV, JSON, or JSONL format. If None, the data will be exported
+               in the default JSON format.
         :return: metadata object of the prepared export
         :rtype: dict
 
@@ -1737,6 +1738,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             export_type = export_type.lower()
             if export_type == "csv":
                 _export_type = 3
+            elif export_type == "jsonl":
+                _export_type = 4
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,
@@ -3440,7 +3443,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         exclude = {"meta", "annotator_email", "qa_email"}
         if not include_custom_metadata:
             exclude.add("custom_metadata")
-        return BaseSerializer.serialize_iterable(res, exclude=exclude)
+        return BaseSerializer.serialize_iterable(res, exclude=exclude, by_alias=False)
 
     def list_projects(
         self,
@@ -3828,6 +3831,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         items: Optional[List[NotEmptyStr]] = None,
         recursive: bool = False,
         callback: Callable = None,
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Downloads annotation JSON files of the selected items to the local directory.
 
@@ -3853,6 +3857,31 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
          The function receives each annotation as an argument and the returned value will be applied to the download.
         :type callback: callable
 
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
+
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and multimodal-specific data representation.
+
+        :type data_spec: str, optional
+
+        Example Usage of Multimodal Projects::
+
+            from superannotate import SAClient
+
+
+            sa = SAClient()
+
+            # Call the get_annotations function
+            response = sa.download_annotations(
+                project="project1/folder1",
+                path="path/to/download",
+                items=["item_1", "item_2"],
+                data_spec='multimodal'
+            )
+
+
         :return: local path of the downloaded annotations folder.
         :rtype: str
         """
@@ -3865,6 +3894,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             recursive=recursive,
             item_names=items,
             callback=callback,
+            transform_version="llmJsonV2" if data_spec == "multimodal" else None,
         )
         if response.errors:
             raise AppException(response.errors)

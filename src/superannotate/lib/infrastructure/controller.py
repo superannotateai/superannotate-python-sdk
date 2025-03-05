@@ -972,6 +972,7 @@ class AnnotationManager(BaseManager):
         recursive: bool,
         item_names: Optional[List[str]],
         callback: Optional[Callable],
+        transform_version: str,
     ):
         use_case = usecases.DownloadAnnotations(
             config=self._config,
@@ -983,6 +984,7 @@ class AnnotationManager(BaseManager):
             item_names=item_names,
             service_provider=self.service_provider,
             callback=callback,
+            transform_version=transform_version,
         )
         return use_case.execute()
 

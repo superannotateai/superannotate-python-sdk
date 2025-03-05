@@ -1,10 +1,13 @@
+import json
 import os
 import random
 import string
+import time
 from pathlib import Path
 
 from src.superannotate import AppException
 from src.superannotate import SAClient
+from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -61,3 +64,61 @@ class TestListItems(BaseTestCase):
         sa.attach_items(self.PROJECT_NAME, items_for_attache)
         items = sa.list_items(self.PROJECT_NAME, name__in=item_names)
         assert len(items) == 125
+
+
+class TestListItemsMultimodal(BaseTestCase):
+    PROJECT_NAME = "TestListItemsMultimodal"
+    PROJECT_DESCRIPTION = "TestSearchItems"
+    PROJECT_TYPE = "Multimodal"
+    TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    CATEGORIES = ["c_1", "c_2", "c_3"]
+    ANNOTATIONS = [
+        {"metadata": {"name": "item_1", "item_category": {"value": "c1"}}, "data": {}},
+        {"metadata": {"name": "item_2", "item_category": {"value": "c2"}}, "data": {}},
+        {"metadata": {"name": "item_3", "item_category": {"value": "c3"}}, "data": {}},
+    ]
+    CLASSES_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/from1_classes.json"
+    EDITOR_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/form1.json"
+
+    def setUp(self, *args, **kwargs):
+        self.tearDown()
+        self._project = sa.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            "Multimodal",
+            settings=[
+                {"attribute": "CategorizeItems", "value": 1},
+                {"attribute": "TemplateState", "value": 1},
+            ],
+        )
+        project = sa.controller.get_project(self.PROJECT_NAME)
+        time.sleep(10)
+        with open(self.EDITOR_TEMPLATE_PATH) as f:
+            res = sa.controller.service_provider.projects.attach_editor_template(
+                sa.controller.team, project, template=json.load(f)
+            )
+            assert res.ok
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.CLASSES_TEMPLATE_PATH
+        )
+
+    def test_list_category_filter(self):
+        sa.upload_annotations(
+            self.PROJECT_NAME, self.ANNOTATIONS, data_spec="multimodal"
+        )
+        items = sa.list_items(
+            self.PROJECT_NAME,
+            include=["categories"],
+            categories__value__in=["c1", "c2"],
+        )
+        assert [i["categories"][0]["value"] for i in items] == ["c1", "c2"]
+        assert (
+            len(
+                sa.list_items(
+                    self.PROJECT_NAME,
+                    include=["categories"],
+                    categories__value__in=["c3"],
+                )
+            )
+            == 1
+        )

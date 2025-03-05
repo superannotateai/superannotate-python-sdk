@@ -113,6 +113,8 @@ class ItemFilterHandler(AbstractQueryHandler):
         for key, val in filters.items():
             _keys = key.split("__")
             val = self._handle_special_fields(_keys, val)
+            if _keys[0] == "categories" and _keys[1] == "value":
+                _keys[1] = "category_id"
             condition, _key = determine_condition_and_key(_keys)
             query &= Filter(_key, val, condition)
         return super().handle(filters, query)
@@ -147,6 +149,14 @@ class ItemFilterHandler(AbstractQueryHandler):
                 ]
             else:
                 val = self._service_provider.get_role_id(self._project, val)
+        elif keys[0] == "categories" and keys[1] == "value":
+            if isinstance(val, list):
+                val = [
+                    self._service_provider.get_category_id(self._project, i)
+                    for i in val
+                ]
+            else:
+                val = self._service_provider.get_category_id(self._project, val)
         return val
 
 

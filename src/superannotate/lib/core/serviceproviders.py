@@ -506,6 +506,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         download_path: str,
         item: entities.BaseItemEntity,
         callback: Callable = None,
+        transform_version: str = None,
     ):
         raise NotImplementedError
 
@@ -518,6 +519,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         download_path: str,
         item_ids: List[int],
         callback: Callable = None,
+        transform_version: str = None,
     ):
         raise NotImplementedError
 
@@ -699,6 +701,12 @@ class BaseServiceProvider:
 
     @abstractmethod
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_category_id(
+        self, project: entities.ProjectEntity, category_name: str
+    ) -> int:
         raise NotImplementedError
 
     @abstractmethod

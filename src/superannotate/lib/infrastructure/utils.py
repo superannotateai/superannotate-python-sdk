@@ -138,6 +138,23 @@ class BaseCachedWorkManagementRepository(ABC):
         return self._K_V_map[key]
 
 
+class CategoryCache(BaseCachedWorkManagementRepository):
+    def sync(self, project: ProjectEntity):
+        response = self.work_management.list_project_categories(project.id)
+        if not response.ok:
+            raise AppException(response.error)
+        categories = response.data
+        self._K_V_map[project.id] = {
+            "category_name_id_map": {
+                category.value: category.id for category in categories
+            },
+            "category_id_name_map": {
+                category.id: category.value for category in categories
+            },
+        }
+        self._update_cache_timestamp(project.id)
+
+
 class RoleCache(BaseCachedWorkManagementRepository):
     def sync(self, project: ProjectEntity):
         response = self.work_management.list_workflow_roles(
@@ -253,6 +270,7 @@ class ProjectUserCustomFieldCache(CustomFieldCache):
 
 class CachedWorkManagementRepository:
     def __init__(self, ttl_seconds: int, work_management):
+        self._category_cache = CategoryCache(ttl_seconds, work_management)
         self._role_cache = RoleCache(ttl_seconds, work_management)
         self._status_cache = StatusCache(ttl_seconds, work_management)
         self._project_custom_field_cache = CustomFieldCache(
@@ -273,6 +291,12 @@ class CachedWorkManagementRepository:
             CustomFieldEntityEnum.CONTRIBUTOR,
             CustomFieldEntityEnum.PROJECT,
         )
+
+    def get_category_id(self, project, category_name: str) -> int:
+        data = self._category_cache.get(project.id, project=project)
+        if category_name in data["category_name_id_map"]:
+            return data["category_name_id_map"][category_name]
+        raise AppException("Invalid category provided.")
 
     def get_role_id(self, project, role_name: str) -> int:
         role_data = self._role_cache.get(project.id, project=project)

@@ -29,6 +29,8 @@ class ItemFilters(BaseFilters):
     assignments__user_role__in: Optional[List[str]]
     assignments__user_role__ne: Optional[str]
     assignments__user_role__notin: Optional[List[str]]
+    categories__value: Optional[str]
+    categories__value__in: Optional[List[str]]
 
 
 class ProjectFilters(BaseFilters):
