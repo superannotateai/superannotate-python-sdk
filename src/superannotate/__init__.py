@@ -3,7 +3,8 @@ import os
 import sys
 
 
-__version__ = "4.4.32"
+__version__ = "4.4.32dev3"
+
 
 os.environ.update({"sa_version": __version__})
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])

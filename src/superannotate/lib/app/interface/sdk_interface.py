@@ -1677,7 +1677,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
              - integration_name: The name of the integration within the platform that is being used.
              - format: The format in which the data will be exported in multimodal projects.
-               It can be either CSV or JSON. If None, the data will be exported in the default JSON format.
+               The data can be exported in CSV, JSON, or JSONL format. If None, the data will be exported
+               in the default JSON format.
         :return: metadata object of the prepared export
         :rtype: dict
 
@@ -1715,6 +1716,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             export_type = export_type.lower()
             if export_type == "csv":
                 _export_type = 3
+            elif export_type == "jsonl":
+                _export_type = 4
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,
