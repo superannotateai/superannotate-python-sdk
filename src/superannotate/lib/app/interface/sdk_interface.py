@@ -3421,7 +3421,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         exclude = {"meta", "annotator_email", "qa_email"}
         if not include_custom_metadata:
             exclude.add("custom_metadata")
-        return BaseSerializer.serialize_iterable(res, exclude=exclude)
+        return BaseSerializer.serialize_iterable(res, exclude=exclude, by_alias=False)
 
     def list_projects(
         self,
