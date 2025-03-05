@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 import time
 from pathlib import Path
 
@@ -133,23 +134,19 @@ class TestAnnotationUploadVector(BaseTestCase):
         ) == 5
 
 
-class MultiModalUploadAnnotations(BaseTestCase):
+class MultiModalUploadDownloadAnnotations(BaseTestCase):
     PROJECT_NAME = "TestMultimodalUploadAnnotations"
     PROJECT_TYPE = "Multimodal"
     PROJECT_DESCRIPTION = "DESCRIPTION"
-    EDITOR_TEMPLATE_PATH = os.path.join(
-        Path(__file__).parent.parent.parent, "data_set/editor_templates/form1.json"
+    BASE_PATH = Path(__file__).parent.parent.parent
+    DATA_SET_PATH = BASE_PATH / "data_set"
+
+    EDITOR_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/form1.json"
+    JSONL_ANNOTATIONS_PATH = DATA_SET_PATH / "multimodal/annotations/jsonl/form1.jsonl"
+    JSONL_ANNOTATIONS_WITH_CATEGORIES_PATH = (
+        DATA_SET_PATH / "multimodal/annotations/jsonl/form1_with_categories.jsonl"
     )
-    JSONL_ANNOTATIONS_PATH = os.path.join(
-        DATA_SET_PATH, "multimodal/annotations/jsonl/form1.jsonl"
-    )
-    JSONL_ANNOTATIONS_WITH_CATEGORIES_PATH = os.path.join(
-        DATA_SET_PATH, "multimodal/annotations/jsonl/form1_with_categories.jsonl"
-    )
-    CLASSES_TEMPLATE_PATH = os.path.join(
-        Path(__file__).parent.parent.parent,
-        "data_set/editor_templates/from1_classes.json",
-    )
+    CLASSES_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates" / "form1_classes.json"
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -244,3 +241,32 @@ class MultiModalUploadAnnotations(BaseTestCase):
                 sa.get_annotations(
                     f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
                 )
+
+    def test_download_annotations(self):
+        with open(self.JSONL_ANNOTATIONS_PATH) as f:
+            data = [json.loads(line) for line in f]
+            sa.upload_annotations(
+                self.PROJECT_NAME, annotations=data, data_spec="multimodal"
+            )
+
+        annotations = sa.get_annotations(
+            f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sa.download_annotations(
+                f"{self.PROJECT_NAME}/test_folder", path=tmpdir, data_spec="multimodal"
+            )
+            downloaded_files = list(Path(f"{tmpdir}/test_folder").glob("*.json"))
+            assert len(downloaded_files) > 0, "No annotations were downloaded"
+            downloaded_data = []
+            for file_path in downloaded_files:
+                with open(file_path) as f:
+                    downloaded_data.append(json.load(f))
+
+            assert len(downloaded_data) == len(
+                annotations
+            ), "Mismatch in annotation count"
+            assert (
+                downloaded_data == annotations
+            ), "Downloaded annotations do not match uploaded annotations"

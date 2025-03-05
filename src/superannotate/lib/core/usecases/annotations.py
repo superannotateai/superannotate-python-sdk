@@ -1634,6 +1634,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         item_names: List[str],
         service_provider: BaseServiceProvider,
         callback: Callable = None,
+        transform_version=None,
     ):
         super().__init__(reporter)
         self._config = config
@@ -1645,6 +1646,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         self._service_provider = service_provider
         self._callback = callback
         self._big_file_queue = None
+        self._transform_version = transform_version
 
     def validate_items(self):
         if self._item_names:
@@ -1724,6 +1726,7 @@ class DownloadAnnotations(BaseReportableUseCase):
             reporter=self.reporter,
             download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
             callback=self._callback,
+            transform_version=self._transform_version,
         )
 
     async def run_workers(
