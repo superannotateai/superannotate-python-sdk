@@ -172,11 +172,21 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
         self._service_provider = service_provider
         self._entity = entity
         self._parent = parent
+        self._team_id = team_id
+        self._project_id = project_id
+
+    @property
+    def pk(self):
+        if self._entity == CustomFieldEntityEnum.PROJECT:
+            return self._project_id
+        if self._parent == CustomFieldEntityEnum.TEAM:
+            return self._team_id
+        return self._project_id
 
     def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
         for custom_field in sorted(
             self._service_provider.list_custom_field_names(
-                entity=self._entity, parent=self._parent
+                self.pk, self._entity, parent=self._parent
             ),
             key=len,
             reverse=True,
