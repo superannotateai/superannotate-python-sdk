@@ -6,6 +6,12 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.32 - March 4, 2025
+_____________________
+
+**Fixed**
+
+    - ``SAClient.item_context`` Fixed an issue where setting a component value would overwrite existing comments and other associated data. 
 
 4.4.31 - Feb 27, 2025
 _____________________

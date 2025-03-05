@@ -114,9 +114,170 @@ You can find more information annotation format conversion :ref:`here <ref_conve
     )
 
 
+Converting CSV and JSONL Formats for Annotation Management in SuperAnnotate
+---------------------------------------------------------------------------
+SuperAnnotate primarily uses the JSONL format for annotation import/export. However,
+many external tools use CSV, requiring users to convert between these formats for seamless data management.
+
+This guide provides:
+
+- CSV to JSONL conversion for annotation uploads.
+- Fetching annotations from SuperAnnotate and converting them into JSONL/CSV.
+- Correct metadata mappings to ensure consistency in the annotation format.
+
+
+SuperAnnotate JSONL Schema Overview
+===================================
+Before diving into conversions, here's a breakdown of SuperAnnotate's JSONL schema:
+
+.. code-block:: json
+
+    {
+      "metadata": {
+        "name": "sample_image.jpg",
+        "item_category": { "value": "category1" },
+        "folder_name": "dataset_folder"
+      },
+      "data": {
+        "attribute1": { "value": "label1" },
+        "attribute2": { "value": "label2" }
+      }
+    }
+
+Key Fields:
+    - **metadata.name** → The item's name (e.g., image file name).
+    - **metadata.item_category** → Optional category assigned to the item.
+    - **metadata.folder_name** → The dataset folder name (previously `_folder` in CSV).
+    - **data** → Stores key-value pairs for attributes.
+
+
+Converting CSV to JSONL and Uploading Annotations
+=================================================
+
+Steps to Convert CSV to JSONL
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Read the **CSV file** and extract annotation fields.
+2. Map metadata (`_item_name`, `_item_category`, `_folder`) to **SuperAnnotate's JSONL format**.
+3. Convert remaining fields into JSONL **data attributes**.
+4. Upload the JSONL file to **SuperAnnotate using SAClient**.
+
+Example Python Script:
+
+.. code-block:: python
+
+    import csv
+    import json
+    from pathlib import Path
+    from superannotate import SAClient
+
+    def csv_to_jsonl(csv_path, jsonl_path):
+        """Convert CSV annotations to JSONL format with correct mappings."""
+        with open(csv_path, newline='', encoding='utf-8') as csv_file, open(jsonl_path, 'w', encoding='utf-8') as jsonl_file:
+            reader = csv.DictReader(csv_file)
+
+            for row in reader:
+                jsonl_entry = {
+                    "metadata": {
+                        "name": row["_item_name"],
+                        "item_category": {"value": row["_item_category"]},
+                        "folder_name": row["_folder"]
+                    },
+                    "data": {}
+                }
+
+                for key, value in row.items():
+                    if key not in ["_item_name", "_item_category", "_folder"]:
+                        jsonl_entry["data"][key] = {"value": json.loads(value)}
+
+                json.dump(jsonl_entry, jsonl_file)
+                jsonl_file.write('\n')
+
+    # Convert CSV to JSONL
+    csv_to_jsonl("annotations.csv", "annotations.jsonl")
+
+    # Upload to SuperAnnotate
+    sa = SAClient()
+    annotations = [json.loads(line) for line in Path("annotations.jsonl").open("r", encoding="utf-8")]
+
+    response = sa.upload_annotations(
+        project="project1/folder1",
+        annotations=annotations,
+        keep_status=True,
+        data_spec="multimodal"
+    )
+
+
+Fetching Annotations and Converting to JSONL/CSV
+================================================
+
+Steps to Retrieve and Convert Annotations:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Fetch **annotations from SuperAnnotate** using `sa.get_annotations()`.
+2. Convert the **annotation list into JSONL format**.
+3. Convert the **JSONL data into CSV** for external use.
+
+Python Script to Convert Annotations to JSONL:
+
+.. code-block:: python
+
+    def convert_annotations_to_jsonl(annotations, jsonl_path):
+        """Convert SuperAnnotate annotations list to JSONL format."""
+        with open(jsonl_path, 'w', encoding='utf-8') as jsonl_file:
+            for annotation in annotations:
+                json.dump(annotation, jsonl_file)
+                jsonl_file.write('\n')
+
+    # Fetch annotations from SuperAnnotate
+    sa = SAClient()
+    annotations = sa.get_annotations("project", data_spec="multimodal")
+
+    # Convert to JSONL
+    convert_annotations_to_jsonl(annotations, "fetched_annotations.jsonl")
+
+Python Script to Convert JSONL to CSV:
+
+.. code-block:: python
+
+    def convert_jsonl_to_csv(jsonl_path, csv_path):
+        """Convert JSONL file to CSV format with correct mappings."""
+        with open(jsonl_path, 'r', encoding='utf-8') as jsonl_file, open(csv_path, 'w', newline='', encoding='utf-8') as csv_file:
+            data = [json.loads(line) for line in jsonl_file]
+
+            if not data:
+                return
+
+            # Extract field names from the first entry
+            fieldnames = ["_item_name", "_item_category", "_folder"] + list(data[0]["data"].keys())
+
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for entry in data:
+                row = {
+                    "_item_name": entry["metadata"]["name"],
+                    "_item_category": entry["metadata"].get("item_category", {}).get("value"),
+                    "_folder": entry["metadata"].get("folder_name", None)
+                }
+
+                for key in entry["data"]:
+                    value = entry["data"][key]
+                    row[key] = value["value"] if isinstance(value, dict) else value
+
+                writer.writerow(row)
+
+    # Convert JSONL to CSV
+    convert_jsonl_to_csv("fetched_annotations.jsonl", "converted_annotations.csv")
+
+Conclusion
+==========
+This guide provides a **seamless way to convert** annotations between CSV and JSONL formats while maintaining
+compatibility with **SuperAnnotate's platform**.
+By following these steps, users can efficiently **import, export, and manage annotation data** in their projects.
+
 pandas DataFrame out of project annotations and annotation instance filtering
 -----------------------------------------------------------------------------
-
 
 To create a `pandas DataFrame <https://pandas.pydata.org/>`_ from project
 SuperAnnotate format annotations:
