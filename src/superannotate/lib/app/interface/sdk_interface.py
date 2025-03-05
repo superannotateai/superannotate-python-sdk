@@ -118,6 +118,20 @@ class Attachment(TypedDict, total=False):
 
 
 class ItemContext:
+    """
+    A context manager for handling annotations and metadata of an item.
+
+    The ItemContext class provides methods to retrieve and manage metadata and component
+    values for items in the specified context. Below are the descriptions and usage examples for each method.
+
+    Example:
+    ::
+
+        with sa_client.item_context("project_name/folder_name", "item_name") as context:
+            metadata = context.get_metadata()
+            print(metadata)
+    """
+
     def __init__(
         self,
         controller: Controller,
@@ -171,9 +185,26 @@ class ItemContext:
         return self.annotation_adapter.annotation
 
     def __enter__(self):
+        """
+        Enters the context manager.
+
+        Returns:
+        ItemContext: The instance itself.
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Exits the context manager, saving changes if no exception occurred.
+
+        Args:
+            exc_type (Optional[Type[BaseException]]): Exception type if raised.
+            exc_val (Optional[BaseException]): Exception instance if raised.
+            exc_tb (Optional[TracebackType]): Traceback if an exception occurred.
+
+        Returns:
+            bool: True if no exception occurred, False otherwise.
+        """
         if exc_type:
             return False
 
@@ -188,12 +219,62 @@ class ItemContext:
         self._annotation_adapter.save()
 
     def get_metadata(self):
+        """
+        Retrieves the metadata associated with the current item context.
+
+        :return: A dictionary containing metadata for the current item.
+        :rtype: dict
+
+        Request Example:
+        ::
+
+            with client.item_context(("project_name", "folder_name"), 12345) as context:
+                metadata = context.get_metadata()
+                print(metadata)
+        """
         return self.annotation["metadata"]
 
     def get_component_value(self, component_id: str):
+        """
+        Retrieves the value of a specific component within the item context.
+
+        :param component_id: The name of the component whose value is to be retrieved.
+        :type component_id: str
+
+        :return: The value of the specified component.
+        :rtype: Any
+
+        Request Example:
+        ::
+
+            with client.item_context((101, 202), "item_name") as context: # (101, 202) project and folder IDs
+                value = context.get_component_value("component_id")
+                print(value)
+        """
         return self.annotation_adapter.get_component_value(component_id)
 
     def set_component_value(self, component_id: str, value: Any):
+        """
+        Updates the value of a specific component within the item context.
+
+        :param component_id: The component identifier.
+        :type component_id: str
+
+        :param value: The new value to set for the specified component.
+        :type value: Any
+
+        :return: The instance itself to allow method chaining.
+        :rtype: ItemContext
+
+        Request Example:
+        ::
+
+            with client.item_context("project_name/folder_name", "item_name") as item_context:
+                metadata = item_context.get_metadata()
+                value = item_context.get_component_value("component_id")
+                item_context.set_component_value("component_id", value)
+
+        """
         self.annotation_adapter.set_component_value(component_id, value)
         return self
 
@@ -381,6 +462,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """
         Search users by filtering criteria
+
         :param project:  Project name or ID, if provided, results will be for project-level,
          otherwise results will be for team level.
         :type project: str or int
@@ -4356,6 +4438,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :return: An `ItemContext` object to manage the specified item's annotations and metadata.
         :rtype: ItemContext
+
+        .. seealso::
+            For more details, see :class:`ItemContext`.
+
 
         **Examples:**
 
