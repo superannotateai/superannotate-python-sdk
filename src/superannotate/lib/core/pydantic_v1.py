@@ -22,6 +22,7 @@ ValueItems = pydantic.utils.ValueItems  # noqa
 ROOT_KEY = pydantic.utils.ROOT_KEY  # noqa
 sequence_like = pydantic.utils.sequence_like  # noqa
 validator = pydantic.validator  # noqa
+root_validator = pydantic.root_validator  # noqa
 constr = pydantic.constr  # noqa
 conlist = pydantic.conlist  # noqa
 parse_datetime = pydantic.datetime_parse.parse_datetime  # noqa

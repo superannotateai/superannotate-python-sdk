@@ -29,6 +29,7 @@ from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
+from lib.core.service_types import WMScoreListResponse
 from lib.core.service_types import WMUserListResponse
 from lib.core.service_types import WorkflowListResponse
 from lib.core.types import Attachment
@@ -195,6 +196,24 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def update_user_activity(
         self, body_query: Query, action=Literal["resume", "pause"]
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_scores(self) -> WMScoreListResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_score(
+        self,
+        name: str,
+        description: Optional[str],
+        score_type: Literal["rating", "number", "radio"],
+        payload: dict,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_score(self, score_id: int) -> ServiceResponse:
         raise NotImplementedError
 
 
@@ -684,6 +703,20 @@ class BaseExploreService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         query: str = None,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+
+class BaseTelemetryScoringService(SuperannotateServiceProvider):
+    @abstractmethod
+    def get_score_values(self, project_id: int, item_id: int, user_id: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_score_values(
+        self,
+        project_id: int,
+        data: List[dict],
     ) -> ServiceResponse:
         raise NotImplementedError
 

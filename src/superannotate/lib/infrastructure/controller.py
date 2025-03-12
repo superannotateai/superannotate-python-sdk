@@ -34,6 +34,8 @@ from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
 from lib.core.entities.filters import UserFilters
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.entities.work_managament import ScoreEntity
+from lib.core.entities.work_managament import ScorePayloadEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectType
@@ -263,6 +265,135 @@ class WorkManagementManager(BaseManager):
                 body_query=body_query, action=action
             )
             res.raise_for_status()
+
+    def _get_score_item(self, item: Union[int, str], project_id: int, folder_id: int):
+        if isinstance(item, int):
+            item = self.service_provider.item_service.get(
+                project_id=project_id, item_id=item
+            ).data
+        else:
+            items = self.service_provider.item_service.list(
+                project_id, folder_id, Filter("name", item, OperatorEnum.EQ)
+            )
+            item = next(iter(items), None)
+            if not item:
+                raise AppException("Item not found.")
+        return item
+
+    def get_user_scores(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item: Union[int, str],
+        scored_user: str,
+        provided_score_names: Optional[List[str]] = None,
+    ):
+        item = self._get_score_item(item, project.id, folder.id)
+
+        score_fields_res = self.service_provider.work_management.list_scores()
+
+        # validate provided score names
+        all_score_names = [s.name for s in score_fields_res.data]
+        if provided_score_names and set(provided_score_names) - set(all_score_names):
+            raise AppException("Please provide valid score names.")
+
+        score_id_field_options_map = {s.id: s for s in score_fields_res.data}
+
+        score_values = self.service_provider.telemetry_scoring.get_score_values(
+            project_id=project.id, item_id=item.id, user_id=scored_user
+        )
+        score_id_values_map = {s.score_id: s for s in score_values.data}
+
+        scores = []
+        for s_id, s_values in score_id_values_map.items():
+            score_field = score_id_field_options_map.get(s_id)
+            if score_field:
+                score = ScoreEntity(
+                    id=s_id,
+                    name=score_field.name,
+                    value=s_values.value,
+                    weight=s_values.weight,
+                    createdAt=score_field.createdAt,
+                    updatedAt=score_field.updatedAt,
+                )
+                if provided_score_names:
+                    if score_field.name in provided_score_names:
+                        scores.append(score)
+                else:
+                    scores.append(score)
+        return scores
+
+    @staticmethod
+    def _validate_scores(
+        scores: List[dict], all_score_names: List[str]
+    ) -> List[ScorePayloadEntity]:
+        score_objects: List[ScorePayloadEntity] = []
+
+        for s in scores:
+            if "value" not in s:
+                raise AppException("Invalid Scores.")
+            try:
+                score_objects.append(ScorePayloadEntity(**s))
+            except AppException:
+                raise
+            except Exception:
+                raise AppException("Invalid Scores.")
+
+        # validate provided score names
+        provided_score_names = [s.name for s in score_objects]
+        if set(provided_score_names) - set(all_score_names):
+            raise AppException("Please provide valid score names.")
+
+        names = [score.name for score in score_objects]
+        if len(names) != len(set(names)):
+            raise AppException("Invalid Scores.")
+        return score_objects
+
+    def set_user_scores(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item: Union[int, str],
+        scored_user: str,
+        scores: List[Dict[str, Any]],
+    ):
+        item = self._get_score_item(item, project.id, folder.id)
+
+        filters = {"email": scored_user}
+        users = self.list_users(project=project, **filters)
+        if not users:
+            raise AppException("Please provide a valid email assigned to the project.")
+        user = users[0]
+        user_role = user.role
+        user.role = self.service_provider.get_role_name(project, int(user_role))
+
+        score_fields_res = self.service_provider.work_management.list_scores()
+        all_score_names = [s.name for s in score_fields_res.data]
+        score_name_field_options_map = {s.name: s for s in score_fields_res.data}
+
+        # get validate scores
+        scores: List[ScorePayloadEntity] = self._validate_scores(
+            scores, all_score_names
+        )
+
+        scores_to_create: List[dict] = []
+        for s in scores:
+            score_to_create = {
+                "item_id": item.id,
+                "score_id": score_name_field_options_map[s.name].id,
+                "user_role_name": user.role,
+                "user_role": user_role,
+                "user_id": user.email,
+                "value": s.value,
+                "weight": s.weight,
+            }
+            scores_to_create.append(score_to_create)
+        res = self.service_provider.telemetry_scoring.set_score_values(
+            project_id=project.id, data=scores_to_create
+        )
+        if res.status_code == 400:
+            res.res_error = "Please provide valid score values."
+        res.raise_for_status()
 
 
 class ProjectManager(BaseManager):

@@ -12,3 +12,5 @@ Team
 .. automethod:: superannotate.SAClient.list_users
 .. automethod:: superannotate.SAClient.pause_user_activity
 .. automethod:: superannotate.SAClient.resume_user_activity
+.. automethod:: superannotate.SAClient.get_user_scores
+.. automethod:: superannotate.SAClient.set_user_scores

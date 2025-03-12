@@ -30,7 +30,6 @@ class ExploreService(BaseExploreService):
 
     @property
     def explore_service_url(self):
-        # TODO check urls
         if self.client.api_url != constants.BACKEND_URL:
             return (
                 f"http://explore-service.devsuperannotate.com/api/{self.API_VERSION}/"

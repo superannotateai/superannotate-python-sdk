@@ -608,6 +608,166 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             f"User with email {user.email} has been successfully unblocked from the specified projects: {projects}."
         )
 
+    def get_user_scores(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        item: Union[NotEmptyStr, int],
+        scored_user: NotEmptyStr,
+        *,
+        score_names: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve score metadata for a user for a specific item in a specific project.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param item:  The unique ID or name of the item.
+        :type item: Union[str, int]
+
+        :param scored_user:  The email address of the project user.
+        :type scored_user: str
+
+        :param score_names:  A list of score names to filter by. If None, returns all scores.
+        :type score_names: Optional[List[str]]
+
+        :return: A list of dictionaries containing score metadata for the user.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.get_user_scores(
+                project=("my_multimodal", "folder1"),
+                item="item1",
+                scored_user="example@superannotate.com",
+                score_names=["Accuracy Score", "Speed"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2024-06-01T13:00:00",
+                    "updatedAt": "2024-06-01T13:00:00",
+                    "id": 3217575,
+                    "name": "Accuracy Score",
+                    "value": 98,
+                    "weight": 4,
+                },
+                {
+                    "createdAt": "2024-06-01T13:00:00",
+                    "updatedAt": "2024-06-01T13:00:00",
+                    "id": 5657575,
+                    "name": "Speed",
+                    "value": 9,
+                    "weight": 0.4,
+                },
+            ]
+        """
+
+        if isinstance(project, str):
+            project_name, folder_name = extract_project_folder(project)
+            project, folder = self.controller.get_project_folder(
+                project_name, folder_name
+            )
+        else:
+            project_pk, folder_pk = project
+            if isinstance(project_pk, int) and isinstance(folder_pk, int):
+                project = self.controller.get_project_by_id(project_pk).data
+                folder = self.controller.get_folder_by_id(folder_pk, project.id).data
+            elif isinstance(project_pk, str) and isinstance(folder_pk, str):
+                project = self.controller.get_project(project_pk)
+                folder = self.controller.get_folder(project, folder_pk)
+            else:
+                raise AppException("Provided project param is not valid.")
+        response = BaseSerializer.serialize_iterable(
+            self.controller.work_management.get_user_scores(
+                project=project,
+                folder=folder,
+                item=item,
+                scored_user=scored_user,
+                provided_score_names=score_names,
+            )
+        )
+        return response
+
+    def set_user_scores(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        item: Union[NotEmptyStr, int],
+        scored_user: NotEmptyStr,
+        scores: List[Dict[str, Any]],
+    ):
+        """
+        Assign score metadata for a user in a scoring component.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param item:  The unique ID or name of the item.
+        :type item: Union[str, int]
+
+        :param scored_user:  Set the email of the user being scored.
+        :type scored_user: str
+
+        :param scores: A list of dictionaries containing the following key-value pairs:
+                * **name** (*str*): The name of the score (required).
+                * **value** (*Any*): The score value (required).
+                * **weight** (*Union[float, int]*, optional): The weight of the score. Defaults to `1` if not provided.
+
+            **Example**:
+            ::
+
+                scores = [
+                    {
+                        "name": "Speed",  # str (required)
+                        "value": 90,      # Any (required)
+                        "weight": 1       # Union[float, int] (optional, defaults to 1.0 if not provided)
+                    }
+                ]
+        :type scores: List[Dict[str, Any]
+
+        Request Example:
+        ::
+
+            client.set_user_scores(
+                project=("my_multimodal", "folder1"),
+                item_=12345,
+                scored_user="example@superannotate.com",
+                scores=[
+                    {"name": "Speed", "value": 90},
+                    {"name": "Accuracy", "value": 9, "weight": 4.0},
+                    {"name": "Attention to Detail", "value": None, "weight": None},
+                ]
+            )
+
+        """
+        if isinstance(project, str):
+            project_name, folder_name = extract_project_folder(project)
+            project, folder = self.controller.get_project_folder(
+                project_name, folder_name
+            )
+        else:
+            project_pk, folder_pk = project
+            if isinstance(project_pk, int) and isinstance(folder_pk, int):
+                project = self.controller.get_project_by_id(project_pk).data
+                folder = self.controller.get_folder_by_id(folder_pk, project.id).data
+            elif isinstance(project_pk, str) and isinstance(folder_pk, str):
+                project = self.controller.get_project(project_pk)
+                folder = self.controller.get_folder(project, folder_pk)
+            else:
+                raise AppException("Provided project param is not valid.")
+        self.controller.work_management.set_user_scores(
+            project=project,
+            folder=folder,
+            item=item,
+            scored_user=scored_user,
+            scores=scores,
+        )
+        logger.info("Scores successfully set.")
+
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
         Retrieves the configuration for a given project and component ID.
