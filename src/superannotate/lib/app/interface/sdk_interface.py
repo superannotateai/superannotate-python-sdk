@@ -75,7 +75,6 @@ from lib.core.entities.work_managament import WMUserTypeEnum
 
 logger = logging.getLogger("sa")
 
-# NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 NotEmptyStr = constr(strict=True, min_length=1)
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
@@ -666,26 +665,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 },
             ]
         """
-
-        if isinstance(project, str):
-            project_name, folder_name = extract_project_folder(project)
-            project, folder = self.controller.get_project_folder(
-                project_name, folder_name
-            )
-        else:
-            project_pk, folder_pk = project
-            if isinstance(project_pk, int) and isinstance(folder_pk, int):
-                project = self.controller.get_project_by_id(project_pk).data
-                folder = self.controller.get_folder_by_id(folder_pk, project.id).data
-            elif isinstance(project_pk, str) and isinstance(folder_pk, str):
-                project = self.controller.get_project(project_pk)
-                folder = self.controller.get_folder(project, folder_pk)
-            else:
-                raise AppException("Provided project param is not valid.")
+        project, folder = self.controller.get_project_folder(project)
+        item = self.controller.get_item(project=project, folder=folder, item=item)
         response = BaseSerializer.serialize_iterable(
             self.controller.work_management.get_user_scores(
                 project=project,
-                folder=folder,
                 item=item,
                 scored_user=scored_user,
                 provided_score_names=score_names,
@@ -744,24 +728,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
 
         """
-        if isinstance(project, str):
-            project_name, folder_name = extract_project_folder(project)
-            project, folder = self.controller.get_project_folder(
-                project_name, folder_name
-            )
-        else:
-            project_pk, folder_pk = project
-            if isinstance(project_pk, int) and isinstance(folder_pk, int):
-                project = self.controller.get_project_by_id(project_pk).data
-                folder = self.controller.get_folder_by_id(folder_pk, project.id).data
-            elif isinstance(project_pk, str) and isinstance(folder_pk, str):
-                project = self.controller.get_project(project_pk)
-                folder = self.controller.get_folder(project, folder_pk)
-            else:
-                raise AppException("Provided project param is not valid.")
+        project, folder = self.controller.get_project_folder(project)
+        item = self.controller.get_item(project=project, folder=folder, item=item)
         self.controller.work_management.set_user_scores(
             project=project,
-            folder=folder,
             item=item,
             scored_user=scored_user,
             scores=scores,
@@ -1170,7 +1140,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of folder
         :rtype: dict
         """
-        project, folder = self.controller.get_project_folder(project, folder_name)
+        project, folder = self.controller.get_project_folder((project, folder_name))
         if not folder:
             raise AppException("Folder not found.")
         return BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
@@ -1722,7 +1692,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if not verified_users:
             return
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.folders.assign_users(
             project=project,
             folder=folder,
@@ -2680,7 +2652,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
         )
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.annotations.upload_from_folder(
             project=project,
             folder=folder,
@@ -3179,7 +3153,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         scores = parse_obj_as(List[PriorityScoreEntity], scores)
         project_name, folder_name = extract_project_folder(project)
         project_folder_name = project
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.projects.upload_priority_scores(
             project, folder, scores, project_folder_name
         )
@@ -3900,7 +3876,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 f"Attaching {len(_unique_attachments)} file(s) to project {project}."
             )
             project, folder = self.controller.get_project_folder(
-                project_name, folder_name
+                (project_name, folder_name)
             )
             response = self.controller.items.attach(
                 project=project,
@@ -4128,7 +4104,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: str
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.annotations.download(
             project=project,
             folder=folder,
@@ -4408,7 +4386,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.custom_fields.upload_values(
             project=project, folder=folder, items=items
         )
@@ -4445,7 +4425,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.custom_fields.delete_values(
             project=project, folder=folder, items=items
         )

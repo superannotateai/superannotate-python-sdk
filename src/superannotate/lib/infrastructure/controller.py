@@ -266,30 +266,13 @@ class WorkManagementManager(BaseManager):
             )
             res.raise_for_status()
 
-    def _get_score_item(self, item: Union[int, str], project_id: int, folder_id: int):
-        if isinstance(item, int):
-            item = self.service_provider.item_service.get(
-                project_id=project_id, item_id=item
-            ).data
-        else:
-            items = self.service_provider.item_service.list(
-                project_id, folder_id, Filter("name", item, OperatorEnum.EQ)
-            )
-            item = next(iter(items), None)
-            if not item:
-                raise AppException("Item not found.")
-        return item
-
     def get_user_scores(
         self,
         project: ProjectEntity,
-        folder: FolderEntity,
-        item: Union[int, str],
+        item: BaseItemEntity,
         scored_user: str,
         provided_score_names: Optional[List[str]] = None,
     ):
-        item = self._get_score_item(item, project.id, folder.id)
-
         score_fields_res = self.service_provider.work_management.list_scores()
 
         # validate provided score names
@@ -297,7 +280,7 @@ class WorkManagementManager(BaseManager):
         if provided_score_names and set(provided_score_names) - set(all_score_names):
             raise AppException("Please provide valid score names.")
 
-        score_id_field_options_map = {s.id: s for s in score_fields_res.data}
+        score_id_form_entity_map = {s.id: s for s in score_fields_res.data}
 
         score_values = self.service_provider.telemetry_scoring.get_score_values(
             project_id=project.id, item_id=item.id, user_id=scored_user
@@ -306,18 +289,18 @@ class WorkManagementManager(BaseManager):
 
         scores = []
         for s_id, s_values in score_id_values_map.items():
-            score_field = score_id_field_options_map.get(s_id)
-            if score_field:
+            score_entity = score_id_form_entity_map.get(s_id)
+            if score_entity:
                 score = ScoreEntity(
                     id=s_id,
-                    name=score_field.name,
+                    name=score_entity.name,
                     value=s_values.value,
                     weight=s_values.weight,
-                    createdAt=score_field.createdAt,
-                    updatedAt=score_field.updatedAt,
+                    createdAt=score_entity.createdAt,
+                    updatedAt=score_entity.updatedAt,
                 )
                 if provided_score_names:
-                    if score_field.name in provided_score_names:
+                    if score_entity.name in provided_score_names:
                         scores.append(score)
                 else:
                     scores.append(score)
@@ -352,28 +335,24 @@ class WorkManagementManager(BaseManager):
     def set_user_scores(
         self,
         project: ProjectEntity,
-        folder: FolderEntity,
-        item: Union[int, str],
+        item: BaseItemEntity,
         scored_user: str,
         scores: List[Dict[str, Any]],
     ):
-        item = self._get_score_item(item, project.id, folder.id)
-
-        filters = {"email": scored_user}
-        users = self.list_users(project=project, **filters)
+        users = self.list_users(project=project, email=scored_user)
         if not users:
-            raise AppException("Please provide a valid email assigned to the project.")
+            raise AppException("User not found.")
         user = users[0]
-        user_role = user.role
-        user.role = self.service_provider.get_role_name(project, int(user_role))
+        role_id = user.role
+        role_name = self.service_provider.get_role_name(project, int(role_id))
 
-        score_fields_res = self.service_provider.work_management.list_scores()
-        all_score_names = [s.name for s in score_fields_res.data]
-        score_name_field_options_map = {s.name: s for s in score_fields_res.data}
+        score_name_field_options_map = {
+            s.name: s for s in self.service_provider.work_management.list_scores().data
+        }
 
         # get validate scores
         scores: List[ScorePayloadEntity] = self._validate_scores(
-            scores, all_score_names
+            scores, list(score_name_field_options_map.keys())
         )
 
         scores_to_create: List[dict] = []
@@ -381,8 +360,8 @@ class WorkManagementManager(BaseManager):
             score_to_create = {
                 "item_id": item.id,
                 "score_id": score_name_field_options_map[s.name].id,
-                "user_role_name": user.role,
-                "user_role": user_role,
+                "user_role_name": role_name,
+                "user_role": role_id,
                 "user_id": user.email,
                 "value": s.value,
                 "weight": s.weight,
@@ -1488,14 +1467,7 @@ class Controller(BaseController):
         self, path: Union[str, Path]
     ) -> Tuple[ProjectEntity, FolderEntity]:
         project_name, folder_name = extract_project_folder(path)
-        return self.get_project_folder(project_name, folder_name)
-
-    def get_project_folder(
-        self, project_name: str, folder_name: str = None
-    ) -> Tuple[ProjectEntity, FolderEntity]:
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
-        return project, folder
+        return self.get_project_folder((project_name, folder_name))
 
     def get_project(self, name: str) -> ProjectEntity:
         project = self.projects.get_by_name(name).data
@@ -1865,3 +1837,32 @@ class Controller(BaseController):
         if response.errors:
             raise AppException(response.errors)
         return response.data["count"]
+
+    def get_project_folder(
+        self, path: Union[str, Tuple[int, int], Tuple[str, str]]
+    ) -> Tuple[ProjectEntity, Optional[FolderEntity]]:
+        if isinstance(path, str):
+            project_name, folder_name = extract_project_folder(path)
+            project = self.get_project(project_name)
+            return project, self.get_folder(project, folder_name)
+
+        if isinstance(path, tuple) and len(path) == 2:
+            project_pk, folder_pk = path
+            if all(isinstance(x, int) for x in path):
+                return (
+                    self.get_project_by_id(project_pk).data,
+                    self.get_folder_by_id(folder_pk, project_pk).data,
+                )
+            if all(isinstance(x, str) for x in path):
+                project = self.get_project(project_pk)
+                return project, self.get_folder(project, folder_pk)
+
+        raise AppException("Provided project param is not valid.")
+
+    def get_item(
+        self, project: ProjectEntity, folder: FolderEntity, item: Union[int, str]
+    ) -> BaseItemEntity:
+        if isinstance(item, int):
+            return self.get_item_by_id(item_id=item, project=project)
+        else:
+            return self.items.get_by_name(project, folder, item)

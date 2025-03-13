@@ -251,9 +251,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid scored_user
-        with self.assertRaisesRegexp(
-            AppException, "Please provide a valid email assigned to the project."
-        ):
+        with self.assertRaisesRegexp(AppException, "User not found."):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,
