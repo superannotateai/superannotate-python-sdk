@@ -640,6 +640,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         and component["id"] == component_pk
                         and component["type"] == "webComponent"
                     ):
+                        context = component.get("context")
+                        if context is None or context == "":
+                            return False, None
                         return True, json.loads(component.get("context"))
 
             except KeyError as e:
