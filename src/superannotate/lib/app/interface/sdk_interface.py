@@ -460,7 +460,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         **filters,
     ):
         """
-        Search users by filtering criteria
+        Search users, including their scores, by filtering criteria.
 
         :param project:  Project name or ID, if provided, results will be for project-level,
          otherwise results will be for team level.
@@ -470,8 +470,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             Possible values are
 
-            - "custom_fields": Includes the custom fields assigned to each user.
-        :type include: list of str, optional
+            - "custom_fields":  Includes custom fields and scores assigned to each user.
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
 
@@ -501,18 +500,35 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - email__contains: str
             - email__starts: str
             - email__ends: str
+
+            Following params if project is not selected::
+
             - state: Literal[“Confirmed”, “Pending”]
             - state__in: List[Literal[“Confirmed”, “Pending”]]
             - role: Literal[“admin”, “contributor”]
             - role__in: List[Literal[“admin”, “contributor”]]
 
-            Custom Fields Filtering:
-                - Custom fields must be prefixed with `custom_field__`.
+            Scores and Custom Field Filtering:
+
+                - Scores and other custom fields must be prefixed with `custom_field__` .
                 - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+
+            - **Text** custom field only works with the following filter params: __in, __notin, __contains
+            - **Numeric** custom field only works with the following filter params: __in, __notin, __ne, __gt, __gte, __lt, __lte
+            - **Single-select** custom field only works with the following filter params: __in, __notin, __contains
+            - **Multi-select** custom field only works with the following filter params: __in, __notin
+            - **Date picker** custom field only works with the following filter params: __gt, __gte, __lt, __lte
+
+            **If score name has a space, please use the following format to filter them**:
+            ::
+
+                user_filters = {"custom_field__accuracy score 30D__lt": 90}
+                client.list_users(include=["custom_fields"], **user_filters)
+
 
         :type filters: UserFilters, optional
 
-        :return: A list of team users metadata that matches the filtering criteria
+        :return: A list of team/project users metadata that matches the filtering criteria
         :rtype: list of dicts
 
         Request Example:
@@ -543,6 +559,82 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "team_id": 44311,
                 }
             ]
+
+        Request Example:
+        ::
+
+            # Project level scores
+
+            scores = client.list_users(
+                include=["custom_fields"],
+                project="my_multimodal",
+                email__contains="@superannotate.com",
+                custom_field__speed__gte=90,
+                custom_field__weight__lte=1,
+            )
+
+        Response Example:
+        ::
+
+            # Project level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {"speed": 92, "weight": 0.8},
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Annotator",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
+        Request Example:
+        ::
+
+            # Team level scores
+
+            user_filters = {
+                "custom_field__accuracy score 30D__lt": 95,
+                "custom_field__speed score 7D__lt": 15
+            }
+
+            scores = client.list_users(
+                include=["custom_fields"],
+                email__contains="@superannotate.com",
+                role="Contributor",
+                **user_filters
+            )
+
+        Response Example:
+        ::
+
+            # Team level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {
+                        "Test custom field": 80,
+                        "Tag custom fields": ["Tag1", "Tag2"],
+                        "accuracy score 30D": 95,
+                        "accuracy score 14D": 47,
+                        "accuracy score 7D": 24,
+                        "speed score 30D": 33,
+                        "speed score 14D": 22,
+                        "speed score 7D": 11,
+                    },
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Contributor",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
         """
         if project is not None:
             if isinstance(project, int):

@@ -131,6 +131,32 @@ class TestUserScoring(TestCase):
             assert score["createdAt"]
             assert score["updatedAt"]
 
+    def test_list_users_with_scores(self):
+        # list team users
+        team_users = sa.list_users(include=["custom_fields"])
+        for u in team_users:
+            for s in SCORE_TEMPLATES:
+                try:
+                    assert not u["custom_fields"][f"{s['name']} 7D"]
+                    assert not u["custom_fields"][f"{s['name']} 14D"]
+                    assert not u["custom_fields"][f"{s['name']} 30D"]
+                except KeyError as e:
+                    raise AssertionError(str(e))
+
+        # filter team users by score
+        filters = {f"custom_field__{SCORE_TEMPLATES[0]['name']} 7D": None}
+        team_users = sa.list_users(include=["custom_fields"], **filters)
+        assert team_users
+        for u in team_users:
+            try:
+                assert not u["custom_fields"][f"{SCORE_TEMPLATES[0]['name']} 7D"]
+            except KeyError as e:
+                raise AssertionError(str(e))
+
+        filters = {f"custom_field__{SCORE_TEMPLATES[1]['name']} 30D": 5}
+        team_users = sa.list_users(include=["custom_fields"], **filters)
+        assert not team_users
+
     def test_set_get_scores_negative_cases(self):
         item_name = f"test_item_{uuid.uuid4()}"
         self._attach_item(self.PROJECT_NAME, item_name)
