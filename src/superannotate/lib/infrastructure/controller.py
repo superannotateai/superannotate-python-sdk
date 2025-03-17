@@ -1,3 +1,4 @@
+import copy
 import io
 import logging
 import os
@@ -307,9 +308,7 @@ class WorkManagementManager(BaseManager):
         return scores
 
     @staticmethod
-    def _validate_scores(
-        scores: List[dict], all_score_names: List[str]
-    ) -> List[ScorePayloadEntity]:
+    def _validate_scores(scores: List[dict]) -> List[ScorePayloadEntity]:
         score_objects: List[ScorePayloadEntity] = []
 
         for s in scores:
@@ -322,15 +321,37 @@ class WorkManagementManager(BaseManager):
             except Exception:
                 raise AppException("Invalid Scores.")
 
-        # validate provided score names
-        provided_score_names = [s.name for s in score_objects]
-        if set(provided_score_names) - set(all_score_names):
-            raise AppException("Please provide valid score names.")
-
-        names = [score.name for score in score_objects]
-        if len(names) != len(set(names)):
-            raise AppException("Invalid Scores.")
+        component_ids = [score.component_id for score in score_objects]
+        if len(component_ids) != len(set(component_ids)):
+            raise AppException("Component IDs in scores data must be unique.")
         return score_objects
+
+    @staticmethod
+    def retrieve_scores(
+        components: List[dict], score_component_ids: List[str]
+    ) -> Dict[str, Dict]:
+        score_component_ids = copy.copy(score_component_ids)
+        found_scores = {}
+        try:
+
+            def _retrieve_score_recursive(
+                all_components: List[dict], component_ids: List[str]
+            ):
+                for component in all_components:
+                    if "children" in component:
+                        _retrieve_score_recursive(component["children"], component_ids)
+                    if "scoring" in component and component["id"] in component_ids:
+                        component_ids.remove(component["id"])
+                        found_scores[component["id"]] = {
+                            "score_id": component["scoring"]["id"],
+                            "user_role_name": component["scoring"]["role"]["name"],
+                            "user_role": component["scoring"]["role"]["id"],
+                        }
+
+            _retrieve_score_recursive(components, score_component_ids)
+        except KeyError:
+            raise AppException("An error occurred while parsing the editor template.")
+        return found_scores
 
     def set_user_scores(
         self,
@@ -338,37 +359,41 @@ class WorkManagementManager(BaseManager):
         item: BaseItemEntity,
         scored_user: str,
         scores: List[Dict[str, Any]],
+        components: List[dict],
     ):
-        users = self.list_users(project=project, email=scored_user)
+        users = self.list_users(email=scored_user)
         if not users:
             raise AppException("User not found.")
         user = users[0]
-        role_id = user.role
-        role_name = self.service_provider.get_role_name(project, int(role_id))
-
-        score_name_field_options_map = {
-            s.name: s for s in self.service_provider.work_management.list_scores().data
-        }
 
         # get validate scores
-        scores: List[ScorePayloadEntity] = self._validate_scores(
-            scores, list(score_name_field_options_map.keys())
+        scores: List[ScorePayloadEntity] = self._validate_scores(scores)
+
+        provided_score_component_ids = [s.component_id for s in scores]
+        component_id_score_data_map = self.retrieve_scores(
+            components, provided_score_component_ids
         )
 
-        scores_to_create: List[dict] = []
+        if len(component_id_score_data_map) != len(scores):
+            raise AppException("Invalid component_id provided")
+
+        scores_to_set: List[dict] = []
         for s in scores:
-            score_to_create = {
+            score_data = {
                 "item_id": item.id,
-                "score_id": score_name_field_options_map[s.name].id,
-                "user_role_name": role_name,
-                "user_role": role_id,
+                "score_id": component_id_score_data_map[s.component_id]["score_id"],
+                "user_role_name": component_id_score_data_map[s.component_id][
+                    "user_role_name"
+                ],
+                "user_role": component_id_score_data_map[s.component_id]["user_role"],
                 "user_id": user.email,
                 "value": s.value,
                 "weight": s.weight,
+                "component_id": s.component_id,
             }
-            scores_to_create.append(score_to_create)
+            scores_to_set.append(score_data)
         res = self.service_provider.telemetry_scoring.set_score_values(
-            project_id=project.id, data=scores_to_create
+            project_id=project.id, data=scores_to_set
         )
         if res.status_code == 400:
             res.res_error = "Please provide valid score values."
@@ -533,9 +558,10 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def get_editor_template(self, project: ProjectEntity) -> dict:
+    @timed_lru_cache(seconds=5)
+    def get_editor_template(self, project_id: int) -> dict:
         response = self.service_provider.projects.get_editor_template(
-            team=self._team, project=project
+            organization_id=self._team.owner_id, project_id=project_id
         )
         response.raise_for_status()
         return response.data

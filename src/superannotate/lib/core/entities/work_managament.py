@@ -184,7 +184,7 @@ class ScoreEntity(TimedBaseModel):
 
 
 class ScorePayloadEntity(BaseModel):
-    name: str
+    component_id: str
     value: Any
     weight: Optional[Union[float, int]] = 1.0
 

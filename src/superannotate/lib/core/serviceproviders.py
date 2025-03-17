@@ -234,7 +234,7 @@ class BaseProjectService(SuperannotateServiceProvider):
 
     @abstractmethod
     def get_editor_template(
-        self, team: entities.TeamEntity, project: entities.ProjectEntity
+        self, organization_id: str, project_id: int
     ) -> ServiceResponse:
         raise NotImplementedError
 

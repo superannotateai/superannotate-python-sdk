@@ -49,12 +49,10 @@ class ProjectService(BaseProjectService):
             url, "post", data=template, content_type=ServiceResponse, params=params
         )
 
-    def get_editor_template(
-        self, team: entities.TeamEntity, project: entities.ProjectEntity
-    ) -> bool:
-        url = self.URL_EDITOR_TEMPLATE.format(project_id=project.id)
+    def get_editor_template(self, organization_id: str, project_id: int) -> bool:
+        url = self.URL_EDITOR_TEMPLATE.format(project_id=project_id)
         params = {
-            "organization_id": team.owner_id,
+            "organization_id": organization_id,
         }
         return self.client.request(
             url, "get", content_type=ServiceResponse, params=params

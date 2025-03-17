@@ -758,6 +758,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ]
         """
         project, folder = self.controller.get_project_folder(project)
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+
         item = self.controller.get_item(project=project, folder=folder, item=item)
         response = BaseSerializer.serialize_iterable(
             self.controller.work_management.get_user_scores(
@@ -789,7 +794,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type scored_user: str
 
         :param scores: A list of dictionaries containing the following key-value pairs:
-                * **name** (*str*): The name of the score (required).
+                * **component_id** (*str*): The component_id of the score (required).
                 * **value** (*Any*): The score value (required).
                 * **weight** (*Union[float, int]*, optional): The weight of the score. Defaults to `1` if not provided.
 
@@ -798,7 +803,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
                 scores = [
                     {
-                        "name": "Speed",  # str (required)
+                        "component_id": "<component_id_for_score>",  # str (required)
                         "value": 90,      # Any (required)
                         "weight": 1       # Union[float, int] (optional, defaults to 1.0 if not provided)
                     }
@@ -813,20 +818,27 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 item_=12345,
                 scored_user="example@superannotate.com",
                 scores=[
-                    {"name": "Speed", "value": 90},
-                    {"name": "Accuracy", "value": 9, "weight": 4.0},
-                    {"name": "Attention to Detail", "value": None, "weight": None},
+                    {"component_id": "r_kfrp3n", "value": 90},
+                    {"component_id": "h_jbrp4v", "value": 9, "weight": 4.0},
+                    {"component_id": "m_kf8pss", "value": None, "weight": None},
                 ]
             )
 
         """
         project, folder = self.controller.get_project_folder(project)
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
         item = self.controller.get_item(project=project, folder=folder, item=item)
+        editor_template = self.controller.projects.get_editor_template(project.id)
+        components = editor_template.get("components", [])
         self.controller.work_management.set_user_scores(
             project=project,
             item=item,
             scored_user=scored_user,
             scores=scores,
+            components=components,
         )
         logger.info("Scores successfully set.")
 
@@ -879,7 +891,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "This function is only supported for Multimodal projects."
             )
 
-        editor_template = self.controller.projects.get_editor_template(project)
+        editor_template = self.controller.projects.get_editor_template(project.id)
         components = editor_template.get("components", [])
 
         _found, _context = retrieve_context(components, component_id)

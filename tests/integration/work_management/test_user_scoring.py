@@ -38,6 +38,11 @@ class TestUserScoring(TestCase):
         team = sa.controller.team
         project = sa.controller.get_project(cls.PROJECT_NAME)
         time.sleep(5)
+
+        for data in SCORE_TEMPLATES:
+            req = sa.controller.service_provider.work_management.create_score(**data)
+            assert req.status_code == 201
+
         with open(cls.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 team, project, template=json.load(f)
@@ -46,10 +51,6 @@ class TestUserScoring(TestCase):
         sa.create_annotation_classes_from_classes_json(
             cls.PROJECT_NAME, cls.CLASSES_TEMPLATE_PATH
         )
-
-        for data in SCORE_TEMPLATES:
-            req = sa.controller.service_provider.work_management.create_score(**data)
-            assert req.status_code == 201
 
         users = sa.list_users()
         scapegoat = [
