@@ -3820,9 +3820,24 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
 
             Custom Fields Filtering:
+
                 - Custom fields must be prefixed with `custom_field__`.
                 - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due_date is after the given Unix timestamp).
-                - If include does not include "custom_fields" but filter contains custom_fields, an error will be returned
+                - If include does not include “custom_fields” but filter contains ‘custom_field’, an error will be returned
+
+            - **Text** custom field only works with the following filter params: __in, __notin, __contains
+            - **Numeric** custom field only works with the following filter params: __in, __notin, __ne, __gt, __gte, __lt, __lte
+            - **Single-select** custom field only works with the following filter params: __in, __notin, __contains
+            - **Multi-select** custom field only works with the following filter params: __in, __notin
+            - **Date picker** custom field only works with the following filter params: __gt, __gte, __lt, __lte
+
+            **If custom field has a space, please use the following format to filter them**:
+            ::
+
+                project_filters = {
+                    "custom_field__new single select custom field__contains": "text"
+                }
+                client.list_projects(include=["custom_fields"], **project_filters)
 
         :type filters: ProjectFilters, optional
 
@@ -3833,10 +3848,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             client.list_projects(
-                name__contains="Medical",
                 include=["custom_fields"],
                 status__in=["InProgress", "Completed"],
-                custom_fields__Tag__in=["Tag1", "Tag3"]
+                name__contains="Medical",
+                custom_field__Tag__in=["Tag1", "Tag3"]
             )
 
         Response Example:
