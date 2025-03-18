@@ -511,7 +511,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Scores and Custom Field Filtering:
 
                 - Scores and other custom fields must be prefixed with `custom_field__` .
-                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due_date is after the given Unix timestamp).
 
             - **Text** custom field only works with the following filter params: __in, __notin, __contains
             - **Numeric** custom field only works with the following filter params: __in, __notin, __ne, __gt, __gte, __lt, __lte
@@ -519,7 +519,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - **Multi-select** custom field only works with the following filter params: __in, __notin
             - **Date picker** custom field only works with the following filter params: __gt, __gte, __lt, __lte
 
-            **If score name has a space, please use the following format to filter them**:
+            **If custom field has a space, please use the following format to filter them**:
             ::
 
                 user_filters = {"custom_field__accuracy score 30D__lt": 90}
@@ -3821,7 +3821,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             Custom Fields Filtering:
                 - Custom fields must be prefixed with `custom_field__`.
-                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due_date is after the given Unix timestamp).
                 - If include does not include "custom_fields" but filter contains custom_fields, an error will be returned
 
         :type filters: ProjectFilters, optional
