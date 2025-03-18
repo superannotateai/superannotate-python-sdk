@@ -13,11 +13,16 @@ sa = SAClient()
 
 
 class TestUserScoring(TestCase):
+    """
+    Test using mock Multimodal form template with dynamically generated scores created during setup.
+    """
+
     PROJECT_NAME = "TestUserScoring"
     PROJECT_TYPE = "Multimodal"
     PROJECT_DESCRIPTION = "DESCRIPTION"
     EDITOR_TEMPLATE_PATH = os.path.join(
-        Path(__file__).parent.parent.parent, "data_set/editor_templates/form1.json"
+        Path(__file__).parent.parent.parent,
+        "data_set/editor_templates/form_with_scores.json",
     )
     CLASSES_TEMPLATE_PATH = os.path.join(
         Path(__file__).parent.parent.parent,
@@ -39,13 +44,20 @@ class TestUserScoring(TestCase):
         project = sa.controller.get_project(cls.PROJECT_NAME)
         time.sleep(5)
 
-        for data in SCORE_TEMPLATES:
-            req = sa.controller.service_provider.work_management.create_score(**data)
-            assert req.status_code == 201
-
+        # setup form template from crated scores
         with open(cls.EDITOR_TEMPLATE_PATH) as f:
+            template_data = json.load(f)
+            for data in SCORE_TEMPLATES:
+                req = sa.controller.service_provider.work_management.create_score(
+                    **data
+                )
+                assert req.status_code == 201
+                for component in template_data["components"]:
+                    if "scoring" in component and component["type"] == req.data["type"]:
+                        component["scoring"]["id"] = req.data["id"]
+
             res = sa.controller.service_provider.projects.attach_editor_template(
-                team, project, template=json.load(f)
+                team, project, template=template_data
             )
             assert res.ok
         sa.create_annotation_classes_from_classes_json(
@@ -85,23 +97,23 @@ class TestUserScoring(TestCase):
         sa.attach_items(path, [{"name": name, "url": "url"}])
 
     def test_set_get_scores(self):
-        scores_payload = [
-            {
-                "name": SCORE_TEMPLATES[0]["name"],
+        scores_name_payload_map = {
+            "SDK-my-score-1": {
+                "component_id": "r_34k7k7",  # rating type score
                 "value": 5,
                 "weight": 0.5,
             },
-            {
-                "name": SCORE_TEMPLATES[1]["name"],
+            "SDK-my-score-2": {
+                "component_id": "r_ioc7wd",  # number type score
                 "value": 45,
                 "weight": 1.5,
             },
-            {
-                "name": SCORE_TEMPLATES[2]["name"],
+            "SDK-my-score-3": {
+                "component_id": "r_tcof7o",  # radio type score
                 "value": None,
                 "weight": None,
             },
-        ]
+        }
         item_name = f"test_item_{uuid.uuid4()}"
         self._attach_item(self.PROJECT_NAME, item_name)
 
@@ -110,7 +122,7 @@ class TestUserScoring(TestCase):
                 project=self.PROJECT_NAME,
                 item=item_name,
                 scored_user=self.scapegoat["email"],
-                scores=scores_payload,
+                scores=list(scores_name_payload_map.values()),
             )
             assert cm.output[0] == "INFO:sa:Scores successfully set."
 
@@ -122,10 +134,8 @@ class TestUserScoring(TestCase):
         )
         assert len(created_scores) == len(SCORE_TEMPLATES)
 
-        score_name_payload_map = {s["name"]: s for s in scores_payload}
         for score in created_scores:
-            score_pyload = score_name_payload_map[score["name"]]
-            assert score["name"] == score_pyload["name"]
+            score_pyload = scores_name_payload_map[score["name"]]
             assert score["value"] == score_pyload["value"]
             assert score["weight"] == score_pyload["weight"]
             assert score["id"]
@@ -172,7 +182,7 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": None,
                         "weight": 0.5,
                     }
@@ -188,7 +198,7 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[1]["name"],
+                        "component_id": "r_ioc7wd",
                         "value": 5,
                         "weight": None,
                     }
@@ -203,7 +213,7 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": 1.2,
                         "invalid_key": 123,
@@ -212,14 +222,14 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid score name
-        with self.assertRaisesRegexp(AppException, "Please provide valid score names."):
+        with self.assertRaisesRegexp(AppException, "Invalid component_id provided"):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": "test_score_invalid",
+                        "component_id": "invalid_component_id",
                         "value": 5,
                         "weight": 0.8,
                     }
@@ -234,26 +244,26 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "weight": 1.2,
                     }
                 ],
             )
 
         # case with duplicated acore names
-        with self.assertRaisesRegexp(AppException, "Invalid Scores."):
+        with self.assertRaisesRegexp(AppException, "Component IDs in scores data must be unique."):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": 1.2,
                     },
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": 1.2,
                     },
@@ -270,7 +280,7 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": -1,
                     }
@@ -285,7 +295,7 @@ class TestUserScoring(TestCase):
                 scored_user="invalid_email@mail.com",
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": 1,
                     }
@@ -300,7 +310,7 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": 1,
                     }
@@ -315,7 +325,7 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": 1,
                     }
@@ -330,7 +340,7 @@ class TestUserScoring(TestCase):
                 scored_user=self.scapegoat["email"],
                 scores=[
                     {
-                        "name": SCORE_TEMPLATES[0]["name"],
+                        "component_id": "r_34k7k7",
                         "value": 5,
                         "weight": 1,
                     }
