@@ -5,7 +5,9 @@ from typing import Optional
 from typing import Union
 
 from lib.core import entities
+from lib.core.entities.work_managament import TelemetryScoreEntity
 from lib.core.entities.work_managament import WMProjectEntity
+from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
@@ -258,6 +260,14 @@ class WMCustomFieldResponse(ServiceResponse):
 
 class SettingsListResponse(ServiceResponse):
     res_data: List[entities.SettingEntity] = None
+
+
+class WMScoreListResponse(ServiceResponse):
+    res_data: List[WMScoreEntity] = None
+
+
+class TelemetryScoreListResponse(ServiceResponse):
+    res_data: List[TelemetryScoreEntity] = None
 
 
 PROJECT_TYPE_RESPONSE_MAP = {

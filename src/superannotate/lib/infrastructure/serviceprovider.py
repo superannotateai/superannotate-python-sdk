@@ -21,6 +21,7 @@ from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
 from lib.infrastructure.services.item_service import ItemService as SeparateItemService
 from lib.infrastructure.services.project import ProjectService
+from lib.infrastructure.services.telemetry_scoring import TelemetryScoringService
 from lib.infrastructure.services.work_management import WorkManagementService
 from lib.infrastructure.utils import CachedWorkManagementRepository
 
@@ -51,6 +52,7 @@ class ServiceProvider(BaseServiceProvider):
         self.annotation_classes = AnnotationClassService(client)
         self.integrations = IntegrationService(client)
         self.explore = ExploreService(client)
+        self.telemetry_scoring = TelemetryScoringService(client)
         self.work_management = WorkManagementService(
             HttpClient(
                 api_url=self._get_work_management_url(client),

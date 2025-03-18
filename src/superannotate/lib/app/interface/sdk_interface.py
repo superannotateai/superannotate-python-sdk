@@ -75,7 +75,6 @@ from lib.core.entities.work_managament import WMUserTypeEnum
 
 logger = logging.getLogger("sa")
 
-# NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 NotEmptyStr = constr(strict=True, min_length=1)
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
@@ -461,7 +460,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         **filters,
     ):
         """
-        Search users by filtering criteria
+        Search users, including their scores, by filtering criteria.
 
         :param project:  Project name or ID, if provided, results will be for project-level,
          otherwise results will be for team level.
@@ -471,8 +470,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             Possible values are
 
-            - "custom_fields": Includes the custom fields assigned to each user.
-        :type include: list of str, optional
+            - "custom_fields":  Includes custom fields and scores assigned to each user.
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
 
@@ -502,18 +500,35 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - email__contains: str
             - email__starts: str
             - email__ends: str
+
+            Following params if project is not selected::
+
             - state: Literal[“Confirmed”, “Pending”]
             - state__in: List[Literal[“Confirmed”, “Pending”]]
             - role: Literal[“admin”, “contributor”]
             - role__in: List[Literal[“admin”, “contributor”]]
 
-            Custom Fields Filtering:
-                - Custom fields must be prefixed with `custom_field__`.
+            Scores and Custom Field Filtering:
+
+                - Scores and other custom fields must be prefixed with `custom_field__` .
                 - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+
+            - **Text** custom field only works with the following filter params: __in, __notin, __contains
+            - **Numeric** custom field only works with the following filter params: __in, __notin, __ne, __gt, __gte, __lt, __lte
+            - **Single-select** custom field only works with the following filter params: __in, __notin, __contains
+            - **Multi-select** custom field only works with the following filter params: __in, __notin
+            - **Date picker** custom field only works with the following filter params: __gt, __gte, __lt, __lte
+
+            **If score name has a space, please use the following format to filter them**:
+            ::
+
+                user_filters = {"custom_field__accuracy score 30D__lt": 90}
+                client.list_users(include=["custom_fields"], **user_filters)
+
 
         :type filters: UserFilters, optional
 
-        :return: A list of team users metadata that matches the filtering criteria
+        :return: A list of team/project users metadata that matches the filtering criteria
         :rtype: list of dicts
 
         Request Example:
@@ -544,6 +559,82 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "team_id": 44311,
                 }
             ]
+
+        Request Example:
+        ::
+
+            # Project level scores
+
+            scores = client.list_users(
+                include=["custom_fields"],
+                project="my_multimodal",
+                email__contains="@superannotate.com",
+                custom_field__speed__gte=90,
+                custom_field__weight__lte=1,
+            )
+
+        Response Example:
+        ::
+
+            # Project level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {"speed": 92, "weight": 0.8},
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Annotator",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
+        Request Example:
+        ::
+
+            # Team level scores
+
+            user_filters = {
+                "custom_field__accuracy score 30D__lt": 95,
+                "custom_field__speed score 7D__lt": 15
+            }
+
+            scores = client.list_users(
+                include=["custom_fields"],
+                email__contains="@superannotate.com",
+                role="Contributor",
+                **user_filters
+            )
+
+        Response Example:
+        ::
+
+            # Team level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {
+                        "Test custom field": 80,
+                        "Tag custom fields": ["Tag1", "Tag2"],
+                        "accuracy score 30D": 95,
+                        "accuracy score 14D": 47,
+                        "accuracy score 7D": 24,
+                        "speed score 30D": 33,
+                        "speed score 14D": 22,
+                        "speed score 7D": 11,
+                    },
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Contributor",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
         """
         if project is not None:
             if isinstance(project, int):
@@ -608,6 +699,149 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             f"User with email {user.email} has been successfully unblocked from the specified projects: {projects}."
         )
 
+    def get_user_scores(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        item: Union[NotEmptyStr, int],
+        scored_user: NotEmptyStr,
+        *,
+        score_names: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve score metadata for a user for a specific item in a specific project.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param item:  The unique ID or name of the item.
+        :type item: Union[str, int]
+
+        :param scored_user:  The email address of the project user.
+        :type scored_user: str
+
+        :param score_names:  A list of score names to filter by. If None, returns all scores.
+        :type score_names: Optional[List[str]]
+
+        :return: A list of dictionaries containing score metadata for the user.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.get_user_scores(
+                project=("my_multimodal", "folder1"),
+                item="item1",
+                scored_user="example@superannotate.com",
+                score_names=["Accuracy Score", "Speed"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2024-06-01T13:00:00",
+                    "updatedAt": "2024-06-01T13:00:00",
+                    "id": 3217575,
+                    "name": "Accuracy Score",
+                    "value": 98,
+                    "weight": 4,
+                },
+                {
+                    "createdAt": "2024-06-01T13:00:00",
+                    "updatedAt": "2024-06-01T13:00:00",
+                    "id": 5657575,
+                    "name": "Speed",
+                    "value": 9,
+                    "weight": 0.4,
+                },
+            ]
+        """
+        project, folder = self.controller.get_project_folder(project)
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+
+        item = self.controller.get_item(project=project, folder=folder, item=item)
+        response = BaseSerializer.serialize_iterable(
+            self.controller.work_management.get_user_scores(
+                project=project,
+                item=item,
+                scored_user=scored_user,
+                provided_score_names=score_names,
+            )
+        )
+        return response
+
+    def set_user_scores(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        item: Union[NotEmptyStr, int],
+        scored_user: NotEmptyStr,
+        scores: List[Dict[str, Any]],
+    ):
+        """
+        Assign score metadata for a user in a scoring component.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param item:  The unique ID or name of the item.
+        :type item: Union[str, int]
+
+        :param scored_user:  Set the email of the user being scored.
+        :type scored_user: str
+
+        :param scores: A list of dictionaries containing the following key-value pairs:
+                * **component_id** (*str*): The component_id of the score (required).
+                * **value** (*Any*): The score value (required).
+                * **weight** (*Union[float, int]*, optional): The weight of the score. Defaults to `1` if not provided.
+
+            **Example**:
+            ::
+
+                scores = [
+                    {
+                        "component_id": "<component_id_for_score>",  # str (required)
+                        "value": 90,      # Any (required)
+                        "weight": 1       # Union[float, int] (optional, defaults to 1.0 if not provided)
+                    }
+                ]
+        :type scores: List[Dict[str, Any]
+
+        Request Example:
+        ::
+
+            client.set_user_scores(
+                project=("my_multimodal", "folder1"),
+                item_=12345,
+                scored_user="example@superannotate.com",
+                scores=[
+                    {"component_id": "r_kfrp3n", "value": 90},
+                    {"component_id": "h_jbrp4v", "value": 9, "weight": 4.0},
+                    {"component_id": "m_kf8pss", "value": None, "weight": None},
+                ]
+            )
+
+        """
+        project, folder = self.controller.get_project_folder(project)
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+        item = self.controller.get_item(project=project, folder=folder, item=item)
+        editor_template = self.controller.projects.get_editor_template(project.id)
+        components = editor_template.get("components", [])
+        self.controller.work_management.set_user_scores(
+            project=project,
+            item=item,
+            scored_user=scored_user,
+            scores=scores,
+            components=components,
+        )
+        logger.info("Scores successfully set.")
+
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
         Retrieves the configuration for a given project and component ID.
@@ -660,7 +894,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "This function is only supported for Multimodal projects."
             )
 
-        editor_template = self.controller.projects.get_editor_template(project)
+        editor_template = self.controller.projects.get_editor_template(project.id)
         components = editor_template.get("components", [])
 
         _found, _context = retrieve_context(components, component_id)
@@ -1013,7 +1247,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of folder
         :rtype: dict
         """
-        project, folder = self.controller.get_project_folder(project, folder_name)
+        project, folder = self.controller.get_project_folder((project, folder_name))
         if not folder:
             raise AppException("Folder not found.")
         return BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
@@ -1565,7 +1799,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if not verified_users:
             return
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.folders.assign_users(
             project=project,
             folder=folder,
@@ -2523,7 +2759,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
         )
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.annotations.upload_from_folder(
             project=project,
             folder=folder,
@@ -3022,7 +3260,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         scores = parse_obj_as(List[PriorityScoreEntity], scores)
         project_name, folder_name = extract_project_folder(project)
         project_folder_name = project
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.projects.upload_priority_scores(
             project, folder, scores, project_folder_name
         )
@@ -3743,7 +3983,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 f"Attaching {len(_unique_attachments)} file(s) to project {project}."
             )
             project, folder = self.controller.get_project_folder(
-                project_name, folder_name
+                (project_name, folder_name)
             )
             response = self.controller.items.attach(
                 project=project,
@@ -3971,7 +4211,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: str
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.annotations.download(
             project=project,
             folder=folder,
@@ -4251,7 +4493,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.custom_fields.upload_values(
             project=project, folder=folder, items=items
         )
@@ -4288,7 +4532,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.custom_fields.delete_values(
             project=project, folder=folder, items=items
         )

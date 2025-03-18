@@ -149,6 +149,18 @@ class TestWorkManagement(TestCase):
         )[0]
         assert scapegoat["custom_fields"]["SDK_test_date_picker"] == value
 
+        # by date_picker with dict **filters
+        value = round(time.time(), 3)
+        filters = {
+            "email": scapegoat["email"],
+            "custom_field__SDK_test_date_picker": value,
+        }
+        scapegoat = sa.list_users(
+            include=["custom_fields"],
+            **filters,
+        )[0]
+        assert scapegoat["custom_fields"]["SDK_test_date_picker"] == value
+
         # by date_picker None case
         sa.set_user_custom_field(
             scapegoat["email"],
