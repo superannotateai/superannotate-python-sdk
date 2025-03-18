@@ -57,6 +57,7 @@ class TimedBaseModel(BaseModel):
 class BaseItemEntity(TimedBaseModel):
     id: Optional[int]
     name: Optional[str]
+    folder_id: Optional[int]
     path: Optional[str] = Field(
         None, description="Item’s path in SuperAnnotate project"
     )
