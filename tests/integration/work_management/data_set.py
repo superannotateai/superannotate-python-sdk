@@ -49,3 +49,25 @@ FIELD_VALUE_MAP = {
     "SDK_test_single_select": "option1",
     "SDK_test_multi_select": ["option1", "option2"],
 }
+
+
+SCORE_TEMPLATES = [
+    {
+        "name": "SDK-my-score-1",
+        "description": "",
+        "score_type": "rating",
+        "payload": {"numberOfStars": 10},
+    },
+    {
+        "name": "SDK-my-score-2",
+        "description": "",
+        "score_type": "number",
+        "payload": {"min": 1, "max": 100, "step": 1},
+    },
+    {
+        "name": "SDK-my-score-3",
+        "description": "",
+        "score_type": "radio",
+        "payload": {"options": [{"value": "1"}, {"value": "2"}, {"value": "3"}]},
+    },
+]

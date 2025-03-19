@@ -1,0 +1,146 @@
+{
+  "components": [
+    {
+      "id": "component_id_0",
+      "type": "select",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "Select",
+      "isRequired": false,
+      "value": [],
+      "exclude": false,
+      "disablePasting": false,
+      "options": [
+        {
+          "value": "Partially complete, needs review",
+          "checked": false
+        },
+        {
+          "value": "Incomplete",
+          "checked": false
+        },
+        {
+          "value": "Complete",
+          "checked": false
+        },
+        {
+          "value": "4",
+          "checked": false
+        }
+      ],
+      "isMultiselect": true,
+      "placeholder": "Select"
+    },
+    {
+      "id": "component_id_1",
+      "type": "input",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "Text input",
+      "isRequired": false,
+      "value": "",
+      "exclude": false,
+      "disablePasting": false,
+      "placeholder": "Placeholder",
+      "min": 0,
+      "max": 300
+    },
+    {
+      "id": "component_id_2",
+      "type": "number",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "Number",
+      "isRequired": false,
+      "value": null,
+      "exclude": false,
+      "disablePasting": false,
+      "min": null,
+      "max": null,
+      "step": 1
+    },
+    {
+      "id": "r_34k7k7",
+      "type": "rating",
+      "permissions": [],
+      "hasTooltip": false,
+      "scoring": {
+        "id": null,
+        "role": {
+          "id": 1,
+          "name": "Annotator"
+        },
+        "name": "SDK-my-score-1"
+      },
+      "label": "SDK-my-score-1",
+      "isRequired": false,
+      "value": null,
+      "exclude": false,
+      "disablePasting": false,
+      "numberOfStars": 10
+    },
+    {
+      "id": "r_ioc7wd",
+      "type": "number",
+      "permissions": [],
+      "hasTooltip": false,
+      "scoring": {
+        "id": null,
+        "role": {
+          "id": 1,
+          "name": "Annotator"
+        },
+        "name": "SDK-my-score-2"
+      },
+      "label": "SDK-my-score-2",
+      "isRequired": false,
+      "value": null,
+      "exclude": false,
+      "disablePasting": false,
+      "min": 1,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "r_tcof7o",
+      "type": "radio",
+      "permissions": [],
+      "hasTooltip": false,
+      "scoring": {
+        "id": null,
+        "role": {
+          "id": 1,
+          "name": "Annotator"
+        },
+        "name": "SDK-my-score-3"
+      },
+      "label": "SDK-my-score-3",
+      "isRequired": false,
+      "value": "",
+      "exclude": false,
+      "disablePasting": false,
+      "options": [
+        {
+          "value": "1",
+          "checked": null
+        },
+        {
+          "value": "2",
+          "checked": null
+        },
+        {
+          "value": "3",
+          "checked": null
+        }
+      ],
+      "layout": "column"
+    }
+  ],
+  "code": [
+    [
+      "__init__",
+      "from typing import List, Union\n# import requests.asyncs as requests\nimport requests\nimport sa\n\nnumber_component_id_2 = ['component_id_2']\nselect_component_id_0 = ['component_id_0']\ninput_component_id_1 = ['component_id_1']\n\ndef before_save_hook(old_status: str, new_status: str) -> bool:\n    # Your code goes here\n    return\n\ndef on_saved_hook():\n    # Your code goes here\n    return\n\ndef before_status_change_hook(old_status: str, new_status: str) -> bool:\n    # Your code goes here\n    return\n\ndef on_status_changed_hook(old_status: str, new_status: str):\n    # Your code goes here\n    return\n\ndef post_hook():\n    # Your code goes here\n    return\n\ndef on_component_id_2_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_component_id_0_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_component_id_1_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n"
+    ]
+  ],
+  "environments": []
+}

@@ -29,6 +29,7 @@ from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
+from lib.core.service_types import WMScoreListResponse
 from lib.core.service_types import WMUserListResponse
 from lib.core.service_types import WorkflowListResponse
 from lib.core.types import Attachment
@@ -147,7 +148,12 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def list_users(
-        self, body_query: Query, chunk_size=100, include_custom_fields=False
+        self,
+        body_query: Query,
+        parent_entity: str = "Team",
+        chunk_size=100,
+        project_id: int = None,
+        include_custom_fields=False,
     ) -> WMUserListResponse:
         raise NotImplementedError
 
@@ -192,6 +198,24 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     ) -> ServiceResponse:
         raise NotImplementedError
 
+    @abstractmethod
+    def list_scores(self) -> WMScoreListResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_score(
+        self,
+        name: str,
+        description: Optional[str],
+        score_type: Literal["rating", "number", "radio"],
+        payload: dict,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_score(self, score_id: int) -> ServiceResponse:
+        raise NotImplementedError
+
 
 class BaseProjectService(SuperannotateServiceProvider):
     @abstractmethod
@@ -210,7 +234,7 @@ class BaseProjectService(SuperannotateServiceProvider):
 
     @abstractmethod
     def get_editor_template(
-        self, team: entities.TeamEntity, project: entities.ProjectEntity
+        self, organization_id: str, project_id: int
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -501,6 +525,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         download_path: str,
         item: entities.BaseItemEntity,
         callback: Callable = None,
+        transform_version: str = None,
     ):
         raise NotImplementedError
 
@@ -513,6 +538,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         download_path: str,
         item_ids: List[int],
         callback: Callable = None,
+        transform_version: str = None,
     ):
         raise NotImplementedError
 
@@ -681,6 +707,20 @@ class BaseExploreService(SuperannotateServiceProvider):
         raise NotImplementedError
 
 
+class BaseTelemetryScoringService(SuperannotateServiceProvider):
+    @abstractmethod
+    def get_score_values(self, project_id: int, item_id: int, user_id: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_score_values(
+        self,
+        project_id: int,
+        data: List[dict],
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+
 class BaseServiceProvider:
     projects: BaseProjectService
     folders: BaseFolderService
@@ -694,6 +734,12 @@ class BaseServiceProvider:
 
     @abstractmethod
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_category_id(
+        self, project: entities.ProjectEntity, category_name: str
+    ) -> int:
         raise NotImplementedError
 
     @abstractmethod
@@ -804,23 +850,40 @@ class BaseServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
-    def list_custom_field_names(self, entity: CustomFieldEntityEnum) -> List[str]:
+    def list_custom_field_names(
+        self, pk, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ) -> List[str]:
         raise NotImplementedError
 
     @abstractmethod
     def get_custom_field_id(
-        self, field_name: str, entity: CustomFieldEntityEnum
+        self,
+        field_name: str,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> int:
         raise NotImplementedError
 
     @abstractmethod
     def get_custom_field_name(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
         raise NotImplementedError
 
     @abstractmethod
     def get_custom_field_component_id(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_custom_fields_templates(
+        self, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ):
         raise NotImplementedError

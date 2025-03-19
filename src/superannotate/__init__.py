@@ -3,7 +3,8 @@ import os
 import sys
 
 
-__version__ = "4.4.33b1"
+__version__ = "4.4.33dev4"
+
 
 os.environ.update({"sa_version": __version__})
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
@@ -20,6 +21,7 @@ from superannotate.lib.app.input_converters import convert_project_type
 from superannotate.lib.app.input_converters import export_annotation
 from superannotate.lib.app.input_converters import import_annotation
 from superannotate.lib.app.interface.sdk_interface import SAClient
+from superannotate.lib.app.interface.sdk_interface import ItemContext
 
 
 SESSIONS = {}
@@ -28,6 +30,7 @@ SESSIONS = {}
 __all__ = [
     "__version__",
     "SAClient",
+    "ItemContext",
     # Utils
     "enums",
     "AppException",

@@ -1,3 +1,4 @@
+import copy
 import io
 import logging
 import os
@@ -34,6 +35,8 @@ from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
 from lib.core.entities.filters import UserFilters
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.entities.work_managament import ScoreEntity
+from lib.core.entities.work_managament import ScorePayloadEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectType
@@ -73,9 +76,22 @@ def build_condition(**kwargs) -> Condition:
 
 
 def serialize_custom_fields(
-    service_provider: ServiceProvider, data: List[dict], entity: CustomFieldEntityEnum
+    team_id: int,
+    project_id: int,
+    service_provider: ServiceProvider,
+    data: List[dict],
+    entity: CustomFieldEntityEnum,
+    parent_entity: CustomFieldEntityEnum,
 ) -> List[dict]:
-    existing_custom_fields = service_provider.list_custom_field_names(entity)
+    pk = (
+        project_id
+        if entity == CustomFieldEntityEnum.PROJECT
+        else (team_id if parent_entity == CustomFieldEntityEnum.TEAM else project_id)
+    )
+
+    existing_custom_fields = service_provider.list_custom_field_names(
+        pk, entity, parent=parent_entity
+    )
     for i in range(len(data)):
         if not data[i]:
             data[i] = {}
@@ -85,7 +101,7 @@ def serialize_custom_fields(
             field_id = int(custom_field_name)
             try:
                 component_id = service_provider.get_custom_field_component_id(
-                    field_id, entity=entity
+                    field_id, entity=entity, parent=parent_entity
                 )
             except AppException:
                 # The component template can be deleted, but not from the entity, so it will be skipped.
@@ -95,7 +111,7 @@ def serialize_custom_fields(
                 field_value /= 1000  # Convert timestamp
 
             new_field_name = service_provider.get_custom_field_name(
-                field_id, entity=entity
+                field_id, entity=entity, parent=parent_entity
             )
             updated_fields[new_field_name] = field_value
 
@@ -139,10 +155,10 @@ class WorkManagementManager(BaseManager):
         if entity == CustomFieldEntityEnum.PROJECT:
             _context["project_id"] = entity_id
         template_id = self.service_provider.get_custom_field_id(
-            field_name, entity=entity
+            field_name, entity=entity, parent=parent_entity
         )
         component_id = self.service_provider.get_custom_field_component_id(
-            template_id, entity=entity
+            template_id, entity=entity, parent=parent_entity
         )
         # timestamp: convert seconds to milliseconds
         if component_id == CustomFieldType.DATE_PICKER.value and value is not None:
@@ -159,40 +175,59 @@ class WorkManagementManager(BaseManager):
             context=_context,
         )
 
-    def list_users(self, include: List[Literal["custom_fields"]] = None, **filters):
+    def list_users(
+        self, include: List[Literal["custom_fields"]] = None, project=None, **filters
+    ):
+        if project:
+            parent_entity = CustomFieldEntityEnum.PROJECT
+            project_id = project.id
+        else:
+            parent_entity = CustomFieldEntityEnum.TEAM
+            project_id = None
         valid_fields = generate_schema(
             UserFilters.__annotations__,
             self.service_provider.get_custom_fields_templates(
-                CustomFieldEntityEnum.CONTRIBUTOR
+                CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
             ),
         )
         chain = QueryBuilderChain(
             [
                 FieldValidationHandler(valid_fields.keys()),
                 UserFilterHandler(
+                    team_id=self.service_provider.client.team_id,
+                    project_id=project_id,
                     service_provider=self.service_provider,
                     entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                    parent=parent_entity,
                 ),
             ]
         )
         query = chain.handle(filters, EmptyQuery())
         if include and "custom_fields" in include:
             response = self.service_provider.work_management.list_users(
-                query, include_custom_fields=True
+                query,
+                include_custom_fields=True,
+                parent_entity=parent_entity,
+                project_id=project_id,
             )
             if not response.ok:
                 raise AppException(response.error)
             users = response.data
             custom_fields_list = [user.custom_fields for user in users]
             serialized_fields = serialize_custom_fields(
+                self.service_provider.client.team_id,
+                project_id,
                 self.service_provider,
                 custom_fields_list,
-                CustomFieldEntityEnum.CONTRIBUTOR,
+                entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                parent_entity=parent_entity,
             )
             for users, serialized_custom_fields in zip(users, serialized_fields):
                 users.custom_fields = serialized_custom_fields
             return response.data
-        return self.service_provider.work_management.list_users(query).data
+        return self.service_provider.work_management.list_users(
+            query, parent_entity=parent_entity, project_id=project_id
+        ).data
 
     def update_user_activity(
         self,
@@ -231,6 +266,138 @@ class WorkManagementManager(BaseManager):
                 body_query=body_query, action=action
             )
             res.raise_for_status()
+
+    def get_user_scores(
+        self,
+        project: ProjectEntity,
+        item: BaseItemEntity,
+        scored_user: str,
+        provided_score_names: Optional[List[str]] = None,
+    ):
+        score_fields_res = self.service_provider.work_management.list_scores()
+
+        # validate provided score names
+        all_score_names = [s.name for s in score_fields_res.data]
+        if provided_score_names and set(provided_score_names) - set(all_score_names):
+            raise AppException("Please provide valid score names.")
+
+        score_id_form_entity_map = {s.id: s for s in score_fields_res.data}
+
+        score_values = self.service_provider.telemetry_scoring.get_score_values(
+            project_id=project.id, item_id=item.id, user_id=scored_user
+        )
+        score_id_values_map = {s.score_id: s for s in score_values.data}
+
+        scores = []
+        for s_id, s_values in score_id_values_map.items():
+            score_entity = score_id_form_entity_map.get(s_id)
+            if score_entity:
+                score = ScoreEntity(
+                    id=s_id,
+                    name=score_entity.name,
+                    value=s_values.value,
+                    weight=s_values.weight,
+                    createdAt=score_entity.createdAt,
+                    updatedAt=score_entity.updatedAt,
+                )
+                if provided_score_names:
+                    if score_entity.name in provided_score_names:
+                        scores.append(score)
+                else:
+                    scores.append(score)
+        return scores
+
+    @staticmethod
+    def _validate_scores(scores: List[dict]) -> List[ScorePayloadEntity]:
+        score_objects: List[ScorePayloadEntity] = []
+
+        for s in scores:
+            if "value" not in s:
+                raise AppException("Invalid Scores.")
+            try:
+                score_objects.append(ScorePayloadEntity(**s))
+            except AppException:
+                raise
+            except Exception:
+                raise AppException("Invalid Scores.")
+
+        component_ids = [score.component_id for score in score_objects]
+        if len(component_ids) != len(set(component_ids)):
+            raise AppException("Component IDs in scores data must be unique.")
+        return score_objects
+
+    @staticmethod
+    def retrieve_scores(
+        components: List[dict], score_component_ids: List[str]
+    ) -> Dict[str, Dict]:
+        score_component_ids = copy.copy(score_component_ids)
+        found_scores = {}
+        try:
+
+            def _retrieve_score_recursive(
+                all_components: List[dict], component_ids: List[str]
+            ):
+                for component in all_components:
+                    if "children" in component:
+                        _retrieve_score_recursive(component["children"], component_ids)
+                    if "scoring" in component and component["id"] in component_ids:
+                        component_ids.remove(component["id"])
+                        found_scores[component["id"]] = {
+                            "score_id": component["scoring"]["id"],
+                            "user_role_name": component["scoring"]["role"]["name"],
+                            "user_role": component["scoring"]["role"]["id"],
+                        }
+
+            _retrieve_score_recursive(components, score_component_ids)
+        except KeyError:
+            raise AppException("An error occurred while parsing the editor template.")
+        return found_scores
+
+    def set_user_scores(
+        self,
+        project: ProjectEntity,
+        item: BaseItemEntity,
+        scored_user: str,
+        scores: List[Dict[str, Any]],
+        components: List[dict],
+    ):
+        users = self.list_users(email=scored_user)
+        if not users:
+            raise AppException("User not found.")
+        user = users[0]
+
+        # get validate scores
+        scores: List[ScorePayloadEntity] = self._validate_scores(scores)
+
+        provided_score_component_ids = [s.component_id for s in scores]
+        component_id_score_data_map = self.retrieve_scores(
+            components, provided_score_component_ids
+        )
+
+        if len(component_id_score_data_map) != len(scores):
+            raise AppException("Invalid component_id provided")
+
+        scores_to_set: List[dict] = []
+        for s in scores:
+            score_data = {
+                "item_id": item.id,
+                "score_id": component_id_score_data_map[s.component_id]["score_id"],
+                "user_role_name": component_id_score_data_map[s.component_id][
+                    "user_role_name"
+                ],
+                "user_role": component_id_score_data_map[s.component_id]["user_role"],
+                "user_id": user.email,
+                "value": s.value,
+                "weight": s.weight,
+                "component_id": s.component_id,
+            }
+            scores_to_set.append(score_data)
+        res = self.service_provider.telemetry_scoring.set_score_values(
+            project_id=project.id, data=scores_to_set
+        )
+        if res.status_code == 400:
+            res.res_error = "Please provide valid score values."
+        res.raise_for_status()
 
 
 class ProjectManager(BaseManager):
@@ -391,9 +558,10 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def get_editor_template(self, project: ProjectEntity) -> dict:
+    @timed_lru_cache(seconds=5)
+    def get_editor_template(self, project_id: int) -> dict:
         response = self.service_provider.projects.get_editor_template(
-            team=self._team, project=project
+            organization_id=self._team.owner_id, project_id=project_id
         )
         response.raise_for_status()
         return response.data
@@ -406,14 +574,18 @@ class ProjectManager(BaseManager):
         valid_fields = generate_schema(
             ProjectFilters.__annotations__,
             self.service_provider.get_custom_fields_templates(
-                CustomFieldEntityEnum.PROJECT
+                CustomFieldEntityEnum.PROJECT, parent=CustomFieldEntityEnum.TEAM
             ),
         )
         chain = QueryBuilderChain(
             [
                 FieldValidationHandler(valid_fields.keys()),
                 ProjectFilterHandler(
-                    self.service_provider, entity=CustomFieldEntityEnum.PROJECT
+                    team_id=self.service_provider.client.team_id,
+                    project_id=None,
+                    service_provider=self.service_provider,
+                    entity=CustomFieldEntityEnum.PROJECT,
+                    parent=CustomFieldEntityEnum.TEAM,
                 ),
             ]
         )
@@ -435,7 +607,11 @@ class ProjectManager(BaseManager):
         if include_custom_fields:
             custom_fields_list = [project.custom_fields for project in projects]
             serialized_fields = serialize_custom_fields(
-                self.service_provider, custom_fields_list, CustomFieldEntityEnum.PROJECT
+                self.service_provider.client.team_id,
+                None,
+                self.service_provider,
+                custom_fields_list,
+                CustomFieldEntityEnum.PROJECT,
             )
             for project, serialized_custom_fields in zip(projects, serialized_fields):
                 project.custom_fields = serialized_custom_fields
@@ -932,6 +1108,7 @@ class AnnotationManager(BaseManager):
         recursive: bool,
         item_names: Optional[List[str]],
         callback: Optional[Callable],
+        transform_version: str,
     ):
         use_case = usecases.DownloadAnnotations(
             config=self._config,
@@ -943,6 +1120,7 @@ class AnnotationManager(BaseManager):
             item_names=item_names,
             service_provider=self.service_provider,
             callback=callback,
+            transform_version=transform_version,
         )
         return use_case.execute()
 
@@ -1315,14 +1493,7 @@ class Controller(BaseController):
         self, path: Union[str, Path]
     ) -> Tuple[ProjectEntity, FolderEntity]:
         project_name, folder_name = extract_project_folder(path)
-        return self.get_project_folder(project_name, folder_name)
-
-    def get_project_folder(
-        self, project_name: str, folder_name: str = None
-    ) -> Tuple[ProjectEntity, FolderEntity]:
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
-        return project, folder
+        return self.get_project_folder((project_name, folder_name))
 
     def get_project(self, name: str) -> ProjectEntity:
         project = self.projects.get_by_name(name).data
@@ -1692,3 +1863,32 @@ class Controller(BaseController):
         if response.errors:
             raise AppException(response.errors)
         return response.data["count"]
+
+    def get_project_folder(
+        self, path: Union[str, Tuple[int, int], Tuple[str, str]]
+    ) -> Tuple[ProjectEntity, Optional[FolderEntity]]:
+        if isinstance(path, str):
+            project_name, folder_name = extract_project_folder(path)
+            project = self.get_project(project_name)
+            return project, self.get_folder(project, folder_name)
+
+        if isinstance(path, tuple) and len(path) == 2:
+            project_pk, folder_pk = path
+            if all(isinstance(x, int) for x in path):
+                return (
+                    self.get_project_by_id(project_pk).data,
+                    self.get_folder_by_id(folder_pk, project_pk).data,
+                )
+            if all(isinstance(x, str) for x in path):
+                project = self.get_project(project_pk)
+                return project, self.get_folder(project, folder_pk)
+
+        raise AppException("Provided project param is not valid.")
+
+    def get_item(
+        self, project: ProjectEntity, folder: FolderEntity, item: Union[int, str]
+    ) -> BaseItemEntity:
+        if isinstance(item, int):
+            return self.get_item_by_id(item_id=item, project=project)
+        else:
+            return self.items.get_by_name(project, folder, item)

@@ -1,22 +1,25 @@
 import base64
 import json
 from typing import List
+from typing import Literal
 from typing import Optional
 
 from lib.core.entities import CategoryEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.work_managament import WMProjectEntity
+from lib.core.entities.work_managament import WMProjectUserEntity
+from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
-from lib.core.pydantic_v1 import Literal
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
+from lib.core.service_types import WMScoreListResponse
 from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
 
@@ -56,10 +59,13 @@ class WorkManagementService(BaseWorkManagementService):
     URL_LIST_CATEGORIES = "categories"
     URL_CREATE_CATEGORIES = "categories/bulk"
     URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
+    URL_SCORES = "scores"
+    URL_DELETE_SCORE = "scores/{score_id}"
     URL_CUSTOM_FIELD_TEMPLATE_DELETE = "customfieldtemplates/{template_id}"
     URL_SET_CUSTOM_ENTITIES = "customentities/{pk}"
     URL_SEARCH_CUSTOM_ENTITIES = "customentities/search"
     URL_SEARCH_TEAM_USERS = "teamusers/search"
+    URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
 
@@ -259,27 +265,42 @@ class WorkManagementService(BaseWorkManagementService):
         )
 
     def list_users(
-        self, body_query: Query, chunk_size=100, include_custom_fields=False
+        self,
+        body_query: Query,
+        chunk_size=100,
+        parent_entity: str = "Team",
+        project_id: int = None,
+        include_custom_fields=False,
     ) -> WMUserListResponse:
         if include_custom_fields:
             url = self.URL_SEARCH_CUSTOM_ENTITIES
         else:
-            url = self.URL_SEARCH_TEAM_USERS
+            if parent_entity == "Team":
+                url = self.URL_SEARCH_TEAM_USERS
+            else:
+                url = self.URL_SEARCH_PROJECT_USERS
+        if project_id is None:
+            user_entity = WMUserEntity
+            entity_context = self._generate_context(team_id=self.client.team_id)
+        else:
+            user_entity = WMProjectUserEntity
+            entity_context = self._generate_context(
+                team_id=self.client.team_id,
+                project_id=project_id,
+            )
         return self.client.jsx_paginate(
             url=url,
             method="post",
             body_query=body_query,
             query_params={
                 "entity": "Contributor",
-                "parentEntity": "Team",
+                "parentEntity": parent_entity,
             },
             headers={
-                "x-sa-entity-context": self._generate_context(
-                    team_id=self.client.team_id
-                ),
+                "x-sa-entity-context": entity_context,
             },
             chunk_size=chunk_size,
-            item_type=WMUserEntity,
+            item_type=user_entity,
         )
 
     def create_custom_field_template(
@@ -377,6 +398,52 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_RESUME_PAUSE_USER,
             method="post",
             data=body,
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id
+                ),
+            },
+        )
+
+    def list_scores(self) -> WMScoreListResponse:
+        return self.client.paginate(
+            url=self.URL_SCORES,
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            item_type=WMScoreEntity,
+        )
+
+    def create_score(
+        self,
+        name: str,
+        description: Optional[str],
+        score_type: Literal["rating", "number", "radio"],
+        payload: dict,
+    ) -> ServiceResponse:
+        data = {
+            "name": name,
+            "description": description,
+            "type": score_type,
+            "payload": payload,
+        }
+        return self.client.request(
+            url=self.URL_SCORES,
+            method="post",
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=int(self.client.team_id)  # TODO delete int after BED fix
+                ),
+            },
+            data=data,
+        )
+
+    def delete_score(self, score_id: int) -> ServiceResponse:
+        return self.client.request(
+            url=self.URL_DELETE_SCORE.format(score_id=score_id),
+            method="delete",
             headers={
                 "x-sa-entity-context": self._generate_context(
                     team_id=self.client.team_id

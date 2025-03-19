@@ -21,6 +21,7 @@ from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
 from lib.infrastructure.services.item_service import ItemService as SeparateItemService
 from lib.infrastructure.services.project import ProjectService
+from lib.infrastructure.services.telemetry_scoring import TelemetryScoringService
 from lib.infrastructure.services.work_management import WorkManagementService
 from lib.infrastructure.utils import CachedWorkManagementRepository
 
@@ -51,6 +52,7 @@ class ServiceProvider(BaseServiceProvider):
         self.annotation_classes = AnnotationClassService(client)
         self.integrations = IntegrationService(client)
         self.explore = ExploreService(client)
+        self.telemetry_scoring = TelemetryScoringService(client)
         self.work_management = WorkManagementService(
             HttpClient(
                 api_url=self._get_work_management_url(client),
@@ -69,35 +71,57 @@ class ServiceProvider(BaseServiceProvider):
             5, self.work_management
         )
 
-    def get_custom_fields_templates(self, entity: CustomFieldEntityEnum):
+    def get_custom_fields_templates(
+        self, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ):
         return self._cached_work_management_repository.list_templates(
-            self.client.team_id, entity=entity
+            self.client.team_id, entity=entity, parent=parent
         )
 
-    def list_custom_field_names(self, entity: CustomFieldEntityEnum) -> List[str]:
+    def list_custom_field_names(
+        self, pk, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+    ) -> List[str]:
         return self._cached_work_management_repository.list_custom_field_names(
-            self.client.team_id, entity=entity
+            pk,
+            entity=entity,
+            parent=parent,
+        )
+
+    def get_category_id(
+        self, project: entities.ProjectEntity, category_name: str
+    ) -> int:
+        return self._cached_work_management_repository.get_category_id(
+            project, category_name
         )
 
     def get_custom_field_id(
-        self, field_name: str, entity: CustomFieldEntityEnum
+        self,
+        field_name: str,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> int:
         return self._cached_work_management_repository.get_custom_field_id(
-            self.client.team_id, field_name, entity=entity
+            self.client.team_id, field_name, entity=entity, parent=parent
         )
 
     def get_custom_field_name(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
         return self._cached_work_management_repository.get_custom_field_name(
-            self.client.team_id, field_id, entity=entity
+            self.client.team_id, field_id, entity=entity, parent=parent
         )
 
     def get_custom_field_component_id(
-        self, field_id: int, entity: CustomFieldEntityEnum
+        self,
+        field_id: int,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> str:
         return self._cached_work_management_repository.get_custom_field_component_id(
-            self.client.team_id, field_id, entity=entity
+            self.client.team_id, field_id, entity=entity, parent=parent
         )
 
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
