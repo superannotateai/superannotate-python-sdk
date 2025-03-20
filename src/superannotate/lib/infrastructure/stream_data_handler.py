@@ -5,6 +5,7 @@ import os
 import threading
 import time
 import typing
+from contextlib import suppress
 from functools import lru_cache
 from typing import Callable
 
@@ -42,6 +43,7 @@ class StreamedAnnotations:
         self._callback: Callable = callback
         self._map_function = map_function
         self._items_downloaded = 0
+        self._active_sessions = set()
 
     def get_json(self, data: bytes):
         try:
@@ -113,7 +115,7 @@ class StreamedAnnotations:
     def _get_session(self, thread_id, ttl=None):  # noqa
         del ttl
         del thread_id
-        return AIOHttpSession(
+        session = AIOHttpSession(
             headers=self._headers,
             timeout=TIMEOUT,
             connector=aiohttp.TCPConnector(
@@ -121,6 +123,8 @@ class StreamedAnnotations:
             ),
             raise_for_status=True,
         )
+        self._active_sessions.add(session)
+        return session
 
     def get_session(self):
         return self._get_session(
@@ -128,6 +132,9 @@ class StreamedAnnotations:
         )
 
     def rest_session(self):
+        for s in self._active_sessions:
+            with suppress(Exception):
+                s.close()
         self._get_session.cache_clear()
 
     async def list_annotations(

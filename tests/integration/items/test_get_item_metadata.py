@@ -20,6 +20,7 @@ class TestGetEntityMetadataVector(BaseTestCase):
     EXPECTED_ITEM_METADATA = {
         "name": "example_image_1.jpg",
         "path": "TestGetEntityMetadataVector",
+        "folder_id": None,
         "url": None,
         "annotator_email": None,
         "qa_email": None,
