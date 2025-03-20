@@ -1,0 +1,269 @@
+[
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566574,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_1hb7yn",
+        "color": "#52C1D3",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417151,
+                "group_type": "text",
+                "class_id": 5566574,
+                "name": "value_r_1hb7yn",
+                "attributes": []
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566575,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_djuko8",
+        "color": "#31E52E",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417152,
+                "group_type": "radio",
+                "class_id": 5566575,
+                "name": "value_r_djuko8",
+                "attributes": [
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107671,
+                        "group_id": 5417152,
+                        "project_id": 934113,
+                        "name": "Option 1",
+                        "default": 0
+                    },
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107672,
+                        "group_id": 5417152,
+                        "project_id": 934113,
+                        "name": "Option 2",
+                        "default": 0
+                    },
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107673,
+                        "group_id": 5417152,
+                        "project_id": 934113,
+                        "name": "Option 3",
+                        "default": 0
+                    }
+                ],
+                "default_value": null
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566576,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_vezcsh",
+        "color": "#4E5C9F",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417153,
+                "group_type": "text",
+                "class_id": 5566576,
+                "name": "value_r_vezcsh",
+                "attributes": []
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566577,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_r85m12",
+        "color": "#665539",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417154,
+                "group_type": "text",
+                "class_id": 5566577,
+                "name": "value_r_r85m12",
+                "attributes": []
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566578,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_81z4ae",
+        "color": "#938CF1",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417155,
+                "group_type": "numeric",
+                "class_id": 5566578,
+                "name": "value_r_81z4ae",
+                "attributes": []
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566579,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_4dxiz5",
+        "color": "#46D225",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417156,
+                "group_type": "checklist",
+                "class_id": 5566579,
+                "name": "value_r_4dxiz5",
+                "attributes": [
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107674,
+                        "group_id": 5417156,
+                        "project_id": 934113,
+                        "name": "Option 1",
+                        "default": 0
+                    },
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107675,
+                        "group_id": 5417156,
+                        "project_id": 934113,
+                        "name": "Option 2",
+                        "default": 0
+                    },
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107676,
+                        "group_id": 5417156,
+                        "project_id": 934113,
+                        "name": "Option 3",
+                        "default": 0
+                    }
+                ],
+                "default_value": []
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566580,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_9xs2b6",
+        "color": "#F99F14",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417157,
+                "group_type": "numeric",
+                "class_id": 5566580,
+                "name": "value_r_9xs2b6",
+                "attributes": []
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566581,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_mxhymc",
+        "color": "#6FF2EF",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417158,
+                "group_type": "radio",
+                "class_id": 5566581,
+                "name": "value_r_mxhymc",
+                "attributes": [
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107677,
+                        "group_id": 5417158,
+                        "project_id": 934113,
+                        "name": "Option 1",
+                        "default": 0
+                    },
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107678,
+                        "group_id": 5417158,
+                        "project_id": 934113,
+                        "name": "Option 2",
+                        "default": 0
+                    },
+                    {
+                        "createdAt": "2025-02-28T07:47:01.000Z",
+                        "updatedAt": "2025-02-28T07:47:01.000Z",
+                        "id": 11107679,
+                        "group_id": 5417158,
+                        "project_id": 934113,
+                        "name": "Option 3",
+                        "default": 0
+                    }
+                ],
+                "default_value": null
+            }
+        ]
+    },
+    {
+        "createdAt": "2025-02-28T07:47:01.000Z",
+        "updatedAt": "2025-02-28T07:47:01.000Z",
+        "id": 5566582,
+        "project_id": 934113,
+        "type": 1,
+        "name": "r_ydqb51",
+        "color": "#06FBF2",
+        "attribute_groups": [
+            {
+                "createdAt": "2025-02-28T07:47:01.000Z",
+                "updatedAt": "2025-02-28T07:47:01.000Z",
+                "id": 5417159,
+                "group_type": "numeric",
+                "class_id": 5566582,
+                "name": "value_r_ydqb51",
+                "attributes": []
+            }
+        ]
+    }
+]

@@ -3116,7 +3116,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param emails: users email
         :type emails: list
 
-        :param role: user role to apply, one of Admin , Annotator , QA
+        :param role: user role to apply, one of ProjectAdmin , Annotator , QA
         :type role: str
 
         :return: lists of added,  skipped contributors of the project

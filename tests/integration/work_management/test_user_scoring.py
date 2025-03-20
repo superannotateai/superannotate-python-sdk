@@ -251,7 +251,9 @@ class TestUserScoring(TestCase):
             )
 
         # case with duplicated acore names
-        with self.assertRaisesRegexp(AppException, "Component IDs in scores data must be unique."):
+        with self.assertRaisesRegexp(
+            AppException, "Component IDs in scores data must be unique."
+        ):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,

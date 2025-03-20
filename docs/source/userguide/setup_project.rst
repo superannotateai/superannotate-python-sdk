@@ -74,7 +74,7 @@ An annotation class for a project can be created with SDK's:
 
 To create annotation classes in bulk with SuperAnnotate export format
 :file:`classes.json` (documentation at:
-https://app.superannotate.com/documentation Management Tools
+https://superannotate.readthedocs.io/en/stable/userguide/setup_project.html#working-with-annotation-classes Ma`nagement Tools
 -> Project Workflow part):
 
 .. code-block:: python
