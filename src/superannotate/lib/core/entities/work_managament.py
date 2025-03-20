@@ -197,7 +197,7 @@ class ScorePayloadEntity(BaseModel):
             raise AppException("Please provide a valid number greater than 0")
         return v
 
-    @root_validator(pre=True)
+    @root_validator()
     def check_weight_and_value(cls, values):
         value = values.get("value")
         weight = values.get("weight")
