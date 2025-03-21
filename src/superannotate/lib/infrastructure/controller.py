@@ -77,7 +77,7 @@ def build_condition(**kwargs) -> Condition:
 
 def serialize_custom_fields(
     team_id: int,
-    project_id: int,
+    project_id: Optional[int],
     service_provider: ServiceProvider,
     data: List[dict],
     entity: CustomFieldEntityEnum,
@@ -610,8 +610,9 @@ class ProjectManager(BaseManager):
                 self.service_provider.client.team_id,
                 None,
                 self.service_provider,
-                custom_fields_list,
-                CustomFieldEntityEnum.PROJECT,
+                data=custom_fields_list,
+                entity=CustomFieldEntityEnum.PROJECT,
+                parent_entity=CustomFieldEntityEnum.TEAM,
             )
             for project, serialized_custom_fields in zip(projects, serialized_fields):
                 project.custom_fields = serialized_custom_fields
