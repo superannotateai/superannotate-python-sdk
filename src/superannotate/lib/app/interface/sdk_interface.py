@@ -1626,9 +1626,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                      * OnHold
         :type status: str
         """
-        project, folder = self.controller.get_project_folder(
-            project_name=project, folder_name=folder
-        )
+        project, folder = self.controller.get_project_folder((project, folder))
         folder.status = constants.FolderStatus(status).value
         response = self.controller.update(project, folder)
         if response.errors:
