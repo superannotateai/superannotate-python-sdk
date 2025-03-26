@@ -2,11 +2,7 @@ import copy
 import json
 import logging
 import os
-import threading
-import time
 import typing
-from contextlib import suppress
-from functools import lru_cache
 from typing import Callable
 
 import aiohttp
@@ -63,79 +59,60 @@ class StreamedAnnotations:
         kwargs = {"params": params, "json": data}
         if data:
             kwargs["json"].update(data)
-        response = await self.get_session().request(
-            method, url, **kwargs, timeout=TIMEOUT
-        )  # noqa
-        if not response.ok:
-            logger.error(response.text)
-        buffer = ""
-        line_groups = b""
-        decoder = json.JSONDecoder()
-        data_received = False
-        async for line in response.content.iter_any():
-            line_groups += line
-            try:
-                buffer += line_groups.decode("utf-8")
-                line_groups = b""
-            except UnicodeDecodeError:
-                continue
-            while buffer:
-                try:
-                    if buffer.startswith(self.DELIMITER):
-                        buffer = buffer[self.DELIMITER_LEN :]
-                    json_obj, index = decoder.raw_decode(buffer)
-                    if not annotation_is_valid(json_obj):
-                        logger.warning(
-                            f"Invalid JSON detected in small annotations stream process, json: {json_obj}."
-                        )
-                        if data_received:
-                            raise AppException(
-                                "Invalid JSON detected in small annotations stream process."
-                            )
-                        else:
-                            self.rest_session()
-                            raise BackendError(
-                                "Invalid JSON detected at the start of the small annotations stream process."
-                            )
-                    data_received = True
-                    yield json_obj
-                    if len(buffer[index:]) >= self.DELIMITER_LEN:
-                        buffer = buffer[index + self.DELIMITER_LEN :]
-                    else:
-                        buffer = buffer[index:]
-                        break
-                except json.decoder.JSONDecodeError as e:
-                    logger.debug(
-                        f"Failed to parse buffer, buffer_len: {len(buffer)} || start buffer:"
-                        f" {buffer[:50]} || buffer_end: ...{buffer[-50:]} || error: {e}"
-                    )
-                    break
-
-    @lru_cache(maxsize=32)
-    def _get_session(self, thread_id, ttl=None):  # noqa
-        del ttl
-        del thread_id
-        session = AIOHttpSession(
+        async with AIOHttpSession(
             headers=self._headers,
             timeout=TIMEOUT,
             connector=aiohttp.TCPConnector(
                 ssl=self.VERIFY_SSL, keepalive_timeout=2**32
             ),
             raise_for_status=True,
-        )
-        self._active_sessions.add(session)
-        return session
-
-    def get_session(self):
-        return self._get_session(
-            thread_id=threading.get_ident(), ttl=round(time.time() / 360)
-        )
-
-    def rest_session(self):
-        for s in self._active_sessions:
-            with suppress(Exception):
-                s.close()
-        self._get_session.cache_clear()
+        ) as session:
+            response = await session.request(
+                method, url, **kwargs, timeout=TIMEOUT
+            )  # noqa
+            if not response.ok:
+                logger.error(response.text)
+            buffer = ""
+            line_groups = b""
+            decoder = json.JSONDecoder()
+            data_received = False
+            async for line in response.content.iter_any():
+                line_groups += line
+                try:
+                    buffer += line_groups.decode("utf-8")
+                    line_groups = b""
+                except UnicodeDecodeError:
+                    continue
+                while buffer:
+                    try:
+                        if buffer.startswith(self.DELIMITER):
+                            buffer = buffer[self.DELIMITER_LEN :]
+                        json_obj, index = decoder.raw_decode(buffer)
+                        if not annotation_is_valid(json_obj):
+                            logger.warning(
+                                f"Invalid JSON detected in small annotations stream process, json: {json_obj}."
+                            )
+                            if data_received:
+                                raise AppException(
+                                    "Invalid JSON detected in small annotations stream process."
+                                )
+                            else:
+                                raise BackendError(
+                                    "Invalid JSON detected at the start of the small annotations stream process."
+                                )
+                        data_received = True
+                        yield json_obj
+                        if len(buffer[index:]) >= self.DELIMITER_LEN:
+                            buffer = buffer[index + self.DELIMITER_LEN :]
+                        else:
+                            buffer = buffer[index:]
+                            break
+                    except json.decoder.JSONDecodeError as e:
+                        logger.debug(
+                            f"Failed to parse buffer, buffer_len: {len(buffer)} || start buffer:"
+                            f" {buffer[:50]} || buffer_end: ...{buffer[-50:]} || error: {e}"
+                        )
+                        break
 
     async def list_annotations(
         self,
@@ -198,6 +175,3 @@ class StreamedAnnotations:
         if data and self._map_function:
             return self._map_function(data)
         return data
-
-    def __del__(self):
-        self.rest_session()
