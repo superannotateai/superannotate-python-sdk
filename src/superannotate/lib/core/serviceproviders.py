@@ -851,13 +851,17 @@ class BaseServiceProvider:
 
     @abstractmethod
     def list_custom_field_names(
-        self, pk, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+        self,
+        context: dict,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> List[str]:
         raise NotImplementedError
 
     @abstractmethod
     def get_custom_field_id(
         self,
+        context: dict,
         field_name: str,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
@@ -867,6 +871,7 @@ class BaseServiceProvider:
     @abstractmethod
     def get_custom_field_name(
         self,
+        context: dict,
         field_id: int,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
@@ -884,6 +889,9 @@ class BaseServiceProvider:
 
     @abstractmethod
     def get_custom_fields_templates(
-        self, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+        self,
+        context: dict,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ):
         raise NotImplementedError
