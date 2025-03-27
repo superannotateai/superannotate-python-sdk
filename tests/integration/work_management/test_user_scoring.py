@@ -145,6 +145,7 @@ class TestUserScoring(TestCase):
     def test_list_users_with_scores(self):
         # list team users
         team_users = sa.list_users(include=["custom_fields"])
+        print(team_users)
         for u in team_users:
             for s in SCORE_TEMPLATES:
                 try:

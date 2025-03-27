@@ -83,14 +83,10 @@ def serialize_custom_fields(
     entity: CustomFieldEntityEnum,
     parent_entity: CustomFieldEntityEnum,
 ) -> List[dict]:
-    pk = (
-        project_id
-        if entity == CustomFieldEntityEnum.PROJECT
-        else (team_id if parent_entity == CustomFieldEntityEnum.TEAM else project_id)
-    )
+    context = {"team_id": team_id, "project_id": project_id}
 
     existing_custom_fields = service_provider.list_custom_field_names(
-        pk, entity, parent=parent_entity
+        context, entity, parent=parent_entity
     )
     for i in range(len(data)):
         if not data[i]:
@@ -111,7 +107,7 @@ def serialize_custom_fields(
                 field_value /= 1000  # Convert timestamp
 
             new_field_name = service_provider.get_custom_field_name(
-                field_id, entity=entity, parent=parent_entity
+                context, field_id, entity=entity, parent=parent_entity
             )
             updated_fields[new_field_name] = field_value
 
@@ -151,11 +147,12 @@ class WorkManagementManager(BaseManager):
         field_name: str,
         value: Any,
     ):
-        _context = {}
+        _context = {"team_id": self.service_provider.client.team_id}
         if entity == CustomFieldEntityEnum.PROJECT:
             _context["project_id"] = entity_id
+
         template_id = self.service_provider.get_custom_field_id(
-            field_name, entity=entity, parent=parent_entity
+            _context, field_name, entity=entity, parent=parent_entity
         )
         component_id = self.service_provider.get_custom_field_component_id(
             template_id, entity=entity, parent=parent_entity
@@ -178,16 +175,17 @@ class WorkManagementManager(BaseManager):
     def list_users(
         self, include: List[Literal["custom_fields"]] = None, project=None, **filters
     ):
+        context = {"team_id": self.service_provider.client.team_id}
         if project:
             parent_entity = CustomFieldEntityEnum.PROJECT
-            project_id = project.id
+            project_id = context["project_id"] = project.id
         else:
             parent_entity = CustomFieldEntityEnum.TEAM
             project_id = None
         valid_fields = generate_schema(
             UserFilters.__annotations__,
             self.service_provider.get_custom_fields_templates(
-                CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
+                context, CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
             ),
         )
         chain = QueryBuilderChain(
@@ -574,7 +572,9 @@ class ProjectManager(BaseManager):
         valid_fields = generate_schema(
             ProjectFilters.__annotations__,
             self.service_provider.get_custom_fields_templates(
-                CustomFieldEntityEnum.PROJECT, parent=CustomFieldEntityEnum.TEAM
+                {"team_id": self.service_provider.client.team_id},
+                CustomFieldEntityEnum.PROJECT,
+                parent=CustomFieldEntityEnum.TEAM,
             ),
         )
         chain = QueryBuilderChain(

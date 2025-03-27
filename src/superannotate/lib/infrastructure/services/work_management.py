@@ -375,9 +375,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_SET_CUSTOM_ENTITIES.format(pk=entity_id),
             method="patch",
             headers={
-                "x-sa-entity-context": self._generate_context(
-                    team_id=self.client.team_id, **context
-                ),
+                "x-sa-entity-context": self._generate_context(**context),
             },
             data={"customField": {"custom_field_values": {template_id: data}}},
             params={

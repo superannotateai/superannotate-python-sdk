@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+import typing
 from abc import ABC
 from abc import abstractmethod
 from functools import wraps
@@ -22,6 +23,11 @@ from lib.infrastructure.services.work_management import WorkManagementService
 
 
 logger = logging.getLogger("sa")
+
+
+class EntityContext(typing.TypedDict, total=False):
+    team_id: int
+    project_id: Optional[int]
 
 
 def divide_to_chunks(it, size):
@@ -324,78 +330,104 @@ class CachedWorkManagementRepository:
 
     def get_custom_field_id(
         self,
-        team_id: int,
+        context: EntityContext,
         field_name: str,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
     ) -> int:
         if entity == CustomFieldEntityEnum.PROJECT:
-            custom_field_data = self._project_custom_field_cache.get(team_id)
+            custom_field_data = self._project_custom_field_cache.get(context["team_id"])
         else:
             if parent == CustomFieldEntityEnum.TEAM:
-                custom_field_data = self._team_user_custom_field_cache.get(team_id)
+                custom_field_data = self._team_user_custom_field_cache.get(
+                    context["team_id"]
+                )
             else:
-                custom_field_data = self._project_user_custom_field_cache.get(team_id)
+                custom_field_data = self._project_user_custom_field_cache.get(
+                    context["project_id"]
+                )
         if field_name in custom_field_data["custom_fields_name_id_map"]:
             return custom_field_data["custom_fields_name_id_map"][field_name]
         raise AppException("Invalid custom field name provided.")
 
     def get_custom_field_name(
         self,
-        team_id: int,
+        context: EntityContext,
         field_id: int,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
     ) -> str:
         if entity == CustomFieldEntityEnum.PROJECT:
-            custom_field_data = self._project_custom_field_cache.get(team_id)
+            custom_field_data = self._project_custom_field_cache.get(context["team_id"])
         else:
             if parent == CustomFieldEntityEnum.TEAM:
-                custom_field_data = self._team_user_custom_field_cache.get(team_id)
+                custom_field_data = self._team_user_custom_field_cache.get(
+                    context["team_id"]
+                )
             else:
-                custom_field_data = self._project_user_custom_field_cache.get(team_id)
+                custom_field_data = self._project_user_custom_field_cache.get(
+                    context["project_id"]
+                )
         if field_id in custom_field_data["custom_fields_id_name_map"]:
             return custom_field_data["custom_fields_id_name_map"][field_id]
         raise AppException("Invalid custom field ID provided.")
 
     def get_custom_field_component_id(
         self,
-        team_id: int,
+        context: EntityContext,
         field_id: int,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
     ) -> str:
         if entity == CustomFieldEntityEnum.PROJECT:
-            custom_field_data = self._project_custom_field_cache.get(team_id)
+            custom_field_data = self._project_custom_field_cache.get(context["team_id"])
         else:
             if parent == CustomFieldEntityEnum.TEAM:
-                custom_field_data = self._team_user_custom_field_cache.get(team_id)
+                custom_field_data = self._team_user_custom_field_cache.get(
+                    context["team_id"]
+                )
             else:
-                custom_field_data = self._project_user_custom_field_cache.get(team_id)
+                custom_field_data = self._project_user_custom_field_cache.get(
+                    context["project_id"]
+                )
         if field_id in custom_field_data["custom_fields_id_component_id_map"]:
             return custom_field_data["custom_fields_id_component_id_map"][field_id]
         raise AppException("Invalid custom field ID provided.")
 
     def list_custom_field_names(
-        self, pk: int, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+        self,
+        context: EntityContext,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ) -> list:
         if entity == CustomFieldEntityEnum.PROJECT:
-            custom_field_data = self._project_custom_field_cache.get(pk)
+            custom_field_data = self._project_custom_field_cache.get(context["team_id"])
         else:
             if parent == CustomFieldEntityEnum.TEAM:
-                custom_field_data = self._team_user_custom_field_cache.get(pk)
+                custom_field_data = self._team_user_custom_field_cache.get(
+                    context["team_id"]
+                )
             else:
-                custom_field_data = self._project_user_custom_field_cache.get(pk)
+                custom_field_data = self._project_user_custom_field_cache.get(
+                    context["project_id"]
+                )
         return list(custom_field_data["custom_fields_name_id_map"].keys())
 
     def list_templates(
-        self, pk: int, entity: CustomFieldEntityEnum, parent: CustomFieldEntityEnum
+        self,
+        context: EntityContext,
+        entity: CustomFieldEntityEnum,
+        parent: CustomFieldEntityEnum,
     ):
         if entity == CustomFieldEntityEnum.PROJECT:
-            return self._project_custom_field_cache.get(pk)["templates"]
+            return self._project_custom_field_cache.get(context["team_id"])["templates"]
         elif entity == CustomFieldEntityEnum.CONTRIBUTOR:
             if parent == CustomFieldEntityEnum.TEAM:
-                return self._team_user_custom_field_cache.get(pk)["templates"]
+                return self._team_user_custom_field_cache.get(context["team_id"])[
+                    "templates"
+                ]
             else:
-                return self._project_user_custom_field_cache.get(pk)["templates"]
+                return self._project_user_custom_field_cache.get(context["project_id"])[
+                    "templates"
+                ]
         raise AppException("Invalid entity provided.")

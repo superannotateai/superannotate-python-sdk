@@ -154,8 +154,9 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         else:
             project.users = []
         if self._include_custom_fields:
+            context = {"team_id": self._project.team_id}
             custom_fields_names = self._service_provider.list_custom_field_names(
-                self._project.team_id,
+                context,
                 entity=CustomFieldEntityEnum.PROJECT,
                 parent=CustomFieldEntityEnum.TEAM,
             )
@@ -173,6 +174,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 custom_fields_name_value_map = {}
                 for name in custom_fields_names:
                     field_id = self._service_provider.get_custom_field_id(
+                        context,
                         name,
                         entity=CustomFieldEntityEnum.PROJECT,
                         parent=CustomFieldEntityEnum.TEAM,
