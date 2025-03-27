@@ -97,7 +97,7 @@ def serialize_custom_fields(
             field_id = int(custom_field_name)
             try:
                 component_id = service_provider.get_custom_field_component_id(
-                    field_id, entity=entity, parent=parent_entity
+                    context, field_id, entity=entity, parent=parent_entity
                 )
             except AppException:
                 # The component template can be deleted, but not from the entity, so it will be skipped.
@@ -155,7 +155,7 @@ class WorkManagementManager(BaseManager):
             _context, field_name, entity=entity, parent=parent_entity
         )
         component_id = self.service_provider.get_custom_field_component_id(
-            template_id, entity=entity, parent=parent_entity
+            _context, template_id, entity=entity, parent=parent_entity
         )
         # timestamp: convert seconds to milliseconds
         if component_id == CustomFieldType.DATE_PICKER.value and value is not None:

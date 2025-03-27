@@ -186,6 +186,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                     )
                     # timestamp: convert milliseconds to seconds
                     component_id = self._service_provider.get_custom_field_component_id(
+                        context,
                         field_id,
                         entity=CustomFieldEntityEnum.PROJECT,
                         parent=CustomFieldEntityEnum.TEAM,

@@ -174,22 +174,28 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
         self._parent = parent
         self._team_id = team_id
         self._project_id = project_id
+        self._context = {"team_id": self._team_id, "project_id": self._project_id}
 
     def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
-        context = {"team_id": self._team_id, "project_id": self._project_id}
         for custom_field in sorted(
             self._service_provider.list_custom_field_names(
-                context, self._entity, parent=self._parent
+                self._context, self._entity, parent=self._parent
             ),
             key=len,
             reverse=True,
         ):
             if custom_field in key:
                 custom_field_id = self._service_provider.get_custom_field_id(
-                    context, custom_field, entity=self._entity, parent=self._parent
+                    self._context,
+                    custom_field,
+                    entity=self._entity,
+                    parent=self._parent,
                 )
                 component_id = self._service_provider.get_custom_field_component_id(
-                    custom_field_id, entity=self._entity, parent=self._parent
+                    self._context,
+                    custom_field_id,
+                    entity=self._entity,
+                    parent=self._parent,
                 )
                 key = key.replace(
                     custom_field,
@@ -230,7 +236,10 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
     def _handle_special_fields(self, keys: List[str], val):
         if keys[0] == "custom_field":
             component_id = self._service_provider.get_custom_field_component_id(
-                field_id=int(keys[1]), entity=self._entity, parent=self._parent
+                self._context,
+                field_id=int(keys[1]),
+                entity=self._entity,
+                parent=self._parent,
             )
             if component_id == CustomFieldType.DATE_PICKER.value and val is not None:
                 try:

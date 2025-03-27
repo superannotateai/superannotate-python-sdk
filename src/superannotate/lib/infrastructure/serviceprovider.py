@@ -125,12 +125,13 @@ class ServiceProvider(BaseServiceProvider):
 
     def get_custom_field_component_id(
         self,
+        context: EntityContext,
         field_id: int,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
     ) -> str:
         return self._cached_work_management_repository.get_custom_field_component_id(
-            {"team_id": self.client.team_id}, field_id, entity=entity, parent=parent
+            context, field_id, entity=entity, parent=parent
         )
 
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:

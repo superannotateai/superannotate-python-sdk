@@ -881,6 +881,7 @@ class BaseServiceProvider:
     @abstractmethod
     def get_custom_field_component_id(
         self,
+        context: dict,
         field_id: int,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
