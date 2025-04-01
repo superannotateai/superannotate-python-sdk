@@ -1,13 +1,18 @@
 import datetime
 from enum import auto
 from enum import Enum
+from typing import Any
 from typing import Optional
+from typing import Union
 
 from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import WMUserStateEnum
+from lib.core.exceptions import AppException
+from lib.core.pydantic_v1 import BaseModel
 from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
+from lib.core.pydantic_v1 import root_validator
 from lib.core.pydantic_v1 import validator
 
 
@@ -119,3 +124,85 @@ class WMUserEntity(TimedBaseModel):
         if "exclude" not in kwargs:
             kwargs["exclude"] = {"custom_fields"}
         return super().json(**kwargs)
+
+
+class WMProjectUserEntity(TimedBaseModel):
+    id: Optional[int]
+    team_id: Optional[int]
+    role: int
+    email: Optional[str]
+    state: Optional[WMUserStateEnum]
+    custom_fields: Optional[dict] = Field(dict(), alias="customField")
+
+    class Config:
+        extra = Extra.ignore
+        use_enum_names = True
+
+        json_encoders = {
+            Enum: lambda v: v.value,
+            datetime.date: lambda v: v.isoformat(),
+            datetime.datetime: lambda v: v.isoformat(),
+        }
+
+    @validator("custom_fields")
+    def custom_fields_transformer(cls, v):
+        if v and "custom_field_values" in v:
+            return v.get("custom_field_values", {})
+        return {}
+
+    def json(self, **kwargs):
+        if "exclude" not in kwargs:
+            kwargs["exclude"] = {"custom_fields"}
+        return super().json(**kwargs)
+
+
+class WMScoreEntity(TimedBaseModel):
+    id: int
+    team_id: int
+    name: str
+    description: Optional[str]
+    type: str
+    payload: Optional[dict]
+
+
+class TelemetryScoreEntity(BaseModel):
+    item_id: int
+    team_id: int
+    project_id: int
+    user_id: str
+    user_role: str
+    score_id: int
+    value: Optional[Any]
+    weight: Optional[float]
+
+
+class ScoreEntity(TimedBaseModel):
+    id: int
+    name: str
+    value: Optional[Any]
+    weight: Optional[float]
+
+
+class ScorePayloadEntity(BaseModel):
+    component_id: str
+    value: Any
+    weight: Optional[Union[float, int]] = 1.0
+
+    class Config:
+        extra = Extra.forbid
+
+    @validator("weight", pre=True, always=True)
+    def validate_weight(cls, v):
+        if v is not None and (not isinstance(v, (int, float)) or v <= 0):
+            raise AppException("Please provide a valid number greater than 0")
+        return v
+
+    @root_validator()
+    def check_weight_and_value(cls, values):
+        value = values.get("value")
+        weight = values.get("weight")
+        if (weight is None and value is not None) or (
+            weight is not None and value is None
+        ):
+            raise AppException("Weight and Value must both be set or both be None.")
+        return values

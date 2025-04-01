@@ -154,8 +154,11 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         else:
             project.users = []
         if self._include_custom_fields:
+            context = {"team_id": self._project.team_id}
             custom_fields_names = self._service_provider.list_custom_field_names(
-                entity=CustomFieldEntityEnum.PROJECT
+                context,
+                entity=CustomFieldEntityEnum.PROJECT,
+                parent=CustomFieldEntityEnum.TEAM,
             )
             if custom_fields_names:
                 project_custom_fields = (
@@ -171,7 +174,10 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 custom_fields_name_value_map = {}
                 for name in custom_fields_names:
                     field_id = self._service_provider.get_custom_field_id(
-                        name, entity=CustomFieldEntityEnum.PROJECT
+                        context,
+                        name,
+                        entity=CustomFieldEntityEnum.PROJECT,
+                        parent=CustomFieldEntityEnum.TEAM,
                     )
                     field_value = (
                         custom_fields_id_value_map[str(field_id)]
@@ -180,7 +186,10 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                     )
                     # timestamp: convert milliseconds to seconds
                     component_id = self._service_provider.get_custom_field_component_id(
-                        field_id, entity=CustomFieldEntityEnum.PROJECT
+                        context,
+                        field_id,
+                        entity=CustomFieldEntityEnum.PROJECT,
+                        parent=CustomFieldEntityEnum.TEAM,
                     )
                     if (
                         field_value

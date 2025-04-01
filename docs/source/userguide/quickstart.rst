@@ -32,7 +32,7 @@ Initialization and authorization
 ================================
 
 To use the SDK, you need to create a config file with a team-specific authentication token. The token is available
-to team admins on the team settings page at https://app.superannotate.com/team.
+to team admins on the team settings page at https://doc.superannotate.com/docs/token-for-python-sdk#generate-a-token-for-python-sdk.
 
 SAClient can be used with or without arguments
 ______________________________________________

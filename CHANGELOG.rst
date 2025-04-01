@@ -6,12 +6,29 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.33 - April 1, 2025
+______________________
+
+**Added**
+
+    - ``SAClient.get_user_scores`` Retrieves score metadata for a user on a specific item within a project.
+    - ``SAClient.user_scores`` Assigns or updates score metadata for a user on a specific item in a project.
+
+**Updated**
+
+    - ``SAClient.prepare_export`` Added option for JSONL download type.
+    - ``SAClient.download_annotations`` Added data_spec parameter enabling annotation downloads in JSONL format for multimodal projects.
+    - ``SAClient.list_items`` Introduced a new parameter to filter results by item category.
+    - ``SAClient.list_users`` Now retrieves a list of users with their scores and includes filtering options. Added an optional project parameter to fetch project-level scores instead of team-level scores.
+    - ``SAClient.item_context`` Added information about the ItemContext nested class.
+    - ``SAClient.list_projects`` Enhanced docstrings for to improve clarity and usability.
+
 4.4.32 - March 4, 2025
-_____________________
+______________________
 
 **Fixed**
 
-    - ``SAClient.item_context`` Fixed an issue where setting a component value would overwrite existing comments and other associated data. 
+    - ``SAClient.item_context`` Fixed an issue where setting a component value would overwrite existing comments and other associated data.
 
 4.4.31 - Feb 27, 2025
 _____________________

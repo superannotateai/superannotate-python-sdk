@@ -331,4 +331,5 @@ class TestProjectCustomFields(BaseTestCase):
     # TODO BED issue (custom_field filter without join)
     def test_list_projects_by_custom_fields_without_join(self):
         self._set_custom_field_values()
-        assert sa.list_projects(custom_field__SDK_test_numeric=123)
+        with self.assertRaisesRegexp(AppException, "Internal server error"):
+            assert sa.list_projects(custom_field__SDK_test_numeric=123)

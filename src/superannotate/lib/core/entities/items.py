@@ -2,7 +2,7 @@ from typing import List
 from typing import Optional
 
 from lib.core.entities.base import BaseItemEntity
-from lib.core.entities.base import TimedBaseModel
+from lib.core.entities.project import TimedBaseModel
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import ProjectType
 from lib.core.pydantic_v1 import Extra
@@ -18,9 +18,17 @@ class ImageEntity(BaseItemEntity):
         extra = Extra.ignore
 
 
+class CategoryEntity(TimedBaseModel):
+    id: int
+    value: str = Field(None, alias="name")
+
+    class Config:
+        extra = Extra.ignore
+
+
 class MultiModalItemCategoryEntity(TimedBaseModel):
     id: int = Field(None, alias="category_id")
-    name: str = Field(None, alias="category_name")
+    value: str = Field(None, alias="category_name")
 
     class Config:
         extra = Extra.ignore

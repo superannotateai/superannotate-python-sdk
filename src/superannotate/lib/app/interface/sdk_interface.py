@@ -75,7 +75,6 @@ from lib.core.entities.work_managament import WMUserTypeEnum
 
 logger = logging.getLogger("sa")
 
-# NotEmptyStr = TypeVar("NotEmptyStr", bound=constr(strict=True, min_length=1))
 NotEmptyStr = constr(strict=True, min_length=1)
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
@@ -118,6 +117,20 @@ class Attachment(TypedDict, total=False):
 
 
 class ItemContext:
+    """
+    A context manager for handling annotations and metadata of an item.
+
+    The ItemContext class provides methods to retrieve and manage metadata and component
+    values for items in the specified context. Below are the descriptions and usage examples for each method.
+
+    Example:
+    ::
+
+        with sa_client.item_context("project_name/folder_name", "item_name") as context:
+            metadata = context.get_metadata()
+            print(metadata)
+    """
+
     def __init__(
         self,
         controller: Controller,
@@ -171,9 +184,26 @@ class ItemContext:
         return self.annotation_adapter.annotation
 
     def __enter__(self):
+        """
+        Enters the context manager.
+
+        Returns:
+        ItemContext: The instance itself.
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Exits the context manager, saving changes if no exception occurred.
+
+        Args:
+            exc_type (Optional[Type[BaseException]]): Exception type if raised.
+            exc_val (Optional[BaseException]): Exception instance if raised.
+            exc_tb (Optional[TracebackType]): Traceback if an exception occurred.
+
+        Returns:
+            bool: True if no exception occurred, False otherwise.
+        """
         if exc_type:
             return False
 
@@ -188,12 +218,62 @@ class ItemContext:
         self._annotation_adapter.save()
 
     def get_metadata(self):
+        """
+        Retrieves the metadata associated with the current item context.
+
+        :return: A dictionary containing metadata for the current item.
+        :rtype: dict
+
+        Request Example:
+        ::
+
+            with client.item_context(("project_name", "folder_name"), 12345) as context:
+                metadata = context.get_metadata()
+                print(metadata)
+        """
         return self.annotation["metadata"]
 
     def get_component_value(self, component_id: str):
+        """
+        Retrieves the value of a specific component within the item context.
+
+        :param component_id: The name of the component whose value is to be retrieved.
+        :type component_id: str
+
+        :return: The value of the specified component.
+        :rtype: Any
+
+        Request Example:
+        ::
+
+            with client.item_context((101, 202), "item_name") as context: # (101, 202) project and folder IDs
+                value = context.get_component_value("component_id")
+                print(value)
+        """
         return self.annotation_adapter.get_component_value(component_id)
 
     def set_component_value(self, component_id: str, value: Any):
+        """
+        Updates the value of a specific component within the item context.
+
+        :param component_id: The component identifier.
+        :type component_id: str
+
+        :param value: The new value to set for the specified component.
+        :type value: Any
+
+        :return: The instance itself to allow method chaining.
+        :rtype: ItemContext
+
+        Request Example:
+        ::
+
+            with client.item_context("project_name/folder_name", "item_name") as item_context:
+                metadata = item_context.get_metadata()
+                value = item_context.get_component_value("component_id")
+                item_context.set_component_value("component_id", value)
+
+        """
         self.annotation_adapter.set_component_value(component_id, value)
         return self
 
@@ -372,16 +452,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             parent_entity=CustomFieldEntityEnum.TEAM,
         )
 
-    def list_users(self, *, include: List[Literal["custom_fields"]] = None, **filters):
+    def list_users(
+        self,
+        *,
+        project: Union[int, str] = None,
+        include: List[Literal["custom_fields"]] = None,
+        **filters,
+    ):
         """
-        Search users by filtering criteria
+        Search users, including their scores, by filtering criteria.
+
+        :param project:  Project name or ID, if provided, results will be for project-level,
+         otherwise results will be for team level.
+        :type project: str or int
 
         :param include: Specifies additional fields to be included in the response.
 
             Possible values are
 
-            - "custom_fields": Includes the custom fields assigned to each user.
-        :type include: list of str, optional
+            - "custom_fields":  Includes custom fields and scores assigned to each user.
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
 
@@ -411,18 +500,35 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - email__contains: str
             - email__starts: str
             - email__ends: str
+
+            Following params if project is not selected::
+
             - state: Literal[“Confirmed”, “Pending”]
             - state__in: List[Literal[“Confirmed”, “Pending”]]
             - role: Literal[“admin”, “contributor”]
             - role__in: List[Literal[“admin”, “contributor”]]
 
-            Custom Fields Filtering:
-                - Custom fields must be prefixed with `custom_field__`.
-                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
+            Scores and Custom Field Filtering:
+
+                - Scores and other custom fields must be prefixed with `custom_field__` .
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due_date is after the given Unix timestamp).
+
+            - **Text** custom field only works with the following filter params: __in, __notin, __contains
+            - **Numeric** custom field only works with the following filter params: __in, __notin, __ne, __gt, __gte, __lt, __lte
+            - **Single-select** custom field only works with the following filter params: __in, __notin, __contains
+            - **Multi-select** custom field only works with the following filter params: __in, __notin
+            - **Date picker** custom field only works with the following filter params: __gt, __gte, __lt, __lte
+
+            **If custom field has a space, please use the following format to filter them**:
+            ::
+
+                user_filters = {"custom_field__accuracy score 30D__lt": 90}
+                client.list_users(include=["custom_fields"], **user_filters)
+
 
         :type filters: UserFilters, optional
 
-        :return: A list of team users metadata that matches the filtering criteria
+        :return: A list of team/project users metadata that matches the filtering criteria
         :rtype: list of dicts
 
         Request Example:
@@ -453,10 +559,99 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "team_id": 44311,
                 }
             ]
+
+        Request Example:
+        ::
+
+            # Project level scores
+
+            scores = client.list_users(
+                include=["custom_fields"],
+                project="my_multimodal",
+                email__contains="@superannotate.com",
+                custom_field__speed__gte=90,
+                custom_field__weight__lte=1,
+            )
+
+        Response Example:
+        ::
+
+            # Project level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {"speed": 92, "weight": 0.8},
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Annotator",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
+        Request Example:
+        ::
+
+            # Team level scores
+
+            user_filters = {
+                "custom_field__accuracy score 30D__lt": 95,
+                "custom_field__speed score 7D__lt": 15
+            }
+
+            scores = client.list_users(
+                include=["custom_fields"],
+                email__contains="@superannotate.com",
+                role="Contributor",
+                **user_filters
+            )
+
+        Response Example:
+        ::
+
+            # Team level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {
+                        "Test custom field": 80,
+                        "Tag custom fields": ["Tag1", "Tag2"],
+                        "accuracy score 30D": 95,
+                        "accuracy score 14D": 47,
+                        "accuracy score 7D": 24,
+                        "speed score 30D": 33,
+                        "speed score 14D": 22,
+                        "speed score 7D": 11,
+                    },
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Contributor",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
         """
-        return BaseSerializer.serialize_iterable(
-            self.controller.work_management.list_users(include=include, **filters)
+        if project is not None:
+            if isinstance(project, int):
+                project = self.controller.get_project_by_id(project)
+            else:
+                project = self.controller.get_project(project)
+        response = BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_users(
+                project=project, include=include, **filters
+            )
         )
+        if project:
+            for user in response:
+                user["role"] = self.controller.service_provider.get_role_name(
+                    project, user["role"]
+                )
+        return response
 
     def pause_user_activity(
         self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
@@ -504,6 +699,149 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             f"User with email {user.email} has been successfully unblocked from the specified projects: {projects}."
         )
 
+    def get_user_scores(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        item: Union[NotEmptyStr, int],
+        scored_user: NotEmptyStr,
+        *,
+        score_names: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve score metadata for a user for a specific item in a specific project.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param item:  The unique ID or name of the item.
+        :type item: Union[str, int]
+
+        :param scored_user:  The email address of the project user.
+        :type scored_user: str
+
+        :param score_names:  A list of score names to filter by. If None, returns all scores.
+        :type score_names: Optional[List[str]]
+
+        :return: A list of dictionaries containing score metadata for the user.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.get_user_scores(
+                project=("my_multimodal", "folder1"),
+                item="item1",
+                scored_user="example@superannotate.com",
+                score_names=["Accuracy Score", "Speed"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2024-06-01T13:00:00",
+                    "updatedAt": "2024-06-01T13:00:00",
+                    "id": 3217575,
+                    "name": "Accuracy Score",
+                    "value": 98,
+                    "weight": 4,
+                },
+                {
+                    "createdAt": "2024-06-01T13:00:00",
+                    "updatedAt": "2024-06-01T13:00:00",
+                    "id": 5657575,
+                    "name": "Speed",
+                    "value": 9,
+                    "weight": 0.4,
+                },
+            ]
+        """
+        project, folder = self.controller.get_project_folder(project)
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+
+        item = self.controller.get_item(project=project, folder=folder, item=item)
+        response = BaseSerializer.serialize_iterable(
+            self.controller.work_management.get_user_scores(
+                project=project,
+                item=item,
+                scored_user=scored_user,
+                provided_score_names=score_names,
+            )
+        )
+        return response
+
+    def set_user_scores(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        item: Union[NotEmptyStr, int],
+        scored_user: NotEmptyStr,
+        scores: List[Dict[str, Any]],
+    ):
+        """
+        Assign score metadata for a user in a scoring component.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param item:  The unique ID or name of the item.
+        :type item: Union[str, int]
+
+        :param scored_user:  Set the email of the user being scored.
+        :type scored_user: str
+
+        :param scores: A list of dictionaries containing the following key-value pairs:
+                * **component_id** (*str*): The component_id of the score (required).
+                * **value** (*Any*): The score value (required).
+                * **weight** (*Union[float, int]*, optional): The weight of the score. Defaults to `1` if not provided.
+
+            **Example**:
+            ::
+
+                scores = [
+                    {
+                        "component_id": "<component_id_for_score>",  # str (required)
+                        "value": 90,      # Any (required)
+                        "weight": 1       # Union[float, int] (optional, defaults to 1.0 if not provided)
+                    }
+                ]
+        :type scores: List[Dict[str, Any]
+
+        Request Example:
+        ::
+
+            client.set_user_scores(
+                project=("my_multimodal", "folder1"),
+                item_=12345,
+                scored_user="example@superannotate.com",
+                scores=[
+                    {"component_id": "r_kfrp3n", "value": 90},
+                    {"component_id": "h_jbrp4v", "value": 9, "weight": 4.0},
+                    {"component_id": "m_kf8pss", "value": None, "weight": None},
+                ]
+            )
+
+        """
+        project, folder = self.controller.get_project_folder(project)
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+        item = self.controller.get_item(project=project, folder=folder, item=item)
+        editor_template = self.controller.projects.get_editor_template(project.id)
+        components = editor_template.get("components", [])
+        self.controller.work_management.set_user_scores(
+            project=project,
+            item=item,
+            scored_user=scored_user,
+            scores=scores,
+            components=components,
+        )
+        logger.info("Scores successfully set.")
+
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
         Retrieves the configuration for a given project and component ID.
@@ -536,6 +874,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         and component["id"] == component_pk
                         and component["type"] == "webComponent"
                     ):
+                        context = component.get("context")
+                        if context is None or context == "":
+                            return False, None
                         return True, json.loads(component.get("context"))
 
             except KeyError as e:
@@ -553,7 +894,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "This function is only supported for Multimodal projects."
             )
 
-        editor_template = self.controller.projects.get_editor_template(project)
+        editor_template = self.controller.projects.get_editor_template(project.id)
         components = editor_template.get("components", [])
 
         _found, _context = retrieve_context(components, component_id)
@@ -906,7 +1247,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of folder
         :rtype: dict
         """
-        project, folder = self.controller.get_project_folder(project, folder_name)
+        project, folder = self.controller.get_project_folder((project, folder_name))
         if not folder:
             raise AppException("Folder not found.")
         return BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
@@ -1285,9 +1626,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                      * OnHold
         :type status: str
         """
-        project, folder = self.controller.get_project_folder(
-            project_name=project, folder_name=folder
-        )
+        project, folder = self.controller.get_project_folder((project, folder))
         folder.status = constants.FolderStatus(status).value
         response = self.controller.update(project, folder)
         if response.errors:
@@ -1458,7 +1797,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if not verified_users:
             return
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.folders.assign_users(
             project=project,
             folder=folder,
@@ -1677,7 +2018,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
              - integration_name: The name of the integration within the platform that is being used.
              - format: The format in which the data will be exported in multimodal projects.
-               It can be either CSV or JSON. If None, the data will be exported in the default JSON format.
+               The data can be exported in CSV, JSON, or JSONL format. If None, the data will be exported
+               in the default JSON format.
         :return: metadata object of the prepared export
         :rtype: dict
 
@@ -1715,6 +2057,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             export_type = export_type.lower()
             if export_type == "csv":
                 _export_type = 3
+            elif export_type == "jsonl":
+                _export_type = 4
         response = self.controller.prepare_export(
             project_name=project_name,
             folder_names=folders,
@@ -2413,7 +2757,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
         )
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.annotations.upload_from_folder(
             project=project,
             folder=folder,
@@ -2768,7 +3114,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param emails: users email
         :type emails: list
 
-        :param role: user role to apply, one of Admin , Annotator , QA
+        :param role: user role to apply, one of ProjectAdmin , Annotator , QA
         :type role: str
 
         :return: lists of added,  skipped contributors of the project
@@ -2912,7 +3258,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         scores = parse_obj_as(List[PriorityScoreEntity], scores)
         project_name, folder_name = extract_project_folder(project)
         project_folder_name = project
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.projects.upload_priority_scores(
             project, folder, scores, project_folder_name
         )
@@ -3418,7 +3766,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         exclude = {"meta", "annotator_email", "qa_email"}
         if not include_custom_metadata:
             exclude.add("custom_metadata")
-        return BaseSerializer.serialize_iterable(res, exclude=exclude)
+        return BaseSerializer.serialize_iterable(res, exclude=exclude, by_alias=False)
 
     def list_projects(
         self,
@@ -3470,9 +3818,24 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
 
             Custom Fields Filtering:
+
                 - Custom fields must be prefixed with `custom_field__`.
-                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due date is after the given Unix timestamp).
-                - If include does not include "custom_fields" but filter contains custom_fields, an error will be returned
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due_date is after the given Unix timestamp).
+                - If include does not include “custom_fields” but filter contains ‘custom_field’, an error will be returned
+
+            - **Text** custom field only works with the following filter params: __in, __notin, __contains
+            - **Numeric** custom field only works with the following filter params: __in, __notin, __ne, __gt, __gte, __lt, __lte
+            - **Single-select** custom field only works with the following filter params: __in, __notin, __contains
+            - **Multi-select** custom field only works with the following filter params: __in, __notin
+            - **Date picker** custom field only works with the following filter params: __gt, __gte, __lt, __lte
+
+            **If custom field has a space, please use the following format to filter them**:
+            ::
+
+                project_filters = {
+                    "custom_field__new single select custom field__contains": "text"
+                }
+                client.list_projects(include=["custom_fields"], **project_filters)
 
         :type filters: ProjectFilters, optional
 
@@ -3483,10 +3846,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             client.list_projects(
-                name__contains="Medical",
                 include=["custom_fields"],
                 status__in=["InProgress", "Completed"],
-                custom_fields__Tag__in=["Tag1", "Tag3"]
+                name__contains="Medical",
+                custom_field__Tag__in=["Tag1", "Tag3"]
             )
 
         Response Example:
@@ -3633,7 +3996,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 f"Attaching {len(_unique_attachments)} file(s) to project {project}."
             )
             project, folder = self.controller.get_project_folder(
-                project_name, folder_name
+                (project_name, folder_name)
             )
             response = self.controller.items.attach(
                 project=project,
@@ -3806,6 +4169,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         items: Optional[List[NotEmptyStr]] = None,
         recursive: bool = False,
         callback: Callable = None,
+        data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Downloads annotation JSON files of the selected items to the local directory.
 
@@ -3831,11 +4195,38 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
          The function receives each annotation as an argument and the returned value will be applied to the download.
         :type callback: callable
 
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
+
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and multimodal-specific data representation.
+
+        :type data_spec: str, optional
+
+        Example Usage of Multimodal Projects::
+
+            from superannotate import SAClient
+
+
+            sa = SAClient()
+
+            # Call the get_annotations function
+            response = sa.download_annotations(
+                project="project1/folder1",
+                path="path/to/download",
+                items=["item_1", "item_2"],
+                data_spec='multimodal'
+            )
+
+
         :return: local path of the downloaded annotations folder.
         :rtype: str
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.annotations.download(
             project=project,
             folder=folder,
@@ -3843,6 +4234,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             recursive=recursive,
             item_names=items,
             callback=callback,
+            transform_version="llmJsonV2" if data_spec == "multimodal" else None,
         )
         if response.errors:
             raise AppException(response.errors)
@@ -4114,7 +4506,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.custom_fields.upload_values(
             project=project, folder=folder, items=items
         )
@@ -4151,7 +4545,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         """
         project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(project_name, folder_name)
+        project, folder = self.controller.get_project_folder(
+            (project_name, folder_name)
+        )
         response = self.controller.custom_fields.delete_values(
             project=project, folder=folder, items=items
         )
@@ -4304,6 +4700,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :return: An `ItemContext` object to manage the specified item's annotations and metadata.
         :rtype: ItemContext
+
+        .. seealso::
+            For more details, see :class:`ItemContext` nested class.
 
         **Examples:**
 

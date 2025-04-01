@@ -36,6 +36,8 @@ class TestPauseUserActivity(BaseTestCase):
         scapegoat = [
             u for u in users if u["role"] == "Contributor" and u["state"] == "Confirmed"
         ][0]
+        import pdb
+        pdb.set_trace()
         sa.add_contributors_to_project(self.PROJECT_NAME, [scapegoat["email"]], "QA")
         with self.assertLogs("sa", level="INFO") as cm:
             sa.pause_user_activity(pk=scapegoat["email"], projects=[self.PROJECT_NAME])
