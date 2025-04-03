@@ -3278,9 +3278,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         integrations = response.data
-        return BaseSerializer.serialize_iterable(
-            integrations, ("name", "type", "root")  # noqa
-        )
+        return BaseSerializer.serialize_iterable(integrations)
 
     def attach_items_from_integrated_storage(
         self,
