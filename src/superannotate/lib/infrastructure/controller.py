@@ -424,6 +424,7 @@ class ProjectManager(BaseManager):
         project: ProjectEntity,
         include_annotation_classes: bool = False,
         include_settings: bool = False,
+        include_workflow: bool = False,
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
         include_custom_fields: bool = False,
@@ -433,6 +434,7 @@ class ProjectManager(BaseManager):
             service_provider=self.service_provider,
             include_annotation_classes=include_annotation_classes,
             include_settings=include_settings,
+            include_workflow=include_workflow,
             include_contributors=include_contributors,
             include_complete_image_count=include_complete_image_count,
             include_custom_fields=include_custom_fields,
@@ -478,14 +480,14 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def list_workflow(self, project: ProjectEntity):
-        use_case = usecases.GetWorkflowsUseCase(
+    def list_steps(self, project: ProjectEntity):
+        use_case = usecases.GetStepsUseCase(
             project=project, service_provider=self.service_provider
         )
         return use_case.execute()
 
-    def set_workflows(self, project: ProjectEntity, steps: List):
-        use_case = usecases.SetWorkflowUseCase(
+    def set_steps(self, project: ProjectEntity, steps: List):
+        use_case = usecases.SetStepsUseCase(
             service_provider=self.service_provider,
             steps=steps,
             project=project,

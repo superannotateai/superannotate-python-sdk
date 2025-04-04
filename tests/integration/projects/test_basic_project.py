@@ -86,7 +86,7 @@ class TestProjectBasic(BaseTestCase):
                 },
             ],
         )
-        sa.set_project_workflow(
+        sa.set_project_steps(
             self.PROJECT_NAME,
             [
                 {
