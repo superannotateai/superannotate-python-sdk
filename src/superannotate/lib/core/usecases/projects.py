@@ -14,6 +14,8 @@ from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
@@ -107,6 +109,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         service_provider: BaseServiceProvider,
         include_annotation_classes: bool,
         include_settings: bool,
+        include_workflow: bool,
         include_contributors: bool,
         include_complete_image_count: bool,
         include_custom_fields: bool,
@@ -117,6 +120,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
 
         self._include_annotation_classes = include_annotation_classes
         self._include_settings = include_settings
+        self._include_workflow = include_workflow
         self._include_contributors = include_contributors
         self._include_complete_image_count = include_complete_image_count
         self._include_custom_fields = include_custom_fields
@@ -148,7 +152,16 @@ class GetProjectMetaDataUseCase(BaseUseCase):
             project.settings = self._service_provider.projects.list_settings(
                 self._project
             ).data
-
+        if self._include_workflow:
+            _workflows = self._service_provider.work_management.list_workflows(
+                Filter("id", project.workflow_id, OperatorEnum.EQ)
+            )
+            project_workflow = next(
+                (i for i in _workflows.data if i.id == project.workflow_id), None
+            )
+            if not project_workflow:
+                raise AppException("Workflow not fund.")
+            project.workflow = project_workflow
         if self._include_contributors:
             project.contributors = project.users
         else:
@@ -464,7 +477,7 @@ class GetSettingsUseCase(BaseUseCase):
         return self._response
 
 
-class GetWorkflowsUseCase(BaseUseCase):
+class GetStepsUseCase(BaseUseCase):
     def __init__(self, project: ProjectEntity, service_provider: BaseServiceProvider):
         super().__init__()
         self._project = project
@@ -479,19 +492,17 @@ class GetWorkflowsUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             data = []
-            workflows = self._service_provider.projects.list_workflows(
-                self._project
-            ).data
-            for workflow in workflows:
-                workflow_data = workflow.dict()
+            steps = self._service_provider.projects.list_steps(self._project).data
+            for step in steps:
+                step_data = step.dict()
                 annotation_classes = self._service_provider.annotation_classes.list(
                     Condition("project_id", self._project.id, EQ)
                 ).data
                 for annotation_class in annotation_classes:
-                    if annotation_class.id == workflow.class_id:
-                        workflow_data["className"] = annotation_class.name
+                    if annotation_class.id == step.class_id:
+                        step_data["className"] = annotation_class.name
                         break
-                data.append(workflow_data)
+                data.append(step_data)
             self._response.data = data
         return self._response
 
@@ -562,7 +573,7 @@ class UpdateSettingsUseCase(BaseUseCase):
         return self._response
 
 
-class SetWorkflowUseCase(BaseUseCase):
+class SetStepsUseCase(BaseUseCase):
     def __init__(
         self,
         service_provider: BaseServiceProvider,
@@ -601,16 +612,16 @@ class SetWorkflowUseCase(BaseUseCase):
                 step["class_id"] = annotation_classes_map.get(step["className"], None)
                 if not step["class_id"]:
                     raise AppException("Annotation class not found.")
-            self._service_provider.projects.set_workflows(
+            self._service_provider.projects.set_steps(
                 project=self._project,
                 steps=self._steps,
             )
-            existing_workflows = self._service_provider.projects.list_workflows(
+            existing_steps = self._service_provider.projects.list_steps(
                 self._project
             ).data
-            existing_workflows_map = {}
-            for workflow in existing_workflows:
-                existing_workflows_map[workflow.step] = workflow.id
+            existing_steps_map = {}
+            for steps in existing_steps:
+                existing_steps_map[steps.step] = steps.id
 
             req_data = []
             for step in self._steps:
@@ -628,17 +639,17 @@ class SetWorkflowUseCase(BaseUseCase):
                             f"Attribute group name or attribute name not found {attribute_group_name}."
                         )
 
-                    if not existing_workflows_map.get(step["step"], None):
-                        raise AppException("Couldn't find step in workflow")
+                    if not existing_steps_map.get(step["step"], None):
+                        raise AppException("Couldn't find step in steps")
                     req_data.append(
                         {
-                            "workflow_id": existing_workflows_map[step["step"]],
+                            "workflow_id": existing_steps_map[step["step"]],
                             "attribute_id": annotations_classes_attributes_map[
                                 f"{annotation_class_name}__{attribute_group_name}__{attribute_name}"
                             ],
                         }
                     )
-            self._service_provider.projects.set_project_workflow_attributes(
+            self._service_provider.projects.set_project_step_attributes(
                 project=self._project,
                 attributes=req_data,
             )

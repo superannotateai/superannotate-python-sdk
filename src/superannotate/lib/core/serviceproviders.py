@@ -261,17 +261,15 @@ class BaseProjectService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def list_workflows(self, project: entities.ProjectEntity):
+    def list_steps(self, project: entities.ProjectEntity):
         raise NotImplementedError
 
     @abstractmethod
-    def set_workflow(
-        self, project: entities.ProjectEntity, workflow: entities.WorkflowEntity
-    ):
+    def set_step(self, project: entities.ProjectEntity, step: entities.StepEntity):
         raise NotImplementedError
 
     @abstractmethod
-    def set_workflows(self, project: entities.ProjectEntity, steps: list):
+    def set_steps(self, project: entities.ProjectEntity, steps: list):
         raise NotImplementedError
 
     @abstractmethod
@@ -283,7 +281,7 @@ class BaseProjectService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def set_project_workflow_attributes(
+    def set_project_step_attributes(
         self, project: entities.ProjectEntity, attributes: list
     ):
         raise NotImplementedError

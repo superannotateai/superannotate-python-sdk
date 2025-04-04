@@ -101,14 +101,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.set_project_workflow(self.PROJECT_NAME, [{}])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.get_project_workflow(self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.prepare_export(self.PROJECT_NAME, include_fuse=True, only_pinned=True)
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))

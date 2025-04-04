@@ -26,6 +26,4 @@ Projects
 .. automethod:: superannotate.SAClient.set_project_default_image_quality_in_editor
 .. automethod:: superannotate.SAClient.set_project_steps
 .. automethod:: superannotate.SAClient.get_project_steps
-.. automethod:: superannotate.SAClient.set_project_workflow
-.. automethod:: superannotate.SAClient.get_project_workflow
 .. automethod:: superannotate.SAClient.get_component_config
