@@ -3254,6 +3254,27 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :return: metadata objects of all integrations of the team.
         :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.get_integrations()
+
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2023-11-27T11:16:02.000Z",
+                    "id": 5072,
+                    "name": "My S3 Bucket",
+                    "root": "test-openseadragon-1212",
+                    "type": "aws",
+                    "updatedAt": "2023-12-27T11:16:02.000Z",
+                    "creator_id": "example@superannotate.com"
+                }
+            ]
         """
         response = self.controller.integrations.list()
         if response.errors:
