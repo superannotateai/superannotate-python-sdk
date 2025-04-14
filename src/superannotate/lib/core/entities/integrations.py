@@ -11,7 +11,7 @@ except ImportError:
 
 class IntegrationEntity(TimedBaseModel):
     id: int = None
-    user_id: str = None
+    creator_id: str = None
     name: str
     type: IntegrationTypeEnum = Field(None, alias="source")
     root: str = Field(None, alias="bucket_name")

@@ -13,10 +13,10 @@ class ProjectService(BaseProjectService):
     URL_LIST = "api/v1/projects"
     URL_GET = "project/{}"
     URL_SETTINGS = "project/{}/settings"
-    URL_WORKFLOW = "project/{}/workflow"
+    URL_STEPS = "project/{}/workflow"
     URL_SHARE = "api/v1/project/{}/share/bulk"
     URL_SHARE_PROJECT = "project/{}/share"
-    URL_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
+    URL_STEP_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
     URL_GET_BY_ID = "api/v1/project/{project_id}"
@@ -99,33 +99,31 @@ class ProjectService(BaseProjectService):
             data={"users": users},
         )
 
-    def list_workflows(self, project: entities.ProjectEntity):
+    def list_steps(self, project: entities.ProjectEntity):
         return self.client.paginate(
-            self.URL_WORKFLOW.format(project.id), item_type=entities.StepEntity
+            self.URL_STEPS.format(project.id), item_type=entities.StepEntity
         )
 
-    def set_workflow(
-        self, project: entities.ProjectEntity, workflow: entities.StepEntity
-    ):
+    def set_step(self, project: entities.ProjectEntity, step: entities.StepEntity):
         return self.client.request(
-            self.URL_WORKFLOW.format(project.id),
+            self.URL_STEPS.format(project.id),
             "post",
-            data={"steps": [workflow]},
+            data={"steps": [step]},
         )
 
     # TODO check
-    def set_workflows(self, project: entities.ProjectEntity, steps: list):
+    def set_steps(self, project: entities.ProjectEntity, steps: list):
         return self.client.request(
-            self.URL_WORKFLOW.format(project.id),
+            self.URL_STEPS.format(project.id),
             "post",
             data={"steps": steps},
         )
 
-    def set_project_workflow_attributes(
+    def set_project_step_attributes(
         self, project: entities.ProjectEntity, attributes: list
     ):
         return self.client.request(
-            self.URL_WORKFLOW_ATTRIBUTE.format(project.id),
+            self.URL_STEP_ATTRIBUTE.format(project.id),
             "post",
             data={"data": attributes},
         )

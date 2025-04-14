@@ -6,6 +6,21 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.34 - April 11, 2025
+______________________
+
+**Added**
+
+    - ``SAClient.get_integrations`` Added id, createdAt, updatedAt, and creator_id in integration metadata.
+    - ``SAClient.list_workflows`` Retrieves all workflows for your team along with their metadata.
+
+**Updated**
+    - ``SAClient.get_project_metadata``
+
+**Removed**
+    - ``SAClient.get_project_workflow``
+    - ``SAClient.set_project_workflow``
+
 4.4.33 - April 1, 2025
 ______________________
 

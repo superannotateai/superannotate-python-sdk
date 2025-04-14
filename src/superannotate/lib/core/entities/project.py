@@ -88,6 +88,20 @@ class ContributorEntity(BaseModel):
         extra = Extra.ignore
 
 
+class WorkflowEntity(TimedBaseModel):
+    id: Optional[int]
+    name: Optional[str]
+    type: Optional[str]
+    description: Optional[str]
+    raw_config: Optional[dict]
+
+    def is_system(self):
+        return self.type == "system"
+
+    class Config:
+        extra = Extra.ignore
+
+
 class ProjectEntity(TimedBaseModel):
     id: Optional[int]
     team_id: Optional[int]
@@ -101,6 +115,7 @@ class ProjectEntity(TimedBaseModel):
     status: Optional[ProjectStatus]
     folder_id: Optional[int]
     workflow_id: Optional[int]
+    workflow: Optional[WorkflowEntity]
     sync_status: Optional[int]
     upload_state: Optional[int]
     users: Optional[List[ContributorEntity]] = []
@@ -175,15 +190,3 @@ class CustomFieldEntity(BaseModel):
 
     class Config:
         extra = Extra.allow
-
-
-class WorkflowEntity(BaseModel):
-    id: Optional[int]
-    name: Optional[str]
-    type: Optional[str]
-
-    def is_system(self):
-        return self.type == "system"
-
-    class Config:
-        extra = Extra.ignore

@@ -357,7 +357,7 @@ class AnnotationService(BaseAnnotationService):
                 "folder_id": folder.id,
             }
             if transform_version:
-                params["desired_transform_version"] = transform_version
+                params["current_transform_version"] = transform_version
             url = urljoin(
                 self.get_assets_provider_url("v3.01"),
                 self.URL_START_FILE_UPLOAD_PROCESS.format(item_id=item_id),

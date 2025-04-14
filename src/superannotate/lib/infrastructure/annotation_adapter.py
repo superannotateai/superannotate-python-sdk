@@ -39,14 +39,46 @@ class BaseMultimodalAnnotationAdapter(ABC):
         raise NotImplementedError
 
     def get_component_value(self, component_id: str):
-        if component_id in self.annotation["data"]:
-            return self.annotation["data"][component_id]["value"]
+        component_data = self.annotation.get("data", {}).get(component_id)
+        if isinstance(component_data, dict):
+            return component_data.get("value")
+        elif isinstance(component_data, list):
+            # Find the dict with the smallest element_path
+            annotation = min(
+                (
+                    elem
+                    for elem in component_data
+                    if isinstance(elem, dict) and "element_path" in elem
+                ),
+                key=lambda x: x["element_path"],
+                default=None,
+            )
+            if annotation is not None:
+                return annotation.get("value")
         return None
 
     def set_component_value(self, component_id: str, value: Any):
-        self.annotation.setdefault("data", {}).setdefault(component_id, {})[
-            "value"
-        ] = value
+        data = self.annotation.setdefault("data", {})
+        component_data = data.get(component_id)
+
+        if component_data is None:
+            data[component_id] = [{"value": value}]
+        elif isinstance(component_data, dict):
+            component_data["value"] = value
+        elif isinstance(component_data, list):
+            # Find the dict with the smallest element_path
+            annotation = min(
+                (
+                    elem
+                    for elem in component_data
+                    if isinstance(elem, dict) and "element_path" in elem
+                ),
+                key=lambda x: x["element_path"],
+                default=None,
+            )
+            if annotation is not None:
+                annotation["value"] = value
+
         return self
 
 
@@ -71,7 +103,7 @@ class MultimodalSmallAnnotationAdapter(BaseMultimodalAnnotationAdapter):
                 project=self._project,
                 folder=self._folder,
                 item_id=self._item.id,
-                transform_version="llmJsonV2",
+                transform_version="llmJsonV3",
             )
             if not response or response.status_code == 404:
                 self._annotation = {
@@ -88,7 +120,7 @@ class MultimodalSmallAnnotationAdapter(BaseMultimodalAnnotationAdapter):
             project=self._project,
             folder=self._folder,
             item_id=self._item.id,
-            transform_version="llmJsonV2",
+            transform_version="llmJsonV3",
             data=self.annotation,
             overwrite=self._overwrite,
             etag=self._etag,
@@ -104,7 +136,7 @@ class MultimodalLargeAnnotationAdapter(BaseMultimodalAnnotationAdapter):
                     project=self._project,
                     item=self._item,
                     reporter=self._controller.reporter,
-                    transform_version="llmJsonV2",
+                    transform_version="llmJsonV3",
                 )
             )
         return self._annotation
@@ -117,6 +149,6 @@ class MultimodalLargeAnnotationAdapter(BaseMultimodalAnnotationAdapter):
                 item_id=self._item.id,
                 data=StringIO(json.dumps(self._annotation)),
                 chunk_size=5 * 1024 * 1024,
-                transform_version="llmJsonV2",
+                transform_version="llmJsonV3",
             )
         )

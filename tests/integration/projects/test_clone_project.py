@@ -75,7 +75,7 @@ class TestCloneProject(TestCase):
         sa.set_project_default_image_quality_in_editor(
             self.PROJECT_NAME_1, self.IMAGE_QUALITY
         )
-        sa.set_project_workflow(
+        sa.set_project_steps(
             self.PROJECT_NAME_1,
             self.WORKFLOWS,
         )
