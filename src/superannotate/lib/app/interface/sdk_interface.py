@@ -213,7 +213,7 @@ class ItemContext:
         return True
 
     def save(self):
-        if len(json.dumps(self.annotation).encode("utf-8")) > 16 * 1024 * 1024:
+        if len(json.dumps(self.annotation).encode("utf-8")) > 15 * 1024 * 1024:
             self._set_large_annotation_adapter(self.annotation)
         else:
             self._set_small_annotation_adapter(self.annotation)

@@ -11,8 +11,11 @@ ______________________
 
 **Added**
 
-    - ``SAClient.get_integrations``  Added integration_id in integration metadata.
-    - ``SAClient.list_workflows`` Retrieves team workflows.
+    - ``SAClient.get_integrations`` Added id, createdAt, updatedAt, and creator_id in integration metadata.
+    - ``SAClient.list_workflows`` Retrieves all workflows for your team along with their metadata.
+
+**Updated**
+    - ``SAClient.get_project_metadata``
 
 **Removed**
     - ``SAClient.get_project_workflow``

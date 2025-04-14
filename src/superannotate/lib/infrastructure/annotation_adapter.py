@@ -45,14 +45,17 @@ class BaseMultimodalAnnotationAdapter(ABC):
         elif isinstance(component_data, list):
             # Find the dict with the smallest element_path
             annotation = min(
-                (elem for elem in component_data if isinstance(elem, dict) and "element_path" in elem),
+                (
+                    elem
+                    for elem in component_data
+                    if isinstance(elem, dict) and "element_path" in elem
+                ),
                 key=lambda x: x["element_path"],
-                default=None
+                default=None,
             )
             if annotation is not None:
                 return annotation.get("value")
         return None
-
 
     def set_component_value(self, component_id: str, value: Any):
         data = self.annotation.setdefault("data", {})
@@ -65,9 +68,13 @@ class BaseMultimodalAnnotationAdapter(ABC):
         elif isinstance(component_data, list):
             # Find the dict with the smallest element_path
             annotation = min(
-                (elem for elem in component_data if isinstance(elem, dict) and "element_path" in elem),
+                (
+                    elem
+                    for elem in component_data
+                    if isinstance(elem, dict) and "element_path" in elem
+                ),
                 key=lambda x: x["element_path"],
-                default=None
+                default=None,
             )
             if annotation is not None:
                 annotation["value"] = value
