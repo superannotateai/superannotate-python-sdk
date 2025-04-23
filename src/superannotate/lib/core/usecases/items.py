@@ -410,7 +410,7 @@ class GenerateItems(BaseReportableUseCase):
 
     def validate_name(self):
         if (
-            len(self._name_prefix) > 112
+            len(self._name_prefix) > 114
             or self.INVALID_CHARS_PATTERN.search(self._name_prefix) is not None
         ):
             raise AppException("Invalid item name.")
