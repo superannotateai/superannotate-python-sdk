@@ -1,9 +1,11 @@
 import logging
+import re
 import traceback
 from collections import defaultdict
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
+from typing import Generator
 from typing import List
 from typing import Union
 
@@ -383,6 +385,88 @@ class AttachItems(BaseReportableUseCase):
                 self.reporter.update_progress(len(attachments))
             self.reporter.finish_progress()
             self._response.data = attached, duplications
+        return self._response
+
+
+class GenerateItems(BaseReportableUseCase):
+    CHUNK_SIZE = 500
+    INVALID_CHARS_PATTERN = re.compile(r"[<>:\"'/\\|?*&$!+]")
+
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        name_prefix: str,
+        count: int,
+        service_provider: BaseServiceProvider,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._name_prefix = name_prefix
+        self._count = count
+        self._service_provider = service_provider
+
+    def validate_name(self):
+        if (
+            len(self._name_prefix) > 112
+            or self.INVALID_CHARS_PATTERN.search(self._name_prefix) is not None
+        ):
+            raise AppException("Invalid item name.")
+
+    def validate_limitations(self):
+        response = self._service_provider.get_limitations(
+            project=self._project, folder=self._folder
+        )
+        if not response.ok:
+            raise AppValidationException(response.error)
+        if self._count > response.data.folder_limit.remaining_image_count:
+            raise AppValidationException(constants.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
+        if self._count > response.data.project_limit.remaining_image_count:
+            raise AppValidationException(constants.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
+        if (
+            response.data.user_limit
+            and self._count > response.data.user_limit.remaining_image_count
+        ):
+            raise AppValidationException(constants.ATTACH_USER_LIMIT_ERROR_MESSAGE)
+
+    def validate_project_type(self):
+        if self._project.type != constants.ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+
+    @staticmethod
+    def generate_attachments(
+        name: str, start: int, end: int, chunk_size: int
+    ) -> Generator[List[Attachment], None, None]:
+        chunk = []
+        for i in range(start, end + 1):
+            chunk.append(Attachment(name=f"{name}_{i:05d}", path="custom_llm"))
+            if len(chunk) == chunk_size:
+                yield chunk
+                chunk = []
+        if chunk:
+            yield chunk
+
+    def execute(self) -> Response:
+        if self.is_valid():
+            attached_items_count = 0
+            for chunk in self.generate_attachments(
+                self._name_prefix, start=1, end=self._count, chunk_size=self.CHUNK_SIZE
+            ):
+                backend_response = self._service_provider.items.attach(
+                    project=self._project,
+                    folder=self._folder,
+                    attachments=chunk,
+                    upload_state_code=3,
+                )
+                if not backend_response.ok:
+                    self._response.errors = AppException(backend_response.error)
+                    return self._response
+                attached_items_count += len(chunk)
+            self._response.data = attached_items_count
         return self._response
 
 
