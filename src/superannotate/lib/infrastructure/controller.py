@@ -127,6 +127,9 @@ class BaseManager:
 
 
 class WorkManagementManager(BaseManager):
+    def list_score_templates(self):
+        return self.service_provider.work_management.list_scores()
+
     def get_user_metadata(
         self, pk: Union[str, int], include: List[Literal["custom_fields"]] = None
     ):
@@ -910,6 +913,23 @@ class ItemManager(BaseManager):
             folder=folder,
             attachments=attachments,
             annotation_status_value=annotation_status_value,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def generate_items(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        count: int,
+        name: str,
+    ):
+        use_case = usecases.GenerateItems(
+            reporter=Reporter(),
+            project=project,
+            folder=folder,
+            name_prefix=name,
+            count=count,
             service_provider=self.service_provider,
         )
         return use_case.execute()

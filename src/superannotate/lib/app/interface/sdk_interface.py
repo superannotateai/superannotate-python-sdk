@@ -354,14 +354,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         return BaseSerializer(item).serialize(exclude={"url", "meta"})
 
-    def get_team_metadata(self):
-        """Returns team metadata
+    def get_team_metadata(self, include: List[Literal["scores"]] = None):
+        """
+        Returns team metadata, including optionally, scores
 
         :return: team metadata
         :rtype: dict
         """
         response = self.controller.get_team()
-        return TeamSerializer(response.data).serialize()
+        team = response.data
+        if include and "scores" in include:
+            team.scores = [
+                i.name
+                for i in self.controller.work_management.list_score_templates().data
+            ]
+        return TeamSerializer(team).serialize(exclude_unset=True)
 
     def get_user_metadata(
         self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
@@ -4013,6 +4020,35 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 if attachment.name not in uploaded and attachment.name not in duplicated
             ]
         return uploaded, fails, duplicated
+
+    def generate_items(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        count: int,
+        name: str,
+    ):
+        """
+        Generate multiple items in a specific project and folder.`
+        If there are no items in the folder, it will generate a blank item otherwise, it will generate items based on the Custom Form.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param count: the count of items to generate
+        :type count: int
+
+        :param name: the name of the item. After generating the items,
+                     the item names will contain the provided name and a numeric suffix based on the item count.
+        :type name: str
+        """
+        project, folder = self.controller.get_project_folder(project)
+
+        response = self.controller.items.generate_items(
+            project=project, folder=folder, count=count, name=name
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        logger.info(f"{response.data} items successfully generated.")
 
     def copy_items(
         self,

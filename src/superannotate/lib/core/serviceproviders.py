@@ -399,9 +399,9 @@ class BaseItemService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         attachments: List[Attachment],
-        annotation_status_code,
         upload_state_code,
-        meta: Dict[str, AttachmentMeta],
+        annotation_status_code=None,
+        meta: Dict[str, AttachmentMeta] = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
