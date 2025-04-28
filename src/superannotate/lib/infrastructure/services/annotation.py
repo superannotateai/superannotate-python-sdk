@@ -80,7 +80,7 @@ class AnnotationService(BaseAnnotationService):
             "desired_source": "secondary",
         }
         if transform_version:
-            sync_params["transform_version"] = transform_version
+            sync_params["desired_transform_version"] = transform_version
         sync_url = urljoin(
             self.get_assets_provider_url(),
             self.URL_START_FILE_SYNC.format(item_id=item_id),
