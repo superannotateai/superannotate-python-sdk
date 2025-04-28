@@ -3,7 +3,7 @@ import logging
 from collections import defaultdict
 from typing import List
 
-import lib.core as constances
+import lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import ContributorEntity
@@ -228,12 +228,12 @@ class CreateProjectUseCase(BaseUseCase):
 
     def validate_settings(self):
         for setting in self._project.settings[:]:
-            if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
+            if setting.attribute not in constants.PROJECT_SETTINGS_VALID_ATTRIBUTES:
                 self._project.settings.remove(setting)
             if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
-                setting.value = constances.ImageQuality(setting.value).value
+                setting.value = constants.ImageQuality(setting.value).value
             elif setting.attribute == "FrameRate":
-                if not self._project.type == constances.ProjectType.VIDEO.value:
+                if not self._project.type == constants.ProjectType.VIDEO.value:
                     raise AppValidationException(
                         "FrameRate is available only for Video projects"
                     )
@@ -263,14 +263,14 @@ class CreateProjectUseCase(BaseUseCase):
         if (
             len(
                 set(self._project.name).intersection(
-                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                 )
             )
             > 0
         ):
             self._project.name = "".join(
                 "_"
-                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                 else char
                 for char in self._project.name
             )
@@ -291,7 +291,7 @@ class CreateProjectUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             # new projects can only have the status of NotStarted
-            self._project.status = constances.ProjectStatus.NotStarted.value
+            self._project.status = constants.ProjectStatus.NotStarted.value
             response = self._service_provider.projects.create(self._project)
             if not response.ok:
                 self._response.errors = response.error
@@ -326,7 +326,7 @@ class CreateProjectUseCase(BaseUseCase):
                 data["classes"] = self._project.classes
             logger.info(
                 f"Created project {entity.name} (ID {entity.id}) "
-                f"with type {constances.ProjectType(self._response.data.type).name}."
+                f"with type {constants.ProjectType(self._response.data.type).name}."
             )
         return self._response
 
@@ -368,12 +368,12 @@ class UpdateProjectUseCase(BaseUseCase):
 
     def validate_settings(self):
         for setting in self._project.settings[:]:
-            if setting.attribute not in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES:
+            if setting.attribute not in constants.PROJECT_SETTINGS_VALID_ATTRIBUTES:
                 self._project.settings.remove(setting)
             if setting.attribute == "ImageQuality" and isinstance(setting.value, str):
-                setting.value = constances.ImageQuality(setting.value).value
+                setting.value = constants.ImageQuality(setting.value).value
             elif setting.attribute == "FrameRate":
-                if not self._project.type == constances.ProjectType.VIDEO.value:
+                if not self._project.type == constants.ProjectType.VIDEO.value:
                     raise AppValidationException(
                         "FrameRate is available only for Video projects"
                     )
@@ -404,14 +404,14 @@ class UpdateProjectUseCase(BaseUseCase):
             if (
                 len(
                     set(self._project.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                        constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                     )
                 )
                 > 0
             ):
                 self._project.name = "".join(
                     "_"
-                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                     else char
                     for char in self._project.name
                 )
@@ -484,26 +484,33 @@ class GetStepsUseCase(BaseUseCase):
         self._service_provider = service_provider
 
     def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constants.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
+                constants.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def execute(self):
         if self.is_valid():
-            data = []
-            steps = self._service_provider.projects.list_steps(self._project).data
-            for step in steps:
-                step_data = step.dict()
-                annotation_classes = self._service_provider.annotation_classes.list(
-                    Condition("project_id", self._project.id, EQ)
-                ).data
-                for annotation_class in annotation_classes:
-                    if annotation_class.id == step.class_id:
-                        step_data["className"] = annotation_class.name
-                        break
-                data.append(step_data)
-            self._response.data = data
+            project_settings = self._service_provider.projects.list_settings(project=self._project).data
+            step_setting = next((i for i in project_settings if i.attribute == "WorkflowType"), None)
+            if step_setting.value == constants.StepsType.BASIC:
+                data = []
+                steps = self._service_provider.projects.list_steps(self._project).data
+                for step in steps:
+                    step_data = step.dict()
+                    annotation_classes = self._service_provider.annotation_classes.list(
+                        Condition("project_id", self._project.id, EQ)
+                    ).data
+                    for annotation_class in annotation_classes:
+                        if annotation_class.id == step.class_id:
+                            step_data["className"] = annotation_class.name
+                            break
+                    data.append(step_data)
+                self._response.data = data
+            else:
+                steps = self._service_provider.projects.list_keypoint_steps(self._project).data
+                raise NotImplementedError
+
         return self._response
 
 
@@ -524,7 +531,7 @@ class UpdateSettingsUseCase(BaseUseCase):
             if setting["attribute"].lower() == "imagequality" and isinstance(
                 setting["value"], str
             ):
-                setting["value"] = constances.ImageQuality(setting["value"]).value
+                setting["value"] = constants.ImageQuality(setting["value"]).value
                 return
 
     def validate_project_type(self):
@@ -532,11 +539,11 @@ class UpdateSettingsUseCase(BaseUseCase):
             if attribute.get(
                 "attribute", ""
             ) == "ImageQuality" and self._project.type in [
-                constances.ProjectType.VIDEO.value,
-                constances.ProjectType.DOCUMENT.value,
+                constants.ProjectType.VIDEO.value,
+                constants.ProjectType.DOCUMENT.value,
             ]:
                 raise AppValidationException(
-                    constances.DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+                    constants.DEPRICATED_DOCUMENT_VIDEO_MESSAGE
                 )
 
     def execute(self):
@@ -552,7 +559,7 @@ class UpdateSettingsUseCase(BaseUseCase):
             for new_setting in self._to_update:
                 if (
                     new_setting["attribute"]
-                    in constances.PROJECT_SETTINGS_VALID_ATTRIBUTES
+                    in constants.PROJECT_SETTINGS_VALID_ATTRIBUTES
                 ):
                     new_settings_to_update.append(
                         SettingEntity(
@@ -586,73 +593,90 @@ class SetStepsUseCase(BaseUseCase):
         self._project = project
 
     def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constants.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
+                constants.LIMITED_FUNCTIONS[self._project.type]
             )
+    def set_basic_steps(self, annotation_classes):
+        annotation_classes_map = {}
+        annotations_classes_attributes_map = {}
+        for annotation_class in annotation_classes:
+            annotation_classes_map[annotation_class.name] = annotation_class.id
+            for attribute_group in annotation_class.attribute_groups:
+                for attribute in attribute_group.attributes:
+                    annotations_classes_attributes_map[
+                        f"{annotation_class.name}__{attribute_group.name}__{attribute.name}"
+                    ] = attribute.id
+
+        for step in [step for step in self._steps if "className" in step]:
+            if step.get("id"):
+                del step["id"]
+            step["class_id"] = annotation_classes_map.get(step["className"], None)
+            if not step["class_id"]:
+                raise AppException("Annotation class not found.")
+        self._service_provider.projects.set_steps(
+            project=self._project,
+            steps=self._steps,
+        )
+        existing_steps = self._service_provider.projects.list_steps(
+            self._project
+        ).data
+        existing_steps_map = {}
+        for steps in existing_steps:
+            existing_steps_map[steps.step] = steps.id
+
+        req_data = []
+        for step in self._steps:
+            annotation_class_name = step["className"]
+            for attribute in step["attribute"]:
+                attribute_name = attribute["attribute"]["name"]
+                attribute_group_name = attribute["attribute"]["attribute_group"][
+                    "name"
+                ]
+                if not annotations_classes_attributes_map.get(
+                        f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
+                        None,
+                ):
+                    raise AppException(
+                        f"Attribute group name or attribute name not found {attribute_group_name}."
+                    )
+
+                if not existing_steps_map.get(step["step"], None):
+                    raise AppException("Couldn't find step in steps")
+                req_data.append(
+                    {
+                        "workflow_id": existing_steps_map[step["step"]],
+                        "attribute_id": annotations_classes_attributes_map[
+                            f"{annotation_class_name}__{attribute_group_name}__{attribute_name}"
+                        ],
+                    }
+                )
+        self._service_provider.projects.set_project_step_attributes(
+            project=self._project,
+            attributes=req_data,
+        )
+
+    def set_keypoint_steps(self, annotation_classes):
+        self._service_provider.projects.set_keypoint_steps(
+            project=self._project,
+            steps=self._steps,
+        )
 
     def execute(self):
         if self.is_valid():
+
             annotation_classes = self._service_provider.annotation_classes.list(
                 Condition("project_id", self._project.id, EQ)
             ).data
-            annotation_classes_map = {}
-            annotations_classes_attributes_map = {}
-            for annotation_class in annotation_classes:
-                annotation_classes_map[annotation_class.name] = annotation_class.id
-                for attribute_group in annotation_class.attribute_groups:
-                    for attribute in attribute_group.attributes:
-                        annotations_classes_attributes_map[
-                            f"{annotation_class.name}__{attribute_group.name}__{attribute.name}"
-                        ] = attribute.id
 
-            for step in [step for step in self._steps if "className" in step]:
-                if step.get("id"):
-                    del step["id"]
-                step["class_id"] = annotation_classes_map.get(step["className"], None)
-                if not step["class_id"]:
-                    raise AppException("Annotation class not found.")
-            self._service_provider.projects.set_steps(
-                project=self._project,
-                steps=self._steps,
-            )
-            existing_steps = self._service_provider.projects.list_steps(
-                self._project
-            ).data
-            existing_steps_map = {}
-            for steps in existing_steps:
-                existing_steps_map[steps.step] = steps.id
+            project_settings = self._service_provider.projects.list_settings(project=self._project).data
+            step_setting = next((i for i in project_settings if i.attribute == "WorkflowType"), None)
 
-            req_data = []
-            for step in self._steps:
-                annotation_class_name = step["className"]
-                for attribute in step["attribute"]:
-                    attribute_name = attribute["attribute"]["name"]
-                    attribute_group_name = attribute["attribute"]["attribute_group"][
-                        "name"
-                    ]
-                    if not annotations_classes_attributes_map.get(
-                        f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
-                        None,
-                    ):
-                        raise AppException(
-                            f"Attribute group name or attribute name not found {attribute_group_name}."
-                        )
+            if step_setting.value == constants.StepsType.BASIC:
+                self.set_basic_steps(annotation_classes)
+            else:
+                self.set_keypoint_steps(annotation_classes)
 
-                    if not existing_steps_map.get(step["step"], None):
-                        raise AppException("Couldn't find step in steps")
-                    req_data.append(
-                        {
-                            "workflow_id": existing_steps_map[step["step"]],
-                            "attribute_id": annotations_classes_attributes_map[
-                                f"{annotation_class_name}__{attribute_group_name}__{attribute_name}"
-                            ],
-                        }
-                    )
-            self._service_provider.projects.set_project_step_attributes(
-                project=self._project,
-                attributes=req_data,
-            )
         return self._response
 
 
@@ -744,11 +768,11 @@ class AddContributorsToProject(BaseUseCase):
             team_users = set()
             project_users = {user.user_id for user in self._project.users}
             for user in self._team.users:
-                if user.user_role == constances.UserRole.CONTRIBUTOR.value:
+                if user.user_role == constants.UserRole.CONTRIBUTOR.value:
                     team_users.add(user.email)
             # collecting pending team users which is not admin
             for user in self._team.pending_invitations:
-                if user["user_role"] == constances.UserRole.CONTRIBUTOR.value:
+                if user["user_role"] == constants.UserRole.CONTRIBUTOR.value:
                     team_users.add(user["email"])
             # collecting pending project users which is not admin
             for user in self._project.unverified_users:
@@ -831,9 +855,9 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                 response = self._service_provider.invite_contributors(
                     team_id=self._team.id,
                     # REMINDER UserRole.VIEWER is the contributor for the teams
-                    team_role=constances.UserRole.ADMIN.value
+                    team_role=constants.UserRole.ADMIN.value
                     if self._set_admin
-                    else constances.UserRole.CONTRIBUTOR.value,
+                    else constants.UserRole.CONTRIBUTOR.value,
                     emails=to_add,
                 )
                 invited, failed = (

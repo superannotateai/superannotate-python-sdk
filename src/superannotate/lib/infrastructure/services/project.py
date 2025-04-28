@@ -14,6 +14,8 @@ class ProjectService(BaseProjectService):
     URL_GET = "project/{}"
     URL_SETTINGS = "project/{}/settings"
     URL_STEPS = "project/{}/workflow"
+    URL_KEYPOINT_STEPS = "api/v1/project/{}/downloadSteps"
+    URL_SET_KEYPOINT_STEPS = "api/v1/project/{}/uploadSteps"
     URL_SHARE = "api/v1/project/{}/share/bulk"
     URL_SHARE_PROJECT = "project/{}/share"
     URL_STEP_ATTRIBUTE = "project/{}/workflow_attribute"
@@ -104,11 +106,24 @@ class ProjectService(BaseProjectService):
             self.URL_STEPS.format(project.id), item_type=entities.StepEntity
         )
 
+    def list_keypoint_steps(self, project: entities.ProjectEntity):
+        return self.client.request(
+            self.URL_KEYPOINT_STEPS.format(project.id),
+            "get"
+        )
+
     def set_step(self, project: entities.ProjectEntity, step: entities.StepEntity):
         return self.client.request(
             self.URL_STEPS.format(project.id),
             "post",
             data={"steps": [step]},
+        )
+
+    def set_keypoint_steps(self, project: entities.ProjectEntity, steps):
+        return self.client.request(
+            self.URL_SET_KEYPOINT_STEPS.format(project.id),
+            "post",
+            data={"steps": steps},
         )
 
     # TODO check
