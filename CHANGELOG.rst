@@ -6,8 +6,21 @@ History
 
 All release highlights of this project will be documented in this file.
 
+
+4.4.35 - May 2, 2025
+____________________
+
+**Added**
+
+    - ``SAClient.generate_items`` Generates multiple items in a specified project and folder.
+
+**Updated**
+
+    - ``SAClient.get_team_metadata`` Added a new include parameter. When set to "scores", the response includes score names associated with the team user.
+
+
 4.4.34 - April 11, 2025
-______________________
+_______________________
 
 **Added**
 
@@ -15,6 +28,7 @@ ______________________
     - ``SAClient.list_workflows`` Retrieves all workflows for your team along with their metadata.
 
 **Updated**
+
     - ``SAClient.get_project_metadata``
 
 **Removed**

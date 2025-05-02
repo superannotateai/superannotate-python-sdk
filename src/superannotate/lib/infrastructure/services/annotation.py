@@ -80,7 +80,7 @@ class AnnotationService(BaseAnnotationService):
             "desired_source": "secondary",
         }
         if transform_version:
-            sync_params["transform_version"] = transform_version
+            sync_params["desired_transform_version"] = transform_version
         sync_url = urljoin(
             self.get_assets_provider_url(),
             self.URL_START_FILE_SYNC.format(item_id=item_id),
@@ -124,14 +124,14 @@ class AnnotationService(BaseAnnotationService):
             "annotation_type": "MAIN",
             "version": "V1.00",
         }
-
+        if transform_version:
+            query_params["transform_version"] = transform_version
         await self._sync_large_annotation(
             team_id=project.team_id,
             project_id=project.id,
             item_id=item.id,
             transform_version=transform_version,
         )
-
         async with AIOHttpSession(
             connector=aiohttp.TCPConnector(ssl=False),
             headers=self.client.default_headers,

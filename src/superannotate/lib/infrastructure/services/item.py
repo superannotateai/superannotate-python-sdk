@@ -37,7 +37,7 @@ class ItemService(BaseItemService):
         folder: entities.FolderEntity,
         attachments: List[Attachment],
         upload_state_code,
-        meta: Dict[str, AttachmentMeta],
+        meta: Dict[str, AttachmentMeta] = None,
         annotation_status_code=None,
     ):
         data = {
@@ -46,8 +46,10 @@ class ItemService(BaseItemService):
             "team_id": project.team_id,
             "images": [i.dict() for i in attachments],
             "upload_state": upload_state_code,
-            "meta": meta,
+            "meta": {},
         }
+        if meta:
+            data["meta"] = meta
         if annotation_status_code:
             data["annotation_status"] = annotation_status_code
         return self.client.request(self.URL_ATTACH, "post", data=data)
