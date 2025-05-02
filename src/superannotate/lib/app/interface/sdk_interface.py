@@ -356,7 +356,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_team_metadata(self, include: List[Literal["scores"]] = None):
         """
-        Returns team metadata, including optionally, scores
+        Returns team metadata, including optionally, scores.
+
+        :param include: Specifies additional fields to include in the response.
+
+            Possible values are
+
+            - "scores": If provided, the response will include score names associated with the team user.
+
+        :type include: list of str, optional
 
         :return: team metadata
         :rtype: dict
@@ -4028,7 +4036,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         name: str,
     ):
         """
-        Generate multiple items in a specific project and folder.`
+        Generate multiple items in a specific project and folder.
         If there are no items in the folder, it will generate a blank item otherwise, it will generate items based on the Custom Form.
 
         :param project: Project and folder as a tuple, folder is optional.
