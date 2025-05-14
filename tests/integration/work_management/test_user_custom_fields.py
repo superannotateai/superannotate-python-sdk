@@ -142,7 +142,6 @@ class TestWorkManagement(TestCase):
             custom_field_name="SDK_test_date_picker",
             value=value,
         )
-        time.sleep(1)
         scapegoat = sa.list_users(
             include=["custom_fields"],
             email=scapegoat["email"],
