@@ -1,0 +1,72 @@
+[
+  {
+    "steps": [
+      {
+        "class_id": 5619764,
+        "tool": 4,
+        "attribute": [
+          {
+            "id": 11181258,
+            "group_id": 5464852
+          }
+        ],
+        "id": 1
+      },
+      {
+        "class_id": 5619763,
+        "tool": 4,
+        "attribute": [
+          {
+            "id": 11181255,
+            "group_id": 5464851
+          }
+        ],
+        "id": 2
+      }
+    ],
+    "connections": [
+      [
+        1,
+        2
+      ]
+    ]
+  },
+  {
+    "steps": [
+      {
+        "id": 1,
+        "attribute": [
+          {
+            "attribute": {
+              "id": 11181248,
+              "group_id": 5464847
+            }
+          }
+        ],
+        "className": "1",
+        "class_id": 5619759,
+        "tool": 4
+      },
+      {
+        "id": 2,
+        "attribute": [
+          {
+            "attribute": {
+              "id": 11181249,
+              "group_id": 5464848
+            }
+          }
+        ],
+        "className": "2",
+        "class_id": 5619760,
+        "tool": 4
+      }
+    ],
+    "connections": [
+      [
+        2,
+        1
+      ]
+    ]
+  }
+]

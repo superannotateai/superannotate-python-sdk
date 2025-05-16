@@ -10,6 +10,7 @@ from lib.core.enums import FolderStatus
 from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
+from lib.core.enums import StepsType
 from lib.core.enums import TrainingStatus
 from lib.core.enums import UploadState
 from lib.core.enums import UserRole
@@ -186,6 +187,7 @@ __alL__ = (
     FolderStatus,
     ProjectStatus,
     ProjectType,
+    StepsType,
     UserRole,
     UploadState,
     TrainingStatus,
