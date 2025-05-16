@@ -21,7 +21,6 @@ from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 
-
 logger = logging.getLogger("sa")
 
 
@@ -491,8 +490,12 @@ class GetStepsUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            project_settings = self._service_provider.projects.list_settings(project=self._project).data
-            step_setting = next((i for i in project_settings if i.attribute == "WorkflowType"), None)
+            project_settings = self._service_provider.projects.list_settings(
+                project=self._project
+            ).data
+            step_setting = next(
+                (i for i in project_settings if i.attribute == "WorkflowType"), None
+            )
             if step_setting.value == constants.StepsType.BASIC:
                 data = []
                 steps = self._service_provider.projects.list_steps(self._project).data
@@ -508,9 +511,11 @@ class GetStepsUseCase(BaseUseCase):
                     data.append(step_data)
                 self._response.data = data
             else:
-                steps = self._service_provider.projects.list_keypoint_steps(self._project).data
-                raise NotImplementedError
-
+                self._response.data = (
+                    self._service_provider.projects.list_keypoint_steps(
+                        self._project
+                    ).data["steps"]
+                )
         return self._response
 
 
@@ -586,10 +591,12 @@ class SetStepsUseCase(BaseUseCase):
         service_provider: BaseServiceProvider,
         steps: list,
         project: ProjectEntity,
+        connections: List[List[int]] = None,
     ):
         super().__init__()
         self._service_provider = service_provider
         self._steps = steps
+        self._connections = connections
         self._project = project
 
     def validate_project_type(self):
@@ -597,6 +604,27 @@ class SetStepsUseCase(BaseUseCase):
             raise AppValidationException(
                 constants.LIMITED_FUNCTIONS[self._project.type]
             )
+
+    def validate_connections(self):
+        if not self._connections:
+            return
+
+        if len(self._connections) > len(self._steps):
+            raise AppValidationException(
+                "Invalid connections: more connections than steps."
+            )
+
+        possible_connections = set(range(1, len(self._steps) + 1))
+        for connection_group in self._connections:
+            if len(set(connection_group)) != len(connection_group):
+                raise AppValidationException(
+                    "Invalid connections: duplicates in a connection group."
+                )
+            if not set(connection_group).issubset(possible_connections):
+                raise AppValidationException(
+                    "Invalid connections: index out of allowed range."
+                )
+
     def set_basic_steps(self, annotation_classes):
         annotation_classes_map = {}
         annotations_classes_attributes_map = {}
@@ -618,9 +646,7 @@ class SetStepsUseCase(BaseUseCase):
             project=self._project,
             steps=self._steps,
         )
-        existing_steps = self._service_provider.projects.list_steps(
-            self._project
-        ).data
+        existing_steps = self._service_provider.projects.list_steps(self._project).data
         existing_steps_map = {}
         for steps in existing_steps:
             existing_steps_map[steps.step] = steps.id
@@ -630,12 +656,10 @@ class SetStepsUseCase(BaseUseCase):
             annotation_class_name = step["className"]
             for attribute in step["attribute"]:
                 attribute_name = attribute["attribute"]["name"]
-                attribute_group_name = attribute["attribute"]["attribute_group"][
-                    "name"
-                ]
+                attribute_group_name = attribute["attribute"]["attribute_group"]["name"]
                 if not annotations_classes_attributes_map.get(
-                        f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
-                        None,
+                    f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
+                    None,
                 ):
                     raise AppException(
                         f"Attribute group name or attribute name not found {attribute_group_name}."
@@ -656,10 +680,44 @@ class SetStepsUseCase(BaseUseCase):
             attributes=req_data,
         )
 
-    def set_keypoint_steps(self, annotation_classes):
+    @staticmethod
+    def _validate_keypoint_steps(annotation_classes, steps):
+        class_group_attrs_map = {}
+        for annotation_class in annotation_classes:
+            class_group_attrs_map[annotation_class.id] = dict()
+            for group in annotation_class.attribute_groups:
+                class_group_attrs_map[annotation_class.id][group.id] = []
+                for attribute in group.attributes:
+                    class_group_attrs_map[annotation_class.id][group.id].append(
+                        attribute.id
+                    )
+        for step in steps:
+            class_id = step.get("class_id", None)
+            if not class_id or class_id not in class_group_attrs_map:
+                raise AppException("Annotation class not found.")
+            attributes = step.get("attribute", None)
+            if not attributes:
+                continue
+            for attr in attributes:
+                try:
+                    _id, group_id = attr["attribute"].get("id", None), attr[
+                        "attribute"
+                    ].get("group_id", None)
+                    assert _id in class_group_attrs_map[class_id][group_id]
+                except (KeyError, AssertionError):
+                    raise AppException("Invalid steps provided.")
+
+    def set_keypoint_steps(self, annotation_classes, steps, connections):
+        self._validate_keypoint_steps(annotation_classes, steps)
+        for i in range(1, len(self._steps) + 1):
+            step = self._steps[i - 1]
+            step["id"] = i
+            if "attribute" not in step:
+                step["attribute"] = []
         self._service_provider.projects.set_keypoint_steps(
             project=self._project,
-            steps=self._steps,
+            steps=steps,
+            connections=connections,
         )
 
     def execute(self):
@@ -669,13 +727,24 @@ class SetStepsUseCase(BaseUseCase):
                 Condition("project_id", self._project.id, EQ)
             ).data
 
-            project_settings = self._service_provider.projects.list_settings(project=self._project).data
-            step_setting = next((i for i in project_settings if i.attribute == "WorkflowType"), None)
+            project_settings = self._service_provider.projects.list_settings(
+                project=self._project
+            ).data
+            step_setting = next(
+                (i for i in project_settings if i.attribute == "WorkflowType"), None
+            )
+            if (
+                self._connections is not None
+                and step_setting.value == constants.StepsType.BASIC.value
+            ):
+                raise AppException("Can't update steps type. ")
 
             if step_setting.value == constants.StepsType.BASIC:
                 self.set_basic_steps(annotation_classes)
             else:
-                self.set_keypoint_steps(annotation_classes)
+                self.set_keypoint_steps(
+                    annotation_classes, self._steps, self._connections
+                )
 
         return self._response
 

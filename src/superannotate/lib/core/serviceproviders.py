@@ -273,7 +273,7 @@ class BaseProjectService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def set_keypoint_steps(self, project: entities.ProjectEntity, steps):
+    def set_keypoint_steps(self, project: entities.ProjectEntity, steps, connections):
         raise NotImplementedError
 
     @abstractmethod

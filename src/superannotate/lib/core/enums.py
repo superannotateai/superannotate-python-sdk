@@ -116,6 +116,7 @@ class ProjectType(BaseTitledEnum):
     def images(self):
         return self.VECTOR.value, self.PIXEL.value, self.TILED.value
 
+
 class StepsType(Enum):
     INITIAL = 1
     BASIC = 2

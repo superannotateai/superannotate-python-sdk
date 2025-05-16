@@ -7,7 +7,7 @@ History
 All release highlights of this project will be documented in this file.
 
 4.4.34 - April 11, 2025
-______________________
+_______________________
 
 **Added**
 

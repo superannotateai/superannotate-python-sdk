@@ -489,10 +489,13 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def set_steps(self, project: ProjectEntity, steps: List):
+    def set_steps(
+        self, project: ProjectEntity, steps: List, connections: List[List[int]] = None
+    ):
         use_case = usecases.SetStepsUseCase(
             service_provider=self.service_provider,
             steps=steps,
+            connections=connections,
             project=project,
         )
         return use_case.execute()

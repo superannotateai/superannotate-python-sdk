@@ -107,10 +107,7 @@ class ProjectService(BaseProjectService):
         )
 
     def list_keypoint_steps(self, project: entities.ProjectEntity):
-        return self.client.request(
-            self.URL_KEYPOINT_STEPS.format(project.id),
-            "get"
-        )
+        return self.client.request(self.URL_KEYPOINT_STEPS.format(project.id), "get")
 
     def set_step(self, project: entities.ProjectEntity, step: entities.StepEntity):
         return self.client.request(
@@ -119,11 +116,16 @@ class ProjectService(BaseProjectService):
             data={"steps": [step]},
         )
 
-    def set_keypoint_steps(self, project: entities.ProjectEntity, steps):
+    def set_keypoint_steps(self, project: entities.ProjectEntity, steps, connections):
         return self.client.request(
             self.URL_SET_KEYPOINT_STEPS.format(project.id),
             "post",
-            data={"steps": steps},
+            data={
+                "steps": {
+                    "steps": steps,
+                    "connections": connections if connections else [],
+                }
+            },
         )
 
     # TODO check
