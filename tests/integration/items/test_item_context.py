@@ -32,7 +32,8 @@ class TestMultimodalProjectBasic(BaseTestCase):
         )
         team = sa.controller.team
         project = sa.controller.get_project(self.PROJECT_NAME)
-        time.sleep(10)
+        #  todo check
+        # time.sleep(10)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 team, project, template=json.load(f)
@@ -53,7 +54,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
             assert ic.get_component_value("component_id_1") is None
             ic.set_component_value("component_id_1", "value")
         with self.assertRaisesRegexp(
-            FileChangedError, "The file has changed and overwrite is set to False."
+                FileChangedError, "The file has changed and overwrite is set to False."
         ):
             with sa.item_context(path, item, overwrite=False) as ic:
                 assert ic.get_component_value("component_id_1") == "value"
@@ -65,12 +66,12 @@ class TestMultimodalProjectBasic(BaseTestCase):
     def test_overwrite_false(self):
         # test root by folder name
         self._attach_item(self.PROJECT_NAME, "dummy")
-        time.sleep(2)
+        # time.sleep(2)
         self._base_test(self.PROJECT_NAME, "dummy")
 
         folder = sa.create_folder(self.PROJECT_NAME, folder_name="folder")
         # test from folder by project and folder names
-        time.sleep(2)
+        # time.sleep(2)
         path = f"{self.PROJECT_NAME}/folder"
         self._attach_item(path, "dummy")
         self._base_test(path, "dummy")
@@ -107,7 +108,7 @@ class TestEditorContext(BaseTestCase):
         )
         team = sa.controller.team
         project = sa.controller.get_project(self.PROJECT_NAME)
-        time.sleep(10)
+         # time.sleep(10)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 team, project, template=json.load(f)

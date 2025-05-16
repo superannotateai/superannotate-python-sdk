@@ -92,7 +92,6 @@ class TestListItemsMultimodal(BaseTestCase):
             ],
         )
         project = sa.controller.get_project(self.PROJECT_NAME)
-        time.sleep(10)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 sa.controller.team, project, template=json.load(f)
