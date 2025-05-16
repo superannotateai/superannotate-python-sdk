@@ -1,12 +1,5 @@
-import json
-import os
-import tempfile
-from pathlib import Path
-
-from numpy.ma.core import arange
 from src.superannotate import AppException
 from src.superannotate import SAClient
-from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -236,7 +229,8 @@ class TestProjectSteps(BaseTestCase):
             sa.set_project_steps(
                 *args,
                 connections=[
-                    [1, 2, 1],
+                    [1, 2],
+                    [2, 1],
                 ]
             )
         with self.assertRaisesRegexp(
