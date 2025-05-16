@@ -1,5 +1,6 @@
 import decimal
 import logging
+import math
 from collections import defaultdict
 from typing import List
 
@@ -608,10 +609,14 @@ class SetStepsUseCase(BaseUseCase):
     def validate_connections(self):
         if not self._connections:
             return
-
-        if len(self._connections) > len(self._steps):
+        if not all([len(i) == 2 for i in self._connections]):
+            raise AppException("Invalid connections.")
+        steps_count = len(self._steps)
+        if len(self._connections) > max(
+            math.factorial(steps_count) / (2 * math.factorial(steps_count - 2)), 1
+        ):
             raise AppValidationException(
-                "Invalid connections: more connections than steps."
+                "Invalid connections: duplicates in a connection group."
             )
 
         possible_connections = set(range(1, len(self._steps) + 1))

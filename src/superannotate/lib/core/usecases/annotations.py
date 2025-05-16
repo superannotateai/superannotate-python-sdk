@@ -2101,9 +2101,8 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                 if categorization_enabled:
                     item_id_category_map = {}
                     for item_name in uploaded_annotations:
-                        category = (
-                            name_annotation_map[item_name]["metadata"]
-                            .get("item_category", None)
+                        category = name_annotation_map[item_name]["metadata"].get(
+                            "item_category", None
                         )
                         if category:
                             item_id_category_map[name_item_map[item_name].id] = category
