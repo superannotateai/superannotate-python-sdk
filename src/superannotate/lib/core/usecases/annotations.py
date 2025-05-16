@@ -107,10 +107,10 @@ def log_report(
 
 class ItemToUpload(BaseModel):
     item: BaseItemEntity
-    annotation_json: Optional[dict]
-    path: Optional[str]
-    file_size: Optional[int]
-    mask: Optional[io.BytesIO]
+    annotation_json: Optional[dict] = None
+    path: Optional[str] = None
+    file_size: Optional[int] = None
+    mask: Optional[io.BytesIO] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -282,12 +282,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             raise AppException("Unsupported project type.")
 
     def _validate_json(self, json_data: dict) -> list:
-        if self._project.type >= constants.ProjectType.PIXEL.value:
+        if self._project.type >= int(constants.ProjectType.PIXEL):
             return []
         use_case = ValidateAnnotationUseCase(
             reporter=self.reporter,
             team_id=self._project.team_id,
-            project_type=self._project.type.value,
+            project_type=self._project.type,
             annotation=json_data,
             service_provider=self._service_provider,
         )
@@ -2103,8 +2103,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                     for item_name in uploaded_annotations:
                         category = (
                             name_annotation_map[item_name]["metadata"]
-                            .get("item_category", {})
-                            .get("value")
+                            .get("item_category", None)
                         )
                         if category:
                             item_id_category_map[name_item_map[item_name].id] = category
