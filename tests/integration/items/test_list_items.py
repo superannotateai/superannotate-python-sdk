@@ -2,7 +2,6 @@ import json
 import os
 import random
 import string
-import time
 from pathlib import Path
 
 from src.superannotate import AppException

@@ -1,7 +1,6 @@
 import json
 import os
 import tempfile
-import time
 from pathlib import Path
 
 from src.superannotate import AppException
