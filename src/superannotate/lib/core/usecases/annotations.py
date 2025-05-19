@@ -287,7 +287,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         use_case = ValidateAnnotationUseCase(
             reporter=self.reporter,
             team_id=self._project.team_id,
-            project_type=self._project.type,
+            project_type=self._project.type.value,
             annotation=json_data,
             service_provider=self._service_provider,
         )
