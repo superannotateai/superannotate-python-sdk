@@ -738,18 +738,20 @@ class SetStepsUseCase(BaseUseCase):
             step_setting = next(
                 (i for i in project_settings if i.attribute == "WorkflowType"), None
             )
-            if (
-                self._connections is not None
-                and step_setting.value == constants.StepsType.BASIC.value
-            ):
-                raise AppException("Can't update steps type. ")
-
-            if step_setting.value == constants.StepsType.BASIC:
+            if self._connections is None and step_setting.value in [
+                constants.StepsType.INITIAL.value,
+                constants.StepsType.BASIC.value,
+            ]:
                 self.set_basic_steps(annotation_classes)
-            else:
+            elif self._connections is not None and step_setting.value in [
+                constants.StepsType.INITIAL.value,
+                constants.StepsType.KEYPOINT.value,
+            ]:
                 self.set_keypoint_steps(
                     annotation_classes, self._steps, self._connections
                 )
+            else:
+                raise AppException("Can't update steps type.")
 
         return self._response
 

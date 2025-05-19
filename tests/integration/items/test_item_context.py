@@ -1,6 +1,5 @@
 import json
 import os
-import time
 from pathlib import Path
 
 from src.superannotate import FileChangedError
@@ -54,7 +53,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
             assert ic.get_component_value("component_id_1") is None
             ic.set_component_value("component_id_1", "value")
         with self.assertRaisesRegexp(
-                FileChangedError, "The file has changed and overwrite is set to False."
+            FileChangedError, "The file has changed and overwrite is set to False."
         ):
             with sa.item_context(path, item, overwrite=False) as ic:
                 assert ic.get_component_value("component_id_1") == "value"
@@ -108,7 +107,7 @@ class TestEditorContext(BaseTestCase):
         )
         team = sa.controller.team
         project = sa.controller.get_project(self.PROJECT_NAME)
-         # time.sleep(10)
+        # time.sleep(10)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 team, project, template=json.load(f)
