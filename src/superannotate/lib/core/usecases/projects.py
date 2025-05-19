@@ -497,7 +497,13 @@ class GetStepsUseCase(BaseUseCase):
             step_setting = next(
                 (i for i in project_settings if i.attribute == "WorkflowType"), None
             )
-            if step_setting.value == constants.StepsType.BASIC.value:
+            if step_setting.value == constants.StepsType.KEYPOINT.value:
+                self._response.data = (
+                    self._service_provider.projects.list_keypoint_steps(
+                        self._project
+                    ).data["steps"]
+                )
+            else:
                 data = []
                 steps = self._service_provider.projects.list_steps(self._project).data
                 for step in steps:
@@ -511,12 +517,6 @@ class GetStepsUseCase(BaseUseCase):
                             break
                     data.append(step_data)
                 self._response.data = data
-            else:
-                self._response.data = (
-                    self._service_provider.projects.list_keypoint_steps(
-                        self._project
-                    ).data["steps"]
-                )
         return self._response
 
 
