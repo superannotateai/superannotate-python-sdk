@@ -497,7 +497,7 @@ class GetStepsUseCase(BaseUseCase):
             step_setting = next(
                 (i for i in project_settings if i.attribute == "WorkflowType"), None
             )
-            if step_setting.value == constants.StepsType.BASIC:
+            if step_setting.value == constants.StepsType.BASIC.value:
                 data = []
                 steps = self._service_provider.projects.list_steps(self._project).data
                 for step in steps:
