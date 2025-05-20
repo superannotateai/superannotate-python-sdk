@@ -2106,9 +2106,11 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                         )
                         if category:
                             item_id_category_map[name_item_map[item_name].id] = category
-                    self._attach_categories(
-                        folder_id=folder.id, item_id_category_map=item_id_category_map
-                    )
+                    if item_id_category_map:
+                        self._attach_categories(
+                            folder_id=folder.id,
+                            item_id_category_map=item_id_category_map,
+                        )
                 workflow = self._service_provider.work_management.get_workflow(
                     self._project.workflow_id
                 )
@@ -2147,7 +2149,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             )
             response.raise_for_status()
             categories = response.data
-            self._category_name_to_id_map = {c.name: c.id for c in categories}
+            self._category_name_to_id_map = {c.value: c.id for c in categories}
         for item_id in list(item_id_category_map.keys()):
             category_name = item_id_category_map[item_id]
             if category_name not in self._category_name_to_id_map:
