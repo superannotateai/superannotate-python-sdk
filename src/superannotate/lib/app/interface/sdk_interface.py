@@ -2555,7 +2555,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param connections: Defines connections between keypoint annotation steps.
             Each inner list specifies a pair of step IDs indicating a connection.
-        :type connections: list of dicts
+        :type connections: list of list
 
         Request Example for General Annotation Project:
         ::
