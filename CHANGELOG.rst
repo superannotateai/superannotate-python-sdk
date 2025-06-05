@@ -6,7 +6,7 @@ History
 
 All release highlights of this project will be documented in this file.
 
-4.4.35 - June 05, 2025
+4.4.36 - June 05, 2025
 ______________________
 
 **Updated**
