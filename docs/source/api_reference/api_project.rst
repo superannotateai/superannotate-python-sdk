@@ -24,6 +24,6 @@ Projects
 .. automethod:: superannotate.SAClient.add_contributors_to_project
 .. automethod:: superannotate.SAClient.get_project_settings
 .. automethod:: superannotate.SAClient.set_project_default_image_quality_in_editor
-.. automethod:: superannotate.SAClient.set_project_steps
 .. automethod:: superannotate.SAClient.get_project_steps
+.. automethod:: superannotate.SAClient.set_project_steps
 .. automethod:: superannotate.SAClient.get_component_config

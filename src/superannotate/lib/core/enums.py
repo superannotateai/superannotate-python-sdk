@@ -117,6 +117,12 @@ class ProjectType(BaseTitledEnum):
         return self.VECTOR.value, self.PIXEL.value, self.TILED.value
 
 
+class StepsType(Enum):
+    INITIAL = 1
+    BASIC = 2
+    KEYPOINT = 3
+
+
 class UserRole(BaseTitledEnum):
     CONTRIBUTOR = "Contributor", 4
     ADMIN = "Admin", 7

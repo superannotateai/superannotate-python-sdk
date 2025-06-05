@@ -133,6 +133,7 @@ class WMProjectUserEntity(TimedBaseModel):
     email: Optional[str]
     state: Optional[WMUserStateEnum]
     custom_fields: Optional[dict] = Field(dict(), alias="customField")
+    permissions: Optional[dict]
 
     class Config:
         extra = Extra.ignore

@@ -6,6 +6,14 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.36 - June 05, 2025
+______________________
+
+**Updated**
+
+    - ``SAClient.get_project_steps`` and ``SAClient.get_project_steps`` now support keypoint workflows, enabling structured step configuration with class             IDs, attributes, and step connections.
+    - ``SAClient.list_users`` now returns user-specific permission states for paused, allow_orchestrate, allow_run_explore, and allow_view_sdk_token.
+
 
 4.4.35 - May 2, 2025
 ____________________

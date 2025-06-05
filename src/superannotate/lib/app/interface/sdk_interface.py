@@ -74,7 +74,6 @@ from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
 
-
 logger = logging.getLogger("sa")
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -1493,10 +1492,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or metadata
         :type project: str or dict
 
-        :return: project steps
-        :rtype: list of dicts
+        :return: A list of step dictionaries,
+            or a dictionary containing both steps and their connections (for Keypoint workflows).
+        :rtype: list of dicts or dict
 
-        Response Example:
+        Response Example for General Annotation Project:
         ::
 
             [
@@ -1515,6 +1515,34 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
 
+        Response Example for Keypoint Annotation Project:
+        ::
+
+            {
+              "steps": [
+                {
+                  "step": 1,
+                  "className": "Left Shoulder",
+                  "class_id": "1",
+                  "attribute": [
+                    {
+                            "attribute": {
+                                "id": 123,
+                                "group_id": 12
+                            }
+                        }
+                  ]
+                },
+                {
+                  "step": 2,
+                  "class_id": "2",
+                  "className": "Right Shoulder",
+                }
+              ],
+              "connections": [
+                [1, 2]
+              ]
+            }
         """
         project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
@@ -2511,7 +2539,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-    def set_project_steps(self, project: Union[NotEmptyStr, dict], steps: List[dict]):
+    def set_project_steps(
+        self,
+        project: Union[NotEmptyStr, dict],
+        steps: List[dict],
+        connections: List[List[int]] = None,
+    ):
         """Sets project's steps.
 
         :param project: project name or metadata
@@ -2520,7 +2553,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param steps: new workflow list of dicts
         :type steps: list of dicts
 
-        Request Example:
+        :param connections: Defines connections between keypoint annotation steps.
+            Each inner list specifies a pair of step IDs indicating a connection.
+        :type connections: list of list
+
+        Request Example for General Annotation Project:
         ::
 
             sa.set_project_steps(
@@ -2541,10 +2578,40 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     }
                 ]
             )
+
+        Request Example for Keypoint Annotation Project:
+        ::
+
+            sa.set_project_steps(
+                project="Pose Estimation Project",
+                steps=[
+                    {
+                        "step": 1,
+                        "class_id": 12,
+                        "attribute": [
+                            {
+                                "attribute": {
+                                    "id": 123,
+                                    "group_id": 12
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "step": 2,
+                        "class_id": 13
+                    }
+                ],
+                connections=[
+                    [1, 2]
+                ]
+            )
         """
         project_name, _ = extract_project_folder(project)
         project = self.controller.get_project(project_name)
-        response = self.controller.projects.set_steps(project, steps=steps)
+        response = self.controller.projects.set_steps(
+            project, steps=steps, connections=connections
+        )
         if response.errors:
             raise AppException(response.errors)
 

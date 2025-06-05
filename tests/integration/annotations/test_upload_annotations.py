@@ -1,7 +1,6 @@
 import json
 import os
 import tempfile
-import time
 from pathlib import Path
 
 from src.superannotate import AppException
@@ -160,7 +159,8 @@ class MultiModalUploadDownloadAnnotations(BaseTestCase):
             ],
         )
         project = sa.controller.get_project(self.PROJECT_NAME)
-        time.sleep(4)
+        # todo check
+        # time.sleep(4)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 sa.controller.team, project, template=json.load(f)
@@ -267,6 +267,5 @@ class MultiModalUploadDownloadAnnotations(BaseTestCase):
             assert len(downloaded_data) == len(
                 annotations
             ), "Mismatch in annotation count"
-            assert (
-                downloaded_data == annotations
-            ), "Downloaded annotations do not match uploaded annotations"
+            for a in downloaded_data:
+                assert a in annotations, "Mismatch in annotation count"

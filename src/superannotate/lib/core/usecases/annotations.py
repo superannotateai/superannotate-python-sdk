@@ -107,10 +107,10 @@ def log_report(
 
 class ItemToUpload(BaseModel):
     item: BaseItemEntity
-    annotation_json: Optional[dict]
-    path: Optional[str]
-    file_size: Optional[int]
-    mask: Optional[io.BytesIO]
+    annotation_json: Optional[dict] = None
+    path: Optional[str] = None
+    file_size: Optional[int] = None
+    mask: Optional[io.BytesIO] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -282,7 +282,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             raise AppException("Unsupported project type.")
 
     def _validate_json(self, json_data: dict) -> list:
-        if self._project.type >= constants.ProjectType.PIXEL.value:
+        if self._project.type >= int(constants.ProjectType.PIXEL):
             return []
         use_case = ValidateAnnotationUseCase(
             reporter=self.reporter,
@@ -2101,16 +2101,16 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                 if categorization_enabled:
                     item_id_category_map = {}
                     for item_name in uploaded_annotations:
-                        category = (
-                            name_annotation_map[item_name]["metadata"]
-                            .get("item_category", {})
-                            .get("value")
+                        category = name_annotation_map[item_name]["metadata"].get(
+                            "item_category", None
                         )
                         if category:
                             item_id_category_map[name_item_map[item_name].id] = category
-                    self._attach_categories(
-                        folder_id=folder.id, item_id_category_map=item_id_category_map
-                    )
+                    if item_id_category_map:
+                        self._attach_categories(
+                            folder_id=folder.id,
+                            item_id_category_map=item_id_category_map,
+                        )
                 workflow = self._service_provider.work_management.get_workflow(
                     self._project.workflow_id
                 )
@@ -2149,7 +2149,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             )
             response.raise_for_status()
             categories = response.data
-            self._category_name_to_id_map = {c.name: c.id for c in categories}
+            self._category_name_to_id_map = {c.value: c.id for c in categories}
         for item_id in list(item_id_category_map.keys()):
             category_name = item_id_category_map[item_id]
             if category_name not in self._category_name_to_id_map:
