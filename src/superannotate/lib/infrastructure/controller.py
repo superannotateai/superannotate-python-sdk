@@ -1918,3 +1918,15 @@ class Controller(BaseController):
             return self.get_item_by_id(item_id=item, project=project)
         else:
             return self.items.get_by_name(project, folder, item)
+
+    def check_multimodal_project_categorization(self, project: ProjectEntity):
+        if project.type != ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is only supported for Multimodal projects."
+            )
+        project_settings = self.service_provider.projects.list_settings(project).data
+        if not next(
+            (i.value for i in project_settings if i.attribute == "CategorizeItems"),
+            None,
+        ):
+            raise AppException("Item Category not enabled for project.")

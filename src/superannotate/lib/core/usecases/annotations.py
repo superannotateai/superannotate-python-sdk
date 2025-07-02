@@ -2165,10 +2165,10 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                 self._service_provider.work_management.create_project_categories(
                     project_id=self._project.id,
                     categories=categories_to_create,
-                ).data["data"]
+                ).data
             )
             for c in _categories:
-                self._category_name_to_id_map[c["name"]] = c["id"]
+                self._category_name_to_id_map[c.name] = c.id
             for item_id, category_name in item_id_category_map.items():
                 with suppress(KeyError):
                     item_id_category_id_map[item_id] = self._category_name_to_id_map[
