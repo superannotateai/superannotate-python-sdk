@@ -7,9 +7,12 @@ from typing import Dict
 from typing import List
 from typing import Literal
 from typing import Optional
+from typing import Union
 
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.entities import CategoryEntity
+from lib.core.entities.project_entities import BaseEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
@@ -18,6 +21,7 @@ from lib.core.service_types import FolderListResponse
 from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
 from lib.core.service_types import ListCategoryResponse
+from lib.core.service_types import ListProjectCategoryResponse
 from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
@@ -137,13 +141,21 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def list_project_categories(self, project_id: int) -> ListCategoryResponse:
+    def list_project_categories(
+        self, project_id: int, entity: BaseEntity = CategoryEntity
+    ) -> Union[ListCategoryResponse, ListProjectCategoryResponse]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def remove_project_categories(
+        self, project_id: int, query: Query
+    ) -> ListProjectCategoryResponse:
         raise NotImplementedError
 
     @abstractmethod
     def create_project_categories(
         self, project_id: int, categories: List[str]
-    ) -> ServiceResponse:
+    ) -> ListProjectCategoryResponse:
         raise NotImplementedError
 
     @abstractmethod

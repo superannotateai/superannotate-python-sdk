@@ -73,6 +73,8 @@ from lib.infrastructure.validators import wrap_error
 from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
+from lib.core.entities.items import ProjectCategoryEntity
+
 
 logger = logging.getLogger("sa")
 
@@ -1193,6 +1195,154 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     new_project, contributor["user_role"]
                 )
         return data
+
+    def create_categories(
+        self, project: Union[NotEmptyStr, int], categories: List[str]
+    ):
+        """
+        Create one or more categories in a project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param categories: A list of categories to create
+        :type categories: list of str
+
+        Request Example:
+        ::
+
+            client.create_categories(
+                project="product-review-mm",
+                categories=["Shoes", "T-Shirt"]
+            )
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        response = (
+            self.controller.service_provider.work_management.create_project_categories(
+                project_id=project.id, categories=categories
+            )
+        )
+        logger.info(
+            f"{len(response.data)} categories successfully added to the project."
+        )
+
+    def list_categories(self, project: Union[NotEmptyStr, int]):
+        """
+        List all categories in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :return: List of categories
+        :rtype: list of dict
+
+        Request Example:
+        ::
+
+            client.list_categories(
+                project="product-review-mm"
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2025-01-29T13:51:39.000Z",
+                    "updatedAt": "2025-01-29T13:51:39.000Z",
+                    "id": 328577,
+                    "name": "category1",
+                    "project_id": 1234
+                },
+                {
+                    "createdAt": "2025-01-29T13:51:39.000Z",
+                    "updatedAt": "2025-01-29T13:51:39.000Z",
+                    "id": 328577,
+                    "name": "category2",
+                    "project_id": 1234
+                },
+            ]
+
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        response = (
+            self.controller.service_provider.work_management.list_project_categories(
+                project_id=project.id, entity=ProjectCategoryEntity
+            )
+        )
+        return BaseSerializer.serialize_iterable(response.data)
+
+    def remove_categories(
+        self,
+        project: Union[NotEmptyStr, int],
+        categories: Union[List[str], Literal["*"]],
+    ):
+        """
+        Remove one or more categories in a project. "*" in the category list will match all categories defined in the project.
+
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param categories: A list of categories to remove, Accepts "*" to indicate all available categories in the project.
+        :type categories: Union[List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            client.remove_categories(
+                project="product-review-mm",
+                categories=["Shoes", "T-Shirt"]
+            )
+
+            # To remove all categories
+            client.remove_categories(
+                project="product-review-mm",
+                categories="*"
+            )
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        query = EmptyQuery()
+        if categories == "*":
+            query &= Filter("id", [0], OperatorEnum.GT)
+        elif categories and isinstance(categories, list):
+            categories = [c.lower() for c in categories]
+            all_categories = self.controller.service_provider.work_management.list_project_categories(
+                project_id=project.id, entity=ProjectCategoryEntity
+            )
+            categories_to_remove = [
+                c for c in all_categories.data if c.name.lower() in categories
+            ]
+            query &= Filter("id", [c.id for c in categories_to_remove], OperatorEnum.IN)
+        else:
+            raise AppException("Categories should be a list of strings or '*'.")
+
+        response = (
+            self.controller.service_provider.work_management.remove_project_categories(
+                project_id=project.id, query=query
+            )
+        )
+        logger.info(
+            f"{len(response.data)} categories successfully removed from the project."
+        )
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """

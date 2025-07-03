@@ -27,3 +27,6 @@ Projects
 .. automethod:: superannotate.SAClient.get_project_steps
 .. automethod:: superannotate.SAClient.set_project_steps
 .. automethod:: superannotate.SAClient.get_component_config
+.. automethod:: superannotate.SAClient.create_categories
+.. automethod:: superannotate.SAClient.list_categories
+.. automethod:: superannotate.SAClient.remove_categories
