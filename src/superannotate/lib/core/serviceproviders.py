@@ -499,8 +499,14 @@ class BaseItemService(SuperannotateServiceProvider):
 
     @abstractmethod
     def bulk_attach_categories(
-        self, project_id: int, folder_id: int, item_category_map: Dict[int, int]
-    ) -> bool:
+        self, project_id: int, folder_id: int, item_id_category_id_map: Dict[int, int]
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def bulk_detach_categories(
+        self, project_id: int, folder_id: int, item_ids: List[int]
+    ) -> ServiceResponse:
         raise NotImplementedError
 
 

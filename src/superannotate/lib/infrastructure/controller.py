@@ -35,6 +35,7 @@ from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
 from lib.core.entities.filters import UserFilters
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.entities.items import ProjectCategoryEntity
 from lib.core.entities.work_managament import ScoreEntity
 from lib.core.entities.work_managament import ScorePayloadEntity
 from lib.core.enums import CustomFieldEntityEnum
@@ -877,7 +878,7 @@ class ItemManager(BaseManager):
         folder: FolderEntity,
         /,
         include: List[str] = None,
-        **filters: Unpack[ItemFilters],
+        **filters: Optional[Unpack[ItemFilters]],
     ) -> List[BaseItemEntity]:
 
         entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
@@ -1059,6 +1060,46 @@ class ItemManager(BaseManager):
         )
         use_case = usecases.UpdateItemUseCase(
             project=project, service_provider=self.service_provider, item=item
+        )
+        return use_case.execute()
+
+    def attach_detach_items_category(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: List[Union[int, str]],
+        operation: Literal["attach", "detach"],
+        category: Optional[str] = None,
+    ):
+        if items and isinstance(items[0], str):
+            items = self.list_items(project, folder, name__in=items)
+        elif items and isinstance(items[0], int):
+            items = self.list_items(project, folder, id__in=items)
+        else:
+            raise AppException(
+                "Items must be a list of strings or integers representing item IDs."
+            )
+
+        if category:
+            all_categories = (
+                self.service_provider.work_management.list_project_categories(
+                    project.id, ProjectCategoryEntity  # noqa
+                )
+            )
+            category = next(
+                (c for c in all_categories.data if c.name.lower() == category.lower()),
+                None,
+            )
+            if not category:
+                raise AppException("Category not defined in project.")
+
+        use_case = usecases.AttacheDetachItemsCategoryUseCase(
+            project=project,
+            folder=folder,
+            items=items,
+            category=category,
+            operation=operation,
+            service_provider=self.service_provider,
         )
         return use_case.execute()
 

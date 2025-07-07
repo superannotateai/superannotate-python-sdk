@@ -4393,6 +4393,73 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return response.data
 
+    def set_items_category(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        items: List[Union[int, str]],
+        category: str,
+    ):
+        """
+        Add categories to one or more items.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param items: A list of names or IDs of the items to modify.
+        :type items: List[Union[int, str]]
+
+        :param category: Category to assign to the item.
+        :type category: Str
+
+        Request Example:
+        ::
+
+            client.set_items_category(
+                project=("product-review-mm", "folder1"),
+                items=[112233, 112344],
+                category="Shoes"
+            )
+        """
+        project, folder = self.controller.get_project_folder(project)
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.items.attach_detach_items_category(
+            project=project,
+            folder=folder,
+            items=items,
+            category=category,
+            operation="attach",
+        )
+
+    def remove_items_category(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        items: List[Union[int, str]],
+    ):
+        """
+        Remove categories from one or more items.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param items: A list of names or IDs of the items to modify.
+        :type items: List[Union[int, str]]
+
+        Request Example:
+        ::
+
+            client.remove_items_category(
+                project=("product-review-mm", "folder1"),
+                items=[112233, 112344]
+            )
+        """
+        project, folder = self.controller.get_project_folder(project)
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.items.attach_detach_items_category(
+            project=project, folder=folder, items=items, operation="detach"
+        )
+
     def set_annotation_statuses(
         self,
         project: Union[NotEmptyStr, dict],
