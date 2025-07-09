@@ -474,7 +474,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         *,
         project: Union[int, str] = None,
-        include: List[Literal["custom_fields"]] = None,
+        include: List[Literal["custom_fields", "categories"]] = None,
         **filters,
     ):
         """
@@ -488,7 +488,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             Possible values are
 
-            - "custom_fields":  Includes custom fields and scores assigned to each user.
+            - "custom_fields": Includes custom fields and scores assigned to each user.
+            - "categories": Includes a list of categories assigned to each project contributor.
+              Note: 'project' parameter must be specified when including 'categories'.
+        :type include: list of str, optional
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
 
@@ -859,6 +862,103 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             components=components,
         )
         logger.info("Scores successfully set.")
+
+    def set_contributors_categories(
+        self,
+        project: Union[NotEmptyStr, int],
+        contributors: List[Union[int, str]],
+        categories: Union[List[str], Literal["*"]],
+    ):
+        """
+        Assign one or more categories to a contributor with an assignable role (Annotator, QA or custom role)
+        in a Multimodal project. Project Admins are not eligible for category assignments. "*" in the category
+        list will match all categories defined in the project.
+
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param contributors: A list of emails or IDs of the contributor.
+        :type contributors: List[Union[int, str]]
+
+        :param categories:  A list of category names to assign. Accepts "*" to indicate all available categories in the project.
+        :type categories: Union[List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            client.set_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"],
+                categories=["Shoes", "T-Shirt"]
+            )
+
+            client.set_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"]
+                categories="*"
+            )
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.work_management.set_remove_contributor_categories(
+            project=project,
+            contributors=contributors,
+            categories=categories,
+            operation="set",
+        )
+
+    def remove_contributors_categories(
+        self,
+        project: Union[NotEmptyStr, int],
+        contributors: List[Union[int, str]],
+        categories: Union[List[str], Literal["*"]],
+    ):
+        """
+        Remove one or more categories for a contributor. "*" in the category list will match all categories defined in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param contributors: A list of emails or IDs of the contributor.
+        :type contributors: List[Union[int, str]]
+
+        :param categories:  A list of category names to remove. Accepts "*" to indicate all available categories in the project.
+        :type categories: Union[List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            client.remove_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"],
+                categories=["Shoes", "T-Shirt", "Jeans"]
+            )
+
+            client.remove_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"]
+                categories="*"
+            )
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.work_management.set_remove_contributor_categories(
+            project=project,
+            contributors=contributors,
+            categories=categories,
+            operation="remove",
+        )
 
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
@@ -1320,6 +1420,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         self.controller.check_multimodal_project_categorization(project)
 
+        categories_to_remove = None
         query = EmptyQuery()
         if categories == "*":
             query &= Filter("id", [0], OperatorEnum.GT)
@@ -1335,14 +1436,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         else:
             raise AppException("Categories should be a list of strings or '*'.")
 
-        response = (
-            self.controller.service_provider.work_management.remove_project_categories(
+        if categories_to_remove:
+            response = self.controller.service_provider.work_management.remove_project_categories(
                 project_id=project.id, query=query
             )
-        )
-        logger.info(
-            f"{len(response.data)} categories successfully removed from the project."
-        )
+            logger.info(
+                f"{len(response.data)} categories successfully removed from the project."
+            )
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """

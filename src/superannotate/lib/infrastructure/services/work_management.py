@@ -14,6 +14,7 @@ from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
@@ -71,6 +72,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
+    URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -475,3 +477,46 @@ class WorkManagementService(BaseWorkManagementService):
                 ),
             },
         )
+
+    def set_remove_contributor_categories(
+        self,
+        project_id: int,
+        contributor_ids: List[int],
+        category_ids: List[int],
+        operation: Literal["set", "remove"],
+        chunk_size=100,
+    ) -> List[dict]:
+        params = {
+            "entity": "Contributor",
+            "parentEntity": "Project",
+        }
+        if operation == "set":
+            params["action"] = "addcontributorcategory"
+        else:
+            params["action"] = "removecontributorcategory"
+
+        from lib.infrastructure.utils import divide_to_chunks
+
+        success_contributors = []
+
+        for chunk in divide_to_chunks(contributor_ids, chunk_size):
+            body_query = EmptyQuery()
+            body_query &= Filter("id", chunk, OperatorEnum.IN)
+            response = self.client.request(
+                url=self.URL_CONTRIBUTORS_CATEGORIES,
+                method="post",
+                params=params,
+                data={
+                    "query": body_query.body_builder(),
+                    "body": {"categories": [{"id": i} for i in category_ids]},
+                },
+                headers={
+                    "x-sa-entity-context": self._generate_context(
+                        team_id=self.client.team_id, project_id=project_id
+                    ),
+                },
+            )
+            response.raise_for_status()
+            success_contributors.extend(response.data["data"])
+
+        return success_contributors

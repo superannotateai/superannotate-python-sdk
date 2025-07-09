@@ -68,6 +68,9 @@ from lib.infrastructure.utils import extract_project_folder
 from typing_extensions import Unpack
 
 
+logger = logging.getLogger("sa")
+
+
 def build_condition(**kwargs) -> Condition:
     condition = Condition.get_empty_condition()
     if any(kwargs.values()):
@@ -177,7 +180,10 @@ class WorkManagementManager(BaseManager):
         )
 
     def list_users(
-        self, include: List[Literal["custom_fields"]] = None, project=None, **filters
+        self,
+        include: List[Literal["custom_fields", "categories"]] = None,
+        project=None,
+        **filters,
     ):
         context = {"team_id": self.service_provider.client.team_id}
         if project:
@@ -205,6 +211,10 @@ class WorkManagementManager(BaseManager):
             ]
         )
         query = chain.handle(filters, EmptyQuery())
+
+        if project and include and "categories" in include:
+            query &= Join("categories")
+
         if include and "custom_fields" in include:
             response = self.service_provider.work_management.list_users(
                 query,
@@ -400,6 +410,76 @@ class WorkManagementManager(BaseManager):
         if res.status_code == 400:
             res.res_error = "Please provide valid score values."
         res.raise_for_status()
+
+    def set_remove_contributor_categories(
+        self,
+        project: ProjectEntity,
+        contributors: List[Union[int, str]],
+        categories: Union[List[str], Literal["*"]],
+        operation: Literal["set", "remove"],
+    ):
+        if categories and contributors:
+            all_categories = (
+                self.service_provider.work_management.list_project_categories(
+                    project_id=project.id, entity=ProjectCategoryEntity  # noqa
+                ).data
+            )
+            if categories == "*":
+                category_ids = [c.id for c in all_categories]
+            else:
+                categories = [c.lower() for c in categories]
+                category_ids = [
+                    c.id for c in all_categories if c.name.lower() in categories
+                ]
+
+            if isinstance(contributors[0], str):
+                project_contributors = self.list_users(
+                    project=project, email__in=contributors
+                )
+            elif isinstance(contributors[0], int):
+                project_contributors = self.list_users(
+                    project=project, id__in=contributors
+                )
+            else:
+                raise AppException("Contributors not found.")
+
+            if len(project_contributors) < len(contributors):
+                raise AppException("Contributors not found.")
+
+            contributor_ids = [
+                c.id
+                for c in project_contributors
+                if c.role != 3  # exclude Project Admins
+            ]
+
+            if category_ids and contributor_ids:
+                response = self.service_provider.work_management.set_remove_contributor_categories(
+                    project_id=project.id,
+                    contributor_ids=contributor_ids,
+                    category_ids=category_ids,
+                    operation=operation,
+                )
+
+                success_processed = 0
+                for contributor in response:
+                    contributor_category_ids = [
+                        category["id"] for category in contributor["categories"]
+                    ]
+                    if operation == "set":
+                        if set(category_ids).issubset(contributor_category_ids):
+                            success_processed += len(category_ids)
+                    else:
+                        if not set(category_ids).intersection(contributor_category_ids):
+                            success_processed += len(category_ids)
+
+                if success_processed / len(contributor_ids) == len(category_ids):
+                    action_for_log = (
+                        "added to" if operation == "set" else "removed from"
+                    )
+                    logger.info(
+                        f"{len(category_ids)} categories successfully {action_for_log} "
+                        f"{len(contributor_ids)} contributors."
+                    )
 
 
 class ProjectManager(BaseManager):
