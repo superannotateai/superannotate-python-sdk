@@ -659,7 +659,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         if project is not None:
             if isinstance(project, int):
-                project = self.controller.get_project_by_id(project)
+                project = self.controller.get_project_by_id(project).data
             else:
                 project = self.controller.get_project(project)
         response = BaseSerializer.serialize_iterable(
