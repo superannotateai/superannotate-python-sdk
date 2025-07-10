@@ -867,7 +867,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, int],
         contributors: List[Union[int, str]],
-        categories: Union[List[str], Literal["*"]],
+        categories: Union[List[NotEmptyStr], Literal["*"]],
     ):
         """
         Assign one or more categories to a contributor with an assignable role (Annotator, QA or custom role)
@@ -899,6 +899,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 categories="*"
             )
         """
+        if not categories:
+            AppException("Categories should be a list of strings or '*'.")
+
         project = (
             self.controller.get_project_by_id(project).data
             if isinstance(project, int)
@@ -917,7 +920,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, int],
         contributors: List[Union[int, str]],
-        categories: Union[List[str], Literal["*"]],
+        categories: Union[List[NotEmptyStr], Literal["*"]],
     ):
         """
         Remove one or more categories for a contributor. "*" in the category list will match all categories defined in the project.
@@ -946,6 +949,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 categories="*"
             )
         """
+        if not categories:
+            AppException("Categories should be a list of strings or '*'.")
+
         project = (
             self.controller.get_project_by_id(project).data
             if isinstance(project, int)
@@ -1297,7 +1303,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return data
 
     def create_categories(
-        self, project: Union[NotEmptyStr, int], categories: List[str]
+        self, project: Union[NotEmptyStr, int], categories: List[NotEmptyStr]
     ):
         """
         Create one or more categories in a project.
@@ -1316,6 +1322,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 categories=["Shoes", "T-Shirt"]
             )
         """
+        if not categories:
+            raise AppException("Categories should be a list of strings.")
+
         project = (
             self.controller.get_project_by_id(project).data
             if isinstance(project, int)
@@ -1387,7 +1396,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def remove_categories(
         self,
         project: Union[NotEmptyStr, int],
-        categories: Union[List[str], Literal["*"]],
+        categories: Union[List[NotEmptyStr], Literal["*"]],
     ):
         """
         Remove one or more categories in a project. "*" in the category list will match all categories defined in the project.
@@ -1413,6 +1422,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 categories="*"
             )
         """
+        if not categories:
+            AppException("Categories should be a list of strings or '*'.")
+
         project = (
             self.controller.get_project_by_id(project).data
             if isinstance(project, int)
@@ -1420,7 +1432,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         self.controller.check_multimodal_project_categorization(project)
 
-        categories_to_remove = None
         query = EmptyQuery()
         if categories == "*":
             query &= Filter("id", [0], OperatorEnum.GT)
@@ -1432,17 +1443,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             categories_to_remove = [
                 c for c in all_categories.data if c.name.lower() in categories
             ]
-            query &= Filter("id", [c.id for c in categories_to_remove], OperatorEnum.IN)
+            if categories_to_remove:
+                query &= Filter(
+                    "id", [c.id for c in categories_to_remove], OperatorEnum.IN
+                )
         else:
             raise AppException("Categories should be a list of strings or '*'.")
 
-        if categories_to_remove:
+        if query.condition_set:
             response = self.controller.service_provider.work_management.remove_project_categories(
                 project_id=project.id, query=query
             )
-            logger.info(
-                f"{len(response.data)} categories successfully removed from the project."
-            )
+            if response.data:
+                logger.info(
+                    f"{len(response.data)} categories successfully removed from the project."
+                )
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """
@@ -4497,7 +4512,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
         items: List[Union[int, str]],
-        category: str,
+        category: NotEmptyStr,
     ):
         """
         Add categories to one or more items.
