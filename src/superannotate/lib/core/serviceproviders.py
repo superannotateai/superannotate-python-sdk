@@ -228,6 +228,17 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def delete_score(self, score_id: int) -> ServiceResponse:
         raise NotImplementedError
 
+    @abstractmethod
+    def set_remove_contributor_categories(
+        self,
+        project_id: int,
+        contributor_ids: List[int],
+        category_ids: List[int],
+        operation: Literal["set", "remove"],
+        chunk_size=100,
+    ) -> list[dict]:
+        raise NotImplementedError
+
 
 class BaseProjectService(SuperannotateServiceProvider):
     @abstractmethod
