@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from unittest import TestCase
 
+from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 
 sa = SAClient()
@@ -144,3 +145,22 @@ class TestProjectCategories(TestCase):
         sa.remove_categories(project=self.PROJECT_NAME, categories="*")
         categories = sa.list_categories(project=self.PROJECT_NAME)
         assert len(categories) == 0
+
+    def test_delete_categories_with_empty_list(self):
+        with self.assertRaisesRegexp(
+            AppException, "Categories should be a list of strings or '*'"
+        ):
+            sa.remove_categories(project=self.PROJECT_NAME, categories=[])
+
+    def test_delete_invalid_categories(self):
+        # silent skip
+        sa.remove_categories(
+            project=self.PROJECT_NAME,
+            categories=["invalid_category_1", "invalid_category_2"],
+        )
+
+    def test_create_categories_with_empty_categories(self):
+        with self.assertRaisesRegexp(
+            AppException, "Categories should be a list of strings."
+        ):
+            sa.create_categories(project=self.PROJECT_NAME, categories=[])
