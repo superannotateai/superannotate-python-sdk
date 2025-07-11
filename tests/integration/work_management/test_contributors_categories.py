@@ -32,7 +32,7 @@ class TestContributorsCategories(TestCase):
             cls.PROJECT_TYPE,
             settings=[
                 {"attribute": "TemplateState", "value": 1},
-                {"attribute": "CategorizeItems", "value": 1},
+                {"attribute": "CategorizeItems", "value": 2},
             ],
         )
         team = sa.controller.team
@@ -138,15 +138,20 @@ class TestContributorsCategories(TestCase):
         test_categories = ["ID_Cat_A", "ID_Cat_B"]
         sa.create_categories(project=self.PROJECT_NAME, categories=test_categories)
 
+        scapegoat_project_id = sa.list_users(
+            project=self.PROJECT_NAME,
+            email=self.scapegoat["email"],
+        )[0]["id"]
+
         sa.set_contributors_categories(
             project=self.PROJECT_NAME,
-            contributors=[self.scapegoat["id"]],
+            contributors=[scapegoat_project_id],
             categories=test_categories,
         )
 
         # Verify categories were assigned
         project_users = sa.list_users(
-            project=self.PROJECT_NAME, id=self.scapegoat["id"], include=["categories"]
+            project=self.PROJECT_NAME, id=scapegoat_project_id, include=["categories"]
         )
         assigned_categories = [cat["name"] for cat in project_users[0]["categories"]]
         for category in test_categories:
