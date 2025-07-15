@@ -507,7 +507,7 @@ class WorkManagementService(BaseWorkManagementService):
                 method="post",
                 params=params,
                 data={
-                    "query": body_query.body_builder(),
+                    **body_query.body_builder(),
                     "body": {"categories": [{"id": i} for i in category_ids]},
                 },
                 headers={
