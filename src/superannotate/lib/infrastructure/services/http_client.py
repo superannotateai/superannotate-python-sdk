@@ -295,7 +295,7 @@ class HttpClient(BaseClient):
             else:
                 data["res_data"] = data_json
             return content_type(**data)
-        except json.decoder.JSONDecodeError:
+        except ValueError:
             data["res_error"] = response.content
             data["reason"] = response.reason
             return content_type(**data)
