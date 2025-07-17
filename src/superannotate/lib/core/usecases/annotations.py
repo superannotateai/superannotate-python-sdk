@@ -2178,5 +2178,5 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             self._service_provider.items.bulk_attach_categories(
                 project_id=self._project.id,
                 folder_id=folder_id,
-                item_category_map=item_id_category_id_map,
+                item_id_category_id_map=item_id_category_id_map,
             )
