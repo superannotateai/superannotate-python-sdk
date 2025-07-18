@@ -113,7 +113,7 @@ class TestMixpanel(TestCase):
         sa.get_team_metadata()
         team_owner = sa.controller.current_user.email
         result = list(track_method.call_args)[0]
-        payload = self.default_payload
+        payload = {**self.default_payload, "include": None}
         assert result[0] == team_owner
         assert result[1] == "get_team_metadata"
         assert payload == result[2]

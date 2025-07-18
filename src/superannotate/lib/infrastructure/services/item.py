@@ -217,7 +217,7 @@ class ItemService(BaseItemService):
         )
 
     def bulk_attach_categories(
-        self, project_id: int, folder_id: int, item_category_map: Dict[int, int]
+        self, project_id: int, folder_id: int, item_id_category_id_map: Dict[int, int]
     ) -> bool:
         params = {"project_id": project_id, "folder_id": folder_id}
         response = self.client.request(
@@ -226,10 +226,25 @@ class ItemService(BaseItemService):
             params=params,
             data={
                 "bulk": [
-                    {"item_id": item_id, "categories": [category]}
-                    for item_id, category in item_category_map.items()
+                    {"item_id": item_id, "categories": [category_id]}
+                    for item_id, category_id in item_id_category_id_map.items()
                 ]
             },
         )
         response.raise_for_status()
-        return response.ok
+        return response
+
+    def bulk_detach_categories(
+        self, project_id: int, folder_id: int, item_ids: List[int]
+    ) -> bool:
+        params = {"project_id": project_id, "folder_id": folder_id}
+        response = self.client.request(
+            self.URL_ATTACH_CATEGORIES,
+            "post",
+            params=params,
+            data={
+                "bulk": [{"item_id": item_id, "categories": []} for item_id in item_ids]
+            },
+        )
+        response.raise_for_status()
+        return response

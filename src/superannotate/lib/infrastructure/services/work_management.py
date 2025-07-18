@@ -3,19 +3,23 @@ import json
 from typing import List
 from typing import Literal
 from typing import Optional
+from typing import Union
 
 from lib.core.entities import CategoryEntity
 from lib.core.entities import WorkflowEntity
+from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
 from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
 from lib.core.service_types import ListCategoryResponse
+from lib.core.service_types import ListProjectCategoryResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
@@ -68,16 +72,19 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
+    URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
 
     @staticmethod
     def _generate_context(**kwargs):
         encoded_context = base64.b64encode(json.dumps(kwargs).encode("utf-8"))
         return encoded_context.decode("utf-8")
 
-    def list_project_categories(self, project_id: int) -> ListCategoryResponse:
-        return self.client.paginate(
-            self.URL_LIST_CATEGORIES,
-            item_type=CategoryEntity,
+    def list_project_categories(
+        self, project_id: int, entity: BaseEntity = CategoryEntity
+    ) -> Union[ListCategoryResponse, ListProjectCategoryResponse]:
+        response = self.client.paginate(
+            url=self.URL_LIST_CATEGORIES,
+            item_type=entity,
             query_params={"project_id": project_id},
             headers={
                 "x-sa-entity-context": self._generate_context(
@@ -85,10 +92,12 @@ class WorkManagementService(BaseWorkManagementService):
                 ),
             },
         )
+        response.raise_for_status()
+        return response
 
     def create_project_categories(
         self, project_id: int, categories: List[str]
-    ) -> ServiceResponse:
+    ) -> ListProjectCategoryResponse:
         response = self.client.request(
             method="post",
             url=self.URL_CREATE_CATEGORIES,
@@ -99,6 +108,26 @@ class WorkManagementService(BaseWorkManagementService):
                     team_id=self.client.team_id, project_id=project_id
                 ),
             },
+            content_type=ListProjectCategoryResponse,
+            dispatcher="data",
+        )
+        response.raise_for_status()
+        return response
+
+    def remove_project_categories(
+        self, project_id: int, query: Query
+    ) -> ListProjectCategoryResponse:
+
+        response = self.client.request(
+            method="delete",
+            url=f"{self.URL_CREATE_CATEGORIES}?{query.build_query()}",
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
+            content_type=ListProjectCategoryResponse,
+            dispatcher="data",
         )
         response.raise_for_status()
         return response
@@ -448,3 +477,46 @@ class WorkManagementService(BaseWorkManagementService):
                 ),
             },
         )
+
+    def set_remove_contributor_categories(
+        self,
+        project_id: int,
+        contributor_ids: List[int],
+        category_ids: List[int],
+        operation: Literal["set", "remove"],
+        chunk_size=100,
+    ) -> List[dict]:
+        params = {
+            "entity": "Contributor",
+            "parentEntity": "Project",
+        }
+        if operation == "set":
+            params["action"] = "addcontributorcategory"
+        else:
+            params["action"] = "removecontributorcategory"
+
+        from lib.infrastructure.utils import divide_to_chunks
+
+        success_contributors = []
+
+        for chunk in divide_to_chunks(contributor_ids, chunk_size):
+            body_query = EmptyQuery()
+            body_query &= Filter("id", chunk, OperatorEnum.IN)
+            response = self.client.request(
+                url=self.URL_CONTRIBUTORS_CATEGORIES,
+                method="post",
+                params=params,
+                data={
+                    **body_query.body_builder(),
+                    "body": {"categories": [{"id": i} for i in category_ids]},
+                },
+                headers={
+                    "x-sa-entity-context": self._generate_context(
+                        team_id=self.client.team_id, project_id=project_id
+                    ),
+                },
+            )
+            response.raise_for_status()
+            success_contributors.extend(response.data["data"])
+
+        return success_contributors

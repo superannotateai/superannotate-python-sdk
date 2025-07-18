@@ -73,6 +73,8 @@ from lib.infrastructure.validators import wrap_error
 from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
+from lib.core.entities.items import ProjectCategoryEntity
+
 
 logger = logging.getLogger("sa")
 
@@ -472,7 +474,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         *,
         project: Union[int, str] = None,
-        include: List[Literal["custom_fields"]] = None,
+        include: List[Literal["custom_fields", "categories"]] = None,
         **filters,
     ):
         """
@@ -486,7 +488,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             Possible values are
 
-            - "custom_fields":  Includes custom fields and scores assigned to each user.
+            - "custom_fields": Includes custom fields and scores assigned to each user.
+            - "categories": Includes a list of categories assigned to each project contributor.
+              Note: 'project' parameter must be specified when including 'categories'.
+        :type include: list of str, optional
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
 
@@ -654,7 +659,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         if project is not None:
             if isinstance(project, int):
-                project = self.controller.get_project_by_id(project)
+                project = self.controller.get_project_by_id(project).data
             else:
                 project = self.controller.get_project(project)
         response = BaseSerializer.serialize_iterable(
@@ -857,6 +862,109 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             components=components,
         )
         logger.info("Scores successfully set.")
+
+    def set_contributors_categories(
+        self,
+        project: Union[NotEmptyStr, int],
+        contributors: List[Union[int, str]],
+        categories: Union[List[NotEmptyStr], Literal["*"]],
+    ):
+        """
+        Assign one or more categories to a contributor with an assignable role (Annotator, QA or custom role)
+        in a Multimodal project. Project Admins are not eligible for category assignments. "*" in the category
+        list will match all categories defined in the project.
+
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param contributors: A list of emails or IDs of the contributor.
+        :type contributors: List[Union[int, str]]
+
+        :param categories:  A list of category names to assign. Accepts "*" to indicate all available categories in the project.
+        :type categories: Union[List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            client.set_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"],
+                categories=["Shoes", "T-Shirt"]
+            )
+
+            client.set_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"]
+                categories="*"
+            )
+        """
+        if not categories:
+            AppException("Categories should be a list of strings or '*'.")
+
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.work_management.set_remove_contributor_categories(
+            project=project,
+            contributors=contributors,
+            categories=categories,
+            operation="set",
+        )
+
+    def remove_contributors_categories(
+        self,
+        project: Union[NotEmptyStr, int],
+        contributors: List[Union[int, str]],
+        categories: Union[List[NotEmptyStr], Literal["*"]],
+    ):
+        """
+        Remove one or more categories for a contributor. "*" in the category list will match all categories defined in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param contributors: A list of emails or IDs of the contributor.
+        :type contributors: List[Union[int, str]]
+
+        :param categories:  A list of category names to remove. Accepts "*" to indicate all available categories in the project.
+        :type categories: Union[List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            client.remove_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"],
+                categories=["Shoes", "T-Shirt", "Jeans"]
+            )
+
+            client.remove_contributor_categories(
+                project="product-review-mm",
+                contributors=["test@superannotate.com","contributor@superannotate.com"]
+                categories="*"
+            )
+        """
+        if not categories:
+            AppException("Categories should be a list of strings or '*'.")
+
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.work_management.set_remove_contributor_categories(
+            project=project,
+            contributors=contributors,
+            categories=categories,
+            operation="remove",
+        )
 
     def get_component_config(self, project: Union[NotEmptyStr, int], component_id: str):
         """
@@ -1193,6 +1301,163 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     new_project, contributor["user_role"]
                 )
         return data
+
+    def create_categories(
+        self, project: Union[NotEmptyStr, int], categories: List[NotEmptyStr]
+    ):
+        """
+        Create one or more categories in a project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param categories: A list of categories to create
+        :type categories: list of str
+
+        Request Example:
+        ::
+
+            client.create_categories(
+                project="product-review-mm",
+                categories=["Shoes", "T-Shirt"]
+            )
+        """
+        if not categories:
+            raise AppException("Categories should be a list of strings.")
+
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        response = (
+            self.controller.service_provider.work_management.create_project_categories(
+                project_id=project.id, categories=categories
+            )
+        )
+        logger.info(
+            f"{len(response.data)} categories successfully added to the project."
+        )
+
+    def list_categories(self, project: Union[NotEmptyStr, int]):
+        """
+        List all categories in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :return: List of categories
+        :rtype: list of dict
+
+        Request Example:
+        ::
+
+            client.list_categories(
+                project="product-review-mm"
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2025-01-29T13:51:39.000Z",
+                    "updatedAt": "2025-01-29T13:51:39.000Z",
+                    "id": 328577,
+                    "name": "category1",
+                    "project_id": 1234
+                },
+                {
+                    "createdAt": "2025-01-29T13:51:39.000Z",
+                    "updatedAt": "2025-01-29T13:51:39.000Z",
+                    "id": 328577,
+                    "name": "category2",
+                    "project_id": 1234
+                },
+            ]
+
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        response = (
+            self.controller.service_provider.work_management.list_project_categories(
+                project_id=project.id, entity=ProjectCategoryEntity
+            )
+        )
+        return BaseSerializer.serialize_iterable(response.data)
+
+    def remove_categories(
+        self,
+        project: Union[NotEmptyStr, int],
+        categories: Union[List[NotEmptyStr], Literal["*"]],
+    ):
+        """
+        Remove one or more categories in a project. "*" in the category list will match all categories defined in the project.
+
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param categories: A list of categories to remove, Accepts "*" to indicate all available categories in the project.
+        :type categories: Union[List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            client.remove_categories(
+                project="product-review-mm",
+                categories=["Shoes", "T-Shirt"]
+            )
+
+            # To remove all categories
+            client.remove_categories(
+                project="product-review-mm",
+                categories="*"
+            )
+        """
+        if not categories:
+            AppException("Categories should be a list of strings or '*'.")
+
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.check_multimodal_project_categorization(project)
+
+        query = EmptyQuery()
+        if categories == "*":
+            query &= Filter("id", [0], OperatorEnum.GT)
+        elif categories and isinstance(categories, list):
+            categories = [c.lower() for c in categories]
+            all_categories = self.controller.service_provider.work_management.list_project_categories(
+                project_id=project.id, entity=ProjectCategoryEntity
+            )
+            categories_to_remove = [
+                c for c in all_categories.data if c.name.lower() in categories
+            ]
+            if categories_to_remove:
+                query &= Filter(
+                    "id", [c.id for c in categories_to_remove], OperatorEnum.IN
+                )
+        else:
+            raise AppException("Categories should be a list of strings or '*'.")
+
+        if query.condition_set:
+            response = self.controller.service_provider.work_management.remove_project_categories(
+                project_id=project.id, query=query
+            )
+            if response.data:
+                logger.info(
+                    f"{len(response.data)} categories successfully removed from the project."
+                )
 
     def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """
@@ -4242,6 +4507,73 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         return response.data
+
+    def set_items_category(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        items: List[Union[int, str]],
+        category: NotEmptyStr,
+    ):
+        """
+        Add categories to one or more items.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param items: A list of names or IDs of the items to modify.
+        :type items: List[Union[int, str]]
+
+        :param category: Category to assign to the item.
+        :type category: Str
+
+        Request Example:
+        ::
+
+            client.set_items_category(
+                project=("product-review-mm", "folder1"),
+                items=[112233, 112344],
+                category="Shoes"
+            )
+        """
+        project, folder = self.controller.get_project_folder(project)
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.items.attach_detach_items_category(
+            project=project,
+            folder=folder,
+            items=items,
+            category=category,
+            operation="attach",
+        )
+
+    def remove_items_category(
+        self,
+        project: Union[NotEmptyStr, Tuple[int, int], Tuple[str, str]],
+        items: List[Union[int, str]],
+    ):
+        """
+        Remove categories from one or more items.
+
+        :param project: Project and folder as a tuple, folder is optional.
+        :type project: Union[str, Tuple[int, int], Tuple[str, str]]
+
+        :param items: A list of names or IDs of the items to modify.
+        :type items: List[Union[int, str]]
+
+        Request Example:
+        ::
+
+            client.remove_items_category(
+                project=("product-review-mm", "folder1"),
+                items=[112233, 112344]
+            )
+        """
+        project, folder = self.controller.get_project_folder(project)
+        self.controller.check_multimodal_project_categorization(project)
+
+        self.controller.items.attach_detach_items_category(
+            project=project, folder=folder, items=items, operation="detach"
+        )
 
     def set_annotation_statuses(
         self,

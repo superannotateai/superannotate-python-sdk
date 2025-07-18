@@ -72,11 +72,11 @@ class TestListItemsMultimodal(BaseTestCase):
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     CATEGORIES = ["c_1", "c_2", "c_3"]
     ANNOTATIONS = [
-        {"metadata": {"name": "item_1", "item_category": {"value": "c1"}}, "data": {}},
-        {"metadata": {"name": "item_2", "item_category": {"value": "c2"}}, "data": {}},
-        {"metadata": {"name": "item_3", "item_category": {"value": "c3"}}, "data": {}},
+        {"metadata": {"name": "item_1", "item_category": "c1"}, "data": {}},
+        {"metadata": {"name": "item_2", "item_category": "c2"}, "data": {}},
+        {"metadata": {"name": "item_3", "item_category": "c3"}, "data": {}},
     ]
-    CLASSES_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/from1_classes.json"
+    CLASSES_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/form1_classes.json"
     EDITOR_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/form1.json"
 
     def setUp(self, *args, **kwargs):
@@ -109,7 +109,9 @@ class TestListItemsMultimodal(BaseTestCase):
             include=["categories"],
             categories__value__in=["c1", "c2"],
         )
-        assert [i["categories"][0]["value"] for i in items] == ["c1", "c2"]
+        assert sorted([i["categories"][0]["value"] for i in items]) == sorted(
+            ["c1", "c2"]
+        )
         assert (
             len(
                 sa.list_items(

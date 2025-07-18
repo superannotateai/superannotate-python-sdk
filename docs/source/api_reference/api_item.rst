@@ -21,3 +21,5 @@ Items
 .. automethod:: superannotate.SAClient.unassign_items
 .. automethod:: superannotate.SAClient.get_item_metadata
 .. automethod:: superannotate.SAClient.set_approval_statuses
+.. automethod:: superannotate.SAClient.set_items_category
+.. automethod:: superannotate.SAClient.remove_items_category

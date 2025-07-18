@@ -26,6 +26,15 @@ class CategoryEntity(TimedBaseModel):
         extra = Extra.ignore
 
 
+class ProjectCategoryEntity(TimedBaseModel):
+    id: int
+    name: str
+    project_id: int
+
+    class Config:
+        extra = Extra.ignore
+
+
 class MultiModalItemCategoryEntity(TimedBaseModel):
     id: int = Field(None, alias="category_id")
     value: str = Field(None, alias="category_name")

@@ -6,6 +6,24 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.37 - July 18, 2025
+______________________
+
+**Added**
+
+    - ``SAClient.create_categories`` creates one or more categories in a project.
+    - ``SAClient.remove_categories`` removes one or more categories in a project.
+    - ``SAClient.list_categories`` lists all categories in the project.
+    - ``SAClient.set_contributors_categories`` assigns one or more categories to specified contributors.
+    - ``SAClient.remove_contributors_categories`` removes specified categories from contributors.
+    - ``SAClient.set_items_category`` adds categories to one or more items.
+    - ``SAClient.remove_items_category`` removes categories from one or more items.
+
+**Updated**
+
+    - ``SAClient.list_users`` now includes an optional ``categories`` value in the ``include`` parameter to return each contributor's assigned categories when a project is specified.
+
+
 4.4.36 - June 05, 2025
 ______________________
 

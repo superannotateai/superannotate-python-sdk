@@ -234,6 +234,10 @@ class ListCategoryResponse(ServiceResponse):
     res_data: List[entities.CategoryEntity] = None
 
 
+class ListProjectCategoryResponse(ServiceResponse):
+    res_data: List[entities.items.ProjectCategoryEntity] = None
+
+
 class WorkflowResponse(ServiceResponse):
     res_data: entities.WorkflowEntity = None
 

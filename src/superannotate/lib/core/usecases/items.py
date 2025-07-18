@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 from typing import Generator
 from typing import List
+from typing import Optional
 from typing import Union
 
 import lib.core as constants
@@ -20,6 +21,7 @@ from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import VideoEntity
 from lib.core.entities.items import MultiModalItemEntity
+from lib.core.entities.items import ProjectCategoryEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import BackendError
@@ -37,6 +39,7 @@ from lib.core.usecases.folders import SearchFoldersUseCase
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
 from typing_extensions import Literal
+
 
 logger = logging.getLogger("sa")
 
@@ -1272,3 +1275,51 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             # returning control to the interface function that called it. So no need for
             # error handling in the response
             return self._response
+
+
+class AttacheDetachItemsCategoryUseCase(BaseUseCase):
+    CHUNK_SIZE = 2000
+
+    def __init__(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: List[MultiModalItemEntity],
+        service_provider: BaseServiceProvider,
+        operation: Literal["attach", "detach"],
+        category: Optional[ProjectCategoryEntity] = None,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._items = items
+        self._category = category
+        self._operation = operation
+        self._service_provider = service_provider
+
+    def execute(self):
+        if self._operation == "attach":
+            success_count = 0
+            for chunk in divide_to_chunks(self._items, self.CHUNK_SIZE):
+                item_id_category_id_map: Dict[int, int] = {
+                    i.id: self._category.id for i in chunk
+                }
+                response = self._service_provider.items.bulk_attach_categories(
+                    project_id=self._project.id,
+                    folder_id=self._folder.id,
+                    item_id_category_id_map=item_id_category_id_map,
+                )
+                success_count += len(response.data)
+            logger.info(
+                f"{self._category.name} category successfully added to {success_count} items."
+            )
+        elif self._operation == "detach":
+            success_count = 0
+            for chunk in divide_to_chunks(self._items, self.CHUNK_SIZE):
+                response = self._service_provider.items.bulk_detach_categories(
+                    project_id=self._project.id,
+                    folder_id=self._folder.id,
+                    item_ids=[i.id for i in chunk],
+                )
+                success_count += len(response.data)
+            logger.info(f"Category successfully removed from {success_count} items.")
