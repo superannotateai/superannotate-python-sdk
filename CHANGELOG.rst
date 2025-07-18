@@ -11,12 +11,12 @@ ______________________
 
 **Added**
 
-    - ``SAClient.create_categories`` creates one or more categories in a project. 
+    - ``SAClient.create_categories`` creates one or more categories in a project.
     - ``SAClient.remove_categories`` removes one or more categories in a project.
     - ``SAClient.list_categories`` lists all categories in the project.
     - ``SAClient.set_contributors_categories`` assigns one or more categories to specified contributors.
     - ``SAClient.remove_contributors_categories`` removes specified categories from contributors.
-    - ``SAClient.set_items_category`` adds categories to one or more items. 
+    - ``SAClient.set_items_category`` adds categories to one or more items.
     - ``SAClient.remove_items_category`` removes categories from one or more items.
 
 **Updated**

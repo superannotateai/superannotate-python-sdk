@@ -236,7 +236,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         category_ids: List[int],
         operation: Literal["set", "remove"],
         chunk_size=100,
-    ) -> list[dict]:
+    ) -> List[dict]:
         raise NotImplementedError
 
 

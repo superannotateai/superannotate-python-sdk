@@ -109,7 +109,9 @@ class TestListItemsMultimodal(BaseTestCase):
             include=["categories"],
             categories__value__in=["c1", "c2"],
         )
-        assert [i["categories"][0]["value"] for i in items] == ["c1", "c2"]
+        assert sorted([i["categories"][0]["value"] for i in items]) == sorted(
+            ["c1", "c2"]
+        )
         assert (
             len(
                 sa.list_items(

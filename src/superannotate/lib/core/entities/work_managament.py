@@ -2,6 +2,7 @@ import datetime
 from enum import auto
 from enum import Enum
 from typing import Any
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -134,7 +135,7 @@ class WMProjectUserEntity(TimedBaseModel):
     state: Optional[WMUserStateEnum]
     custom_fields: Optional[dict] = Field(dict(), alias="customField")
     permissions: Optional[dict]
-    categories: Optional[list[dict]]
+    categories: Optional[List[dict]]
 
     class Config:
         extra = Extra.ignore
