@@ -91,6 +91,35 @@ Custom config.ini example:
 ----------
 
 
+Using Managers (Recommended)
+=============================
+
+The SDK provides manager interfaces that organize functionality into logical groups:
+
+.. code-block:: python
+
+    from superannotate import SAClient
+
+    sa = SAClient()
+
+    # Using managers for better organization
+    project = sa.projects.create("Example Project 1", "test", "Vector")
+    items = sa.items.list("Example Project 1")
+    users = sa.users.list(project="Example Project 1")
+
+Available managers:
+
+* ``sa.projects`` - Project operations (create, list, clone, delete, rename)
+* ``sa.folders`` - Folder operations (create, list, delete)
+* ``sa.items`` - Item operations (list, attach, delete)
+* ``sa.annotations`` - Annotation operations (upload, get, delete)
+* ``sa.users`` - User operations (list, get metadata, invite, add to projects)
+
+For detailed information, see the :doc:`managers` guide.
+
+----------
+
+
 Creating a project
 ==================
 
@@ -101,6 +130,10 @@ To create a new "Vector" project with name "Example Project 1" and description
 
     project = "Example Project 1"
 
+    # Using managers (recommended)
+    sa.projects.create(project, "test", "Vector")
+
+    # Or using direct methods (still supported)
     sa.create_project(project, "test", "Vector")
 
 ----------

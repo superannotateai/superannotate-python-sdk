@@ -8,6 +8,7 @@ Contents
 .. toctree::
     :maxdepth: 8
 
+    api_managers
     api_project
     api_folder
     api_item
