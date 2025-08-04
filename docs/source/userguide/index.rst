@@ -12,5 +12,7 @@ Contents
     :maxdepth: 1
 
     quickstart
+    managers
+    migration_to_managers
     setup_project
     utilities

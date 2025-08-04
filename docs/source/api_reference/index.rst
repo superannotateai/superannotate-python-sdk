@@ -10,5 +10,6 @@ Contents
     :maxdepth: 2
 
     api_client
+    api_managers
     api_metadata
     helpers
