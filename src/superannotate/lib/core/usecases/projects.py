@@ -7,7 +7,10 @@ from typing import List
 import lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
+from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ContributorEntity
+from lib.core.entities import FormModel
+from lib.core.entities import generate_classes_from_form
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
@@ -21,6 +24,8 @@ from lib.core.response import Response
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
+from pydantic import ValidationError
+
 
 logger = logging.getLogger("sa")
 
@@ -983,4 +988,46 @@ class ListSubsetsUseCase(BaseUseCase):
             else:
                 self._response.data = []
 
+        return self._response
+
+
+class AttachFormUseCase(BaseUseCase):
+    def __init__(
+        self,
+        team: TeamEntity,
+        project: ProjectEntity,
+        service_provider: BaseServiceProvider,
+        form: dict,
+    ):
+        super().__init__()
+        self._team = team
+        self._project = project
+        self._service_provider = service_provider
+        self._form = form
+        self._classes = None
+
+    def validate_form(self):
+        if self._form is None:
+            raise AppException("Form is not provided.")
+        try:
+            self._entity = FormModel(**self._form)
+        except ValidationError:
+            raise AppException("Form is not valid.")
+
+    def execute(self) -> Response:
+        if self.is_valid():
+            classes_to_create = generate_classes_from_form(self._form)
+            classes = [AnnotationClassEntity.parse_obj(c) for c in classes_to_create]
+            self._service_provider.projects.attach_editor_template(
+                self._team, self._project, template=self._form
+            )
+            response = self._service_provider.annotation_classes.create_multiple(
+                self._project, classes
+            )
+            if response.ok:
+                self._response.data = response.data
+            else:
+                self._response.errors = response.error
+                logger.error("Failed attach form deleting the project.")
+                self._service_provider.projects.delete(self._project)
         return self._response

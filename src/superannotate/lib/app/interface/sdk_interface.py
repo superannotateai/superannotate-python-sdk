@@ -1131,6 +1131,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         workflows: Any = None,
         instructions_link: str = None,
         workflow: str = None,
+        form: dict = None,
     ):
         """Create a new project in the team.
 
@@ -1159,6 +1160,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param instructions_link: str of instructions URL
         :type instructions_link: str
 
+        :param form: form object that will be used for the MULTIMODAL project.
+        :type form: dict
+
         :return: dict object metadata the new project
         :rtype: dict
         """
@@ -1172,6 +1176,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             settings = parse_obj_as(List[SettingEntity], settings)
         else:
             settings = []
+        if ProjectType(project_type) == ProjectType.MULTIMODAL:
+            logger.error("Form is required for Multimodal projects.")
+            if classes is not None:
+                raise AppException("You can't provide classes for Multimodal projects.")
+            settings.append(SettingEntity(attribute="TemplateState", value=1))
         if classes:
             classes = parse_obj_as(List[AnnotationClassEntity], classes)
         project_entity = entities.ProjectEntity(
@@ -1194,6 +1203,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_response = self.controller.projects.create(project_entity)
         project_response.raise_for_status()
         project = project_response.data
+        if form:
+            form_response = self.controller.projects.attach_form(project, form)
+            form_response.raise_for_status()
         if classes:
             classes_response = self.controller.annotation_classes.create_multiple(
                 project, classes

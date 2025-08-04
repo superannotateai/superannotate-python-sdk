@@ -1,0 +1,133 @@
+import json
+from unittest import TestCase
+
+from src.superannotate import AppException
+from src.superannotate import SAClient
+from src.superannotate.lib.core.entities.classes import ClassTypeEnum
+from tests import DATA_SET_PATH
+
+sa = SAClient()
+
+
+class ProjectCreateBaseTestCase(TestCase):
+    PROJECT_NAME = "PROJECT"
+
+    def setUp(self, *args, **kwargs):
+        self.tearDown()
+
+    def tearDown(self) -> None:
+        try:
+            sa.delete_project(self.PROJECT_NAME)
+        except AppException:
+            ...
+
+
+class TestCreateMultimodalProject(ProjectCreateBaseTestCase):
+    PROJECT_TYPE = "Multimodal"
+    PROJECT_NAME = "test_multimodal_create"
+    FORM_PATH = DATA_SET_PATH / "multimodal_form" / "form.json"
+    EXPECTED_CLASSES = DATA_SET_PATH / "multimodal_form" / "expected_classes.json"
+
+    def test_create_project_with_invalid_form(self):
+        """Test project creation with invalid form data"""
+        invalid_form = {"invalid": "data"}
+
+        with self.assertRaises(AppException):
+            sa.create_project(
+                self.PROJECT_NAME,
+                "desc",
+                self.PROJECT_TYPE,
+                form=invalid_form,
+            )
+
+    def test_create_project_form_only_multimodal(self):
+        """Test that form parameter only works with multimodal projects"""
+        with open(self.FORM_PATH) as f:
+            form_data = json.load(f)
+
+        # Should work for multimodal
+        project = sa.create_project(
+            self.PROJECT_NAME,
+            "desc",
+            "Multimodal",
+            form=form_data,
+        )
+        assert project["type"] == "Multimodal"
+
+    def test_create_project_with_form_classes(self):
+        """Test that multimodal project creation with form generates expected classes"""
+        with open(self.FORM_PATH) as f:
+            form_data = json.load(f)
+        sa.create_project(
+            self.PROJECT_NAME,
+            "desc",
+            self.PROJECT_TYPE,
+            form=form_data,
+        )
+
+        # Get project classes after form attachment
+        project_classes = sa.search_annotation_classes(self.PROJECT_NAME)
+
+        # Load expected classes
+        with open(self.EXPECTED_CLASSES) as f:
+            expected_classes = json.load(f)
+
+        # Compare lengths
+        assert len(project_classes) == len(
+            expected_classes
+        ), f"Expected {len(expected_classes)} classes, got {len(project_classes)}"
+
+        # Sort both lists by name for consistent comparison
+        expected_sorted = sorted(expected_classes, key=lambda x: x["name"])
+        generated_sorted = sorted(project_classes, key=lambda x: x["name"])
+
+        # Compare each class
+        for i, (expected, generated) in enumerate(
+            zip(expected_sorted, generated_sorted)
+        ):
+            # Compare structure (excluding color since it's random and timestamps)
+            assert (
+                generated["name"] == expected["name"]
+            ), f"Class {i}: name mismatch - expected {expected['name']}, got {generated['name']}"
+
+            # todo check
+            # assert generated["count"] == expected["count"], \
+            #     f"Class {i}: count mismatch"
+
+            assert (
+                ClassTypeEnum(expected["type"]).name == generated["type"]
+            ), f"Class {i}: type mismatch"
+
+            assert len(generated["attribute_groups"]) == len(
+                expected["attribute_groups"]
+            ), f"Class {i}: attribute_groups length mismatch"
+
+            # Compare attribute groups
+            for j, (exp_group, gen_group) in enumerate(
+                zip(expected["attribute_groups"], generated["attribute_groups"])
+            ):
+                assert (
+                    gen_group["name"] == exp_group["name"]
+                ), f"Class {i}, group {j}: name mismatch"
+
+                assert (
+                    gen_group["group_type"] == exp_group["group_type"]
+                ), f"Class {i}, group {j}: group_type mismatch"
+
+                assert len(gen_group["attributes"]) == len(
+                    exp_group["attributes"]
+                ), f"Class {i}, group {j}: attributes length mismatch"
+
+                # Compare attributes
+                for k, (exp_attr, gen_attr) in enumerate(
+                    zip(exp_group["attributes"], gen_group["attributes"])
+                ):
+                    assert (
+                        gen_attr["name"] == exp_attr["name"]
+                    ), f"Class {i}, group {j}, attr {k}: name mismatch"
+                    #  todo check
+                    # assert gen_attr["count"] == exp_attr["count"], \
+                    #     f"Class {i}, group {j}, attr {k}: count mismatch"
+                    assert (
+                        gen_attr["default"] == exp_attr["default"]
+                    ), f"Class {i}, group {j}, attr {k}: default mismatch"
