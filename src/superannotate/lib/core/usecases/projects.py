@@ -1005,6 +1005,7 @@ class AttachFormUseCase(BaseUseCase):
         self._service_provider = service_provider
         self._form = form
         self._classes = None
+        self._entity = None
 
     def validate_form(self):
         if self._form is None:
@@ -1012,6 +1013,7 @@ class AttachFormUseCase(BaseUseCase):
         try:
             self._entity = FormModel(**self._form)
         except ValidationError:
+            self._service_provider.projects.delete(self._project)
             raise AppException(
                 "The provided form object is invalid or does not match the required schema."
             )

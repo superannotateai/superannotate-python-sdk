@@ -1,5 +1,7 @@
 import json
 from unittest import TestCase
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from src.superannotate import AppException
 from src.superannotate import SAClient
@@ -181,3 +183,39 @@ class TestCreateMultimodalProject(ProjectCreateBaseTestCase):
                 self.PROJECT_TYPE,
                 form=invalid_form,
             )
+
+    def test_create_project_form_attach_failure_cleanup(self):
+        """Test that project is deleted when form attachment fails"""
+        with open(self.FORM_PATH) as f:
+            form_data = json.load(f)
+
+        # Mock the controller to simulate form attachment failure
+        with patch.object(
+            sa.controller.projects, "attach_form"
+        ) as mock_attach_form, patch.object(
+            sa.controller.projects, "delete"
+        ) as mock_delete:
+            # Create a mock response that raises AppException when raise_for_status is called
+            mock_response = MagicMock()
+            mock_response.raise_for_status.side_effect = AppException(
+                "Form attachment failed"
+            )
+            mock_attach_form.return_value = mock_response
+
+            # Attempt to create project - should fail and trigger cleanup
+            with self.assertRaises(AppException) as context:
+                sa.create_project(
+                    self.PROJECT_NAME,
+                    "desc",
+                    self.PROJECT_TYPE,
+                    form=form_data,
+                )
+
+            # Verify form attachment was attempted
+            mock_attach_form.assert_called_once()
+
+            # Verify project deletion was called for cleanup
+            mock_delete.assert_called_once()
+
+            # Verify the original exception is re-raised
+            assert "Form attachment failed" in str(context.exception)

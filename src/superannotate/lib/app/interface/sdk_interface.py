@@ -1211,7 +1211,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = project_response.data
         if form:
             form_response = self.controller.projects.attach_form(project, form)
-            form_response.raise_for_status()
+            try:
+                form_response.raise_for_status()
+            except AppException:
+                self.controller.projects.delete(project)
+                raise
         if classes:
             classes_response = self.controller.annotation_classes.create_multiple(
                 project, classes

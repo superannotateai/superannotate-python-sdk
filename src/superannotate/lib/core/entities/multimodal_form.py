@@ -201,7 +201,7 @@ class RadioComponent(BaseClassComponent):
             "attribute_groups": [
                 {
                     "name": f"value_{self.id}",
-                    "group_type": "single_select",
+                    "group_type": "radio",
                     "attributes": attributes,
                     "default_value": default_value or "",
                 }

@@ -126,7 +126,7 @@
                               "label": "Radio",
                               "isRequired": false,
                               "value": "",
-                              "exclude": true,
+                              "exclude": false,
                               "disablePasting": false,
                               "options": [
                                 {
