@@ -1008,11 +1008,13 @@ class AttachFormUseCase(BaseUseCase):
 
     def validate_form(self):
         if self._form is None:
-            raise AppException("Form is not provided.")
+            raise AppException("Form was not provided.")
         try:
             self._entity = FormModel(**self._form)
         except ValidationError:
-            raise AppException("Form is not valid.")
+            raise AppException(
+                "The provided form object is invalid or does not match the required schema."
+            )
 
     def execute(self) -> Response:
         if self.is_valid():
@@ -1028,6 +1030,8 @@ class AttachFormUseCase(BaseUseCase):
                 self._response.data = response.data
             else:
                 self._response.errors = response.error
-                logger.error("Failed attach form deleting the project.")
+                logger.error(
+                    "Failed to attach form to the project. Project will be deleted."
+                )
                 self._service_provider.projects.delete(self._project)
         return self._response

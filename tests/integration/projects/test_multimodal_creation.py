@@ -131,3 +131,53 @@ class TestCreateMultimodalProject(ProjectCreateBaseTestCase):
                     assert (
                         gen_attr["default"] == exp_attr["default"]
                     ), f"Class {i}, group {j}, attr {k}: default mismatch"
+
+    def test_create_project_multimodal_no_form(self):
+        """Test that multimodal project creation fails when no form is provided"""
+        with self.assertRaises(AppException) as context:
+            sa.create_project(
+                self.PROJECT_NAME,
+                "desc",
+                self.PROJECT_TYPE,
+            )
+        assert "A form object is required when creating a Multimodal project." in str(
+            context.exception
+        )
+
+    def test_create_project_multimodal_with_classes(self):
+        """Test that multimodal project creation fails when classes are provided"""
+        classes = [
+            {
+                "type": 1,
+                "name": "Test Class",
+                "color": "#FF0000",
+            }
+        ]
+
+        with self.assertRaises(AppException) as context:
+            sa.create_project(
+                self.PROJECT_NAME,
+                "desc",
+                self.PROJECT_TYPE,
+                classes=classes,
+                form={"components": []},
+            )
+        assert "Classes cannot be provided for Multimodal projects." in str(
+            context.exception
+        )
+
+    def test_create_project_invalid_form_structure(self):
+        """Test project creation with structurally invalid form data"""
+        invalid_form = {
+            "invalid_key": [
+                {"type": "invalid_component", "missing_required_fields": True}
+            ]
+        }
+
+        with self.assertRaises(AppException):
+            sa.create_project(
+                self.PROJECT_NAME,
+                "desc",
+                self.PROJECT_TYPE,
+                form=invalid_form,
+            )
