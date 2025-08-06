@@ -531,6 +531,15 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
+    def attach_form(self, project: ProjectEntity, form: dict):
+        use_case = usecases.AttachFormUseCase(
+            team=self._team,
+            project=project,
+            form=form,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
     def list(self, condition: Condition):
         use_case = usecases.GetProjectsUseCase(
             condition=condition,
@@ -587,12 +596,11 @@ class ProjectManager(BaseManager):
         project: ProjectEntity,
         contributors: List[ContributorEntity],
     ):
-        project = self.get_metadata(project).data
+        project = self.get_metadata(project, include_contributors=True).data
         for contributor in contributors:
             contributor.user_role = self.service_provider.get_role_name(
                 project, contributor.user_role
             )
-        project = self.get_metadata(project).data
         use_case = usecases.AddContributorsToProject(
             team=team,
             project=project,

@@ -1,0 +1,500 @@
+{
+  "components": [
+    {
+      "id": "r_hf74r2",
+      "type": "container",
+      "permissions": [],
+      "title": "",
+      "collapsible": false,
+      "children": [
+        {
+          "id": "r_v9duzy",
+          "type": "group",
+          "permissions": [],
+          "title": "",
+          "collapsible": false,
+          "children": [
+            {
+              "id": "r_jqjdt6",
+              "type": "grid",
+              "permissions": [],
+              "align": "top",
+              "isResizable": false,
+              "children": [
+                {
+                  "id": "r_qir6k4",
+                  "span": 12,
+                  "sticky": false,
+                  "children": [
+                    {
+                      "id": "r_brpz8i",
+                      "type": "tabs",
+                      "permissions": [],
+                      "children": [
+                        {
+                          "id": "r_e0muii",
+                          "name": "Tab 1",
+                          "children": [
+                            {
+                              "id": "r_g513mi",
+                              "type": "divider",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "label": "Section name"
+                            },
+                            {
+                              "id": "r_nyepjt",
+                              "type": "button",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "align": "left",
+                              "variant": "primary",
+                              "text": "Button",
+                              "showIcon": false,
+                              "showLabel": true
+                            },
+                            {
+                              "id": "r_c77v29",
+                              "type": "markdown",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "labelFormat": {
+                                "size": 20,
+                                "color": "#5C1818",
+                                "bold": true,
+                                "italic": true
+                              },
+                              "label": "Markdown",
+                              "isRequired": false,
+                              "value": "",
+                              "exclude": false,
+                              "disablePasting": false
+                            },
+                            {
+                              "id": "r_q3j6wn",
+                              "type": "textarea",
+                              "permissions": [
+                                {
+                                  "roles": "all",
+                                  "statuses": [
+                                    3
+                                  ],
+                                  "visibility": 2
+                                }
+                              ],
+                              "hasTooltip": false,
+                              "label": "Text area",
+                              "isRequired": false,
+                              "value": "",
+                              "exclude": false,
+                              "disablePasting": false,
+                              "placeholder": "Placeholder",
+                              "min": 0,
+                              "max": 512
+                            },
+                            {
+                              "id": "r_66b5q3",
+                              "type": "checkbox",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "label": "Checkbox",
+                              "isRequired": false,
+                              "value": [],
+                              "exclude": false,
+                              "disablePasting": false,
+                              "options": [
+                                {
+                                  "value": "Option 1",
+                                  "checked": false
+                                },
+                                {
+                                  "value": "Option 2",
+                                  "checked": false
+                                },
+                                {
+                                  "value": "Option 3",
+                                  "checked": false
+                                }
+                              ],
+                              "layout": "column"
+                            },
+                            {
+                              "id": "r_923kb6",
+                              "type": "radio",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "label": "Radio",
+                              "isRequired": false,
+                              "value": "",
+                              "exclude": false,
+                              "disablePasting": false,
+                              "options": [
+                                {
+                                  "value": "Option 1",
+                                  "checked": false
+                                },
+                                {
+                                  "value": "Option 2",
+                                  "checked": false
+                                },
+                                {
+                                  "value": "Option 3",
+                                  "checked": false
+                                }
+                              ],
+                              "layout": "column"
+                            },
+                            {
+                              "id": "r_88fb2z",
+                              "type": "image",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "exclude": false,
+                              "label": "",
+                              "value": "",
+                              "alt": "",
+                              "layout": "cover",
+                              "filter": {
+                                "brightness": 0,
+                                "contrast": 0
+                              }
+                            },
+                            {
+                              "id": "r_tz83ki",
+                              "type": "pdfComponent",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "exclude": false,
+                              "label": "",
+                              "value": ""
+                            },
+                            {
+                              "id": "r_9r65ca",
+                              "type": "url",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "exclude": true,
+                              "value": ""
+                            },
+                            {
+                              "id": "r_sqrzza",
+                              "type": "webComponent",
+                              "permissions": [],
+                              "hasTooltip": false,
+                              "exclude": true,
+                              "value": "",
+                              "code": ""
+                            }
+                          ]
+                        },
+                        {
+                          "id": "r_dikipz",
+                          "name": "Tab 2",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "r_96a7vd",
+                  "span": 12,
+                  "sticky": false,
+                  "children": [
+                    {
+                      "id": "r_e7a4za",
+                      "type": "number",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Number",
+                      "isRequired": false,
+                      "value": null,
+                      "exclude": false,
+                      "disablePasting": false,
+                      "min": null,
+                      "max": null,
+                      "step": 1
+                    },
+                    {
+                      "id": "r_8kwi9s",
+                      "type": "code",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Code",
+                      "isRequired": false,
+                      "value": "",
+                      "exclude": false,
+                      "disablePasting": false,
+                      "language": null
+                    },
+                    {
+                      "id": "r_rdwn52",
+                      "type": "paragraph",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "exclude": false,
+                      "align": "left",
+                      "label": "Paragraph label",
+                      "value": "Paragraph text"
+                    },
+                    {
+                      "id": "r_vcemqe",
+                      "type": "input",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Text input",
+                      "isRequired": false,
+                      "value": "",
+                      "exclude": false,
+                      "disablePasting": false,
+                      "placeholder": "Placeholder",
+                      "min": 0,
+                      "max": 300
+                    },
+                    {
+                      "id": "r_g8605a",
+                      "type": "select",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "resize": {
+                        "width": 200
+                      },
+                      "label": "Select",
+                      "isRequired": false,
+                      "value": null,
+                      "exclude": false,
+                      "disablePasting": false,
+                      "options": [
+                        {
+                          "value": "Option 1",
+                          "checked": false
+                        },
+                        {
+                          "value": "Option 2",
+                          "checked": false
+                        },
+                        {
+                          "value": "Option 3",
+                          "checked": false
+                        }
+                      ],
+                      "isMultiselect": false,
+                      "placeholder": "Select",
+                      "isDynamic": false
+                    },
+                    {
+                      "id": "r_do97d1",
+                      "type": "select",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Select",
+                      "isRequired": true,
+                      "value": [
+                        "Option 3"
+                      ],
+                      "exclude": false,
+                      "disablePasting": false,
+                      "options": [
+                        {
+                          "value": "Option 1",
+                          "checked": false
+                        },
+                        {
+                          "value": "Option 2",
+                          "checked": false
+                        },
+                        {
+                          "value": "Option 3",
+                          "checked": true
+                        }
+                      ],
+                      "isMultiselect": true,
+                      "placeholder": "Select",
+                      "isDynamic": false
+                    },
+                    {
+                      "id": "r_qoijyc",
+                      "type": "select",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Select",
+                      "isRequired": false,
+                      "value": null,
+                      "exclude": false,
+                      "disablePasting": false,
+                      "options": [],
+                      "isMultiselect": false,
+                      "placeholder": "Select",
+                      "isDynamic": true
+                    },
+                    {
+                      "id": "r_kz08gn",
+                      "type": "voting",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Voting",
+                      "isRequired": false,
+                      "value": null,
+                      "exclude": false,
+                      "disablePasting": false
+                    },
+                    {
+                      "id": "r_dfgb9b",
+                      "type": "rating",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Rating",
+                      "isRequired": false,
+                      "value": null,
+                      "exclude": false,
+                      "disablePasting": false,
+                      "numberOfStars": 5
+                    },
+                    {
+                      "id": "r_ijokdm",
+                      "type": "dateTime",
+                      "permissions": [],
+                      "hasTooltip": false,
+                      "label": "Date",
+                      "isRequired": false,
+                      "value": "",
+                      "exclude": false,
+                      "disablePasting": false,
+                      "showTime": false
+                    },
+                    {
+                      "id": "r_innmmg",
+                      "type": "time",
+                      "permissions": [],
+                      "hasTooltip": true,
+                      "tooltip": "Enter your text here to see it in the info tooltip",
+                      "label": "Time",
+                      "isRequired": false,
+                      "value": "",
+                      "exclude": false,
+                      "disablePasting": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "r_jum7tm",
+              "type": "pdfComponent",
+              "permissions": [
+                {
+                  "roles": [
+                    3
+                  ],
+                  "statuses": [
+                    2
+                  ],
+                  "visibility": 1
+                }
+              ],
+              "hasTooltip": false,
+              "exclude": false,
+              "label": "",
+              "value": ""
+            },
+            {
+              "id": "r_hcujf7",
+              "type": "url",
+              "permissions": [],
+              "hasTooltip": false,
+              "exclude": true,
+              "value": ""
+            },
+            {
+              "id": "r_gl0gfo",
+              "type": "video",
+              "permissions": [],
+              "hasTooltip": false,
+              "exclude": false,
+              "label": "",
+              "value": ""
+            }
+          ],
+          "index": 0,
+          "isTemplate": false,
+          "deletable": false,
+          "countable": false,
+          "selectable": false
+        }
+      ]
+    },
+    {
+      "id": "r_qx07c6",
+      "type": "audio",
+      "permissions": [],
+      "hasTooltip": false,
+      "exclude": false,
+      "label": "",
+      "value": ""
+    },
+    {
+      "id": "r_mhw45u",
+      "type": "avatar",
+      "permissions": [],
+      "hasTooltip": false,
+      "exclude": false,
+      "label": "",
+      "value": "",
+      "alt": ""
+    },
+    {
+      "id": "r_a4o5pi",
+      "type": "csv",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "",
+      "isRequired": false,
+      "value": ",,,\n,,,\n,,,\n,,,",
+      "exclude": false,
+      "disablePasting": false,
+      "delimiter": ","
+    },
+    {
+      "id": "r_5ildf5",
+      "type": "csv",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "",
+      "isRequired": false,
+      "value": ";;;\r\n;;;\r\n;;;\r\n;;;",
+      "exclude": false,
+      "disablePasting": false,
+      "delimiter": ";"
+    },
+    {
+      "id": "r_s5j1j7",
+      "type": "csv",
+      "permissions": [],
+      "hasTooltip": false,
+      "label": "dasdasdas",
+      "isRequired": false,
+      "value": "|||\r\n|||\r\n|||\r\n|||",
+      "exclude": false,
+      "disablePasting": false,
+      "delimiter": "|"
+    }
+  ],
+  "code": [
+    [
+      "__init__",
+      "from typing import List, Union\n# import requests.asyncs as requests\nimport requests\nimport sa\n\ngroup_r_v9duzy = ['r_v9duzy']\ntabs_r_brpz8i = ['r_v9duzy', 0, 'r_brpz8i']\ndivider_r_g513mi = ['r_v9duzy', 0, 'r_g513mi']\nbutton_r_nyepjt = ['r_v9duzy', 0, 'r_nyepjt']\nmarkdown_r_c77v29 = ['r_v9duzy', 0, 'r_c77v29']\ntextarea_r_q3j6wn = ['r_v9duzy', 0, 'r_q3j6wn']\ncheckbox_r_66b5q3 = ['r_v9duzy', 0, 'r_66b5q3']\nradio_r_923kb6 = ['r_v9duzy', 0, 'r_923kb6']\nimage_r_88fb2z = ['r_v9duzy', 0, 'r_88fb2z']\npdfComponent_r_tz83ki = ['r_v9duzy', 0, 'r_tz83ki']\nurl_r_9r65ca = ['r_v9duzy', 0, 'r_9r65ca']\nwebComponent_r_sqrzza = ['r_v9duzy', 0, 'r_sqrzza']\nnumber_r_e7a4za = ['r_v9duzy', 0, 'r_e7a4za']\ncode_r_8kwi9s = ['r_v9duzy', 0, 'r_8kwi9s']\nparagraph_r_rdwn52 = ['r_v9duzy', 0, 'r_rdwn52']\ninput_r_vcemqe = ['r_v9duzy', 0, 'r_vcemqe']\nselect_r_g8605a = ['r_v9duzy', 0, 'r_g8605a']\nselect_r_do97d1 = ['r_v9duzy', 0, 'r_do97d1']\nselect_r_qoijyc = ['r_v9duzy', 0, 'r_qoijyc']\nvoting_r_kz08gn = ['r_v9duzy', 0, 'r_kz08gn']\nrating_r_dfgb9b = ['r_v9duzy', 0, 'r_dfgb9b']\ndateTime_r_ijokdm = ['r_v9duzy', 0, 'r_ijokdm']\ntime_r_innmmg = ['r_v9duzy', 0, 'r_innmmg']\npdfComponent_r_jum7tm = ['r_v9duzy', 0, 'r_jum7tm']\nurl_r_hcujf7 = ['r_v9duzy', 0, 'r_hcujf7']\nvideo_r_gl0gfo = ['r_v9duzy', 0, 'r_gl0gfo']\naudio_r_qx07c6 = ['r_qx07c6']\navatar_r_mhw45u = ['r_mhw45u']\ncsv_r_a4o5pi = ['r_a4o5pi']\ncsv_r_5ildf5 = ['r_5ildf5']\ncsv_r_s5j1j7 = ['r_s5j1j7']\n\ndef handle_group_delete(path: List[Union[str, int]]):\n    print('Print anything')\n    return\n\ndef on_r_v9duzy_deleted(path: List[Union[str, int]]):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n\n    # Your code goes here\n    return\n\ndef on_r_v9duzy_selected(path: List[Union[str, int]]):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n\n    # Your code goes here\n    return\n\ndef on_r_v9duzy_deselected(path: List[Union[str, int]]):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n\n    # Your code goes here\n    return\n\ndef on_r_nyepjt_click(path: List[Union[str, int]]):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n\n    # Your code goes here\n    return\n\ndef on_r_c77v29_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_q3j6wn_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_66b5q3_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_923kb6_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_sqrzza_message(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_sqrzza_wcevent(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_e7a4za_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_8kwi9s_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_vcemqe_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_g8605a_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_do97d1_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_qoijyc_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_kz08gn_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_dfgb9b_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_ijokdm_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_innmmg_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_a4o5pi_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_5ildf5_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n\ndef on_r_s5j1j7_change(path: List[Union[str, int]], value):\n    # The path is a list of strings and integers, the length of which is always an odd number and not less than 1.\n    # The last value is the identifier of the form element and the pairs preceding it are\n    # the group identifiers and the subgroup index, respectively\n    # value is current value of the form element\n\n    # Your code goes here\n    return\n"
+    ]
+  ],
+  "environments": [],
+  "meta": {
+    "statusesMap": {
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6
+    }
+  },
+  "readme": ""
+}
