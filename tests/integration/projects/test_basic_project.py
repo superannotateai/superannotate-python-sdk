@@ -18,6 +18,35 @@ class TestMultimodalProjectBasic(BaseTestCase):
     ANNOTATION_PATH = (
         "data_set/sample_project_vector/example_image_1.jpg___objects.json"
     )
+    MULTIMODAL_FORM = {
+        "components": [
+            {
+                "id": "r_qx07c6",
+                "type": "audio",
+                "permissions": [],
+                "hasTooltip": False,
+                "exclude": False,
+                "label": "",
+                "value": "",
+            }
+        ],
+        "readme": "",
+    }
+
+    def setUp(self, *args, **kwargs):
+        self.tearDown()
+        self._project = sa.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
+            form=self.MULTIMODAL_FORM,
+        )
+
+    def tearDown(self) -> None:
+        try:
+            sa.delete_project(self.PROJECT_NAME)
+        except Exception as e:
+            print(str(e))
 
     @property
     def annotation_path(self):
