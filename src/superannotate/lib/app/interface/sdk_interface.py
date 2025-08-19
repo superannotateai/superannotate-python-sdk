@@ -2414,6 +2414,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Uploads image frames from all videos with given extensions from folder_path to the project.
         Sets status of all the uploaded images to set_status if it is not None.
 
+        .. note::
+            Only works on Image projects.
+
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
 
@@ -2507,6 +2510,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Uploads image frames from video to platform. Uploaded images will have
         names "<video_name>_<frame_no>.jpg".
+
+        .. note::
+            Only works on Image projects.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
