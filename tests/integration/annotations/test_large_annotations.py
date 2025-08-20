@@ -16,7 +16,7 @@ sa = SAClient()
 
 
 class TestAnnotationUploadVector(BaseTestCase):
-    PROJECT_NAME = "Test-upload_annotations"
+    PROJECT_NAME = "Test-upload_large_annotations"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_vector_annotations_with_tag_classes"
@@ -59,7 +59,7 @@ class TestAnnotationUploadVector(BaseTestCase):
                 self.PROJECT_NAME, [annotation]
             ).values()
             assert (
-                "INFO:sa:Uploading 1/1 annotations to the project Test-upload_annotations."
+                "INFO:sa:Uploading 1/1 annotations to the project Test-upload_large_annotations."
                 == cm.output[0]
             )
             assert len(uploaded) == 1
@@ -84,7 +84,7 @@ class TestAnnotationUploadVector(BaseTestCase):
                 self.PROJECT_NAME, annotations
             ).values()
             assert (
-                "INFO:sa:Uploading 5/5 annotations to the project Test-upload_annotations."
+                "INFO:sa:Uploading 5/5 annotations to the project Test-upload_large_annotations."
                 == cm.output[0]
             )
             assert len(uploaded) == 5
@@ -92,7 +92,7 @@ class TestAnnotationUploadVector(BaseTestCase):
         with self.assertLogs("sa", level="INFO") as cm:
             annotations = sa.get_annotations(self.PROJECT_NAME)
             assert (
-                "INFO:sa:Getting 5 annotations from Test-upload_annotations."
+                "INFO:sa:Getting 5 annotations from Test-upload_large_annotations."
                 == cm.output[0]
             )
             assert len(annotations) == 5

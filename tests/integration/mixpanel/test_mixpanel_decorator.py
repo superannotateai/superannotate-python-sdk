@@ -159,6 +159,7 @@ class TestMixpanel(TestCase):
             "workflows": None,
             "workflow": None,
             "instructions_link": None,
+            "form": None,
         }
         try:
             sa.create_project(**kwargs)

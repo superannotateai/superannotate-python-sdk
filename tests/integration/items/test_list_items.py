@@ -78,6 +78,20 @@ class TestListItemsMultimodal(BaseTestCase):
     ]
     CLASSES_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/form1_classes.json"
     EDITOR_TEMPLATE_PATH = DATA_SET_PATH / "editor_templates/form1.json"
+    MULTIMODAL_FORM = {
+        "components": [
+            {
+                "id": "r_qx07c6",
+                "type": "audio",
+                "permissions": [],
+                "hasTooltip": False,
+                "exclude": False,
+                "label": "",
+                "value": "",
+            }
+        ],
+        "readme": "",
+    }
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -89,6 +103,7 @@ class TestListItemsMultimodal(BaseTestCase):
                 {"attribute": "CategorizeItems", "value": 1},
                 {"attribute": "TemplateState", "value": 1},
             ],
+            form=self.MULTIMODAL_FORM,
         )
         project = sa.controller.get_project(self.PROJECT_NAME)
         with open(self.EDITOR_TEMPLATE_PATH) as f:

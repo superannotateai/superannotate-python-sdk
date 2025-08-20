@@ -28,6 +28,20 @@ class TestUserScoring(TestCase):
         Path(__file__).parent.parent.parent,
         "data_set/editor_templates/form1_classes.json",
     )
+    MULTIMODAL_FORM = {
+        "components": [
+            {
+                "id": "r_qx07c6",
+                "type": "audio",
+                "permissions": [],
+                "hasTooltip": False,
+                "exclude": False,
+                "label": "",
+                "value": "",
+            }
+        ],
+        "readme": "",
+    }
 
     @classmethod
     def setUpClass(cls, *args, **kwargs) -> None:
@@ -39,6 +53,7 @@ class TestUserScoring(TestCase):
             cls.PROJECT_DESCRIPTION,
             cls.PROJECT_TYPE,
             settings=[{"attribute": "TemplateState", "value": 1}],
+            form=cls.MULTIMODAL_FORM,
         )
         team = sa.controller.team
         project = sa.controller.get_project(cls.PROJECT_NAME)

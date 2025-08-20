@@ -20,6 +20,20 @@ class TestMultimodalProjectBasic(BaseTestCase):
         Path(__file__).parent.parent.parent,
         "data_set/editor_templates/form1_classes.json",
     )
+    MULTIMODAL_FORM = {
+        "components": [
+            {
+                "id": "r_qx07c6",
+                "type": "audio",
+                "permissions": [],
+                "hasTooltip": False,
+                "exclude": False,
+                "label": "",
+                "value": "",
+            }
+        ],
+        "readme": "",
+    }
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -28,6 +42,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
             settings=[{"attribute": "TemplateState", "value": 1}],
+            form=self.MULTIMODAL_FORM,
         )
         team = sa.controller.team
         project = sa.controller.get_project(self.PROJECT_NAME)
