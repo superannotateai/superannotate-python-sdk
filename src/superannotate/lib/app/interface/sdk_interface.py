@@ -1131,35 +1131,40 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         workflows: Any = None,
         instructions_link: str = None,
         workflow: str = None,
+        form: dict = None,
     ):
-        """Create a new project in the team.
+        """Creates a new project in the team. For Multimodal projects, you must provide a valid form object,
+        which serves as a template determining the layout and behavior of the project's interface.
 
-        :param project_name: the new project's name
+        :param project_name: The new project's name.
         :type project_name: str
 
-        :param project_description: the new project's description
+        :param project_description: The new project's description.
         :type project_description: str
 
-        :param project_type: the new project type, Vector, Pixel, Video, Document, Tiled, PointCloud, Multimodal.
+        :param project_type: The project type. Supported types: 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.
         :type project_type: str
 
         :param settings: list of settings objects
         :type settings: list of dicts
 
-        :param classes: list of class objects
+        :param classes: List of class objects. Not allowed for 'Multimodal' projects.
         :type classes: list of dicts
 
-        :param workflows: Deprecated
+        :param workflows: Deprecated. Do not use.
         :type workflows: list of dicts
 
-        :param workflow: the name of the workflow already created within the team, which must match exactly.
-                         If None, the default “System workflow” workflow will be set.
+        :param workflow: Name of the workflow already created within the team (must match exactly). If None, the default "System workflow" will be used.
         :type workflow: str
 
-        :param instructions_link: str of instructions URL
+        :param instructions_link: URL for project instructions.
         :type instructions_link: str
 
-        :return: dict object metadata the new project
+        :param form: Required for Multimodal projects. Must be a JSON object that conforms to SuperAnnotate’s schema
+         for Multimodal form templates, as used in the Multimodal Form Editor.
+        :type form: dict
+
+        :return: Metadata of the newly created project.
         :rtype: dict
         """
         if workflows is not None:
@@ -1172,6 +1177,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             settings = parse_obj_as(List[SettingEntity], settings)
         else:
             settings = []
+        if ProjectType(project_type) == ProjectType.MULTIMODAL:
+            if not form:
+                raise AppException(
+                    "A form object is required when creating a Multimodal project."
+                )
+            if classes is not None:
+                raise AppException(
+                    "Classes cannot be provided for Multimodal projects."
+                )
+            settings.append(SettingEntity(attribute="TemplateState", value=1))
         if classes:
             classes = parse_obj_as(List[AnnotationClassEntity], classes)
         project_entity = entities.ProjectEntity(
@@ -1194,6 +1209,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_response = self.controller.projects.create(project_entity)
         project_response.raise_for_status()
         project = project_response.data
+        if form:
+            form_response = self.controller.projects.attach_form(project, form)
+            try:
+                form_response.raise_for_status()
+            except AppException:
+                self.controller.projects.delete(project)
+                raise
         if classes:
             classes_response = self.controller.annotation_classes.create_multiple(
                 project, classes
@@ -2392,6 +2414,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Uploads image frames from all videos with given extensions from folder_path to the project.
         Sets status of all the uploaded images to set_status if it is not None.
 
+        .. note::
+            Only works on Image projects.
+
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
 
@@ -2485,6 +2510,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Uploads image frames from video to platform. Uploaded images will have
         names "<video_name>_<frame_no>.jpg".
+
+        .. note::
+            Only works on Image projects.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str

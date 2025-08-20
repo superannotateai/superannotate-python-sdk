@@ -1,0 +1,600 @@
+[
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677515,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_c77v29",
+    "color": "#FF6B6B",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520529,
+        "group_type": "text",
+        "class_id": 5677515,
+        "name": "value_r_c77v29",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677516,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_q3j6wn",
+    "color": "#FF6B6B",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520530,
+        "group_type": "text",
+        "class_id": 5677516,
+        "name": "value_r_q3j6wn",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677517,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_66b5q3",
+    "color": "#96CEB4",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520531,
+        "group_type": "checklist",
+        "class_id": 5677517,
+        "name": "value_r_66b5q3",
+        "attributes": [
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263860,
+            "group_id": 5520531,
+            "project_id": 1114489,
+            "name": "Option 1",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263861,
+            "group_id": 5520531,
+            "project_id": 1114489,
+            "name": "Option 2",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263862,
+            "group_id": 5520531,
+            "project_id": 1114489,
+            "name": "Option 3",
+            "default": 0
+          }
+        ],
+        "default_value": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677518,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_923kb6",
+    "color": "#4ECDC4",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520532,
+        "group_type": "radio",
+        "class_id": 5677518,
+        "name": "value_r_923kb6",
+        "attributes": [
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263863,
+            "group_id": 5520532,
+            "project_id": 1114489,
+            "name": "Option 1",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263864,
+            "group_id": 5520532,
+            "project_id": 1114489,
+            "name": "Option 2",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263865,
+            "group_id": 5520532,
+            "project_id": 1114489,
+            "name": "Option 3",
+            "default": 0
+          }
+        ],
+        "default_value": null
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677519,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_88fb2z",
+    "color": "#45B7D1",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520533,
+        "group_type": "text",
+        "class_id": 5677519,
+        "name": "value_r_88fb2z",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677520,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_tz83ki",
+    "color": "#FF6B6B",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520534,
+        "group_type": "text",
+        "class_id": 5677520,
+        "name": "value_r_tz83ki",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677521,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_e7a4za",
+    "color": "#AC40F2",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520535,
+        "group_type": "numeric",
+        "class_id": 5677521,
+        "name": "value_r_e7a4za",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677522,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_8kwi9s",
+    "color": "#FF6B6B",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520536,
+        "group_type": "text",
+        "class_id": 5677522,
+        "name": "value_r_8kwi9s",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677523,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_rdwn52",
+    "color": "#FFEAA7",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520537,
+        "group_type": "text",
+        "class_id": 5677523,
+        "name": "value_r_rdwn52",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677524,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_vcemqe",
+    "color": "#96CEB4",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520538,
+        "group_type": "text",
+        "class_id": 5677524,
+        "name": "value_r_vcemqe",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677525,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_g8605a",
+    "color": "#FFEAA7",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520539,
+        "group_type": "radio",
+        "class_id": 5677525,
+        "name": "value_r_g8605a",
+        "attributes": [
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263866,
+            "group_id": 5520539,
+            "project_id": 1114489,
+            "name": "Option 1",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263867,
+            "group_id": 5520539,
+            "project_id": 1114489,
+            "name": "Option 2",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263868,
+            "group_id": 5520539,
+            "project_id": 1114489,
+            "name": "Option 3",
+            "default": 0
+          }
+        ],
+        "default_value": null
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677526,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_do97d1",
+    "color": "#45B7D1",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520540,
+        "group_type": "checklist",
+        "class_id": 5677526,
+        "name": "value_r_do97d1",
+        "attributes": [
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263869,
+            "group_id": 5520540,
+            "project_id": 1114489,
+            "name": "Option 1",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263870,
+            "group_id": 5520540,
+            "project_id": 1114489,
+            "name": "Option 2",
+            "default": 0
+          },
+          {
+            "createdAt": "2025-08-18T08:48:37.000Z",
+            "updatedAt": "2025-08-18T08:48:37.000Z",
+            "id": 11263871,
+            "group_id": 5520540,
+            "project_id": 1114489,
+            "name": "Option 3",
+            "default": 1
+          }
+        ],
+        "default_value": [
+          "Option 3"
+        ]
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677527,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_qoijyc",
+    "color": "#2D1C8F",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520541,
+        "group_type": "text",
+        "class_id": 5677527,
+        "name": "value_r_qoijyc",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677528,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_kz08gn",
+    "color": "#FF6B6B",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520542,
+        "group_type": "numeric",
+        "class_id": 5677528,
+        "name": "value_r_kz08gn",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677529,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_dfgb9b",
+    "color": "#4ECDC4",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520543,
+        "group_type": "numeric",
+        "class_id": 5677529,
+        "name": "value_r_dfgb9b",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677530,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_ijokdm",
+    "color": "#FFEAA7",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520544,
+        "group_type": "text",
+        "class_id": 5677530,
+        "name": "value_r_ijokdm",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677531,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_innmmg",
+    "color": "#45B7D1",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520545,
+        "group_type": "text",
+        "class_id": 5677531,
+        "name": "value_r_innmmg",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677532,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_jum7tm",
+    "color": "#45B7D1",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520546,
+        "group_type": "text",
+        "class_id": 5677532,
+        "name": "value_r_jum7tm",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677533,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_gl0gfo",
+    "color": "#AC40F2",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520547,
+        "group_type": "text",
+        "class_id": 5677533,
+        "name": "value_r_gl0gfo",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677534,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_qx07c6",
+    "color": "#FF6B6B",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520548,
+        "group_type": "text",
+        "class_id": 5677534,
+        "name": "value_r_qx07c6",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677535,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_mhw45u",
+    "color": "#F4E1C2",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520549,
+        "group_type": "text",
+        "class_id": 5677535,
+        "name": "value_r_mhw45u",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677536,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_a4o5pi",
+    "color": "#45B7D1",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520550,
+        "group_type": "text",
+        "class_id": 5677536,
+        "name": "value_r_a4o5pi",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677537,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_5ildf5",
+    "color": "#4ECDC4",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520551,
+        "group_type": "text",
+        "class_id": 5677537,
+        "name": "value_r_5ildf5",
+        "attributes": []
+      }
+    ]
+  },
+  {
+    "createdAt": "2025-08-18T08:48:37.000Z",
+    "updatedAt": "2025-08-18T08:48:37.000Z",
+    "id": 5677538,
+    "project_id": 1114489,
+    "type": "object",
+    "name": "r_s5j1j7",
+    "color": "#F4E1C2",
+    "attribute_groups": [
+      {
+        "createdAt": "2025-08-18T08:48:37.000Z",
+        "updatedAt": "2025-08-18T08:48:37.000Z",
+        "id": 5520552,
+        "group_type": "text",
+        "class_id": 5677538,
+        "name": "value_r_s5j1j7",
+        "attributes": []
+      }
+    ]
+  }
+]
