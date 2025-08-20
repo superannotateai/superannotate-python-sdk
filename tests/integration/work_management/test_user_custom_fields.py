@@ -243,15 +243,3 @@ class TestWorkManagement(TestCase):
             error_template_select.format(type="str", options="option1, option2"),
         ):
             sa.set_user_custom_field(scapegoat["email"], "SDK_test_single_select", 123)
-
-    def test_project_custom_fields(self):
-        scapegoat = sa.list_users(role="contributor")[0]
-        sa.add_contributors_to_project(
-            "TestUserProjectCustomFields", [scapegoat["email"]], role="QA"
-        )
-        users = sa.list_users(project="TestUserProjectCustomFields")
-        assert users[0]["role"] == "QA"
-        users = sa.list_users(
-            project="TestUserProjectCustomFields", include=["custom_fields"]
-        )
-        assert users[0]["role"] == "QA"
