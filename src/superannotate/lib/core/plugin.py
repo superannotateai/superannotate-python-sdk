@@ -7,7 +7,6 @@ from typing import Tuple
 from typing import Union
 
 import cv2
-import ffmpeg
 from lib.core.exceptions import ImageProcessingException
 from PIL import Image
 from PIL import ImageDraw
@@ -197,6 +196,7 @@ class VideoPlugin:
             270: cv2.ROTATE_90_COUNTERCLOCKWISE,
         }
         try:
+            import ffmpeg
             meta_dict = ffmpeg.probe(str(video_path))
             rot = int(meta_dict["streams"][0]["tags"]["rotate"])
             if rot:
@@ -206,6 +206,8 @@ class VideoPlugin:
                         rot,
                     )
                 return cv2_rotations[rot]
+        except ImportError:
+            raise Exception("Install ffmpeg-python~=0.2 to use this function.")
         except Exception as e:
             warning_str = ""
             if "ffprobe" in str(e):
