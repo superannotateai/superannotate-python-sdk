@@ -197,6 +197,7 @@ class VideoPlugin:
         }
         try:
             import ffmpeg
+
             meta_dict = ffmpeg.probe(str(video_path))
             rot = int(meta_dict["streams"][0]["tags"]["rotate"])
             if rot:

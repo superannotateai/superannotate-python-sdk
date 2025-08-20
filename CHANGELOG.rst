@@ -6,6 +6,16 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.38 - August 20, 2025
+________________________
+
+**Updated**
+
+    - ``SAClient.create_project`` now supports template uploads for Multimodal projects with the addition of a new ``form`` parameter.
+    - ``SAClient.upload_video_to_project`` should install ``ffmpeg-python`` manually for the function.
+    - ``SAClient.upload_videos_from_folder_to_project`` should install ``ffmpeg-python`` manually for the function.
+
+
 4.4.37 - July 18, 2025
 ______________________
 
