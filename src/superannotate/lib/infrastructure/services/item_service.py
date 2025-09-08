@@ -18,9 +18,9 @@ class ItemService(SuperannotateServiceProvider):
     URL_LIST = "items"
     URL_GET = "items/{item_id}"
 
-    def get(self, project_id: int, item_id: int):
+    def get(self, project_id: int, item_id: int, query: Query):
         result = self.client.request(
-            url=self.URL_GET.format(item_id=item_id),
+            url=f"{self.URL_GET.format(item_id=item_id)}?{query.build_query()}",
             method="GET",
             content_type=BaseItemResponse,
             headers={

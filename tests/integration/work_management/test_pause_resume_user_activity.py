@@ -67,6 +67,11 @@ class TestPauseUserActivity(BaseTestCase):
             [i["name"] for i in self.ATTACHMENT_LIST],
             scapegoat["email"],
         )
+        # test assignments use get_item_by_id
+        items_id = [i["id"] for i in sa.list_items(self.PROJECT_NAME)][0]
+        item = sa.get_item_by_id(project_id=self._project["id"], item_id=items_id)
+        assert len(item["assignments"]) == 1
+        assert item["assignments"][0]["user_role"] == "QA"
 
     @skip("For not send real email")
     def test_pause_resume_pending_user(self):

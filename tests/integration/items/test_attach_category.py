@@ -92,6 +92,12 @@ class TestItemAttachCategory(TestCase):
         items = sa.list_items(self.PROJECT_NAME, include=["categories"])
         assert all(i["categories"][0]["value"] == "category-1" for i in items)
 
+        # test get categories to use get_item_by_id
+        item = sa.get_item_by_id(
+            self._project["id"], items[0]["id"], include=["categories"]
+        )
+        assert item["categories"][0]["value"] == "category-1"
+
     def test_remove_items_category(self):
         self._attach_items(self.PROJECT_NAME, ["item-1", "item-2", "item-3"])
         sa.create_categories(self.PROJECT_NAME, ["category-1", "category-2"])

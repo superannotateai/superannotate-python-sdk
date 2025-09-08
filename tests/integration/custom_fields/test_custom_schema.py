@@ -136,6 +136,11 @@ class TestCustomSchema(BaseTestCase):
         item = sa.get_item_metadata(
             self.PROJECT_NAME, item_name, include_custom_metadata=True
         )
+        # test custom_metadata using get_item_by_id
+        assert item["custom_metadata"] == payload
+        item = sa.get_item_by_id(
+            self._project["id"], item["id"], include=["custom_metadata"]
+        )
         assert item["custom_metadata"] == payload
 
     def test_get_item_metadata_without_custom_metadata(self):
