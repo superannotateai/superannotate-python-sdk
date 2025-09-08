@@ -3,7 +3,7 @@ import os
 import sys
 
 
-__version__ = "4.4.38"
+__version__ = "4.4.39dev1"
 
 
 os.environ.update({"sa_version": __version__})

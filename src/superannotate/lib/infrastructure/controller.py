@@ -50,8 +50,6 @@ from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
 from lib.core.reporter import Reporter
 from lib.core.response import Response
-from lib.core.service_types import PROJECT_TYPE_RESPONSE_MAP
-from lib.core.usecases import serialize_item_entity
 from lib.infrastructure.custom_entities import generate_schema
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.query_builder import FieldValidationHandler
@@ -932,7 +930,7 @@ class ItemManager(BaseManager):
         service_provider,
         items: List[BaseItemEntity],
         project: ProjectEntity,
-        folder: FolderEntity,
+        folder: Optional[FolderEntity] = None,
         map_fields: bool = True,
     ) -> List[BaseItemEntity]:
         """Process the response data and return a list of serialized items."""
@@ -940,7 +938,8 @@ class ItemManager(BaseManager):
         for item in items:
             if map_fields:
                 item = usecases.serialize_item_entity(item, project)
-                item = usecases.add_item_path(project, folder, item)
+                if folder:
+                    item = usecases.add_item_path(project, folder, item)
             else:
                 item = usecases.serialize_item_entity(item, project, map_fields=False)
             item.annotation_status = service_provider.get_annotation_status_name(
@@ -984,6 +983,30 @@ class ItemManager(BaseManager):
         query = chain.handle(filters, EmptyQuery())
         data = self.service_provider.item_service.list(project.id, folder.id, query)
         return self.process_response(self.service_provider, data, project, folder)
+
+    def get_item_by_id(
+        self,
+        item_id: int,
+        project: ProjectEntity,
+        include: List[Literal["categories", "assignments"]] = None,
+    ) -> BaseItemEntity:
+        query = EmptyQuery()
+
+        if include:
+            if "assignments" in include:
+                query &= Join("assignments")
+            if "categories" in include:
+                # join item categories for multimodal projects
+                query &= Join("categories")
+
+        response = self.service_provider.item_service.get(
+            project_id=project.id, item_id=item_id, query=query
+        )
+        if response.error:
+            raise AppException(response.error)
+
+        item = self.process_response(self.service_provider, [response.data], project)[0]
+        return item
 
     def attach(
         self,
@@ -1631,19 +1654,6 @@ class Controller(BaseController):
             raise AppException("Project not found.")
         return response
 
-    def get_item_by_id(self, item_id: int, project: ProjectEntity) -> BaseItemEntity:
-        response = self.service_provider.item_service.get(
-            project_id=project.id, item_id=item_id
-        )
-        if response.error:
-            raise AppException(response.error)
-        PROJECT_TYPE_RESPONSE_MAP[project.type] = response.data
-        item = serialize_item_entity(response.data, project)
-        item.annotation_status = self.service_provider.get_annotation_status_name(
-            project, item.annotation_status
-        )
-        return item
-
     def get_project_folder_by_path(
         self, path: Union[str, Path]
     ) -> Tuple[ProjectEntity, FolderEntity]:
@@ -2044,7 +2054,7 @@ class Controller(BaseController):
         self, project: ProjectEntity, folder: FolderEntity, item: Union[int, str]
     ) -> BaseItemEntity:
         if isinstance(item, int):
-            return self.get_item_by_id(item_id=item, project=project)
+            return self.items.get_item_by_id(item_id=item, project=project)
         else:
             return self.items.get_by_name(project, folder, item)
 

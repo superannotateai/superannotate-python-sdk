@@ -335,7 +335,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             exclude={"completedCount", "is_root"}
         )
 
-    def get_item_by_id(self, project_id: int, item_id: int):
+    def get_item_by_id(
+        self,
+        project_id: int,
+        item_id: int,
+        include: List[Literal["custom_metadata", "categories"]] = None,
+    ):
         """Returns the item metadata
 
         :param project_id: the id of the project
@@ -344,16 +349,50 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param item_id: the id of the item
         :type item_id: int
 
+        :param include: Specifies additional fields to include in the response.
+
+                Possible values are
+
+                - "custom_metadata": Includes custom metadata attached to the item.
+                - "categories": Includes categories attached to the item.
+        :type include: list of str, optional
+
         :return: item metadata
         :rtype: dict
         """
         project_response = self.controller.get_project_by_id(project_id=project_id)
         project_response.raise_for_status()
-        item = self.controller.get_item_by_id(
-            item_id=item_id, project=project_response.data
+
+        if (
+            include
+            and "categories" in include
+            and project_response.data.type != ProjectType.MULTIMODAL.value
+        ):
+            raise AppException(
+                "The 'categories' option in the 'include' field is only supported for Multimodal projects."
+            )
+
+        # always join assignments for all project types
+        _include = {"assignments"}
+        if include:
+            _include.update(set(include))
+        include = list(_include)
+
+        include_custom_metadata = "custom_metadata" in include
+        if include_custom_metadata:
+            include.remove("custom_metadata")
+
+        item = self.controller.items.get_item_by_id(
+            item_id=item_id, project=project_response.data, include=include
         )
 
-        return BaseSerializer(item).serialize(exclude={"url", "meta"})
+        if include_custom_metadata:
+            item_custom_fields = self.controller.custom_fields.list_fields(
+                project=project_response.data, item_ids=[item.id]
+            )
+            item.custom_metadata = item_custom_fields[item.id]
+
+        return BaseSerializer(item).serialize(exclude={"url", "meta"}, by_alias=False)
 
     def get_team_metadata(self, include: List[Literal["scores"]] = None):
         """
@@ -5237,7 +5276,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "This function is only supported for Multimodal projects."
             )
         if isinstance(item, int):
-            _item = self.controller.get_item_by_id(item_id=item, project=project)
+            _item = self.controller.items.get_item_by_id(item_id=item, project=project)
         else:
             items = self.controller.items.list_items(project, folder, name=item)
             if not items:
