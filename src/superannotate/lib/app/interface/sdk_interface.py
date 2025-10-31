@@ -2141,15 +2141,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         project = response.data
-        response = self.controller.projects.get_metadata(
-            project=project, include_contributors=True
+        project_contributors = self.controller.work_management.list_users(
+            project=project
         )
-
-        if response.errors:
-            raise AppException(response.errors)
-
-        contributors = response.data.users
-        verified_users = [i.user_id for i in contributors]
+        verified_users = [i.email for i in project_contributors]
         verified_users = set(users).intersection(set(verified_users))
         unverified_contributor = set(users) - verified_users
 
