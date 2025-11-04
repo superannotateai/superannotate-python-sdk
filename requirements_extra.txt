@@ -1,13 +1,13 @@
 setuptools~=67.7
 wheel~=0.40
-Sphinx==6.2.1
-tox==4.5.1
+Sphinx~=6.2.1
+tox~=4.0
 sphinx_rtd_theme==1.2.0
 furo==2023.3.27
 jaraco.tidelift==1.5.1
 sphinx-notfound-page==0.8.3
 sphinx_inline_tabs==2023.4.21
-pytest==7.3.1
+pytest~=8.0
 pytest-xdist==3.2.1
 pytest-parallel==0.1.1
 pytest-cov==4.0.0
