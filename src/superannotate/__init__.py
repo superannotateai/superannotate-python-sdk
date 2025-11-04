@@ -11,7 +11,7 @@ sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
 import requests
 from lib.core import enums
-from packaging.version import parse
+from lib.core.utils import parse_version
 from lib.core import PACKAGE_VERSION_UPGRADE
 from lib.core import PACKAGE_VERSION_INFO_MESSAGE
 from lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
@@ -47,15 +47,15 @@ logging.getLogger("botocore").setLevel(logging.CRITICAL)
 
 def log_version_info():
     logging.StreamHandler(sys.stdout)
-    local_version = parse(__version__)
+    local_version = parse_version(__version__)
     if local_version.is_prerelease:
         logging.info(PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
     req = requests.get("https://pypi.org/pypi/superannotate/json")
     if req.ok:
         releases = req.json().get("releases", [])
-        pip_version = parse("0")
+        pip_version = parse_version("0")
         for release in releases:
-            ver = parse(release)
+            ver = parse_version(release)
             if not ver.is_prerelease or local_version.is_prerelease:
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:
