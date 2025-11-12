@@ -4195,7 +4195,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
 
-            - Only users matching all filter conditions are returned.
+            - Only projects matching all filter conditions are returned.
 
             - If no filter operation is provided, an exact match is applied.
 
@@ -4229,7 +4229,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Custom Fields Filtering:
 
                 - Custom fields must be prefixed with `custom_field__`.
-                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due_date is after the given Unix timestamp).
+                - Example: custom_field__Due_date__gte="1738281600" (filtering projects whose Due_date is after the given Unix timestamp).
                 - If include does not include “custom_fields” but filter contains ‘custom_field’, an error will be returned
 
             - **Text** custom field only works with the following filter params: __in, __notin, __contains

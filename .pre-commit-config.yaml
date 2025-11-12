@@ -14,7 +14,7 @@ repos:
       - id: black
         name: Code Formatter (black)
   - repo: 'https://github.com/PyCQA/flake8'
-    rev: 7.3.0
+    rev: 6.1.0
     hooks:
       - id: flake8
         exclude:  src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
