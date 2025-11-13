@@ -6,6 +6,18 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.4.39 - November 13, 2025
+________________________
+
+**Updated**
+
+    - ``SAClient.get_item_by_id`` now supports an optional include parameter to fetch additional fields like custom_metadata and categories.
+
+**Updated**
+
+    - ``SAClient.assign_items`` now supports assigning items and folders to pending users.
+    - ``SAClient.assign_folder`` now supports assigning items and folders to pending users.
+
 4.4.38 - August 20, 2025
 ________________________
 

@@ -1,5 +1,6 @@
-from packaging.version import parse as parse_version
+from lib.core.utils import parse_version
 from pydantic import VERSION
+
 
 if parse_version(VERSION).major < 2:
     import pydantic

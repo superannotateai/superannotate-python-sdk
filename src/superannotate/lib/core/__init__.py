@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from os.path import expanduser
@@ -36,10 +37,21 @@ def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
         logger.removeHandler(handler)
     logger.propagate = False
     logger.setLevel(level)
-    stream_handler = logging.StreamHandler()
+
+    # Separate handlers for different log levels
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging.DEBUG)
+    stdout_handler.addFilter(lambda record: record.levelno < logging.WARNING)
+
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.WARNING)
+
     formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(message)s")
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
+    stdout_handler.setFormatter(formatter)
+    stderr_handler.setFormatter(formatter)
+
+    logger.addHandler(stdout_handler)
+    logger.addHandler(stderr_handler)
     try:
         os.makedirs(file_path, exist_ok=True)
         log_file_path = os.path.join(file_path, "sa.log")
