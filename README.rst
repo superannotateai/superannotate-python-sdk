@@ -49,20 +49,21 @@ config.ini example
 Using superannotate
 -------------------
 
+The SDK provides both direct methods and organized manager interfaces:
+
 .. code-block:: python
 
     from superannotate import SAClient
 
-
-    sa_client =SAClient()
-
+    sa_client = SAClient()
     project = 'Dogs'
 
-    sa_client.create_project(
-            project_name=project,
-            project_description='Test project generated via SDK',
-            project_type='Vector'
-        )
+    # Using managers (recommended for better organization)
+    sa_client.projects.create(
+        project_name=project,
+        project_description='Test project generated via SDK',
+        project_type='Vector'
+    )
 
     sa_client.create_annotation_class(
         project=project,
@@ -71,29 +72,36 @@ Using superannotate
         class_type='tag'
     )
 
-    sa_client.attach_items(
-            project=project,
-            attachments=[
-                {
-                    'url': 'https://drive.google.com/uc?export=download&id=1ipOrZNSTlPUkI_hnrW9aUD5yULqqq5Vl',
-                    'name': 'dog.jpeg'
-                }
-            ]
-        )
+    sa_client.items.attach(
+        project=project,
+        attachments=[
+            {
+                'url': 'https://drive.google.com/uc?export=download&id=1ipOrZNSTlPUkI_hnrW9aUD5yULqqq5Vl',
+                'name': 'dog.jpeg'
+            }
+        ]
+    )
 
-    sa_client.upload_annotations(
-            project=project,
-            annotations=[
-                {
-                    'metadata': {'name': 'dog.jpeg'},
-                    'instances': [
-                        {'type': 'tag', 'className': 'dog'}
-                    ]
-                }
-            ]
-        )
+    sa_client.annotations.upload(
+        project=project,
+        annotations=[
+            {
+                'metadata': {'name': 'dog.jpeg'},
+                'instances': [
+                    {'type': 'tag', 'className': 'dog'}
+                ]
+            }
+        ]
+    )
 
-    sa_client.get_annotations(project=project, items=['dog.jpeg'])
+    sa_client.annotations.get(project=project, items=['dog.jpeg'])
+
+    # Direct methods also work for backward compatibility
+    # sa_client.create_project(...)
+    # sa_client.attach_items(...)
+    # sa_client.upload_annotations(...)
+
+Available managers: ``projects``, ``folders``, ``items``, ``annotations``, ``users``
 
 Installation
 ------------

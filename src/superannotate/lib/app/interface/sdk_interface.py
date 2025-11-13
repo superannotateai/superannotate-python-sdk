@@ -281,6 +281,1039 @@ class ItemContext:
         return self
 
 
+class ProjectsManager:
+    """Manager class for project operations."""
+
+    def __init__(self, client):
+        self.client = client
+        self.controller = client.controller
+
+    def create(
+        self,
+        project_name: NotEmptyStr,
+        project_description: NotEmptyStr,
+        project_type: PROJECT_TYPE,
+        settings: List[Setting] = None,
+        classes: List[AnnotationClassEntity] = None,
+        workflows: Any = None,
+        instructions_link: str = None,
+        workflow: str = None,
+    ):
+        """Create a new project in the team.
+
+        :param project_name: the new project's name
+        :type project_name: str
+
+        :param project_description: the new project's description
+        :type project_description: str
+
+        :param project_type: the new project type, Vector, Pixel, Video, Document, Tiled, PointCloud, Multimodal.
+        :type project_type: str
+
+        :param settings: list of settings objects
+        :type settings: list of dicts
+
+        :param classes: list of class objects
+        :type classes: list of dicts
+
+        :param workflows: Deprecated
+        :type workflows: list of dicts
+
+        :param workflow: the name of the workflow already created within the team, which must match exactly.
+                         If None, the default "System workflow" workflow will be set.
+        :type workflow: str
+
+        :param instructions_link: str of instructions URL
+        :type instructions_link: str
+
+        :return: dict object metadata the new project
+        :rtype: dict
+        """
+        return self.projects.create(
+            project_name=project_name,
+            project_description=project_description,
+            project_type=project_type,
+            settings=settings,
+            classes=classes,
+            workflows=workflows,
+            instructions_link=instructions_link,
+            workflow=workflow,
+        )
+
+    def list(
+        self,
+        name: Optional[NotEmptyStr] = None,
+        return_metadata: bool = False,
+        include_complete_item_count: bool = False,
+        status: Optional[Union[PROJECT_STATUS, List[PROJECT_STATUS]]] = None,
+    ):
+        """
+        Project name based case-insensitive search for projects.
+        If **name** is None, all the projects will be returned.
+
+        :param name: search string
+        :type name: str
+
+        :param return_metadata: return metadata of projects instead of names
+        :type return_metadata: bool
+
+        :param include_complete_item_count: return projects that have completed items and include
+            the number of completed items in response.
+        :type include_complete_item_count: bool
+
+        :param status: search projects via project status
+        :type status: str
+
+        :return: project names or metadatas
+        :rtype: list of strs or dicts
+        """
+        statuses = []
+        if status:
+            if isinstance(status, (list, tuple, set)):
+                statuses = list(status)
+            else:
+                statuses = [status]
+
+        condition = Condition.get_empty_condition()
+        if name:
+            condition &= Condition("name", name, EQ)
+        if include_complete_item_count:
+            condition &= Condition(
+                "completeImagesCount", include_complete_item_count, EQ
+            )
+        for _status in statuses:
+            condition &= Condition("status", constants.ProjectStatus(_status).value, EQ)
+
+        response = self.controller.projects.list(condition)
+        if response.errors:
+            raise AppException(response.errors)
+        if return_metadata:
+            return [
+                ProjectSerializer(project).serialize(
+                    exclude={
+                        "settings",
+                        "workflows",
+                        "contributors",
+                        "classes",
+                        "item_count",
+                    }
+                )
+                for project in response.data
+            ]
+        return [project.name for project in response.data]
+
+    def clone(
+        self,
+        project_name: Union[NotEmptyStr, dict],
+        from_project: Union[NotEmptyStr, dict],
+        project_description: Optional[NotEmptyStr] = None,
+        copy_annotation_classes: Optional[bool] = True,
+        copy_settings: Optional[bool] = True,
+        copy_workflow: Optional[bool] = False,
+        copy_contributors: Optional[bool] = False,
+    ):
+        """Create a new project in the team using annotation classes and settings from from_project.
+
+        :param project_name: new project's name
+        :type project_name: str
+
+        :param from_project: the name of the project being used for duplication
+        :type from_project: str
+
+        :param project_description: the new project's description. If None, from_project's
+                                    description will be used
+        :type project_description: str
+
+        :param copy_annotation_classes: enables copying annotation classes
+        :type copy_annotation_classes: bool
+
+        :param copy_settings: enables copying project settings
+        :type copy_settings: bool
+
+        :param copy_workflow: Deprecated
+        :type copy_workflow: bool
+
+        :param copy_contributors: enables copying project contributors
+        :type copy_contributors: bool
+
+        :return: dict object metadata of the new project
+        :rtype: dict
+        """
+        return self.projects.clone(
+            project_name=project_name,
+            from_project=from_project,
+            project_description=project_description,
+            copy_annotation_classes=copy_annotation_classes,
+            copy_settings=copy_settings,
+            copy_workflow=copy_workflow,
+            copy_contributors=copy_contributors,
+        )
+
+    def delete(self, project: Union[NotEmptyStr, dict]):
+        """Deletes the project
+
+        :param project: project name
+        :type project: str
+        """
+        name = project
+        if isinstance(project, dict):
+            name = project["name"]
+        project = self.controller.get_project(name)
+        response = self.controller.projects.delete(project)
+        if response.errors:
+            raise AppException(response.errors)
+        logger.info(f"Project {name} deleted.")
+
+    def rename(self, project: Union[NotEmptyStr, dict], new_name: NotEmptyStr):
+        """Rename project
+
+        :param project: project name or project metadata
+        :type project: str or dict
+
+        :param new_name: project's new name
+        :type new_name: str
+        """
+        if isinstance(project, dict):
+            project = project["name"]
+        project = self.controller.get_project(project)
+        project.name = new_name
+        response = self.controller.projects.update(project)
+        if response.errors:
+            raise AppException(response.errors)
+        logger.info(f"Project renamed to {new_name}.")
+
+
+class FoldersManager:
+    """Manager class for folder operations."""
+
+    def __init__(self, client):
+        self.client = client
+        self.controller = client.controller
+
+    def create(self, project: NotEmptyStr, folder_name: NotEmptyStr):
+        """
+        Create a new folder in the project.
+
+        :param project: project name
+        :type project: str
+
+        :param folder_name: the new folder's name
+        :type folder_name: str
+
+        :return: dict object metadata the new folder
+        :rtype: dict
+        """
+
+        project = self.controller.get_project(project)
+        folder = entities.FolderEntity(name=folder_name)
+        res = self.controller.folders.create(project, folder)
+        if res.data:
+            folder = res.data
+            logger.info(f"Folder {folder.name} created in project {project.name}")
+            return FolderSerializer(folder).serialize(
+                exclude={"completedCount", "is_root"}
+            )
+        if res.errors:
+            raise AppException(res.errors)
+
+
+class ItemsManager:
+    """Manager class for item operations."""
+
+    def __init__(self, client):
+        self.client = client
+        self.controller = client.controller
+
+    def list(
+        self,
+        project: Union[NotEmptyStr, int],
+        folder: Optional[Union[NotEmptyStr, int]] = None,
+        *,
+        include: List[Literal["custom_metadata", "categories"]] = None,
+        **filters,
+    ):
+        """
+        Search items by filtering criteria.
+
+        :param project: The project name, project ID, or folder path (e.g., "project1") to search within.
+                        This can refer to the root of the project or a specific subfolder.
+        :type project: Union[NotEmptyStr, int]
+
+        :param folder: The folder name or ID to search within. If None, the search will be done in the root folder of
+                       the project. If both "project" and "folder" specify folders, the "project"
+                       value will take priority.
+        :type folder: Union[NotEmptyStr, int], optional
+
+        :param include: Specifies additional fields to include in the response.
+
+                Possible values are
+
+                - "custom_metadata": Includes custom metadata attached to the item.
+                - "categories": Includes categories attached to the item.
+        :type include: list of str, optional
+
+        :param filters: Specifies filtering criteria (e.g., name, ID, annotation status),
+                        with all conditions combined using logical AND. Only items matching all criteria are returned.
+                        If no operation is specified, an exact match is applied.
+
+
+                Supported operations:
+                    - __ne: Value is not equal.
+                    - __in: Value is in the list.
+                    - __notin: Value is not in the list.
+                    - __contains: Value has the substring.
+                    - __starts: Value starts with the prefix.
+                    - __ends: Value ends with the suffix.
+
+                Filter params::
+
+                - id: int
+                - id__in: list[int]
+                - name: str
+                - name__in:  list[str]
+                - name__contains: str
+                - name__starts: str
+                - name__ends: str
+                - annotation_status: str
+                - annotation_status__in: list[str]
+                - annotation_status__ne: list[str]
+                - approval_status: Literal["Approved", "Disapproved", None]
+                - assignments__user_id: str
+                - assignments__user_id__ne: str
+                - assignments__user_id__in: list[str]
+                - assignments__user_role: str
+                - assignments__user_id__ne: str
+                - assignments__user_role__in: list[str]
+                - assignments__user_role__notin: list[str]
+        :type filters: ItemFilters
+
+        :return: A list of items that match the filtering criteria.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.items.list(
+                project="Medical Annotations",
+                folder="folder1",
+                include=["custom_metadata"],
+                annotation_status="InProgress",
+                name_contains="scan"
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "name": "scan_123.jpeg",
+                    "path": "Medical Annotations/folder1",
+                    "url": "https://sa-public-files.s3.../scan_123.jpeg",
+                    "annotation_status": "InProgress",
+                    "createdAt": "2022-02-10T14:32:21.000Z",
+                    "updatedAt": "2022-02-15T20:46:44.000Z",
+                    "custom_metadata": {
+                        "study_date": "2021-12-31",
+                        "patient_id": "62078f8a756ddb2ca9fc9660",
+                        "medical_specialist": "robertboxer@ms.com"
+                    }
+                }
+            ]
+
+        Request Example with include categories:
+        ::
+
+            client.items.list(
+                project="My Multimodal",
+                folder="folder1",
+                include=["categories"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "id": 48909383,
+                    "name": "scan_123.jpeg",
+                    "path": "Medical Annotations/folder1",
+                    "url": "https://sa-public-files.s3.../scan_123.jpeg",
+                    "annotation_status": "InProgress",
+                    "createdAt": "2022-02-10T14:32:21.000Z",
+                    "updatedAt": "2022-02-15T20:46:44.000Z",
+                    "entropy_value": None,
+                    "assignments": [],
+                    "categories": [
+                        {
+                            "createdAt": "2025-01-29T13:51:39.000Z",
+                            "updatedAt": "2025-01-29T13:51:39.000Z",
+                            "id": 328577,
+                            "name": "my_category",
+                        },
+                    ],
+                }
+            ]
+
+        Additional Filter Examples:
+        ::
+
+            client.items.list(
+                project="Medical Annotations",
+                folder="folder2",
+                annotation_status="Completed",
+                name__in=["1.jpg", "2.jpg", "3.jpg"]
+            )
+
+            # Filter items assigned to a specific QA
+            client.items.list(
+                project="Medical Annotations",
+                assignee__user_id="qa@example.com"
+            )
+        """
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        if (
+            include
+            and "categories" in include
+            and project.type != ProjectType.MULTIMODAL.value
+        ):
+            raise AppException(
+                "The 'categories' option in the 'include' field is only supported for Multimodal projects."
+            )
+        if folder is None:
+            folder = self.controller.get_folder(project, "root")
+        else:
+            if isinstance(folder, int):
+                folder = self.controller.get_folder_by_id(
+                    project_id=project.id, folder_id=folder
+                ).data
+            else:
+                folder = self.controller.get_folder(project, folder)
+        _include = {"assignments"}
+        if include:
+            _include.update(set(include))
+        include = list(_include)
+        include_custom_metadata = "custom_metadata" in include
+        if include_custom_metadata:
+            include.remove("custom_metadata")
+        res = self.controller.items.list_items(
+            project, folder, include=include, **filters
+        )
+        if include_custom_metadata:
+            item_custom_fields = self.controller.custom_fields.list_fields(
+                project=project, item_ids=[i.id for i in res]
+            )
+            for i in res:
+                i.custom_metadata = item_custom_fields[i.id]
+        exclude = {"meta", "annotator_email", "qa_email"}
+        if not include_custom_metadata:
+            exclude.add("custom_metadata")
+        return BaseSerializer.serialize_iterable(res, exclude=exclude, by_alias=False)
+
+    def attach(
+        self,
+        project: Union[NotEmptyStr, dict],
+        attachments: Union[NotEmptyStr, Path, conlist(Attachment, min_items=1)],
+        annotation_status: str = None,
+    ):
+        """Attach items to a project.
+
+        :param project: project name or project metadata
+        :type project: str or dict
+
+        :param attachments: list of attachments or path to CSV file
+        :type attachments: list of dicts or str or Path
+
+        :param annotation_status: annotation status to set for attached items
+        :type annotation_status: str
+
+        :return: list of attached items
+        :rtype: list of dicts
+        """
+        if annotation_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The 'annotation_status' parameter is deprecated. "
+                    "Please use the 'set_annotation_statuses' function instead."
+                )
+            )
+        project_name, folder_name = extract_project_folder(project)
+        try:
+            attachments = parse_obj_as(List[AttachmentEntity], attachments)
+            unique_attachments = set(attachments)
+            duplicate_attachments = [
+                item
+                for item, count in collections.Counter(attachments).items()
+                if count > 1
+            ]
+        except ValidationError:
+            (
+                unique_attachments,
+                duplicate_attachments,
+            ) = get_name_url_duplicated_from_csv(attachments)
+        if duplicate_attachments:
+            logger.info("Dropping duplicates.")
+        unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
+        uploaded, fails, duplicated = [], [], []
+        _unique_attachments = []
+        if any(i.integration for i in unique_attachments):
+            integtation_item_map = {
+                i.name: i
+                for i in self.controller.integrations.list().data
+                if i.type == IntegrationTypeEnum.CUSTOM
+            }
+            invalid_integrations = set()
+            for attachment in unique_attachments:
+                if attachment.integration:
+                    if attachment.integration in integtation_item_map:
+                        attachment.integration_id = integtation_item_map[
+                            attachment.integration
+                        ].id
+                    else:
+                        invalid_integrations.add(attachment.integration)
+                        continue
+                _unique_attachments.append(attachment)
+            if invalid_integrations:
+                logger.error(
+                    f"The ['{','.join(invalid_integrations)}'] integrations specified for the items doesn't exist in the "
+                    "list of integrations on the platform. Any associated items will be skipped."
+                )
+        else:
+            _unique_attachments = unique_attachments
+
+        if _unique_attachments:
+            logger.info(
+                f"Attaching {len(_unique_attachments)} file(s) to project {project}."
+            )
+            project, folder = self.controller.get_project_folder(
+                (project_name, folder_name)
+            )
+            response = self.controller.items.attach(
+                project=project,
+                folder=folder,
+                attachments=_unique_attachments,
+                annotation_status=annotation_status,
+            )
+            if response.errors:
+                raise AppException(response.errors)
+            uploaded, duplicated = response.data
+            fails = [
+                attachment.name
+                for attachment in _unique_attachments
+                if attachment.name not in uploaded and attachment.name not in duplicated
+            ]
+        return uploaded, fails, duplicated
+
+
+class AnnotationsManager:
+    """Manager class for annotation operations."""
+
+    def __init__(self, client):
+        self.client = client
+        self.controller = client.controller
+
+    def upload(
+        self,
+        project: NotEmptyStr,
+        annotations: List[dict],
+        keep_status: bool = None,
+        *,
+        data_spec: Literal["default", "multimodal"] = "default",
+    ):
+        """Uploads a list of annotation dictionaries to the specified SuperAnnotate project or folder.
+
+        :param project: The project name or folder path where annotations will be uploaded
+            (e.g., "project1/folder1").
+        :type project: str
+
+        :param annotations: A list of annotation dictionaries formatted according to the SuperAnnotate standards.
+        :type annotations: list of dict
+
+        :param keep_status: If False, the annotation status will be automatically updated to "InProgress."
+            If True, the current status will remain unchanged.
+        :type keep_status: bool, optional
+
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
+
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and modality-specific data representation.
+        :type data_spec: str, optional
+
+        :return: A dictionary containing the results of the upload, categorized into successfully uploaded,
+            failed, and skipped annotations.
+        :rtype: dict
+
+        Response Example::
+
+            {
+               "succeeded": [],
+               "failed": [],
+               "skipped": []
+            }
+
+        Example Usage with JSONL Upload for Multimodal Projects::
+
+            import json
+            from pathlib import Path
+            from superannotate import SAClient
+
+            annotations_path = Path("annotations.jsonl")
+            annotations = []
+
+            # Reading the JSONL file and converting it into a list of dictionaries
+            with annotations_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    annotations.append(json.loads(line))
+
+            # Initialize the SuperAnnotate client
+            sa = SAClient()
+
+            # Call the upload_annotations function
+            response = sa.annotations.upload(
+                project="project1/folder1",
+                annotations=annotations,
+                keep_status=True,
+                data_spec='multimodal'
+            )
+        """
+        if keep_status is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The 'keep_status' parameter is deprecated. "
+                    "Please use the 'set_annotation_statuses' function instead."
+                )
+            )
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.annotations.upload_multiple(
+            project=project,
+            folder=folder,
+            annotations=annotations,
+            keep_status=keep_status,
+            user=self.controller.current_user,
+            output_format=data_spec,
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def get(
+        self,
+        project: Union[NotEmptyStr, int],
+        items: Optional[Union[List[NotEmptyStr], List[int]]] = None,
+        *,
+        data_spec: Literal["default", "multimodal"] = "default",
+    ):
+        """Returns annotations for the given project and items.
+
+        :param project: The project name or ID.
+        :type project: Union[str, int]
+
+        :param items: A list of item names or IDs to retrieve annotations for.
+                     If None, annotations for all items in the project will be returned.
+        :type items: Optional[Union[List[str], List[int]]]
+
+        :param data_spec: Specifies the format for processing and transforming annotations before upload.
+
+            Options are:
+                    - default: Retains the annotations in their original format.
+                    - multimodal: Converts annotations for multimodal projects, optimizing for
+                                     compact and multimodal-specific data representation.
+
+        :type data_spec: str, optional
+
+        Example Usage of Multimodal Projects::
+
+            from superannotate import SAClient
+
+
+            sa = SAClient()
+
+            # Call the get_annotations function
+            response = sa.annotations.get(
+                project="project1/folder1",
+                items=["item_1", "item_2"],
+                data_spec='multimodal'
+            )
+
+        :return: A list of annotation dictionaries for the specified items.
+        :rtype: list of dicts
+        """
+        project, folder = self.controller.get_project_folder_by_path(project)
+        response = self.controller.annotations.get_multiple(
+            project=project,
+            folder=folder,
+            items=items,
+            output_format=data_spec,
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+
+class UsersManager:
+    """Manager class for user operations."""
+
+    def __init__(self, client):
+        self.client = client
+        self.controller = client.controller
+
+    def list(
+        self,
+        *,
+        project: Union[int, str] = None,
+        include: List[Literal["custom_fields", "categories"]] = None,
+        **filters,
+    ):
+        """
+        Search users, including their scores, by filtering criteria.
+
+        :param project:  Project name or ID, if provided, results will be for project-level,
+         otherwise results will be for team level.
+        :type project: str or int
+
+        :param include: Specifies additional fields to be included in the response.
+
+            Possible values are
+
+            - "custom_fields": Includes custom fields and scores assigned to each user.
+            - "categories": Includes a list of categories assigned to each project contributor.
+              Note: 'project' parameter must be specified when including 'categories'.
+        :type include: list of str, optional
+
+        :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
+
+            - Only users matching all filter conditions are returned.
+
+            - If no filter operation is provided, an exact match is applied
+
+            Supported operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+            - __gt: Value is greater than the given number.
+            - __gte: Value is greater than or equal to the given number.
+            - __lt: Value is less than the given number.
+            - __lte: Value is less than or equal to the given number.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - email: str
+            - email__in:  list[str]
+            - email__contains: str
+            - email__starts: str
+            - email__ends: str
+
+            Following params if project is not selected::
+
+            - state: Literal["Confirmed", "Pending"]
+            - state__in: List[Literal["Confirmed", "Pending"]]
+            - role: Literal["admin", "contributor"]
+            - role__in: List[Literal["admin", "contributor"]]
+
+            Scores and Custom Field Filtering:
+
+                - Scores and other custom fields must be prefixed with `custom_field__` .
+                - Example: custom_field__Due_date__gte="1738281600" (filtering users whose Due_date is after the given Unix timestamp).
+
+            - **Text** custom field only works with the following filter params: __in, __notin, __contains
+            - **Numeric** custom field only works with the following filter params: __in, __notin, __ne, __gt, __gte, __lt, __lte
+            - **Single-select** custom field only works with the following filter params: __in, __notin, __contains
+            - **Multi-select** custom field only works with the following filter params: __in, __notin
+            - **Date picker** custom field only works with the following filter params: __gt, __gte, __lt, __lte
+
+            **If custom field has a space, please use the following format to filter them**:
+            ::
+
+                user_filters = {"custom_field__accuracy score 30D__lt": 90}
+                client.users.list(include=["custom_fields"], **user_filters)
+
+
+        :type filters: UserFilters, optional
+
+        :return: A list of team/project users metadata that matches the filtering criteria
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.users.list(
+                email__contains="@superannotate.com",
+                include=["custom_fields"],
+                state__in=["Confirmed"]
+                custom_fields__Tag__in=["Tag1", "Tag3"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2023-02-02T14:25:42.000Z",
+                    "updatedAt": "2025-01-23T16:39:03.000Z",
+                    "custom_fields": {
+                        "Ann Quality threshold": 80,
+                        "Tag": ["Tag1", "Tag2", "Tag3"],
+                    },
+                    "email": "example@superannotate.com",
+                    "id": 30328,
+                    "role": "TeamOwner",
+                    "state": "Confirmed",
+                    "team_id": 44311,
+                }
+            ]
+
+        Request Example:
+        ::
+
+            # Project level scores
+
+            scores = client.users.list(
+                include=["custom_fields"],
+                project="my_multimodal",
+                email__contains="@superannotate.com",
+                custom_field__speed__gte=90,
+                custom_field__weight__lte=1,
+            )
+
+        Response Example:
+        ::
+
+            # Project level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {"speed": 92, "weight": 0.8},
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Annotator",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
+        Request Example:
+        ::
+
+            # Team level scores
+
+            user_filters = {
+                "custom_field__accuracy score 30D__lt": 95,
+                "custom_field__speed score 7D__lt": 15
+            }
+
+            scores = client.users.list(
+                include=["custom_fields"],
+                email__contains="@superannotate.com",
+                role="Contributor",
+                **user_filters
+            )
+
+        Response Example:
+        ::
+
+            # Team level scores
+
+            [
+                {
+                    "createdAt": "2025-03-07T13:19:59.000Z",
+                    "updatedAt": "2025-03-07T13:19:59.000Z",
+                    "custom_fields": {
+                        "Test custom field": 80,
+                        "Tag custom fields": ["Tag1", "Tag2"],
+                        "accuracy score 30D": 95,
+                        "accuracy score 14D": 47,
+                        "accuracy score 7D": 24,
+                        "speed score 30D": 33,
+                        "speed score 14D": 22,
+                        "speed score 7D": 11,
+                    },
+                    "email": "example@superannotate.com",
+                    "id": 715121,
+                    "role": "Contributor",
+                    "state": "Confirmed",
+                    "team_id": 1234,
+                }
+            ]
+
+        """
+        if project is not None:
+            if isinstance(project, int):
+                project = self.controller.get_project_by_id(project).data
+            else:
+                project = self.controller.get_project(project)
+        response = BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_users(
+                project=project, include=include, **filters
+            )
+        )
+        if project:
+            for user in response:
+                user["role"] = self.controller.service_provider.get_role_name(
+                    project, user["role"]
+                )
+        return response
+
+    def get_metadata(
+        self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
+    ):
+        """
+        Returns user metadata including optionally, custom fields
+
+        :param pk: The email address or ID of the team user.
+        :type pk: str or int
+
+        :param include: Specifies additional fields to include in the response.
+
+            Possible values are
+
+            - "custom_fields": If provided, the response will include custom fields associated with the team user.
+
+        :type include: list of str, optional
+
+        :return: metadata of team user.
+        :rtype: dict
+
+        Request Example:
+        ::
+
+            client.users.get_metadata(
+                "example@email.com",
+                include=["custom_fields"]
+            )
+
+        Response Example:
+        ::
+
+            {
+                "createdAt": "2023-11-27T07:10:24.000Z",
+                "updatedAt": "2025-02-03T13:35:09.000Z",
+                "custom_fields": {
+                    "ann_quality_threshold": 80,
+                    "tag": ["Tag1", "Tag2", "Tag3"],
+                    "due_date": 1738671238.7,
+                },
+                "email": "example@email.com",
+                "id": 124341,
+                "role": "Contributor",
+                "state": "Confirmed",
+                "team_id": 23245,
+            }
+        """
+        user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
+        return BaseSerializer(user).serialize(by_alias=False)
+
+    def invite_to_team(
+        self, emails: conlist(EmailStr, min_items=1), admin: bool = False
+    ) -> Tuple[List[str], List[str]]:
+        """Invites contributors to the team.
+
+        :param emails: list of contributor emails
+        :type emails: list
+
+        :param admin: enables admin privileges for the contributor
+        :type admin: bool
+
+        :return: lists of invited, skipped contributors of the team
+        :rtype: tuple (2 members) of lists of strs
+        """
+        response = self.controller.invite_contributors_to_team(
+            emails=emails, set_admin=admin
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def add_to_project(
+        self,
+        project: NotEmptyStr,
+        emails: conlist(EmailStr, min_items=1),
+        role: str,
+    ) -> Tuple[List[str], List[str]]:
+        """Add contributors to project.
+
+        :param project: project name
+        :type project: str
+
+        :param emails: users email
+        :type emails: list
+
+        :param role: user role to apply, one of ProjectAdmin , Annotator , QA
+        :type role: str
+
+        :return: lists of added,  skipped contributors of the project
+        :rtype: tuple (2 members) of lists of strs
+        """
+        project = self.controller.projects.get_by_name(project).data
+        contributors = [
+            entities.ContributorEntity(
+                user_id=email,
+                user_role=self.controller.service_provider.get_role_id(project, role),
+            )
+            for email in emails
+        ]
+        response = self.controller.projects.add_contributors(
+            self.controller.team, project, contributors
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def search_team_contributors(
+        self,
+        email: EmailStr = None,
+        first_name: NotEmptyStr = None,
+        last_name: NotEmptyStr = None,
+        return_metadata: bool = True,
+    ):
+        """Search for team contributors.
+
+        :param email: contributor email
+        :type email: str
+
+        :param first_name: contributor first name
+        :type first_name: str
+
+        :param last_name: contributor last name
+        :type last_name: str
+
+        :param return_metadata: return metadata of contributors instead of names
+        :type return_metadata: bool
+
+        :return: contributor names or metadatas
+        :rtype: list of strs or dicts
+        """
+        condition = Condition.get_empty_condition()
+        if email:
+            condition &= Condition("email", email, EQ)
+        if first_name:
+            condition &= Condition("first_name", first_name, EQ)
+        if last_name:
+            condition &= Condition("last_name", last_name, EQ)
+
+        response = self.controller.service_provider.search_team_contributors(condition)
+        if response.errors:
+            raise AppException(response.errors)
+        if return_metadata:
+            return [
+                ContributorSerializer(contributor).serialize()
+                for contributor in response.data
+            ]
+        return [contributor.email for contributor in response.data]
+
+
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     """Create SAClient instance to authorize SDK in a team scope.
     In case of no argument has been provided, SA_TOKEN environmental variable
@@ -300,6 +1333,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         config_path: str = None,
     ):
         super().__init__(token, config_path)
+
+        # Initialize managers
+        self.projects = ProjectsManager(self)
+        self.folders = FoldersManager(self)
+        self.items = ItemsManager(self)
+        self.annotations = AnnotationsManager(self)
+        self.users = UsersManager(self)
 
     def get_project_by_id(self, project_id: int):
         """Returns the project metadata
@@ -464,8 +1504,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "team_id": 23245,
             }
         """
-        user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
-        return BaseSerializer(user).serialize(by_alias=False)
+        return self.users.get_metadata(pk=pk, include=include)
 
     def set_user_custom_field(
         self, pk: Union[int, str], custom_field_name: str, value: Any
@@ -696,22 +1735,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ]
 
         """
-        if project is not None:
-            if isinstance(project, int):
-                project = self.controller.get_project_by_id(project).data
-            else:
-                project = self.controller.get_project(project)
-        response = BaseSerializer.serialize_iterable(
-            self.controller.work_management.list_users(
-                project=project, include=include, **filters
-            )
-        )
-        if project:
-            for user in response:
-                user["role"] = self.controller.service_provider.get_role_name(
-                    project, user["role"]
-                )
-        return response
+        return self.users.list(project=project, include=include, **filters)
 
     def pause_user_activity(
         self, pk: Union[int, str], projects: Union[List[int], List[str], Literal["*"]]
@@ -1089,14 +2113,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of found users
         :rtype: list of dicts
         """
-
-        contributors = self.controller.search_team_contributors(
-            email=email, first_name=first_name, last_name=last_name
-        ).data
-
-        if not return_metadata:
-            return [contributor["email"] for contributor in contributors]
-        return contributors
+        return self.users.search_team_contributors(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            return_metadata=return_metadata,
+        )
 
     def search_projects(
         self,
@@ -1125,40 +2147,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project names or metadatas
         :rtype: list of strs or dicts
         """
-        statuses = []
-        if status:
-            if isinstance(status, (list, tuple, set)):
-                statuses = list(status)
-            else:
-                statuses = [status]
-
-        condition = Condition.get_empty_condition()
-        if name:
-            condition &= Condition("name", name, EQ)
-        if include_complete_item_count:
-            condition &= Condition(
-                "completeImagesCount", include_complete_item_count, EQ
-            )
-        for _status in statuses:
-            condition &= Condition("status", constants.ProjectStatus(_status).value, EQ)
-
-        response = self.controller.projects.list(condition)
-        if response.errors:
-            raise AppException(response.errors)
-        if return_metadata:
-            return [
-                ProjectSerializer(project).serialize(
-                    exclude={
-                        "settings",
-                        "workflows",
-                        "contributors",
-                        "classes",
-                        "item_count",
-                    }
-                )
-                for project in response.data
-            ]
-        return [project.name for project in response.data]
+        return self.projects.list(
+            name=name,
+            return_metadata=return_metadata,
+            include_complete_item_count=include_complete_item_count,
+            status=status,
+        )
 
     def create_project(
         self,
@@ -1533,18 +2527,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: dict object metadata the new folder
         :rtype: dict
         """
-
-        project = self.controller.get_project(project)
-        folder = entities.FolderEntity(name=folder_name)
-        res = self.controller.folders.create(project, folder)
-        if res.data:
-            folder = res.data
-            logger.info(f"Folder {folder.name} created in project {project.name}")
-            return FolderSerializer(folder).serialize(
-                exclude={"completedCount", "is_root"}
-            )
-        if res.errors:
-            raise AppException(res.errors)
+        return self.folders.create(project=project, folder_name=folder_name)
 
     def delete_project(self, project: Union[NotEmptyStr, dict]):
         """Deletes the project
@@ -1552,10 +2535,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name
         :type project: str
         """
-        name = project
-        if isinstance(project, dict):
-            name = project["name"]
-        self.controller.projects.delete(name=name)
+        return self.projects.delete(project)
 
     def rename_project(self, project: NotEmptyStr, new_name: NotEmptyStr):
         """Renames the project
@@ -1566,16 +2546,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param new_name: project's new name
         :type new_name: str
         """
-        old_name = project
-        project = self.controller.get_project(old_name)  # noqa
-        project.name = new_name
-        response = self.controller.projects.update(project)
-        if response.errors:
-            raise AppException(response.errors)
-        logger.info(
-            "Successfully renamed project %s to %s.", old_name, response.data.name
-        )
-        return ProjectSerializer(response.data).serialize()
+        return self.projects.rename(project, new_name)
 
     def get_folder_metadata(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Returns folder metadata
@@ -3510,22 +4481,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of added,  skipped contributors of the project
         :rtype: tuple (2 members) of lists of strs
         """
-        project = self.controller.projects.get_by_name(project).data
-        contributors = [
-            entities.ContributorEntity(
-                user_id=email,
-                user_role=self.controller.service_provider.get_role_id(project, role),
-            )
-            for email in emails
-        ]
-        response = self.controller.projects.add_contributors(
-            team=self.controller.get_team().data,
-            project=project,
-            contributors=contributors,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        return self.users.add_to_project(project=project, emails=emails, role=role)
 
     def invite_contributors_to_team(
         self, emails: conlist(EmailStr, min_items=1), admin: bool = False
@@ -3541,12 +4497,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of invited, skipped contributors of the team
         :rtype: tuple (2 members) of lists of strs
         """
-        response = self.controller.invite_contributors_to_team(
-            emails=emails, set_admin=admin
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
+        return self.users.invite_to_team(emails=emails, admin=admin)
 
     def get_annotations(
         self,
@@ -3589,22 +4540,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: list of annotations
         :rtype: list of dict
         """
-        if isinstance(project, str):
-            project, folder = self.controller.get_project_folder_by_path(project)
-        else:
-            project = self.controller.get_project_by_id(project_id=project).data
-            folder = self.controller.get_folder_by_id(
-                project_id=project.id, folder_id=project.folder_id
-            ).data
-        response = self.controller.annotations.list(
-            project,
-            folder,
-            items,
-            transform_version="llmJsonV2" if data_spec == "multimodal" else None,
+        return self.annotations.get(
+            project=project,
+            items=items,
+            data_spec=data_spec,
         )
-        if response.errors:
-            raise AppException(response.errors)
-        return response.data
 
     def get_annotations_per_frame(
         self, project: NotEmptyStr, video: NotEmptyStr, fps: int = 1
@@ -4134,48 +5074,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 assignee__user_id="qa@example.com"
             )
         """
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
+        return self.items.list(
+            project=project,
+            folder=folder,
+            include=include,
+            **filters
         )
-        if (
-            include
-            and "categories" in include
-            and project.type != ProjectType.MULTIMODAL.value
-        ):
-            raise AppException(
-                "The 'categories' option in the 'include' field is only supported for Multimodal projects."
-            )
-        if folder is None:
-            folder = self.controller.get_folder(project, "root")
-        else:
-            if isinstance(folder, int):
-                folder = self.controller.get_folder_by_id(
-                    project_id=project.id, folder_id=folder
-                ).data
-            else:
-                folder = self.controller.get_folder(project, folder)
-        _include = {"assignments"}
-        if include:
-            _include.update(set(include))
-        include = list(_include)
-        include_custom_metadata = "custom_metadata" in include
-        if include_custom_metadata:
-            include.remove("custom_metadata")
-        res = self.controller.items.list_items(
-            project, folder, include=include, **filters
-        )
-        if include_custom_metadata:
-            item_custom_fields = self.controller.custom_fields.list_fields(
-                project=project, item_ids=[i.id for i in res]
-            )
-            for i in res:
-                i.custom_metadata = item_custom_fields[i.id]
-        exclude = {"meta", "annotator_email", "qa_email"}
-        if not include_custom_metadata:
-            exclude.add("custom_metadata")
-        return BaseSerializer.serialize_iterable(res, exclude=exclude, by_alias=False)
 
     def list_projects(
         self,
@@ -4421,7 +5325,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 for attachment in _unique_attachments
                 if attachment.name not in uploaded and attachment.name not in duplicated
             ]
-        return uploaded, fails, duplicated
+        return self.items.attach(
+            project=project,
+            attachments=attachments,
+            annotation_status=annotation_status,
+        )
 
     def generate_items(
         self,
