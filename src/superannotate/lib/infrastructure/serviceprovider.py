@@ -168,7 +168,10 @@ class ServiceProvider(BaseServiceProvider):
 
     def get_team(self, team_id: int) -> TeamResponse:
         return self.client.request(
-            f"{self.URL_TEAM}/{team_id}", "get", content_type=TeamResponse
+            f"{self.URL_TEAM}/{team_id}",
+            "get",
+            content_type=TeamResponse,
+            params={"include_users": False},
         )
 
     def get_user(self, team_id: int) -> UserResponse:

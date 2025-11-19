@@ -20,7 +20,7 @@ from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import ErrorWrapper
 from lib.core.pydantic_v1 import ValidationError
 from lib.infrastructure.controller import Controller
-from lib.infrastructure.utils import extract_project_folder
+from lib.infrastructure.utils import extract_project_folder_inputs
 from lib.infrastructure.validators import wrap_error
 from mixpanel import Mixpanel
 
@@ -176,9 +176,7 @@ class Tracker:
             elif value is None:
                 properties[key] = value
             elif key == "project":
-                properties["project_name"], folder_name = extract_project_folder(value)
-                if folder_name:
-                    properties["folder_name"] = folder_name
+                properties.update(extract_project_folder_inputs(value))
             elif isinstance(value, (str, int, float, bool)):
                 properties[key] = value
             elif isinstance(value, dict):

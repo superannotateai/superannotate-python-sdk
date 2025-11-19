@@ -14,15 +14,5 @@ class TestTeam(BaseTestCase):
     def test_team_metadata(self):
         metadata = sa.get_team_metadata()
         self.assertTrue(
-            all([x in metadata for x in ["id", "users", "name", "description", "type"]])
+            all([x in metadata for x in ["id", "name", "description", "type"]])
         )
-
-        for user in metadata["users"]:
-            self.assertTrue(
-                all(
-                    [
-                        x in user
-                        for x in ["id", "email", "first_name", "last_name", "user_role"]
-                    ]
-                )
-            )

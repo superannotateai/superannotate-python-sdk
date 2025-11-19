@@ -53,7 +53,9 @@ class TestPauseUserActivity(BaseTestCase):
                 [i["name"] for i in self.ATTACHMENT_LIST],
                 scapegoat["email"],
             )
+        import time
 
+        time.sleep(6)
         with self.assertLogs("sa", level="INFO") as cm:
             sa.resume_user_activity(pk=scapegoat["email"], projects=[self.PROJECT_NAME])
             assert (
@@ -61,7 +63,9 @@ class TestPauseUserActivity(BaseTestCase):
                 == f"INFO:sa:User with email {scapegoat['email']} has been successfully unblocked"
                 f" from the specified projects: {[self.PROJECT_NAME]}."
             )
+        import time
 
+        time.sleep(4)
         sa.assign_items(
             self.PROJECT_NAME,
             [i["name"] for i in self.ATTACHMENT_LIST],
