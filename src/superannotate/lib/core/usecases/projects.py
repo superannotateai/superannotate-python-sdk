@@ -16,8 +16,10 @@ from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
+from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.response import Response
@@ -168,7 +170,11 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 raise AppException("Workflow not fund.")
             project.workflow = project_workflow
         if self._include_contributors:
-            project.contributors = project.users
+            project.contributors = self._service_provider.work_management.list_users(
+                EmptyQuery(),
+                project_id=project.id,
+                parent_entity=CustomFieldEntityEnum.PROJECT,
+            ).data
         else:
             project.users = []
         if self._include_custom_fields:
@@ -848,13 +854,14 @@ class AddContributorsToProject(BaseUseCase):
         if self.is_valid():
             team_users = set()
             project_users = {user.user_id for user in self._project.users}
-            for user in self._team.users:
-                if user.user_role == constants.UserRole.CONTRIBUTOR.value:
+            users = self._service_provider.work_management.list_users(EmptyQuery()).data
+            pending_invitations = []
+            for user in users:
+                if user.state == WMUserStateEnum.Pending.value:
+                    pending_invitations.append(user)
+                elif user.role == constants.UserRole.CONTRIBUTOR.value:
                     team_users.add(user.email)
-            # collecting pending team users which is not admin
-            for user in self._team.pending_invitations:
-                if user["user_role"] == constants.UserRole.CONTRIBUTOR.value:
-                    team_users.add(user["email"])
+
             # collecting pending project users which is not admin
             for user in self._project.unverified_users:
                 project_users.add(user["email"])
@@ -917,12 +924,16 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
 
     def execute(self):
         if self.is_valid():
-            team_users = {user.email for user in self._team.users}
+            all_users = self._service_provider.work_management.list_users(
+                EmptyQuery(), parent_entity=CustomFieldEntityEnum.TEAM
+            ).data
             # collecting pending team users
-            team_users.update(
-                {user["email"] for user in self._team.pending_invitations}
-            )
-
+            team_user_emails = []
+            team_users, pending_invitations = [], []
+            for user in all_users:
+                team_user_emails.append(user.email)
+                if user.state == WMUserStateEnum.Pending.value:
+                    pending_invitations.append(user.email)
             emails = set(self._emails)
 
             to_skip = list(emails.intersection(team_users))
@@ -933,12 +944,15 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
                 )
             if to_add:
+                # REMINDER UserRole.VIEWER is the contributor for the teams
+                team_role = (
+                    constants.UserRole.ADMIN.value
+                    if self._set_admin
+                    else constants.UserRole.CONTRIBUTOR.value
+                )
                 response = self._service_provider.invite_contributors(
                     team_id=self._team.id,
-                    # REMINDER UserRole.VIEWER is the contributor for the teams
-                    team_role=constants.UserRole.ADMIN.value
-                    if self._set_admin
-                    else constants.UserRole.CONTRIBUTOR.value,
+                    team_role=team_role,  # noqa
                     emails=to_add,
                 )
                 invited, failed = (

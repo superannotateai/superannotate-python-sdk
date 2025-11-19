@@ -3,8 +3,110 @@ Setup Project
 =============
 
 
-Creating a project
-------------------
+Creating a Multimodal project
+------------------------------
+
+For Multimodal projects you **must** provide a ``form`` JSON object that
+conforms to SuperAnnotate's Multimodal form template schema. The form
+defines the project's UI layout and component behavior in the Multimodal
+Form Editor.
+
+.. code-block:: python
+
+    minimal_form = {
+        "components": [
+            {
+                "id": "component_id_0",
+                "type": "select",
+                "permissions": [],
+                "hasTooltip": False,
+                "label": "Select",
+                "isRequired": False,
+                "value": [],
+                "options": [
+                    {"value": "Partially complete, needs review", "checked": False},
+                    {"value": "Incomplete", "checked": False},
+                    {"value": "Complete", "checked": False},
+                    {"value": "4", "checked": False}
+                ],
+                "exclude": False,
+                "isMultiselect": True,
+                "placeholder": "Select"
+            },
+            {
+                "id": "component_id_1",
+                "type": "input",
+                "permissions": [],
+                "hasTooltip": False,
+                "label": "Text input",
+                "placeholder": "Placeholder",
+                "isRequired": False,
+                "value": "",
+                "min": 0,
+                "max": 300,
+                "exclude": False
+            },
+            {
+                "id": "component_id_2",
+                "type": "number",
+                "permissions": [],
+                "hasTooltip": False,
+                "label": "Number",
+                "exclude": False,
+                "isRequired": False,
+                "value": None,
+                "min": None,
+                "max": None,
+                "step": 1
+            }
+        ],
+        "code": "",
+        "environments": []
+    }
+
+    response = sa.create_project(
+        project_name="My Multimodal Project",
+        project_description="Example multimodal project created via SDK",
+        project_type="Multimodal",
+        form=minimal_form
+    )
+
+After creating the project, you can create folders and generate items:
+
+.. code-block:: python
+
+    # Create a new folder in the project
+    sa.create_folder(
+        project="My Multimodal Project",
+        folder_name="First Folder"
+    )
+
+    # Generate multiple items in the specific project and folder
+    # If there are no items in the folder, it will generate a blank item
+    # otherwise, it will generate items based on the Custom Form
+    sa.generate_items(
+        project="My Multimodal Project/First Folder",
+        count=10,
+        name="My Item"
+    )
+
+To upload annotations to these items:
+
+.. code-block:: python
+
+    annotations = [
+        # list of annotation dicts
+    ]
+
+    sa.upload_annotations(
+        project="My Multimodal Project/First Folder",
+        annotations=annotations,
+        keep_status=True,
+        data_spec="multimodal"
+    )
+
+Creating a  Vector project
+--------------------------
 
 To create a new "Vector" project with name "Example Project 1" and description
 "test":
@@ -17,7 +119,7 @@ To create a new "Vector" project with name "Example Project 1" and description
 
 
 Uploading images to project
----------------------------
+===========================
 
 
 To upload all images with extensions "jpg" or "png" from the
@@ -42,7 +144,7 @@ See the full argument options for
 
 
 Creating a folder in a project
-______________________________
+==============================
 
 To create a new folder "folder1" in the project "Example Project 1":
 
@@ -63,7 +165,7 @@ point to that folder with slash after the project name, e.g.,
          sa.upload_images_from_folder_to_project(project + "/folder1", "<local_folder_path>")
 
 Working with annotation classes
-_______________________________
+===============================
 
 An annotation class for a project can be created with SDK's:
 
@@ -94,7 +196,7 @@ The :file:`classes.json` file will be downloaded to :file:`"<path_to_local_folde
 
 
 Working with annotations
-________________________
+========================
 
 
 The SuperAnnotate format annotation JSONs have the general form:
@@ -154,7 +256,7 @@ already be present in the project for the upload to work.
 
 
 Exporting projects
-__________________
+==================
 
 To export the project annotations we need to prepare the export first:
 

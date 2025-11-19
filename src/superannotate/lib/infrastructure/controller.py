@@ -1660,8 +1660,10 @@ class Controller(BaseController):
         project_name, folder_name = extract_project_folder(path)
         return self.get_project_folder((project_name, folder_name))
 
-    def get_project(self, name: str) -> ProjectEntity:
-        project = self.projects.get_by_name(name).data
+    def get_project(self, name_or_id: Union[int, str]) -> ProjectEntity:
+        if isinstance(name_or_id, int):
+            return self.get_project_by_id(name_or_id).data
+        project = self.projects.get_by_name(name_or_id).data
         if not project:
             raise AppException("Project not found.")
         return project
@@ -1851,17 +1853,15 @@ class Controller(BaseController):
 
     def download_image(
         self,
-        project_name: str,
+        project: ProjectEntity,
         image_name: str,
         download_path: str,
-        folder_name: str = None,
+        folder: FolderEntity = None,
         image_variant: str = None,
         include_annotations: bool = None,
         include_fuse: bool = None,
         include_overlay: bool = None,
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
         image = self._get_image(project, image_name, folder)
 
         use_case = usecases.DownloadImageUseCase(
@@ -1977,11 +1977,8 @@ class Controller(BaseController):
         return use_case.execute()
 
     def get_annotations_per_frame(
-        self, project_name: str, folder_name: str, video_name: str, fps: int
+        self, project: ProjectEntity, folder: FolderEntity, video_name: str, fps: int
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
-
         use_case = usecases.GetVideoAnnotationsPerFrame(
             config=self._config,
             reporter=self.get_default_reporter(),
@@ -1994,10 +1991,12 @@ class Controller(BaseController):
         return use_case.execute()
 
     def query_entities(
-        self, project_name: str, folder_name: str, query: str = None, subset: str = None
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        query: str = None,
+        subset: str = None,
     ) -> List[BaseItemEntity]:
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
 
         use_case = usecases.QueryEntitiesUseCase(
             reporter=self.get_default_reporter(),
@@ -2030,8 +2029,11 @@ class Controller(BaseController):
         return response.data["count"]
 
     def get_project_folder(
-        self, path: Union[str, Tuple[int, int], Tuple[str, str]]
+        self, path: Union[str, int, Tuple[int, int], Tuple[str, str]]
     ) -> Tuple[ProjectEntity, Optional[FolderEntity]]:
+        if isinstance(path, int):
+            project = self.get_project_by_id(path).data
+            return project, self.get_folder(project, None)
         if isinstance(path, str):
             project_name, folder_name = extract_project_folder(path)
             project = self.get_project(project_name)
@@ -2047,7 +2049,6 @@ class Controller(BaseController):
             if all(isinstance(x, str) for x in path):
                 project = self.get_project(project_pk)
                 return project, self.get_folder(project, folder_pk)
-
         raise AppException("Provided project param is not valid.")
 
     def get_item(
