@@ -4385,6 +4385,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
         uploaded, fails, duplicated = [], [], []
         _unique_attachments = []
+
         project, folder = self.controller.get_project_folder(project)
         if any(i.integration for i in unique_attachments):
             integtation_item_map = {
@@ -4412,8 +4413,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             _unique_attachments = unique_attachments
 
         if _unique_attachments:
+            path = project.name + (f"/{folder.name}" if folder.name != "root" else "")
             logger.info(
-                f"Attaching {len(_unique_attachments)} file(s) to project {project}."
+                f"Attaching {len(_unique_attachments)} file(s) to project {path}."
             )
 
             response = self.controller.items.attach(

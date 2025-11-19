@@ -110,7 +110,6 @@ class ProjectEntity(TimedBaseModel):
     sync_status: Optional[int]
     upload_state: Optional[int]
     users: Optional[List[WMProjectUserEntity]] = []
-    unverified_users: Optional[List[Any]] = []
     contributors: List[WMProjectUserEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []

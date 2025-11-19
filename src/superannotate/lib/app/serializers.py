@@ -107,7 +107,6 @@ class ProjectSerializer(BaseSerializer):
 
         to_exclude = {
             "sync_status": True,
-            "unverified_users": True,
             "classes": {
                 "__all__": {"attribute_groups": {"__all__": {"is_multiselect"}}}
             },
@@ -143,7 +142,7 @@ class WMProjectSerializer(BaseSerializer):
         exclude_unset=False,
     ):
 
-        to_exclude = {"sync_status": True, "unverified_users": True, "classes": True}
+        to_exclude = {"sync_status": True, "classes": True}
         if exclude:
             for field in exclude:
                 to_exclude[field] = True

@@ -868,10 +868,6 @@ class AddContributorsToProject(BaseUseCase):
                 elif user.role == constants.UserRole.CONTRIBUTOR.value:
                     team_users.add(user.email)
 
-            # collecting pending project users which is not admin
-            for user in self._project.unverified_users:
-                project_emails.add(user["email"])
-
             role_email_map = defaultdict(list)
             to_skip = []
             to_add = []
