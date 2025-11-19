@@ -8,12 +8,12 @@ import lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
-from lib.core.entities import ContributorEntity
 from lib.core.entities import FormModel
 from lib.core.entities import generate_classes_from_form
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
+from lib.core.entities import WMProjectUserEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.enums import WMUserStateEnum
@@ -830,7 +830,7 @@ class AddContributorsToProject(BaseUseCase):
         self,
         team: TeamEntity,
         project: ProjectEntity,
-        contributors: List[ContributorEntity],
+        contributors: List[WMProjectUserEntity],
         service_provider: BaseServiceProvider,
     ):
         super().__init__()
@@ -842,7 +842,7 @@ class AddContributorsToProject(BaseUseCase):
     def validate_emails(self):
         email_entity_map = {}
         for c in self._contributors:
-            email_entity_map[c.user_id] = c
+            email_entity_map[c.email] = c
         len_unique, len_provided = len(email_entity_map), len(self._contributors)
         if len_unique < len_provided:
             logger.info(
@@ -853,7 +853,13 @@ class AddContributorsToProject(BaseUseCase):
     def execute(self):
         if self.is_valid():
             team_users = set()
-            project_users = {user.user_id for user in self._project.users}
+            project_users = self._service_provider.work_management.list_users(
+                EmptyQuery(),
+                include_custom_fields=True,
+                parent_entity=CustomFieldEntityEnum.PROJECT,
+                project_id=self._project.id,
+            ).data
+            project_emails = {user.email for user in project_users}
             users = self._service_provider.work_management.list_users(EmptyQuery()).data
             pending_invitations = []
             for user in users:
@@ -864,16 +870,16 @@ class AddContributorsToProject(BaseUseCase):
 
             # collecting pending project users which is not admin
             for user in self._project.unverified_users:
-                project_users.add(user["email"])
+                project_emails.add(user["email"])
 
             role_email_map = defaultdict(list)
             to_skip = []
             to_add = []
             for contributor in self._contributors:
-                role_email_map[contributor.user_role].append(contributor.user_id)
-            for role, emails in role_email_map.items():
-                role_id = self._service_provider.get_role_id(self._project, role)
-                _to_add = list(team_users.intersection(emails) - project_users)
+                role_email_map[contributor.role].append(contributor.email)
+            for role_id, emails in role_email_map.items():
+                role_name = self._service_provider.get_role_name(self._project, role_id)
+                _to_add = list(team_users.intersection(emails) - project_emails)
                 to_add.extend(_to_add)
                 to_skip.extend(list(set(emails).difference(_to_add)))
                 if _to_add:
@@ -893,7 +899,7 @@ class AddContributorsToProject(BaseUseCase):
                     if response and not response.data.get("invalidUsers"):
                         logger.info(
                             f"Added {len(_to_add)}/{len(emails)} "
-                            f"contributors to the project {self._project.name} with the {role} role."
+                            f"contributors to the project {self._project.name} with the {role_name} role."
                         )
 
             if to_skip:
@@ -902,7 +908,7 @@ class AddContributorsToProject(BaseUseCase):
                     "contributors that are out of the team scope or already have access to the project."
                 )
             self._response.data = to_add, to_skip
-            return self._response
+        return self._response
 
 
 class InviteContributorsToTeam(BaseUserBasedUseCase):

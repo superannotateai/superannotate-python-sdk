@@ -3525,9 +3525,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project = self.controller.projects.get_by_name(project).data
         contributors = [
-            entities.ContributorEntity(
-                user_id=email,
-                user_role=self.controller.service_provider.get_role_id(project, role),
+            entities.WMProjectUserEntity(
+                email=email,
+                role=self.controller.service_provider.get_role_id(project, role),
             )
             for email in emails
         ]

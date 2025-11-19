@@ -21,7 +21,6 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
-from lib.core.entities import ContributorEntity
 from lib.core.entities import CustomFieldEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
@@ -30,6 +29,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
+from lib.core.entities import WMProjectUserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
@@ -592,13 +592,9 @@ class ProjectManager(BaseManager):
         self,
         team: TeamEntity,
         project: ProjectEntity,
-        contributors: List[ContributorEntity],
+        contributors: List[WMProjectUserEntity],
     ):
         project = self.get_metadata(project, include_contributors=True).data
-        for contributor in contributors:
-            contributor.user_role = self.service_provider.get_role_name(
-                project, contributor.user_role
-            )
         use_case = usecases.AddContributorsToProject(
             team=team,
             project=project,
