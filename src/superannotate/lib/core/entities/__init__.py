@@ -15,7 +15,6 @@ from lib.core.entities.items import VideoEntity
 from lib.core.entities.multimodal_form import FormModel
 from lib.core.entities.multimodal_form import generate_classes_from_form
 from lib.core.entities.project import AttachmentEntity
-from lib.core.entities.project import ContributorEntity
 from lib.core.entities.project import CustomFieldEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
@@ -25,6 +24,7 @@ from lib.core.entities.project import UserEntity
 from lib.core.entities.project import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import S3FileEntity
+from lib.core.entities.work_managament import WMProjectUserEntity
 
 __all__ = [
     # base
@@ -47,7 +47,7 @@ __all__ = [
     "ProjectEntity",
     "WorkflowEntity",
     "CategoryEntity",
-    "ContributorEntity",
+    "WMProjectUserEntity",
     "ConfigEntity",
     "StepEntity",
     "FolderEntity",
