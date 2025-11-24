@@ -1334,6 +1334,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             self.controller.projects.add_contributors(
                 self.controller.team, new_project, project.contributors
             )
+            new_project.users = project.contributors
         if copy_annotation_classes:
             logger.info(
                 f"Cloning annotation classes from {from_project} to {project_name}."
