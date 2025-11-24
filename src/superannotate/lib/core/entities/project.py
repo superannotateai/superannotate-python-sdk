@@ -109,7 +109,6 @@ class ProjectEntity(TimedBaseModel):
     workflow: Optional[WorkflowEntity]
     sync_status: Optional[int]
     upload_state: Optional[int]
-    users: Optional[List[WMProjectUserEntity]] = []
     contributors: List[WMProjectUserEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
@@ -138,7 +137,7 @@ class ProjectEntity(TimedBaseModel):
             instructions_link=self.instructions_link,
             status=self.status,
             folder_id=self.folder_id,
-            users=self.users,
+            contributors=self.contributors,
             settings=[s.__copy__() for s in self.settings],
             upload_state=self.upload_state,
             workflow_id=self.workflow_id,

@@ -1334,7 +1334,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             self.controller.projects.add_contributors(
                 self.controller.team, new_project, project.contributors
             )
-            new_project.users = project.contributors
+            new_project.contributors = project.contributors
         if copy_annotation_classes:
             logger.info(
                 f"Cloning annotation classes from {from_project} to {project_name}."
@@ -1354,15 +1354,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if response.errors:
             raise AppException(response.errors)
-        data = ProjectSerializer(response.data).serialize()
-        if data.get("users"):
-            for contributor in data["users"]:
-                contributor[
-                    "user_role"
-                ] = self.controller.service_provider.get_role_name(
-                    new_project, contributor["user_role"]
-                )
-        return data
+        project = ProjectSerializer(response.data).serialize()
+        for contributor in project["contributors"]:
+            contributor["role"] = self.controller.service_provider.get_role_name(
+                project, contributor["role"]
+            )
+        return project
 
     def create_categories(
         self, project: Union[NotEmptyStr, int], categories: List[NotEmptyStr]
@@ -1753,7 +1750,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "raw_config": {"roles": ["Annotator", "QA"], ...}
                 },
                 "upload_state": "INITIAL",
-                "users": [],
                 "contributors": [],
                 "settings": [],
                 "classes": [],
@@ -1782,15 +1778,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        data = ProjectSerializer(response.data).serialize()
-        if data.get("users"):
-            for contributor in data["users"]:
-                contributor[
-                    "user_role"
-                ] = self.controller.service_provider.get_role_name(
-                    response.data, contributor["user_role"]
-                )
-        return data
+        project = ProjectSerializer(response.data).serialize()
+        for contributor in project["contributors"]:
+            contributor["role"] = self.controller.service_provider.get_role_name(
+                project, contributor["role"]
+            )
+        return project
 
     def get_project_settings(self, project: Union[NotEmptyStr, dict]):
         """Gets project's settings.

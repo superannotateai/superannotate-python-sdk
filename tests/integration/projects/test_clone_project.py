@@ -234,11 +234,3 @@ class TestCloneVideoProject(TestCase):
         for s in new_settings:
             if s["attribute"] == "FrameMode":
                 assert not s["value"]
-
-
-#
-#
-# def test_():
-#     sa.delete_project("tod")
-#     sa.get_project_metadata('tttp', include_contributors=True)
-#     sa.clone_project('tod', 'tttp', copy_contributors=True)

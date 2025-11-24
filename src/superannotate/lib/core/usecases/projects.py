@@ -175,8 +175,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 project_id=project.id,
                 parent_entity=CustomFieldEntityEnum.PROJECT,
             ).data
-        else:
-            project.users = []
+
         if self._include_custom_fields:
             context = {"team_id": self._project.team_id}
             custom_fields_names = self._service_provider.list_custom_field_names(
