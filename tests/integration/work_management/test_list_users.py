@@ -1,3 +1,4 @@
+import pytest
 from superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -21,6 +22,14 @@ class TestListUsers(BaseTestCase):
         sa.add_contributors_to_project(
             self.PROJECT_NAME, [scapegoat["email"]], "Annotator"
         )
+
+    @pytest.mark.skip(reason="For not send real email")
+    def test_pending_users(self):
+        test_email = "test@superannotate.com"
+        sa.invite_contributors_to_team(emails=[test_email])
+        sa.add_contributors_to_project(self.PROJECT_NAME, [test_email], "Annotator")
+        project = sa.get_project_metadata(self.PROJECT_NAME, include_contributors=True)
+        assert project['contributors'][1]["state"] == "Pending"
 
     def test_list_users_by_project_name(self):
         project_users = sa.list_users(project=self.PROJECT_NAME)

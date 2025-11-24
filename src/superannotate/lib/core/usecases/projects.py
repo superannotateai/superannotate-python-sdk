@@ -860,12 +860,11 @@ class AddContributorsToProject(BaseUseCase):
                 project_id=self._project.id,
             ).data
             project_emails = {user.email for user in project_users}
-            users = self._service_provider.work_management.list_users(EmptyQuery()).data
-            pending_invitations = []
+            users = self._service_provider.work_management.list_users(
+                EmptyQuery(), parent_entity=CustomFieldEntityEnum.TEAM
+            ).data
             for user in users:
-                if user.state == WMUserStateEnum.Pending.value:
-                    pending_invitations.append(user)
-                elif user.role == constants.UserRole.CONTRIBUTOR.value:
+                if user.role == constants.UserRole.CONTRIBUTOR.value:
                     team_users.add(user.email)
 
             role_email_map = defaultdict(list)
