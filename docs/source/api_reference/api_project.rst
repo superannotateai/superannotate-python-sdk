@@ -30,3 +30,4 @@ Projects
 .. automethod:: superannotate.SAClient.create_categories
 .. automethod:: superannotate.SAClient.list_categories
 .. automethod:: superannotate.SAClient.remove_categories
+.. automethod:: superannotate.SAClient.remove_users_from_project

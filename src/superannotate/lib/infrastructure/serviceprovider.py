@@ -41,6 +41,8 @@ class ServiceProvider(BaseServiceProvider):
     URL_INVITE_CONTRIBUTORS = "api/v1/team/{}/inviteUsers"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
     URL_CREATE_WORKFLOW = "api/v1/workflows/submit"
+    URL_REMOVE_USERS_FROM_TEAM = "team/{team_id}/members/bulk"
+    URL_REMOVE_USERS_FROM_PROJECT = "project/{project_id}/share/bulk"
 
     def __init__(self, client: HttpClient):
         self.enum_mapping = {"approval_status": ApprovalStatus.get_mapping()}
@@ -339,3 +341,21 @@ class ServiceProvider(BaseServiceProvider):
             },
             data=data,
         )
+
+    def remove_users(self, emails: List[str]):
+        response = self.client.request(
+            url=self.URL_REMOVE_USERS_FROM_TEAM.format(team_id=self.client.team_id),
+            method="delete",
+            data={"data": [{"email": email} for email in emails]},
+        )
+        response.raise_for_status()
+        return response.data
+
+    def remove_users_from_project(self, project_id: int, emails: List[str]):
+        response = self.client.request(
+            url=self.URL_REMOVE_USERS_FROM_PROJECT.format(project_id=project_id),
+            method="delete",
+            data={"user_id": emails},
+        )
+        response.raise_for_status()
+        return response.data

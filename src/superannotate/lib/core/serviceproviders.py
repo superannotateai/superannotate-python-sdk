@@ -931,3 +931,11 @@ class BaseServiceProvider:
         parent: CustomFieldEntityEnum,
     ):
         raise NotImplementedError
+
+    @abstractmethod
+    def remove_users(self, emails: List[str]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def remove_users_from_project(self, project_id: int, emails: List[str]):
+        raise NotImplementedError

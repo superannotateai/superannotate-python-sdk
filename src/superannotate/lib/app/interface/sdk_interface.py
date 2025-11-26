@@ -75,7 +75,6 @@ from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.entities.items import ProjectCategoryEntity
 
-
 logger = logging.getLogger("sa")
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -5337,3 +5336,69 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             EmptyQuery()
         )
         return BaseSerializer.serialize_iterable(workflows.data)
+
+    def remove_users(self, users: Union[List[int], List[str]]):
+        """
+        Allows removing users from the team.
+        :param users:   A list of emails or IDs of the users.
+        :type users: Union[List[int], List[str]]
+
+        :rtype: None:
+
+        Request Example:
+        ::
+
+            SAClient.remove_users(member=["example@gmail.com","example1@gmail.com"])
+
+        """
+        success = 0
+        if users:
+            if isinstance(users[0], int):
+                users = self.controller.work_management.list_users(id__in=users)
+                user_emails = [user.email for user in users]
+            else:
+                user_emails = users
+            if user_emails:
+                success, _ = self.controller.work_management.remove_users(user_emails)
+        logger.info(
+            f"Successfully removed {success} user(s) out of the {len(users)} provided."
+        )
+
+    def remove_users_from_project(
+        self, project: Union[NotEmptyStr, int], users: Union[List[int], List[str]]
+    ):
+        """
+        Allows removing users from the team.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param users:   A list of emails or IDs of the users.
+        :type users: Union[List[int], List[str]]
+
+        :rtype: None:
+
+        Request Example:
+        ::
+
+            SAClient.remove_users_from_project(project="Test Project", users=["example@gmail.com","example1@gmail.com"])
+
+        """
+        project = self.controller.get_project(project)
+
+        success = 0
+        if users:
+            if isinstance(users[0], int):
+                users = self.controller.work_management.list_users(
+                    project=project, id__in=users
+                )
+                user_emails = [user.email for user in users]
+            else:
+                user_emails = users
+            if user_emails:
+                success, _ = self.controller.work_management.remove_users_from_project(
+                    project, user_emails
+                )
+        logger.info(
+            f"Successfully removed {success} users(s) out of the {len(users)} provided from the project {project.name}."
+        )

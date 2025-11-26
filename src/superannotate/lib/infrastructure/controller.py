@@ -177,6 +177,14 @@ class WorkManagementManager(BaseManager):
             context=_context,
         )
 
+    def remove_users(self, user_emails: List[str]):
+        data = self.service_provider.remove_users(user_emails)
+        return data.get("success", 0), data.get("error", 0)
+
+    def remove_users_from_project(self, project: ProjectEntity, user_emails: List[str]):
+        data = self.service_provider.remove_users_from_project(project.id, user_emails)
+        return len(data.get("succeeded", [])), len(data.get("failed", []))
+
     def list_users(
         self,
         include: List[Literal["custom_fields", "categories"]] = None,
