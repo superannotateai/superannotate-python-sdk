@@ -2893,7 +2893,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example for General Annotation Project:
         ::
 
-            sa.set_project_steps(
+            sa_client.set_project_steps(
                 project="Medical Annotations",
                 steps=[
                     {
@@ -2915,7 +2915,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example for Keypoint Annotation Project:
         ::
 
-            sa.set_project_steps(
+            sa_client.set_project_steps(
                 project="Pose Estimation Project",
                 steps=[
                     {
@@ -5340,6 +5340,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def remove_users(self, users: Union[List[int], List[str]]):
         """
         Allows removing users from the team.
+
         :param users:   A list of emails or IDs of the users.
         :type users: Union[List[int], List[str]]
 
@@ -5354,8 +5355,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         success = 0
         if users:
             if isinstance(users[0], int):
-                users = self.controller.work_management.list_users(id__in=users)
-                user_emails = [user.email for user in users]
+                users_data = self.controller.work_management.list_users(id__in=users)
+                user_emails = [user.email for user in users_data]
             else:
                 user_emails = users
             if user_emails:
@@ -5389,10 +5390,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         success = 0
         if users:
             if isinstance(users[0], int):
-                users = self.controller.work_management.list_users(
+                users_data = self.controller.work_management.list_users(
                     project=project, id__in=users
                 )
-                user_emails = [user.email for user in users]
+                user_emails = [user.email for user in users_data]
             else:
                 user_emails = users
             if user_emails:
