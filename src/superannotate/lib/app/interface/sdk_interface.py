@@ -1353,12 +1353,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if response.errors:
             raise AppException(response.errors)
-        project = ProjectSerializer(response.data).serialize()
-        for contributor in project["contributors"]:
+        project_data = ProjectSerializer(response.data).serialize()
+        for contributor in project_data["contributors"]:
             contributor["role"] = self.controller.service_provider.get_role_name(
                 project, contributor["role"]
             )
-        return project
+        return project_data
 
     def create_categories(
         self, project: Union[NotEmptyStr, int], categories: List[NotEmptyStr]
