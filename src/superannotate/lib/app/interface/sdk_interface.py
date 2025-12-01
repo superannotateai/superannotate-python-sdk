@@ -1247,7 +1247,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_response = self.controller.projects.create(project_entity)
         project_response.raise_for_status()
         project = project_response.data
-        if form:
+        if form and ProjectType(project_type) == ProjectType.MULTIMODAL:
             form_response = self.controller.projects.attach_form(project, form)
             try:
                 form_response.raise_for_status()
