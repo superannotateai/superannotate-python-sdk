@@ -1765,9 +1765,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
         project_name, _ = extract_project_folder(project)
-        project = self.controller.get_project(project_name)
+        project_entity = self.controller.get_project(project_name)
         response = self.controller.projects.get_metadata(
-            project,
+            project_entity,
             include_annotation_classes,
             include_settings,
             include_workflow,
@@ -1780,7 +1780,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = ProjectSerializer(response.data).serialize()
         for contributor in project["contributors"]:
             contributor["role"] = self.controller.service_provider.get_role_name(
-                project, contributor["role"]
+                project_entity, contributor["role"]
             )
         return project
 
