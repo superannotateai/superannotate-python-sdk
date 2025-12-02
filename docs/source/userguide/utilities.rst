@@ -20,7 +20,7 @@ to convert them to other annotation formats:
 
 .. code-block:: python
 
-    sa.export_annotation("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>",
+    sa_client.export_annotation("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>",
     "<project_type>", "<task>")
 
 .. note::
@@ -197,10 +197,10 @@ Example Python Script:
     csv_to_jsonl("annotations.csv", "annotations.jsonl")
 
     # Upload to SuperAnnotate
-    sa = SAClient()
+    sa_client = SAClient()
     annotations = [json.loads(line) for line in Path("annotations.jsonl").open("r", encoding="utf-8")]
 
-    response = sa.upload_annotations(
+    response = sa_client.upload_annotations(
         project="project1/folder1",
         annotations=annotations,
         keep_status=True,
@@ -214,7 +214,7 @@ Fetching Annotations and Converting to JSONL/CSV
 Steps to Retrieve and Convert Annotations:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Fetch **annotations from SuperAnnotate** using `sa.get_annotations()`.
+1. Fetch **annotations from SuperAnnotate** using `sa_client.get_annotations()`.
 2. Convert the **annotation list into JSONL format**.
 3. Convert the **JSONL data into CSV** for external use.
 
@@ -230,8 +230,8 @@ Python Script to Convert Annotations to JSONL:
                 jsonl_file.write('\n')
 
     # Fetch annotations from SuperAnnotate
-    sa = SAClient()
-    annotations = sa.get_annotations("project", data_spec="multimodal")
+    sa_client = SAClient()
+    annotations = sa_client.get_annotations("project", data_spec="multimodal")
 
     # Convert to JSONL
     convert_annotations_to_jsonl(annotations, "fetched_annotations.jsonl")
@@ -284,7 +284,7 @@ SuperAnnotate format annotations:
 
 .. code-block:: python
 
-   df = sa.aggregate_annotations_as_df("<path_to_project_folder>")
+   df = sa_client.aggregate_annotations_as_df("<path_to_project_folder>")
 
 The created DataFrame will have columns specified at
 :ref:`aggregate_annotations_as_df <ref_aggregate_annotations_as_df>`.
