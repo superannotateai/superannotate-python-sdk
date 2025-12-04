@@ -8,16 +8,18 @@ import lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
-from lib.core.entities import ContributorEntity
 from lib.core.entities import FormModel
 from lib.core.entities import generate_classes_from_form
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
+from lib.core.entities import WMProjectUserEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
+from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.response import Response
@@ -168,9 +170,12 @@ class GetProjectMetaDataUseCase(BaseUseCase):
                 raise AppException("Workflow not fund.")
             project.workflow = project_workflow
         if self._include_contributors:
-            project.contributors = project.users
-        else:
-            project.users = []
+            project.contributors = self._service_provider.work_management.list_users(
+                EmptyQuery(),
+                project_id=project.id,
+                parent_entity=CustomFieldEntityEnum.PROJECT,
+            ).data
+
         if self._include_custom_fields:
             context = {"team_id": self._project.team_id}
             custom_fields_names = self._service_provider.list_custom_field_names(
@@ -824,7 +829,7 @@ class AddContributorsToProject(BaseUseCase):
         self,
         team: TeamEntity,
         project: ProjectEntity,
-        contributors: List[ContributorEntity],
+        contributors: List[WMProjectUserEntity],
         service_provider: BaseServiceProvider,
     ):
         super().__init__()
@@ -836,7 +841,7 @@ class AddContributorsToProject(BaseUseCase):
     def validate_emails(self):
         email_entity_map = {}
         for c in self._contributors:
-            email_entity_map[c.user_id] = c
+            email_entity_map[c.email] = c
         len_unique, len_provided = len(email_entity_map), len(self._contributors)
         if len_unique < len_provided:
             logger.info(
@@ -847,26 +852,28 @@ class AddContributorsToProject(BaseUseCase):
     def execute(self):
         if self.is_valid():
             team_users = set()
-            project_users = {user.user_id for user in self._project.users}
-            for user in self._team.users:
-                if user.user_role == constants.UserRole.CONTRIBUTOR.value:
+            project_users = self._service_provider.work_management.list_users(
+                EmptyQuery(),
+                include_custom_fields=True,
+                parent_entity=CustomFieldEntityEnum.PROJECT,
+                project_id=self._project.id,
+            ).data
+            project_emails = {user.email for user in project_users}
+            users = self._service_provider.work_management.list_users(
+                EmptyQuery(), parent_entity=CustomFieldEntityEnum.TEAM
+            ).data
+            for user in users:
+                if user.role == constants.UserRole.CONTRIBUTOR.value:
                     team_users.add(user.email)
-            # collecting pending team users which is not admin
-            for user in self._team.pending_invitations:
-                if user["user_role"] == constants.UserRole.CONTRIBUTOR.value:
-                    team_users.add(user["email"])
-            # collecting pending project users which is not admin
-            for user in self._project.unverified_users:
-                project_users.add(user["email"])
 
             role_email_map = defaultdict(list)
             to_skip = []
             to_add = []
             for contributor in self._contributors:
-                role_email_map[contributor.user_role].append(contributor.user_id)
-            for role, emails in role_email_map.items():
-                role_id = self._service_provider.get_role_id(self._project, role)
-                _to_add = list(team_users.intersection(emails) - project_users)
+                role_email_map[contributor.role].append(contributor.email)
+            for role_id, emails in role_email_map.items():
+                role_name = self._service_provider.get_role_name(self._project, role_id)
+                _to_add = list(team_users.intersection(emails) - project_emails)
                 to_add.extend(_to_add)
                 to_skip.extend(list(set(emails).difference(_to_add)))
                 if _to_add:
@@ -886,7 +893,7 @@ class AddContributorsToProject(BaseUseCase):
                     if response and not response.data.get("invalidUsers"):
                         logger.info(
                             f"Added {len(_to_add)}/{len(emails)} "
-                            f"contributors to the project {self._project.name} with the {role} role."
+                            f"contributors to the project {self._project.name} with the {role_name} role."
                         )
 
             if to_skip:
@@ -895,7 +902,7 @@ class AddContributorsToProject(BaseUseCase):
                     "contributors that are out of the team scope or already have access to the project."
                 )
             self._response.data = to_add, to_skip
-            return self._response
+        return self._response
 
 
 class InviteContributorsToTeam(BaseUserBasedUseCase):
@@ -917,12 +924,16 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
 
     def execute(self):
         if self.is_valid():
-            team_users = {user.email for user in self._team.users}
+            all_users = self._service_provider.work_management.list_users(
+                EmptyQuery(), parent_entity=CustomFieldEntityEnum.TEAM
+            ).data
             # collecting pending team users
-            team_users.update(
-                {user["email"] for user in self._team.pending_invitations}
-            )
-
+            team_user_emails = []
+            team_users, pending_invitations = [], []
+            for user in all_users:
+                team_user_emails.append(user.email)
+                if user.state == WMUserStateEnum.Pending.value:
+                    pending_invitations.append(user.email)
             emails = set(self._emails)
 
             to_skip = list(emails.intersection(team_users))
@@ -933,12 +944,15 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
                 )
             if to_add:
+                # REMINDER UserRole.VIEWER is the contributor for the teams
+                team_role = (
+                    constants.UserRole.ADMIN.value
+                    if self._set_admin
+                    else constants.UserRole.CONTRIBUTOR.value
+                )
                 response = self._service_provider.invite_contributors(
                     team_id=self._team.id,
-                    # REMINDER UserRole.VIEWER is the contributor for the teams
-                    team_role=constants.UserRole.ADMIN.value
-                    if self._set_admin
-                    else constants.UserRole.CONTRIBUTOR.value,
+                    team_role=team_role,  # noqa
                     emails=to_add,
                 )
                 invited, failed = (

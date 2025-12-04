@@ -18,7 +18,7 @@ Project metadata example:
      "creator_id": "admin@superannotate.com",
      "updatedAt": "2020-08-31T05:43:43.118Z",
      "createdAt": "2020-08-31T05:43:43.118Z"
-     "type": "Vector",
+     "type": "Vector", # Pixel, Video, Multimodal
      "attachment_name": None,
      "attachment_path": None,
      "entropy_status": 1,

@@ -6,8 +6,23 @@ History
 
 All release highlights of this project will be documented in this file.
 
-4.4.39 - November 13, 2025
+4.5.0 - December 4, 2025
 ________________________
+
+**Added**
+
+    - ``SAClient.remove_users`` Removes users from the team by their email or ID.
+    - ``SAClient.remove_users_from_project`` Removes users from a specific project by name or ID.
+
+**Updated**
+
+    - ``SAClient.get_team_metadata`` Removed users and pending_users keys from the response.
+    - ``SAClient.clone_project`` Removed users key from the response.
+    - ``SAClient.get_project_metadata`` Removed users key from the response.
+
+
+4.4.39 - November 13, 2025
+__________________________
 
 **Updated**
 

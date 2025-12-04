@@ -25,7 +25,7 @@ class ProjectService(BaseProjectService):
     URL_EDITOR_TEMPLATE = "/project/{project_id}/custom-editor-template"
 
     def get_by_id(self, project_id: int):
-        params = {}
+        params = {"include_users": False}
         result = self.client.request(
             self.URL_GET_BY_ID.format(project_id=project_id),
             "get",

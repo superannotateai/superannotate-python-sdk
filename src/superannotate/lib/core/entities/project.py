@@ -7,6 +7,7 @@ from typing import Union
 
 from lib.core.entities.base import BaseModel
 from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.work_managament import WMProjectUserEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
@@ -78,16 +79,6 @@ class SettingEntity(BaseModel):
         return SettingEntity(attribute=self.attribute, value=self.value)
 
 
-class ContributorEntity(BaseModel):
-    first_name: Optional[str]
-    last_name: Optional[str]
-    user_id: str
-    user_role: Union[int, str]
-
-    class Config:
-        extra = Extra.ignore
-
-
 class WorkflowEntity(TimedBaseModel):
     id: Optional[int]
     name: Optional[str]
@@ -118,9 +109,7 @@ class ProjectEntity(TimedBaseModel):
     workflow: Optional[WorkflowEntity]
     sync_status: Optional[int]
     upload_state: Optional[int]
-    users: Optional[List[ContributorEntity]] = []
-    unverified_users: Optional[List[Any]] = []
-    contributors: List[ContributorEntity] = []
+    contributors: List[WMProjectUserEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
     item_count: Optional[int] = Field(None, alias="imageCount")
@@ -148,7 +137,7 @@ class ProjectEntity(TimedBaseModel):
             instructions_link=self.instructions_link,
             status=self.status,
             folder_id=self.folder_id,
-            users=self.users,
+            contributors=self.contributors,
             settings=[s.__copy__() for s in self.settings],
             upload_state=self.upload_state,
             workflow_id=self.workflow_id,

@@ -58,6 +58,42 @@ def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[
     raise PathError("Invalid project path")
 
 
+def extract_project_folder_inputs(user_input: Union[str, dict, tuple, int]) -> dict:
+    if isinstance(user_input, int):
+        return {"project_name": user_input, "project_value_type": "id"}
+    if isinstance(user_input, tuple):
+        if isinstance(user_input[0], int):
+            return {
+                "project_name": user_input[0],
+                "folder_name": user_input[1],
+                "project_value_type": "id tuple",
+            }
+        else:
+            return {
+                "project_name": user_input[0],
+                "folder_name": user_input[1],
+                "project_value_type": "name tuple",
+            }
+    if isinstance(user_input, str):
+        project_name, folder_name = split_project_path(user_input)
+        return {
+            "project_name": project_name,
+            "folder_name": folder_name,
+            "project_value_type": "name",
+        }
+    if isinstance(user_input, dict):
+        project_path = user_input.get("name")
+        if not project_path:
+            raise PathError("Invalid project path")
+        project_name, folder_name = split_project_path(project_path)
+        return {
+            "project_name": project_name,
+            "folder_name": folder_name,
+            "project_value_type": "dict",
+        }
+    raise PathError("Invalid project path")
+
+
 def async_retry_on_generator(
     exceptions: Tuple[Type[Exception]],
     retries: int = 3,

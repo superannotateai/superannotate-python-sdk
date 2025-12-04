@@ -101,7 +101,7 @@ To create a new "Vector" project with name "Example Project 1" and description
 
     project = "Example Project 1"
 
-    sa.create_project(project, "test", "Vector")
+    sa_client.create_project(project, "test", "Vector")
 
 ----------
 
@@ -115,7 +115,7 @@ To upload all images with extensions "jpg" or "png" from the
 
 .. code-block:: python
 
-    sa.upload_images_from_folder_to_project(project, "<local_folder_path>")
+    sa_client.upload_images_from_folder_to_project(project, "<local_folder_path>")
 
 See the full argument options for
 :py:func:`upload_images_from_folder_to_project` :ref:`here <ref_upload_images_from_folder_to_project>`.
@@ -144,19 +144,19 @@ To download the image one can use:
 
    image = "example_image1.jpg"
 
-   sa.download_image(project, image, "<path_to_local_dir>")
+   sa_client.download_image(project, image, "<path_to_local_dir>")
 
 To download image annotations:
 
 .. code-block:: python
 
-   sa.download_image_annotations(project, image, "<path_to_local_dir>")
+   sa_client.download_image_annotations(project, image, "<path_to_local_dir>")
 
 Upload back to the platform with:
 
 .. code-block:: python
 
-   sa.upload_image_annotations(project, image, "<path_to_json>")
+   sa_client.upload_image_annotations(project, image, "<path_to_json>")
 
 ---------
 
@@ -168,4 +168,4 @@ A team contributor can be invited to the team with:
 
 .. code-block:: python
 
-   sa.invite_contributors_to_team(emails=["admin@superannotate.com"], admin=False)
+   sa_client.invite_contributors_to_team(emails=["admin@superannotate.com"], admin=False)
