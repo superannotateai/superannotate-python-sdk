@@ -1,5 +1,4 @@
 import pytest
-from pygments.lexer import include
 
 from superannotate import SAClient
 from tests.integration.base import BaseTestCase
