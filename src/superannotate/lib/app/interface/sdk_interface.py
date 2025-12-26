@@ -2148,7 +2148,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         project = response.data
         project_contributors = self.controller.work_management.list_users(
-            project=project
+            email__in=users, project=project
         )
         verified_users = [i.email for i in project_contributors]
         verified_users = set(users).intersection(set(verified_users))

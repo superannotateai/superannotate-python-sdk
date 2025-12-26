@@ -1,5 +1,4 @@
 import pytest
-from pygments.lexer import include
 
 from superannotate import SAClient
 from tests.integration.base import BaseTestCase
@@ -30,10 +29,10 @@ class TestListUsers(BaseTestCase):
         test_email = "test1@superannotate.com"
         sa.invite_contributors_to_team(emails=[test_email])
         sa.add_contributors_to_project(self.PROJECT_NAME, [test_email], "Annotator")
-        sa.clone_project("narek test4", self.PROJECT_NAME, copy_contributors=True)
-        project = sa.get_project_metadata("narek test4", include_contributors=True)
+        sa.clone_project("narek test5", self.PROJECT_NAME, copy_contributors=True)
+        project = sa.get_project_metadata("narek test5", include_contributors=True)
 
-        assert project["contributors"][1]["state"] == "Pending"
+        assert project["contributors"][1]["state"] == "PENDING"
 
     def test_list_users_by_project_name(self):
         project_users = sa.list_users(project=self.PROJECT_NAME)

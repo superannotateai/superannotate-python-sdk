@@ -77,7 +77,7 @@ class TestPauseUserActivity(BaseTestCase):
         assert len(item["assignments"]) == 1
         assert item["assignments"][0]["user_role"] == "QA"
 
-    @skip("For not send real email")
+    # @skip("For not send real email")
     def test_pause_resume_pending_user(self):
         pending_user = "satest2277@gmail.com"
         if pending_user not in [u["email"] for u in sa.list_users()]:
