@@ -50,6 +50,7 @@ class HttpClient(BaseClient):
         super().__init__(api_url, token)
         self._verify_ssl = verify_ssl
         self._version = os.environ.get("sa_version")
+        self._env = os.environ.get("SA_ENV")
 
     @property
     def verify_ssl(self):
@@ -86,7 +87,8 @@ class HttpClient(BaseClient):
                 ).encode("utf-8")
             ).decode("utf-8"),
             "User-Agent": f"Python-SDK-Version: {self._version}; Python: {platform.python_version()};"
-            f"OS: {platform.system()}; Team: {self.team_id}",
+            f"OS: {platform.system()}; Team: {self.team_id}"
+            f"{'; Env: ' + self._env if self._env else ''}",
         }
 
     @property
