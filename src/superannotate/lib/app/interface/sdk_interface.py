@@ -5369,7 +5369,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self, project: Union[NotEmptyStr, int], users: Union[List[int], List[str]]
     ):
         """
-        Allows removing users from the team.
+        Allows removing users from a project.
 
         :param project: The name or ID of the project.
         :type project: Union[NotEmptyStr, int]
@@ -5382,7 +5382,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            SAClient.remove_users_from_project(project="Test Project", users=["example@gmail.com","example1@gmail.com"])
+            sa_client.remove_users_from_project(project="Test Project", users=["example@gmail.com","example1@gmail.com"])
 
         """
         project = self.controller.get_project(project)
