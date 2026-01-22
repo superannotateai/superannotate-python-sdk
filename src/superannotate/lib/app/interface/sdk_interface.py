@@ -1088,7 +1088,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of found users
         :rtype: list of dicts
         """
-
+        warnings.warn(
+            "This function search_team_contributors() will be deprecated and removed in version 4.6.0\n"
+            "Recommended replacement: get_user_metadata() or list_users()",
+            DeprecationWarning,
+            stacklevel=2
+        )
         contributors = self.controller.search_team_contributors(
             email=email, first_name=first_name, last_name=last_name
         ).data
@@ -1124,6 +1129,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project names or metadatas
         :rtype: list of strs or dicts
         """
+        warnings.warn(
+            "This function search_projects() will be deprecated and removed in version 4.6.0\n"
+            "Recommended replacement: get_project_metadata() or list_projects()",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         statuses = []
         if status:
             if isinstance(status, (list, tuple, set)):
@@ -3949,6 +3961,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             ]
         """
+        warnings.warn(
+            "This function search_items() will be deprecated and removed in version 4.6.0\n"
+            "Recommended replacement: get_item_metadata() or list_items()",
+            DeprecationWarning,
+            stacklevel=2
+        )
         project, folder = self.controller.get_project_folder(project)
         query_kwargs = {"include": ["assignments"]}
         if name_contains:
@@ -4355,7 +4373,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if annotation_status is not None:
             warnings.warn(
                 DeprecationWarning(
-                    "The “keep_status” parameter is deprecated. "
+                    "The “keep_status” parameter is deprecated."
                     "Please use the “set_annotation_statuses” function instead."
                 )
             )
