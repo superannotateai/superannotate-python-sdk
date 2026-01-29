@@ -109,7 +109,7 @@ The package officially supports Python 3.10+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`__
 ) platforms.
 
-For more detailed installation steps and package usage please have a look at the `tutorial <https://superannotate.readthedocs.io/en/stable/tutorial.sdk.html>`__
+For more detailed installation steps and package usage please have a look at the :ref:`quickstart guide <ref_quickstart>`
 
 
 Supported Features

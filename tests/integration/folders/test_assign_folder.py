@@ -46,3 +46,14 @@ class TestAssignFolderToUsers(BaseTestCase):
             self.FOLDER_NAME,
             [self.scapegoat_accepted["email"], self.scapegoat_pending["email"]],
         )
+
+        folder = sa.get_folder_metadata(
+            self.PROJECT_NAME, self.FOLDER_NAME, include_contributors=True
+        )
+        assert len(folder["contributors"]) == 2
+        assert folder["contributors"][0].keys() == {
+            "email",
+            "id",
+            "role",
+            "state",
+        }

@@ -129,6 +129,14 @@ class BaseManager:
 
 
 class WorkManagementManager(BaseManager):
+    def list_folders(self, project: ProjectEntity, query: Query):
+        response = self.service_provider.work_management.list_folders(project.id, query)
+        response.raise_for_status()
+        for folder in response.data:
+            for user in folder.contributors:
+                user.role = self.service_provider.get_role_name(project, user.role)
+        return response
+
     def list_score_templates(self):
         return self.service_provider.work_management.list_scores()
 

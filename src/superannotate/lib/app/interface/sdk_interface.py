@@ -73,6 +73,8 @@ from lib.infrastructure.validators import wrap_error
 from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Join
+from lib.core.jsx_conditions import Fields
 from lib.core.entities.items import ProjectCategoryEntity
 
 logger = logging.getLogger("sa")
@@ -1092,7 +1094,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             "This function search_team_contributors() will be deprecated and removed in version 4.6.0\n"
             "Recommended replacement: get_user_metadata() or list_users()",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         contributors = self.controller.search_team_contributors(
             email=email, first_name=first_name, last_name=last_name
@@ -1133,7 +1135,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             "This function search_projects() will be deprecated and removed in version 4.6.0\n"
             "Recommended replacement: get_project_metadata() or list_projects()",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         statuses = []
@@ -1586,8 +1588,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         return ProjectSerializer(response.data).serialize()
 
-    def get_folder_metadata(self, project: NotEmptyStr, folder_name: NotEmptyStr):
-        """Returns folder metadata
+    def get_folder_metadata(
+        self,
+        project: NotEmptyStr,
+        folder_name: NotEmptyStr,
+        include_contributors: bool = False,
+    ):
+        """
+        SAClient.get_folder_metadata(project, folder_name, include_contributors=False)
+        Returns folder metadata. Optionally includes a list of contributors that are currently
+        assigned to the folder.
 
         :param project: project name
         :type project: str
@@ -1595,13 +1605,66 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param folder_name: folder's name
         :type folder_name: str
 
-        :return: metadata of folder
+        :param include_contributors: If True, includes a list of contributors assigned to the folder in the response.
+                                        Defaults to False.
+        :type include_contributors: bool
+
+        :return: Folder metadata
         :rtype: dict
+
+        Request Example:
+        ::
+
+            sa_client.get_folder_metadata(
+                project="test_project",
+                folder_name="test_folder",
+                include_contributors=True
+            )
+
+
+        Response Example:
+        ::
+
+            {
+                "createdAt": "2025-10-27T06:54:09.000Z",
+                "updatedAt": "2025-10-27T06:54:09.000Z",
+                "id": 1487195,
+                "name": "test_folder",
+                "status": "NotStarted",
+                "project_id": 1203397,
+                "team_id": 85922,
+                "contributors": [
+                    {
+                        "email": "test@superannotate.com",
+                        "id": 1314658,
+                        "role": "Annotator",
+                        "state": "Confirmed"
+                    }
+                ]
+            }
+
         """
-        project, folder = self.controller.get_project_folder((project, folder_name))
-        if not folder:
+        project = self.controller.get_project(project)
+        query = Filter("name", folder_name, OperatorEnum.EQ)
+        fields = ["id", "project_id", "name", "status", "team_id"]
+
+        if include_contributors:
+            query &= Join("folderUsers", fields=["id"])
+            query &= Join(
+                "folderUsers.projectUser", fields=["id", "email", "role", "state"]
+            )
+            fields.append("folderUsers")
+        query &= Fields(fields)
+        response = self.controller.work_management.list_folders(
+            project=project, query=query
+        )
+        response.raise_for_status()
+        if not response.data:
             raise AppException("Folder not found.")
-        return BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
+        folder = response.data[0]
+        return BaseSerializer(folder).serialize(
+            exclude={"completedCount", "is_root"}, by_alias=False
+        )
 
     def delete_folders(self, project: NotEmptyStr, folder_names: List[NotEmptyStr]):
         """Delete folder in project.
@@ -3965,7 +4028,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             "This function search_items() will be deprecated and removed in version 4.6.0\n"
             "Recommended replacement: get_item_metadata() or list_items()",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         project, folder = self.controller.get_project_folder(project)
         query_kwargs = {"include": ["assignments"]}

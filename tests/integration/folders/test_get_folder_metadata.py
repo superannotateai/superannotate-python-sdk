@@ -15,7 +15,7 @@ class TestGetFolderMetadata(BaseTestCase):
     TEST_FOLDER_NAME = "folder_"
     IGNORE_KEYS = {"id", "team_id", "createdAt", "updatedAt", "project_id"}
     EXPECTED_FOLDER_METADATA = {
-        "folder_users": None,
+        "contributors": [],
         "name": "folder_",
         "status": "NotStarted",
     }

@@ -6,5 +6,5 @@ FOLDER_KEYS = [
     "status",
     "project_id",
     "team_id",
-    "folder_users",
+    "contributors",
 ]

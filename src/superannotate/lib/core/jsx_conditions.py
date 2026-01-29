@@ -54,9 +54,10 @@ class Query:
 
     def body_builder(self):
         search: Dict[str, list] = defaultdict(list)
-        join: List[str] = []
+        join: List[Dict[str, list]] = []
         limit: Optional[int] = None
         offset: Optional[int] = None
+        fields: List[str] = []
 
         for condition in self.condition_set:
             if not isinstance(condition, EmptyQuery):
@@ -69,14 +70,19 @@ class Query:
                     limit = c_value
                 elif isinstance(condition, Offset):
                     offset = c_value
-        return {
-            "query": {
-                "limit": limit,
-                "offset": offset,
-                "search": search,
-                "join": join,
-            }
+                elif isinstance(condition, Fields):
+                    fields = c_value
+
+        query = {
+            "limit": limit,
+            "offset": offset,
+            "search": search,
         }
+        if join:
+            query["join"] = join
+        if fields:
+            query["fields"] = fields  # noqa
+        return {"query": query}
 
 
 class EmptyQuery(Query):
@@ -155,9 +161,24 @@ class Join(Query):
         fields_str = f"||{','.join(self._fields)}" if self._fields else ""
         return f"join={self._relation}{fields_str}"
 
-    def body_build(self) -> Tuple[str, str]:
-        fields_str = f"||{','.join(self._fields)}" if self._fields else ""
-        return "join", f"{self._relation}{fields_str}"
+    def body_build(self) -> Tuple[str, Dict]:
+        _value = {"field": self._relation}
+        if self._fields:
+            _value["select"] = self._fields
+        return "join", _value
+
+
+class Fields(Query):
+    def __init__(self, fields: List[str]):
+        super().__init__()
+        self._fields = fields
+        self.condition_set = [self]
+
+    def build(self) -> str:
+        raise NotImplementedError
+
+    def body_build(self) -> Tuple[str, List[str]]:
+        return "fields", self._fields
 
 
 class Limit(Query):

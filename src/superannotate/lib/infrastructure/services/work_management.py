@@ -6,6 +6,7 @@ from typing import Optional
 from typing import Union
 
 from lib.core.entities import CategoryEntity
+from lib.core.entities import FolderEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.work_managament import WMProjectEntity
@@ -18,6 +19,7 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
+from lib.core.service_types import FolderListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
 from lib.core.service_types import ServiceResponse
@@ -56,6 +58,7 @@ def prepare_validation_error(func):
 class WorkManagementService(BaseWorkManagementService):
     URL_GET = "workflows/{project_id}"
     URL_LIST = "workflows"
+    URL_LIST_FOLDERS = "folders/search"
     URL_LIST_STATUSES = "workflows/{workflow_id}/workflowstatuses"
     URL_LIST_ROLES = "workflows/{workflow_id}/workflowroles"
     URL_CREATE_ROLE = "roles"
@@ -78,6 +81,20 @@ class WorkManagementService(BaseWorkManagementService):
     def _generate_context(**kwargs):
         encoded_context = base64.b64encode(json.dumps(kwargs).encode("utf-8"))
         return encoded_context.decode("utf-8")
+
+    def list_folders(self, project_id: int, query: Query) -> FolderListResponse:
+        result = self.client.jsx_paginate(
+            self.URL_LIST_FOLDERS,
+            body_query=query,
+            item_type=FolderEntity,
+            method="post",
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
+        )
+        return result
 
     def list_project_categories(
         self, project_id: int, entity: BaseEntity = CategoryEntity
