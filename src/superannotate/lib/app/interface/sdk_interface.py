@@ -513,7 +513,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def list_users(
         self,
         *,
-        project: Union[int, str] = None,
+        project: Union[NotEmptyStr, int] = None,
         include: List[Literal["custom_fields", "categories"]] = None,
         **filters,
     ):
@@ -4658,7 +4658,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def set_items_category(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: List[Union[int, str]],
+        items: List[Union[NotEmptyStr, int]],
         category: NotEmptyStr,
     ):
         """
@@ -4696,7 +4696,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def remove_items_category(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: List[Union[int, str]],
+        items: List[Union[NotEmptyStr, int]],
     ):
         """
         Remove categories from one or more items.
