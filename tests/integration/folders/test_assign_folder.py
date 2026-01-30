@@ -51,6 +51,7 @@ class TestAssignFolderToUsers(BaseTestCase):
             self.PROJECT_NAME, self.FOLDER_NAME, include_contributors=True
         )
         assert len(folder["contributors"]) == 2
+        assert isinstance(folder["contributors"][0]["state"], str)
         assert folder["contributors"][0].keys() == {
             "email",
             "id",

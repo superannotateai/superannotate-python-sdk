@@ -135,6 +135,8 @@ class WorkManagementManager(BaseManager):
         for folder in response.data:
             for user in folder.contributors:
                 user.role = self.service_provider.get_role_name(project, user.role)
+                user.state = user.state.name
+
         return response
 
     def list_score_templates(self):
