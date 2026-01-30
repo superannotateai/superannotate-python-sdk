@@ -287,7 +287,7 @@ class FormModel(BaseModel):
         classes = []
 
         # Component type mappings
-        TEXT_COMPONENTS = {
+        text_components = {
             "audio",
             "avatar",
             "dateTime",
@@ -302,14 +302,15 @@ class FormModel(BaseModel):
             "time",
             "url",
             "video",
-            "web-component",
             "webComponent",
             "pdfComponent",
+            "link",
+            "upload"
         }
 
-        NUMBER_COMPONENTS = {"number", "rating", "slider", "voting"}
+        number_components = {"number", "rating", "slider", "voting"}
 
-        EXCLUDED_COMPONENTS = {
+        excluded_components = {
             "button",
             "container",
             "group",
@@ -325,7 +326,7 @@ class FormModel(BaseModel):
             component_type = component_data.get("type")
 
             # Skip excluded components
-            if component_type in EXCLUDED_COMPONENTS:
+            if component_type in excluded_components:
                 continue
 
             # Skip components marked as exclude=True
@@ -339,9 +340,9 @@ class FormModel(BaseModel):
                 component = RadioComponent(**component_data)
             elif component_type == "checkbox":
                 component = CheckboxComponent(**component_data)
-            elif component_type in NUMBER_COMPONENTS:
+            elif component_type in number_components:
                 component = NumberComponent(**component_data)
-            elif component_type in TEXT_COMPONENTS:
+            elif component_type in text_components:
                 component = TextComponent(**component_data)
             else:
                 # Skip unknown component types
