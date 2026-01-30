@@ -191,8 +191,9 @@ class Tracker:
         return function_name, properties
 
     def _track(self, user_id: str, event_name: str, data: dict):
-        if "pytest" not in sys.modules or not self.skip_flag:
-            self.get_mp_instance().track(user_id, event_name, data)
+        if "pytest" in sys.modules or self.skip_flag:
+            return
+        self.get_mp_instance().track(user_id, event_name, data)
 
     def _track_method(self, args, kwargs, success: bool):
         try:
