@@ -305,7 +305,7 @@ class FormModel(BaseModel):
             "webComponent",
             "pdfComponent",
             "link",
-            "upload"
+            "upload",
         }
 
         number_components = {"number", "rating", "slider", "voting"}

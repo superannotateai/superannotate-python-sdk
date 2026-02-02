@@ -1,6 +1,6 @@
-import os
 import functools
 import json
+import os
 import platform
 import sys
 import typing
@@ -141,7 +141,11 @@ class Tracker:
     def __init__(self, function):
         self.function = function
         self._client = None
-        self.skip_flag = os.environ.get("SA_SKIP_METRICS", "False").lower() in ("true", "1", "t")
+        self.skip_flag = os.environ.get("SA_SKIP_METRICS", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
         functools.update_wrapper(self, function)
 
     def get_client(self):

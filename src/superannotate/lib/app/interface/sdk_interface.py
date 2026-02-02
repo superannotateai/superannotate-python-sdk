@@ -5430,7 +5430,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            SAClient.remove_users(member=["example@gmail.com","example1@gmail.com"])
+            sa_client.remove_users(users=["example@gmail.com","example1@gmail.com"])
 
         """
         success = 0
