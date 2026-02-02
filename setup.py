@@ -62,6 +62,6 @@ setup(
     project_urls={
         "Documentation": "https://superannotate.readthedocs.io/en/stable/",
     },
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     include_package_data=True,
 )
