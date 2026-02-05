@@ -96,6 +96,10 @@ class SuperannotateServiceProvider(ABC):
 
 class BaseWorkManagementService(SuperannotateServiceProvider):
     @abstractmethod
+    def list_folders(self, project_id: int, query: Query) -> FolderListResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_workflow(self, pk: int) -> entities.WorkflowEntity:
         raise NotImplementedError
 

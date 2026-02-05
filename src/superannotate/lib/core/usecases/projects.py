@@ -852,25 +852,32 @@ class AddContributorsToProject(BaseUseCase):
     def execute(self):
         if self.is_valid():
             team_users = set()
+            role_email_map = defaultdict(list)
+
+            user_to_retrieve = []
+            for contributor in self._contributors:
+                role_email_map[contributor.role].append(contributor.email)
+                user_to_retrieve.append(contributor.email)
+
+            users = self._service_provider.work_management.list_users(
+                Filter("role", constants.UserRole.CONTRIBUTOR.value, OperatorEnum.EQ)
+                & Filter("email", user_to_retrieve, OperatorEnum.IN),
+                parent_entity=CustomFieldEntityEnum.TEAM,
+            ).data
+            for user in users:
+                team_users.add(user.email)
+
+            to_skip = []
+            to_add = []
+
             project_users = self._service_provider.work_management.list_users(
-                EmptyQuery(),
+                Filter("email", user_to_retrieve, OperatorEnum.IN),
                 include_custom_fields=True,
                 parent_entity=CustomFieldEntityEnum.PROJECT,
                 project_id=self._project.id,
             ).data
             project_emails = {user.email for user in project_users}
-            users = self._service_provider.work_management.list_users(
-                EmptyQuery(), parent_entity=CustomFieldEntityEnum.TEAM
-            ).data
-            for user in users:
-                if user.role == constants.UserRole.CONTRIBUTOR.value:
-                    team_users.add(user.email)
 
-            role_email_map = defaultdict(list)
-            to_skip = []
-            to_add = []
-            for contributor in self._contributors:
-                role_email_map[contributor.role].append(contributor.email)
             for role_id, emails in role_email_map.items():
                 role_name = self._service_provider.get_role_name(self._project, role_id)
                 _to_add = list(team_users.intersection(emails) - project_emails)
@@ -925,7 +932,8 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
     def execute(self):
         if self.is_valid():
             all_users = self._service_provider.work_management.list_users(
-                EmptyQuery(), parent_entity=CustomFieldEntityEnum.TEAM
+                Filter("email", self._emails, OperatorEnum.IN),
+                parent_entity=CustomFieldEntityEnum.TEAM,
             ).data
             # collecting pending team users
             team_user_emails = []

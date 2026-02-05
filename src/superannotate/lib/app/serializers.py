@@ -1,4 +1,3 @@
-from abc import ABC
 from enum import Enum
 from typing import Any
 from typing import List
@@ -10,7 +9,7 @@ from lib.core.entities import BaseEntity
 from lib.core.pydantic_v1 import BaseModel
 
 
-class BaseSerializer(ABC):
+class BaseSerializer:
     def __init__(self, entity: BaseEntity):
         self._entity = entity
 

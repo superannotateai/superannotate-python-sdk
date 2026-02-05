@@ -141,6 +141,11 @@ class Tracker:
     def __init__(self, function):
         self.function = function
         self._client = None
+        self.skip_flag = os.environ.get("SA_SKIP_METRICS", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
         functools.update_wrapper(self, function)
 
     def get_client(self):
@@ -190,8 +195,9 @@ class Tracker:
         return function_name, properties
 
     def _track(self, user_id: str, event_name: str, data: dict):
-        if "pytest" not in sys.modules:
-            self.get_mp_instance().track(user_id, event_name, data)
+        if "pytest" in sys.modules or self.skip_flag:
+            return
+        self.get_mp_instance().track(user_id, event_name, data)
 
     def _track_method(self, args, kwargs, success: bool):
         try:

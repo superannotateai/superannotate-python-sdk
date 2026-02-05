@@ -73,6 +73,8 @@ from lib.infrastructure.validators import wrap_error
 from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Join
+from lib.core.jsx_conditions import Fields
 from lib.core.entities.items import ProjectCategoryEntity
 
 logger = logging.getLogger("sa")
@@ -511,7 +513,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def list_users(
         self,
         *,
-        project: Union[int, str] = None,
+        project: Union[NotEmptyStr, int] = None,
         include: List[Literal["custom_fields", "categories"]] = None,
         **filters,
     ):
@@ -1088,7 +1090,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: metadata of found users
         :rtype: list of dicts
         """
-
+        warnings.warn(
+            "This function search_team_contributors() will be deprecated and removed in version 4.6.0\n"
+            "Recommended replacement: get_user_metadata() or list_users()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         contributors = self.controller.search_team_contributors(
             email=email, first_name=first_name, last_name=last_name
         ).data
@@ -1124,6 +1131,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project names or metadatas
         :rtype: list of strs or dicts
         """
+        warnings.warn(
+            "This function search_projects() will be deprecated and removed in version 4.6.0\n"
+            "Recommended replacement: get_project_metadata() or list_projects()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         statuses = []
         if status:
             if isinstance(status, (list, tuple, set)):
@@ -1574,8 +1588,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         return ProjectSerializer(response.data).serialize()
 
-    def get_folder_metadata(self, project: NotEmptyStr, folder_name: NotEmptyStr):
-        """Returns folder metadata
+    def get_folder_metadata(
+        self,
+        project: NotEmptyStr,
+        folder_name: NotEmptyStr,
+        include_contributors: bool = False,
+    ):
+        """
+        SAClient.get_folder_metadata(project, folder_name, include_contributors=False)
+        Returns folder metadata. Optionally includes a list of contributors that are currently
+        assigned to the folder.
 
         :param project: project name
         :type project: str
@@ -1583,13 +1605,66 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param folder_name: folder's name
         :type folder_name: str
 
-        :return: metadata of folder
+        :param include_contributors: If True, includes a list of contributors assigned to the folder in the response.
+                                        Defaults to False.
+        :type include_contributors: bool
+
+        :return: Folder metadata
         :rtype: dict
+
+        Request Example:
+        ::
+
+            sa_client.get_folder_metadata(
+                project="test_project",
+                folder_name="test_folder",
+                include_contributors=True
+            )
+
+
+        Response Example:
+        ::
+
+            {
+                "createdAt": "2025-10-27T06:54:09.000Z",
+                "updatedAt": "2025-10-27T06:54:09.000Z",
+                "id": 1487195,
+                "name": "test_folder",
+                "status": "NotStarted",
+                "project_id": 1203397,
+                "team_id": 85922,
+                "contributors": [
+                    {
+                        "email": "test@superannotate.com",
+                        "id": 1314658,
+                        "role": "Annotator",
+                        "state": "Confirmed"
+                    }
+                ]
+            }
+
         """
-        project, folder = self.controller.get_project_folder((project, folder_name))
-        if not folder:
+        project = self.controller.get_project(project)
+        query = Filter("name", folder_name, OperatorEnum.EQ)
+        fields = ["id", "project_id", "name", "status", "team_id"]
+
+        if include_contributors:
+            query &= Join("folderUsers", fields=["id"])
+            query &= Join(
+                "folderUsers.projectUser", fields=["id", "email", "role", "state"]
+            )
+            fields.append("folderUsers")
+        query &= Fields(fields)
+        response = self.controller.work_management.list_folders(
+            project=project, query=query
+        )
+        response.raise_for_status()
+        if not response.data:
             raise AppException("Folder not found.")
-        return BaseSerializer(folder).serialize(exclude={"completedCount", "is_root"})
+        folder = response.data[0]
+        return BaseSerializer(folder).serialize(
+            exclude={"completedCount", "is_root"}, by_alias=False
+        )
 
     def delete_folders(self, project: NotEmptyStr, folder_names: List[NotEmptyStr]):
         """Delete folder in project.
@@ -2148,7 +2223,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         project = response.data
         project_contributors = self.controller.work_management.list_users(
-            project=project
+            email__in=users, project=project
         )
         verified_users = [i.email for i in project_contributors]
         verified_users = set(users).intersection(set(verified_users))
@@ -3949,6 +4024,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             ]
         """
+        warnings.warn(
+            "This function search_items() will be deprecated and removed in version 4.6.0\n"
+            "Recommended replacement: get_item_metadata() or list_items()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         project, folder = self.controller.get_project_folder(project)
         query_kwargs = {"include": ["assignments"]}
         if name_contains:
@@ -4355,7 +4436,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if annotation_status is not None:
             warnings.warn(
                 DeprecationWarning(
-                    "The “keep_status” parameter is deprecated. "
+                    "The “keep_status” parameter is deprecated."
                     "Please use the “set_annotation_statuses” function instead."
                 )
             )
@@ -4577,7 +4658,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def set_items_category(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: List[Union[int, str]],
+        items: List[Union[NotEmptyStr, int]],
         category: NotEmptyStr,
     ):
         """
@@ -4615,7 +4696,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def remove_items_category(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: List[Union[int, str]],
+        items: List[Union[NotEmptyStr, int]],
     ):
         """
         Remove categories from one or more items.
@@ -5349,7 +5430,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            SAClient.remove_users(member=["example@gmail.com","example1@gmail.com"])
+            sa_client.remove_users(users=["example@gmail.com","example1@gmail.com"])
 
         """
         success = 0
@@ -5369,7 +5450,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self, project: Union[NotEmptyStr, int], users: Union[List[int], List[str]]
     ):
         """
-        Allows removing users from the team.
+        Allows removing users from a project.
 
         :param project: The name or ID of the project.
         :type project: Union[NotEmptyStr, int]
@@ -5382,7 +5463,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            SAClient.remove_users_from_project(project="Test Project", users=["example@gmail.com","example1@gmail.com"])
+            sa_client.remove_users_from_project(project="Test Project", users=["example@gmail.com","example1@gmail.com"])
 
         """
         project = self.controller.get_project(project)
