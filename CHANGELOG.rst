@@ -6,6 +6,19 @@ History
 
 All release highlights of this project will be documented in this file.
 
+
+4.5.1 - February 5, 2026
+________________________
+
+**Added**
+
+    - ``SAClient.get_folder_metadata`` Now returns a list of metadata of contributors assigned to the folder.
+
+**Updated**
+
+    - SDK will now support Python versions 3.10+.
+
+
 4.5.0 - December 4, 2025
 ________________________
 
