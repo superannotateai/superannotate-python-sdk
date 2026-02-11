@@ -249,9 +249,7 @@ you are uploading to should contain annotation class with that name.
 
 
 This will try uploading to the project all the JSON files in the folder that have :file:`"<image_name>.json"` postfix.
-For pixel projects JSON files should be named :file:`"<image_name>___pixel.json"` and also for
-each JSON a mask image file should be present with the name
-:file:`"<image_name>___save.png"`. Image with :file:`<image_name>` should
+Image with :file:`<image_name>` should
 already be present in the project for the upload to work.
 
 

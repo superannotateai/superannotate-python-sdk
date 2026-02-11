@@ -3,8 +3,6 @@ import os
 import tempfile
 from os.path import dirname
 
-import pytest
-from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -63,30 +61,6 @@ class TestImageQuality(BaseTestCase):
                     shallow=False,
                 )
             )
-
-
-class TestPixelImageQuality(BaseTestCase):
-    PROJECT_NAME = "pixel image q"
-    PROJECT_DESCRIPTION = "Desc"
-    PROJECT_TYPE = "Pixel"
-    TEST_FOLDER_PATH = "data_set/big_img"
-    BIG_IMAGE = "big.jpg"
-    MESSAGE = (
-        "Image resolution 44761088 too large. Max supported for resolution is 4000000"
-    )
-
-    @property
-    def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
-
-    @pytest.mark.flaky(reruns=2)
-    def test_big_image(self):
-        try:
-            sa.upload_image_to_project(
-                self.PROJECT_NAME, f"{self.folder_path}/{self.BIG_IMAGE}"
-            )
-        except AppException as e:
-            self.assertEqual(str(e), self.MESSAGE)
 
 
 class TestImageQualitySetting(BaseTestCase):

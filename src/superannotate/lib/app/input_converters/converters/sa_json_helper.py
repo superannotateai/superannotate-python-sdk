@@ -1,7 +1,3 @@
-"""
-"""
-
-
 def _create_vector_instance(
     instance_type,
     points,
@@ -48,17 +44,6 @@ def _create_vector_instance(
             "r1": {"x": points[4], "y": points[5]},
             "r2": {"x": points[6], "y": points[7]},
         }
-    if class_name:
-        sa_instance["className"] = class_name
-
-    return sa_instance
-
-
-def _create_pixel_instance(parts, attributes, class_name=""):
-    sa_instance = {
-        "attributes": attributes,
-        "parts": parts,
-    }
     if class_name:
         sa_instance["className"] = class_name
 

@@ -2,37 +2,23 @@
 """
 import logging
 
-from .coco_converters.coco_to_sa_pixel import coco_instance_segmentation_to_sa_pixel
-from .coco_converters.coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel
 from .coco_converters.coco_to_sa_vector import coco_instance_segmentation_to_sa_vector
 from .coco_converters.coco_to_sa_vector import coco_keypoint_detection_to_sa_vector
 from .coco_converters.coco_to_sa_vector import coco_object_detection_to_sa_vector
-from .coco_converters.sa_pixel_to_coco import sa_pixel_to_coco_instance_segmentation
-from .coco_converters.sa_pixel_to_coco import sa_pixel_to_coco_panoptic_segmentation
 from .coco_converters.sa_vector_to_coco import sa_vector_to_coco_instance_segmentation
 from .coco_converters.sa_vector_to_coco import sa_vector_to_coco_keypoint_detection
 from .coco_converters.sa_vector_to_coco import sa_vector_to_coco_object_detection
 from .dataloop_converters.dataloop_to_sa_vector import dataloop_to_sa
 from .googlecloud_converters.googlecloud_to_sa_vector import googlecloud_to_sa_vector
-from .labelbox_converters.labelbox_to_sa_pixel import (
-    labelbox_instance_segmentation_to_sa_pixel,
-)
 from .labelbox_converters.labelbox_to_sa_vector import labelbox_to_sa
-from .sagemaker_converters.sagemaker_to_sa_pixel import (
-    sagemaker_instance_segmentation_to_sa_pixel,
-)
 from .sagemaker_converters.sagemaker_to_sa_vector import (
     sagemaker_object_detection_to_sa_vector,
-)
-from .supervisely_converters.supervisely_to_sa_pixel import (
-    supervisely_instance_segmentation_to_sa_pixel,
 )
 from .supervisely_converters.supervisely_to_sa_vector import (
     supervisely_keypoint_detection_to_sa_vector,
 )
 from .supervisely_converters.supervisely_to_sa_vector import supervisely_to_sa
 from .vgg_converters.vgg_to_sa_vector import vgg_to_sa
-from .voc_converters.voc_to_sa_pixel import voc_instance_segmentation_to_sa_pixel
 from .voc_converters.voc_to_sa_vector import voc_instance_segmentation_to_sa_vector
 from .voc_converters.voc_to_sa_vector import voc_object_detection_to_sa_vector
 from .vott_converters.vott_to_sa_vector import vott_to_sa
@@ -48,26 +34,18 @@ CONVERSION_ALGORITHMS = {
                 "instance_segmentation": coco_instance_segmentation_to_sa_vector,
                 "object_detection": coco_object_detection_to_sa_vector,
             },
-            "Pixel": {
-                "panoptic_segmentation": coco_panoptic_segmentation_to_sa_pixel,
-                "instance_segmentation": coco_instance_segmentation_to_sa_pixel,
-            },
         },
         "VOC": {
             "Vector": {
                 "object_detection": voc_object_detection_to_sa_vector,
                 "instance_segmentation": voc_instance_segmentation_to_sa_vector,
             },
-            "Pixel": {"instance_segmentation": voc_instance_segmentation_to_sa_pixel},
         },
         "LabelBox": {
             "Vector": {
                 "object_detection": labelbox_to_sa,
                 "instance_segmentation": labelbox_to_sa,
                 "vector_annotation": labelbox_to_sa,
-            },
-            "Pixel": {
-                "instance_segmentation": labelbox_instance_segmentation_to_sa_pixel
             },
         },
         "DataLoop": {
@@ -76,7 +54,6 @@ CONVERSION_ALGORITHMS = {
                 "instance_segmentation": dataloop_to_sa,
                 "vector_annotation": dataloop_to_sa,
             },
-            "Pixel": {},
         },
         "Supervisely": {
             "Vector": {
@@ -85,9 +62,6 @@ CONVERSION_ALGORITHMS = {
                 "object_detection": supervisely_to_sa,
                 "keypoint_detection": supervisely_keypoint_detection_to_sa_vector,
             },
-            "Pixel": {
-                "instance_segmentation": supervisely_instance_segmentation_to_sa_pixel
-            },
         },
         "VoTT": {
             "Vector": {
@@ -95,13 +69,9 @@ CONVERSION_ALGORITHMS = {
                 "object_detection": vott_to_sa,
                 "vector_annotation": vott_to_sa,
             },
-            "Pixel": {},
         },
         "SageMaker": {
             "Vector": {"object_detection": sagemaker_object_detection_to_sa_vector},
-            "Pixel": {
-                "instance_segmentation": sagemaker_instance_segmentation_to_sa_pixel
-            },
         },
         "VGG": {
             "Vector": {
@@ -109,15 +79,12 @@ CONVERSION_ALGORITHMS = {
                 "instance_segmentation": vgg_to_sa,
                 "vector_annotation": vgg_to_sa,
             },
-            "Pixel": {},
         },
         "GoogleCloud": {
             "Vector": {"object_detection": googlecloud_to_sa_vector},
-            "Pixel": {},
         },
         "YOLO": {
             "Vector": {"object_detection": yolo_object_detection_to_sa_vector},
-            "Pixel": {},
         },
     },
     "to": {
@@ -126,10 +93,6 @@ CONVERSION_ALGORITHMS = {
                 "instance_segmentation": sa_vector_to_coco_instance_segmentation,
                 "object_detection": sa_vector_to_coco_object_detection,
                 "keypoint_detection": sa_vector_to_coco_keypoint_detection,
-            },
-            "Pixel": {
-                "panoptic_segmentation": sa_pixel_to_coco_panoptic_segmentation,
-                "instance_segmentation": sa_pixel_to_coco_instance_segmentation,
             },
         },
     },

@@ -63,14 +63,6 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if (
-            self._project.type == ProjectType.PIXEL
-            and self._annotation_class.type == "tag"
-        ):
-            raise AppException(
-                "Predefined tagging functionality is not supported for projects"
-                f" of type {ProjectType(self._project.type).name}."
-            )
         if self._project.type != ProjectType.VECTOR:
             for g in self._annotation_class.attribute_groups:
                 if g.group_type == GroupTypeEnum.OCR:
@@ -78,15 +70,6 @@ class CreateAnnotationClassUseCase(BaseUseCase):
                         f"OCR attribute group is not supported for project type "
                         f"{ProjectType(self._project.type).name}."
                     )
-
-    def validate_default_value(self):
-        if self._project.type == ProjectType.PIXEL.value and any(
-            getattr(attr_group, "default_value", None)
-            for attr_group in getattr(self._annotation_class, "attribute_groups", [])
-        ):
-            raise AppException(
-                'The "default_value" key is not supported for project type Pixel.'
-            )
 
     def execute(self):
         if self.is_valid():
@@ -125,28 +108,12 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
     def validate_project_type(self):
         if self._project.type != ProjectType.VECTOR:
             for c in self._annotation_classes:
-                if self._project.type == ProjectType.PIXEL and c.type == "tag":
-                    raise AppException(
-                        f"Predefined tagging functionality is not supported"
-                        f" for projects of type {ProjectType(self._project.type).name}."
-                    )
                 for g in c.attribute_groups:
                     if g.group_type == GroupTypeEnum.OCR:
                         raise AppException(
                             f"OCR attribute group is not supported for project type "
                             f"{ProjectType(self._project.type).name}."
                         )
-
-    def validate_default_value(self):
-        if self._project.type == ProjectType.PIXEL.value:
-            for annotation_class in self._annotation_classes:
-                if any(
-                    getattr(attr_group, "default_value", None)
-                    for attr_group in getattr(annotation_class, "attribute_groups", [])
-                ):
-                    raise AppException(
-                        'The "default_value" key is not supported for project type Pixel.'
-                    )
 
     def execute(self):
         if self.is_valid():

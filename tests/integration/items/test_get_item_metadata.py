@@ -61,26 +61,6 @@ class TestGetEntityMetadataVector(BaseTestCase):
         assert item_by_id["name"] == self.IMAGE_NAME
 
 
-class TestGetEntityMetadataPixel(BaseTestCase):
-    PROJECT_NAME = "TestGetEntityMetadataPixel"
-    PROJECT_DESCRIPTION = "TestGetEntityMetadataPixel"
-    PROJECT_TYPE = "Pixel"
-    TEST_FOLDER_PATH = "data_set/sample_project_vector"
-    IMAGE_NAME = "example_image_1.jpg"
-
-    @property
-    def folder_path(self):
-        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
-
-    def test_get_item_metadata(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-        item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)
-        assert item_metadata["path"] == f"{self.PROJECT_NAME}"
-        assert item_metadata["annotation_status"] == "InProgress"
-
-
 class TestGetEntityMetadataVideo(BaseTestCase):
     PROJECT_NAME = "TestGetEntityMetadataVideo"
     PROJECT_DESCRIPTION = "TestGetEntityMetadataVideo"

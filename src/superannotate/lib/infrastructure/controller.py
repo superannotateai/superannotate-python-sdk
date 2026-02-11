@@ -1086,29 +1086,18 @@ class ItemManager(BaseManager):
         item_names: List[str] = None,
         include_annotations: bool = True,
     ):
-        if project.type == ProjectType.PIXEL:
-            use_case = usecases.CopyItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-                include_annotations=include_annotations,
-            )
-        else:
-            use_case = usecases.CopyMoveItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-                include_annotations=include_annotations,
-                duplicate_strategy=duplicate_strategy,
-                operation="copy",
-                chunk_size=500,
-            )
+        use_case = usecases.CopyMoveItems(
+            reporter=Reporter(),
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            item_names=item_names,
+            service_provider=self.service_provider,
+            include_annotations=include_annotations,
+            duplicate_strategy=duplicate_strategy,
+            operation="copy",
+            chunk_size=500,
+        )
         return use_case.execute()
 
     def move_multiple(
@@ -1119,28 +1108,18 @@ class ItemManager(BaseManager):
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         item_names: List[str] = None,
     ):
-        if project.type == ProjectType.PIXEL:
-            use_case = usecases.MoveItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-            )
-        else:
-            use_case = usecases.CopyMoveItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-                duplicate_strategy=duplicate_strategy,
-                include_annotations=True,
-                operation="move",
-                chunk_size=500,
-            )
+        use_case = usecases.CopyMoveItems(
+            reporter=Reporter(),
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            item_names=item_names,
+            service_provider=self.service_provider,
+            duplicate_strategy=duplicate_strategy,
+            include_annotations=True,
+            operation="move",
+            chunk_size=500,
+        )
         return use_case.execute()
 
     def set_annotation_statuses(
@@ -1411,7 +1390,6 @@ class AnnotationManager(BaseManager):
         image: ImageEntity,
         user: UserEntity,
         annotations: dict,
-        mask: io.BytesIO = None,
         verbose: bool = True,
         keep_status: bool = False,
     ):
@@ -1422,7 +1400,6 @@ class AnnotationManager(BaseManager):
             service_provider=self.service_provider,
             image=image,
             annotations=annotations,
-            mask=mask,
             verbose=verbose,
             reporter=Reporter(),
             keep_status=keep_status,

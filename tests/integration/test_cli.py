@@ -28,7 +28,6 @@ class CLITest(TestCase):
     )
     TEST_VIDEO_PATH = "data_set/sample_videos/single"
     TEST_VECTOR_FOLDER_PATH = "data_set/sample_project_vector"
-    TEST_PIXEL_FOLDER_PATH = "data_set/sample_project_pixel"
     TEST_RECURSIVE_FOLDER_PATH = "data_set/sample_recursive_test"
     TEST_TEXT_CSV_PATH = "data_set/csv_files/text_urls.csv"
     TEST_IMAGE_CSV_PATH = "data_set/csv_files/image_urls.csv"
@@ -59,12 +58,6 @@ class CLITest(TestCase):
     def vector_folder_path(self):
         return Path(
             Path(os.path.join(dirname(dirname(__file__)), self.TEST_VECTOR_FOLDER_PATH))
-        )
-
-    @property
-    def pixel_folder_path(self):
-        return Path(
-            Path(os.path.join(dirname(dirname(__file__)), self.TEST_PIXEL_FOLDER_PATH))
         )
 
     @property

@@ -85,7 +85,6 @@ PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 PROJECT_TYPE = Literal[
     "Vector",
-    "Pixel",
     "Video",
     "Document",
     "Tiled",
@@ -1194,7 +1193,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_description: The new project's description.
         :type project_description: str
 
-        :param project_type: The project type. Supported types: 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.
+        :param project_type: The project type. Supported types: 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.
         :type project_type: str
 
         :param settings: list of settings objects
@@ -1329,10 +1328,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: entities.ProjectEntity = response.data
 
         project_copy = copy.copy(project)
-        if project_copy.type in (
-            constants.ProjectType.VECTOR,
-            constants.ProjectType.PIXEL,
-        ):
+        if project_copy.type == constants.ProjectType.VECTOR:
             project_copy.upload_state = constants.UploadState.INITIAL
         if project_description:
             project_copy.description = project_description
@@ -2378,7 +2374,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         image_name: NotEmptyStr,
         local_dir_path: Union[str, Path],
     ):
-        """Downloads annotations of the image (JSON and mask if pixel type project)
+        """Downloads annotations of the image
         to local_dir_path.
 
         :param project: Project and folder as a tuple, folder is optional. (e.g., "project1/folder1", (project_id, folder_id))
@@ -3173,10 +3169,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         The JSON files should follow specific naming convention. For Vector
         projects they should be named "<image_filename>___objects.json" (e.g., if
-        image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
-        JSON file should be named "<image_filename>___pixel.json" and also second mask
-        image file should be present with the name "<image_name>___save.png". In both cases
-        image with <image_name> should be already present on the platform.
+        image is cats.jpg the annotation filename should be cats.jpg___objects.json).
+        Image with <image_name> should be already present on the platform.
 
         Existing annotations will be overwritten.
 
@@ -3250,7 +3244,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         verbose: Optional[bool] = True,
         keep_status: bool = None,
     ):
-        """Upload annotations from JSON (also mask for pixel annotations)
+        """Upload annotations from JSON
         to the image.
 
         :param project: Project and folder as a tuple, folder is optional. (e.g., "project1/folder1", (project_id, folder_id))
@@ -3262,7 +3256,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
         :type annotation_json: dict or Path-like (str or Path)
 
-        :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
+        :param mask: deprecated
         :type mask: BytesIO or Path-like (str or Path)
 
         :param verbose: Turns on verbose output logging during the proces.
@@ -3286,19 +3280,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
-        if not mask:
-            if not isinstance(annotation_json, dict):
-                mask_path = str(annotation_json).replace("___pixel.json", "___save.png")
-            else:
-                mask_path = f"{image_name}___save.png"
-            if os.path.exists(mask_path):
-                with open(mask_path, "rb") as f:
-                    mask = f.read()
-        elif isinstance(mask, str) or isinstance(mask, Path):
-            if os.path.exists(mask):
-                with open(mask, "rb") as f:
-                    mask = f.read()
-
         if not isinstance(annotation_json, dict):
             if verbose:
                 logger.info("Uploading annotations from %s.", annotation_json)
@@ -3319,7 +3300,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             image=image,
             annotations=annotation_json,
             user=self.controller.current_user,
-            mask=mask,
             verbose=verbose,
             keep_status=keep_status,
         )
@@ -3501,7 +3481,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_root: the export path of the project
         :type project_root: Path-like (str or Path)
 
-        :param project_type: the project type, Vector/Pixel, Video or Document
+        :param project_type: the project type, Vector, Video or Document
         :type project_type: str
 
         :param folder_names: Aggregate the specified folders from project_root.
@@ -3548,7 +3528,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Validates given annotation JSON.
 
-        :param project_type: The project type Vector, Pixel, Video or Document
+        :param project_type: The project type Vector, Video or Document
         :type project_type: str
 
         :param annotations_json: path to annotation JSON

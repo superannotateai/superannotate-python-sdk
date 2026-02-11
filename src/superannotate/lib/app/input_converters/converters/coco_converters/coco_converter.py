@@ -19,7 +19,6 @@ logger = logging.getLogger("sa")
 
 class CocoBaseStrategy(baseStrategy):
     project_type_to_json_ending = {
-        "pixel": "___pixel.json",
         "vector": "___objects.json",
     }
 
@@ -97,8 +96,6 @@ class CocoBaseStrategy(baseStrategy):
             "annotatorEmail",
             "qaEmail",
         ]
-        if project_type == "pixel":
-            meta_keys.append("isSegmented")
 
         new_json_data["metadata"] = dict.fromkeys(meta_keys)
 
@@ -179,12 +176,6 @@ class CocoBaseStrategy(baseStrategy):
 
             sa_annotation_json["metadata"]["panoptic_mask"] = panoptic_mask
 
-        if self.project_type == "Pixel":
-            sa_annotation_json["metadata"]["sa_bluemask_path"] = str(
-                Path(self.export_root)
-                / (sa_annotation_json["metadata"]["name"] + "___save.png")
-            )
-
         if not isinstance(
             sa_annotation_json["metadata"].get("height", None), int
         ) or not isinstance(sa_annotation_json["metadata"].get("width", None), int):
@@ -214,34 +205,6 @@ class CocoBaseStrategy(baseStrategy):
 
         return img_height, img_width
 
-    def _prepare_single_image_commons_pixel(self, id_, metadata):
-
-        ImgCommons = namedtuple(
-            "ImgCommons", ["image_info", "ann_mask", "sa_bluemask_rgb", "flat_mask"]
-        )
-        sa_bluemask_path = metadata["sa_bluemask_path"]
-
-        image_info = self._make_image_info(
-            metadata["name"], metadata["height"], metadata["width"], id_
-        )
-
-        sa_bluemask_rgb = np.asarray(
-            Image.open(sa_bluemask_path).convert("RGB"), dtype=np.uint32
-        )
-
-        ann_mask = np.zeros(
-            (image_info["height"], image_info["width"]), dtype=np.uint32
-        )
-        flat_mask = (
-            (sa_bluemask_rgb[:, :, 0] << 16)
-            | (sa_bluemask_rgb[:, :, 1] << 8)
-            | (sa_bluemask_rgb[:, :, 2])
-        )
-
-        res = ImgCommons(image_info, ann_mask, sa_bluemask_rgb, flat_mask)
-
-        return res
-
     def _prepare_single_image_commons_vector(self, id_, metadata):
 
         ImgCommons = namedtuple("ImgCommons", ["image_info"])
@@ -256,9 +219,7 @@ class CocoBaseStrategy(baseStrategy):
 
     def _prepare_single_image_commons(self, id_, metadata):
         res = None
-        if self.project_type == "Pixel":
-            res = self._prepare_single_image_commons_pixel(id_, metadata)
-        elif self.project_type == "Vector":
+        if self.project_type == "Vector":
             res = self._prepare_single_image_commons_vector(id_, metadata)
         return res
 
@@ -302,9 +263,7 @@ class CocoBaseStrategy(baseStrategy):
     def make_anno_json_generator(self):
         json_data = None
 
-        if self.project_type == "Pixel":
-            jsons = list(Path(self.export_root).glob("*pixel.json"))
-        elif self.project_type == "Vector":
+        if self.project_type == "Vector":
             jsons = list(Path(self.export_root).glob("*objects.json"))
 
         self.set_num_total_images(len(jsons))

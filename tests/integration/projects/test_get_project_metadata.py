@@ -26,7 +26,6 @@ class TestGetProjectMetadata(BaseTestCase):
         "workflow_id",
         "workflow",
         "upload_state",
-        "users",
         "contributors",
         "settings",
         "classes",

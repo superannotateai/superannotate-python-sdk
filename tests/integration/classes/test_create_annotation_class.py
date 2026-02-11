@@ -1,11 +1,9 @@
-import os
 import tempfile
 
 import pytest
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from src.superannotate.lib.core.entities.classes import AnnotationClassEntity
-from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -349,39 +347,6 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                 "#FF0000",
                 attribute_groups,  # noqa
                 class_type="tag",
-            )
-
-
-class TestPixelCreateAnnotationClass(BaseTestCase):
-    PROJECT_NAME = "TestCreateAnnotationClassPixel"
-    PROJECT_TYPE = "Pixel"
-    PROJECT_DESCRIPTION = "Example "
-    TEST_LARGE_CLASSES_JSON = "large_classes_json.json"
-
-    @property
-    def large_json_path(self):
-        return os.path.join(DATA_SET_PATH, self.TEST_LARGE_CLASSES_JSON)
-
-    def test_create_annotation_class_with_default_attribute(self):
-        with self.assertRaisesRegexp(
-            AppException,
-            'The "default_value" key is not supported for project type Pixel.',
-        ):
-            sa.create_annotation_class(
-                self.PROJECT_NAME,
-                "test_add",
-                "#FF0000",
-                attribute_groups=[
-                    {
-                        "name": "test",
-                        "attributes": [
-                            {"name": "Car"},
-                            {"name": "Track"},
-                            {"name": "Bus"},
-                        ],
-                        "default_value": "Bus",
-                    }
-                ],
             )
 
 
