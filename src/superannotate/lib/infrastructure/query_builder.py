@@ -164,17 +164,20 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
     def __init__(
         self,
         team_id: int,
-        project_id: Optional[int],
         service_provider: BaseServiceProvider,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
+        project: Optional[ProjectEntity] = None,
     ):
         self._service_provider = service_provider
         self._entity = entity
         self._parent = parent
         self._team_id = team_id
-        self._project_id = project_id
-        self._context = {"team_id": self._team_id, "project_id": self._project_id}
+        self._project = project
+        self._context = {
+            "team_id": self._team_id,
+            "project_id": project.id if project else None,
+        }
 
     def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
         for custom_field in sorted(
@@ -261,7 +264,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
         return super().handle(filters, query)
 
 
-class UserFilterHandler(BaseCustomFieldHandler):
+class TeamUserRoleFilterHandler(BaseCustomFieldHandler):
     def _handle_special_fields(self, keys: List[str], val):
         """
         Handle special fields like 'custom_fields__'.
@@ -276,7 +279,36 @@ class UserFilterHandler(BaseCustomFieldHandler):
                     raise AppException("Invalid user role provided.")
             except (KeyError, AttributeError):
                 raise AppException("Invalid user role provided.")
-        elif keys[0] == "state":
+        return super()._handle_special_fields(keys, val)
+
+
+class ProjectUserRoleFilterHandler(BaseCustomFieldHandler):
+    def _handle_special_fields(self, keys: List[str], val):
+        """
+        Handle special fields like 'custom_fields__'.
+        """
+        if keys[0] == "role":
+            try:
+                if isinstance(val, list):
+                    val = [
+                        self._service_provider.get_role_id(self._project, i)
+                        for i in val
+                    ]
+                elif isinstance(val, str):
+                    val = self._service_provider.get_role_id(self._project, val)
+                else:
+                    raise AppException("Invalid user role provided.")
+            except (KeyError, AttributeError):
+                raise AppException("Invalid user role provided.")
+        return super()._handle_special_fields(keys, val)
+
+
+class TeamUserStateFilterHandler(BaseCustomFieldHandler):
+    def _handle_special_fields(self, keys: List[str], val):
+        """
+        Handle special fields like 'custom_fields__'.
+        """
+        if keys[0] == "state":
             try:
                 if isinstance(val, list):
                     val = [WMUserStateEnum[i].value for i in val]
