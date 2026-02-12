@@ -264,7 +264,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
         return super().handle(filters, query)
 
 
-class TeamUserRoleFilterHandler(BaseCustomFieldHandler):
+class TeamUserFilterHandler(BaseCustomFieldHandler):
     def _handle_special_fields(self, keys: List[str], val):
         """
         Handle special fields like 'custom_fields__'.
@@ -279,6 +279,14 @@ class TeamUserRoleFilterHandler(BaseCustomFieldHandler):
                     raise AppException("Invalid user role provided.")
             except (KeyError, AttributeError):
                 raise AppException("Invalid user role provided.")
+        elif keys[0] == "state":
+            try:
+                if isinstance(val, list):
+                    val = [WMUserStateEnum[i].value for i in val]
+                else:
+                    val = WMUserStateEnum[val].value
+            except (TypeError, KeyError):
+                raise AppException("Invalid user state provided.")
         return super()._handle_special_fields(keys, val)
 
 
@@ -300,22 +308,6 @@ class ProjectUserRoleFilterHandler(BaseCustomFieldHandler):
                     raise AppException("Invalid user role provided.")
             except (KeyError, AttributeError):
                 raise AppException("Invalid user role provided.")
-        return super()._handle_special_fields(keys, val)
-
-
-class TeamUserStateFilterHandler(BaseCustomFieldHandler):
-    def _handle_special_fields(self, keys: List[str], val):
-        """
-        Handle special fields like 'custom_fields__'.
-        """
-        if keys[0] == "state":
-            try:
-                if isinstance(val, list):
-                    val = [WMUserStateEnum[i].value for i in val]
-                else:
-                    val = WMUserStateEnum[val].value
-            except (TypeError, KeyError):
-                raise AppException("Invalid user state provided.")
         return super()._handle_special_fields(keys, val)
 
 
