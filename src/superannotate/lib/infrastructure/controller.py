@@ -710,7 +710,7 @@ class ProjectManager(BaseManager):
                 FieldValidationHandler(valid_fields.keys()),
                 ProjectFilterHandler(
                     team_id=self.service_provider.client.team_id,
-                    project_id=None,
+                    project=None,
                     service_provider=self.service_provider,
                     entity=CustomFieldEntityEnum.PROJECT,
                     parent=CustomFieldEntityEnum.TEAM,
