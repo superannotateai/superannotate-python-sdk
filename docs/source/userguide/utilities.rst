@@ -40,7 +40,7 @@ You can find more information annotation format conversion :ref:`here <ref_conve
     export_annotation(
        "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm",
        "tests/converter_test/COCO/output/panoptic",
-       "COCO", "panoptic_test", "Pixel","panoptic_segmentation"
+       "COCO", "panoptic_test","panoptic_segmentation"
     )
 
     # From COCO keypoints detection format to SA annotation format
@@ -54,7 +54,7 @@ You can find more information annotation format conversion :ref:`here <ref_conve
     import_annotation(
        "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
        "tests/converter_test/VOC/output/instances",
-       "VOC", "instances_test", "Pixel", "instance_segmentation"
+       "VOC", "instances_test", "instance_segmentation"
     )
 
     # YOLO annotation format to SA annotation format

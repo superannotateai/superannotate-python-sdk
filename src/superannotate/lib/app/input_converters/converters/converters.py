@@ -9,7 +9,6 @@ from .coco_converters.coco_strategies import CocoObjectDetectionStrategy
 from .coco_converters.coco_strategies import CocoPanopticConverterStrategy
 from .dataloop_converters.dataloop_strategies import DataLoopStrategy
 from .googlecloud_converters.googlecloud_strategies import GoogleCloudStrategy
-from .labelbox_converters.labelbox_strategies import LabelBoxStrategy
 from .sagemaker_converters.sagemaker_strategies import SageMakerStrategy
 from .supervisely_converters.supervisely_strategies import SuperviselyStrategy
 from .vgg_converters.vgg_strategies import VGGStrategy
@@ -44,8 +43,6 @@ class Converter:
             c_strategy = DataLoopStrategy(args)
         elif args.dataset_format == "GoogleCloud":
             c_strategy = GoogleCloudStrategy(args)
-        elif args.dataset_format == "LabelBox":
-            c_strategy = LabelBoxStrategy(args)
         elif args.dataset_format == "SageMaker":
             c_strategy = SageMakerStrategy(args)
         elif args.dataset_format == "Supervisely":

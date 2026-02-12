@@ -173,8 +173,6 @@ def aggregate_image_annotations_as_df(
 
     if "___objects.json" in annotations_paths[0].name:
         type_postfix = "___objects.json"
-    elif "___pixel.json" in annotations_paths[0].name:
-        type_postfix = "___pixel.json"
     else:
         type_postfix = ".json"
 

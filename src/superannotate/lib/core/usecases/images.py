@@ -29,7 +29,6 @@ from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import S3FileEntity
 from lib.core.enums import ImageQuality
-from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import ImageProcessingException
@@ -343,23 +342,6 @@ class CopyImageAnnotationClasses(BaseUseCase):
             data=json.dumps(image_annotations),
         )
         self.to_project_s3_repo.insert(file)
-
-        if (
-            self._to_project.type == constances.ProjectType.PIXEL.value
-            and annotations.get("annotation_bluemap_path")
-            and annotations["annotation_bluemap_path"]["exist"]
-        ):
-            response = requests.get(
-                url=annotations["annotation_bluemap_path"]["url"],
-                headers=annotations["annotation_bluemap_path"]["headers"],
-            )
-            if not response.ok:
-                raise AppException("Couldn't load annotations.")
-            self.to_project_s3_repo.insert(
-                S3FileEntity(
-                    auth_data["annotation_bluemap_path"]["filePath"], response.content
-                )
-            )
         return self._response
 
 
@@ -421,15 +403,7 @@ class CreateFuseImageUseCase(BaseUseCase):
 
     @property
     def blue_mask_path(self):
-        image_path = Path(self._image_path)
-        if self._project_type.upper() == constances.ProjectType.PIXEL.name.upper():
-            self._annotation_mask_path = str(
-                image_path.parent / f"{image_path.name}___save.png"
-            )
-        else:
-            raise AppException("Vector project doesn't have blue mask.")
-
-        return self._annotation_mask_path
+        raise AppException("Vector project doesn't have blue mask.")
 
     def execute(self):
         with open(self._image_path, "rb") as file:
@@ -1230,8 +1204,6 @@ class UploadImageS3UseCase(BaseUseCase):
 
     @property
     def max_resolution(self) -> int:
-        if self._project.type == ProjectType.PIXEL.value:
-            return constances.MAX_PIXEL_RESOLUTION
         return constances.MAX_VECTOR_RESOLUTION
 
     def execute(self):
@@ -1515,30 +1487,12 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 return self._response
             data["annotation_json"] = response.json()
             data["annotation_json_filename"] = f"{self._image_name}.json"
-            mask_path = None
-            if self._project.type == constances.ProjectType.PIXEL.value:
-                annotation_blue_map_creds = credentials["annotation_bluemap_path"]
-                response = requests.get(
-                    url=annotation_blue_map_creds["url"],
-                    headers=annotation_blue_map_creds["headers"],
-                )
-                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
-                if response.ok:
-                    data["annotation_mask"] = io.BytesIO(response.content).getbuffer()
-                    mask_path = (
-                        Path(self._destination) / data["annotation_mask_filename"]
-                    )
-                    with open(mask_path, "wb") as f:
-                        f.write(data["annotation_mask"])
-                else:
-                    logger.info("There is no blue-map for the image.")
-
             json_path = Path(self._destination) / data["annotation_json_filename"]
             self.fill_classes_data(data["annotation_json"])
             with open(json_path, "w") as f:
                 json.dump(data["annotation_json"], f, indent=4)
 
-            self._response.data = (str(json_path), str(mask_path))
+            self._response.data = (str(json_path), "")
         return self._response
 
 

@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from src.superannotate import SAClient
 from tests import DATA_SET_PATH
@@ -74,21 +73,3 @@ class TestEntitiesSearchVector(BaseTestCase):
             )
         except Exception as e:
             self.assertEqual(str(e), "Incorrect query.")
-
-
-class TestUnsupportedProjectEntitiesSearchVector(BaseTestCase):
-    PROJECT_NAME = "TestUnsupportedProjectEntitiesSearchVector"
-    PROJECT_DESCRIPTION = "TestEntitiesSearchVector"
-    PROJECT_TYPE = "Pixel"
-    TEST_QUERY = "instance(type =bbox )"
-    TEST_INVALID_QUERY = "!instance(type =bbox )!"
-
-    @property
-    def folder_path(self):
-        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
-
-    def test_query(self):
-        try:
-            sa.query(self.PROJECT_NAME, self.TEST_QUERY)
-        except Exception as e:
-            self.assertEqual(str(e), "Unsupported project type.")

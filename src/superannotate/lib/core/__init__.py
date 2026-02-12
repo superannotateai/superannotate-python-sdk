@@ -76,7 +76,6 @@ DEFAULT_FILE_EXCLUDE_PATTERNS = ["___save.png", "___fuse.png"]
 DEFAULT_VIDEO_EXTENSIONS = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
 
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
-PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
 ANNOTATION_MASK_POSTFIX = "___save.png"
 ATTACHED_VIDEO_ANNOTATION_POSTFIX = ".json"
 
@@ -114,9 +113,6 @@ LIMITED_FUNCTIONS = {
     ProjectType.TILED: DEPRECATED_PROJECTS_MESSAGE,
 }
 
-METADATA_DEPRICATED_FOR_PIXEL = (
-    "custom_metadata field is not supported for project type Pixel."
-)
 DEPRICATED_DOCUMENT_VIDEO_MESSAGE = "The function does not support projects containing videos / documents attached with URLs"
 
 UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to upload exceeds the limit of 50 000 items per folder."
