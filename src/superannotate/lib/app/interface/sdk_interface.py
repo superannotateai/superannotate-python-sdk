@@ -564,8 +564,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             Following params if project is selected::
 
-            - role: Literal[“Annotator”, “QA”]
-            - role__in: List[Literal[“Annotator”, “QA”]]
+            - role: str
+            - role__in: List[str]
 
             Following params if project is not selected::
 
