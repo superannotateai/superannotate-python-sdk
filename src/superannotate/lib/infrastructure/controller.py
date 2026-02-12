@@ -33,7 +33,8 @@ from lib.core.entities import WMProjectUserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
-from lib.core.entities.filters import UserFilters
+from lib.core.entities.filters import ProjectUserFilters
+from lib.core.entities.filters import TeamUserFilters
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import ProjectCategoryEntity
 from lib.core.entities.work_managament import ScoreEntity
@@ -56,8 +57,10 @@ from lib.infrastructure.query_builder import FieldValidationHandler
 from lib.infrastructure.query_builder import IncludeHandler
 from lib.infrastructure.query_builder import ItemFilterHandler
 from lib.infrastructure.query_builder import ProjectFilterHandler
+from lib.infrastructure.query_builder import ProjectUserRoleFilterHandler
 from lib.infrastructure.query_builder import QueryBuilderChain
-from lib.infrastructure.query_builder import UserFilterHandler
+from lib.infrastructure.query_builder import TeamUserRoleFilterHandler
+from lib.infrastructure.query_builder import TeamUserStateFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
@@ -205,27 +208,50 @@ class WorkManagementManager(BaseManager):
         if project:
             parent_entity = CustomFieldEntityEnum.PROJECT
             project_id = context["project_id"] = project.id
+            valid_fields = generate_schema(
+                ProjectUserFilters.__annotations__,
+                self.service_provider.get_custom_fields_templates(
+                    context, CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
+                ),
+            )
+            chain = QueryBuilderChain(
+                [
+                    FieldValidationHandler(valid_fields.keys()),
+                    ProjectUserRoleFilterHandler(
+                        team_id=self.service_provider.client.team_id,
+                        project=project,
+                        service_provider=self.service_provider,
+                        entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                        parent=parent_entity,
+                    ),
+                ]
+            )
         else:
             parent_entity = CustomFieldEntityEnum.TEAM
             project_id = None
-        valid_fields = generate_schema(
-            UserFilters.__annotations__,
-            self.service_provider.get_custom_fields_templates(
-                context, CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
-            ),
-        )
-        chain = QueryBuilderChain(
-            [
-                FieldValidationHandler(valid_fields.keys()),
-                UserFilterHandler(
-                    team_id=self.service_provider.client.team_id,
-                    project_id=project_id,
-                    service_provider=self.service_provider,
-                    entity=CustomFieldEntityEnum.CONTRIBUTOR,
-                    parent=parent_entity,
+            valid_fields = generate_schema(
+                TeamUserFilters.__annotations__,
+                self.service_provider.get_custom_fields_templates(
+                    context, CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
                 ),
-            ]
-        )
+            )
+            chain = QueryBuilderChain(
+                [
+                    FieldValidationHandler(valid_fields.keys()),
+                    TeamUserRoleFilterHandler(
+                        team_id=self.service_provider.client.team_id,
+                        service_provider=self.service_provider,
+                        entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                        parent=parent_entity,
+                    ),
+                    TeamUserStateFilterHandler(
+                        team_id=self.service_provider.client.team_id,
+                        service_provider=self.service_provider,
+                        entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                        parent=parent_entity,
+                    ),
+                ]
+            )
         query = chain.handle(filters, EmptyQuery())
 
         if project and include and "categories" in include:

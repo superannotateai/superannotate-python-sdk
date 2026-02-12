@@ -561,6 +561,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - email__starts: str
             - email__ends: str
 
+            Following params if project is selected::
+
+            - role: str
+            - role__in: List[str]
+
             Following params if project is not selected::
 
             - state: Literal[“Confirmed”, “Pending”]
