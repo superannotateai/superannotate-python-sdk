@@ -81,7 +81,6 @@ Team,get_team_metadata(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not
 "Converting
 Annotations",import_annotation(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,export_annotation(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
-,convert_project_type(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 "Working w/
 Annotations",validate_annotations(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,aggregate_annotations_as_df(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
