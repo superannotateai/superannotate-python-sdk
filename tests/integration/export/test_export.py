@@ -3,12 +3,14 @@ import json
 import logging
 import os
 import tempfile
+import time
 from unittest import TestCase
 
 import boto3
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests import compare_result
+from tests.integration.base import BaseTestCase
 from tests.integration.export import DATA_SET_PATH
 
 sa = SAClient()
@@ -122,3 +124,156 @@ class TestExportImport(TestCase):
             sa.download_export(self.PROJECT_NAME, export, tmpdir_name)
             assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).left_only
             assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).right_only
+
+
+class TestDeleteExports(BaseTestCase):
+    PROJECT_NAME = "TestDeleteExports"
+    PROJECT_DESCRIPTION = "Desc"
+    PROJECT_TYPE = "Vector"
+
+    def _check_all_exports_prepared(self, timeout=60):
+        """
+        Wait for all exports to be prepared and return them.
+
+        :param timeout: Maximum time to wait in seconds
+        :return: List of all exports when all are prepared
+        :raises TimeoutError: If exports are not ready within timeout
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+
+            # Check if all exports are in a final state (not InProgress)
+            all_ready = all(exp.get("status") == 2 for exp in exports)
+
+            if all_ready:
+                return exports
+
+            time.sleep(2)
+
+        raise TimeoutError("Exports did not complete within the timeout period")
+
+    def test_delete_export_by_name(self):
+        """Test deleting a single export by name"""
+        export1 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 1
+
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.delete_exports(self.PROJECT_NAME, exports=[export1["name"]])
+            assert "INFO:sa:Successfully removed 1 export(s)." in cm.output[0]
+        exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        export_names = [exp["name"] for exp in exports]
+
+        assert export1["name"] not in export_names
+
+    def test_delete_export_by_id(self):
+        """Test deleting a single export by ID"""
+        export1 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 1
+
+        export2 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 2
+
+        sa.delete_exports(self.PROJECT_NAME, exports=[export1["id"]])
+        exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        export_ids = [exp["id"] for exp in exports]
+
+        assert export1["id"] not in export_ids
+        assert export2["id"] in export_ids
+
+    def test_delete_multiple_exports(self):
+        """Test deleting multiple exports by name and ID"""
+        export1 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 1
+
+        export2 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 2
+
+        export3 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 3
+
+        sa.delete_exports(self.PROJECT_NAME, exports=[export1["id"], export2["id"]])
+
+        exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        export_ids = [exp["id"] for exp in exports]
+
+        assert export1["id"] not in export_ids
+        assert export2["id"] not in export_ids
+        assert export3["id"] in export_ids
+
+    def test_delete_all_exports(self):
+        """Test deleting all exports using '*'"""
+        export1 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 1
+
+        export2 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 2
+
+        sa.delete_exports(self.PROJECT_NAME, exports="*")
+
+        exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        assert len(exports) == 0
+
+    def test_delete_nonexistent_export(self):
+        """Test deleting a non-existent export (should not raise error)"""
+        export1 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 1
+
+        # Should not raise error for non-existent export
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.delete_exports(
+                self.PROJECT_NAME, exports=["nonexistent_export", export1["name"]]
+            )
+            assert "Successfully removed 1 export(s)." in cm.output[0]
+
+        exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        export_names = [exp["name"] for exp in exports]
+
+        assert export1["name"] not in export_names
+
+    def test_delete_exports_empty_list(self):
+        """Test deleting with empty list"""
+        export1 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 1
+
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.delete_exports(self.PROJECT_NAME, exports=[])
+            assert "Successfully removed 0 export(s)." in cm.output[0]
+
+        exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        assert len(exports) == 1
+
+    def test_delete_exports_project_not_found(self):
+        """Test deleting exports from non-existent project"""
+        with self.assertRaisesRegexp(AppException, "Project not found"):
+            sa.delete_exports("NonExistentProject123456", exports=["*"])
+
+    def test_delete_mixed_valid_invalid_exports(self):
+        """Test deleting mix of valid and invalid export identifiers"""
+        export1 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 1
+
+        export2 = sa.prepare_export(self.PROJECT_NAME)
+        exports = self._check_all_exports_prepared()
+        assert len(exports) == 2
+
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.delete_exports(
+                self.PROJECT_NAME,
+                exports=[export1["name"], "invalid_name", 99999, export2["id"]],
+            )
+            assert "Successfully removed 2 export(s)." in cm.output[0]
+
+        exports = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        assert len(exports) == 0

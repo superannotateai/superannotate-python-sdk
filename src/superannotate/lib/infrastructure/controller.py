@@ -1810,6 +1810,16 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
+    def delete_exports(
+        self, project: ProjectEntity, exports: Union[List[int], List[str], Literal["*"]]
+    ):
+        use_case = usecases.DeleteExportsUseCase(
+            service_provider=self.service_provider,
+            project=project,
+            exports=exports,
+        )
+        return use_case.execute()
+
     def search_team_contributors(self, **kwargs):
         condition = build_condition(**kwargs)
         use_case = usecases.SearchContributorsUseCase(

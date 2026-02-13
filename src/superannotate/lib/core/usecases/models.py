@@ -7,6 +7,8 @@ import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List
+from typing import Literal
+from typing import Union
 
 import boto3
 import lib.core as constances
@@ -260,6 +262,61 @@ class DownloadExportUseCase(BaseReportableUseCase):
                     self.reporter.log_info(
                         f"Downloaded export ID {export_id} to {filepath}"
                     )
+        return self._response
+
+
+class DeleteExportsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        service_provider: BaseServiceProvider,
+        project: ProjectEntity,
+        exports: Union[List[int], List[str], Literal["*"]],
+    ):
+        super().__init__()
+        self._service_provider = service_provider
+        self._project = project
+        self._exports = exports
+
+    def execute(self):
+        if self.is_valid():
+            deleted_count = 0
+            if self._exports:
+                existing_exports = self._service_provider.get_exports(
+                    self._project
+                ).data
+                export_ids_to_delete = []
+                if existing_exports:
+                    if self._exports == "*":
+                        export_ids_to_delete = [exp["id"] for exp in existing_exports]
+                    else:
+                        # drop duplicates
+                        self._exports = list(set(self._exports))  # noqa
+
+                        if isinstance(self._exports[0], int):
+                            existing_exports_ids = [
+                                int(exp["id"]) for exp in existing_exports
+                            ]
+                            export_ids_to_delete = list(
+                                set(self._exports).intersection(
+                                    set(existing_exports_ids)
+                                )
+                            )
+
+                        elif isinstance(self._exports[0], str):
+                            export_ids_to_delete = [
+                                exp["id"]
+                                for exp in existing_exports
+                                if exp["name"] in self._exports
+                            ]
+
+                    for export_id in export_ids_to_delete:
+                        response = self._service_provider.delete_export(
+                            project=self._project, export_id=export_id
+                        )
+                        if response.ok and response.data.get("success"):
+                            deleted_count += 1
+            self._response.data = deleted_count
+
         return self._response
 
 
