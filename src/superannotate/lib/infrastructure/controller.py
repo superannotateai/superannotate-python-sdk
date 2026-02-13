@@ -59,8 +59,7 @@ from lib.infrastructure.query_builder import ItemFilterHandler
 from lib.infrastructure.query_builder import ProjectFilterHandler
 from lib.infrastructure.query_builder import ProjectUserRoleFilterHandler
 from lib.infrastructure.query_builder import QueryBuilderChain
-from lib.infrastructure.query_builder import TeamUserRoleFilterHandler
-from lib.infrastructure.query_builder import TeamUserStateFilterHandler
+from lib.infrastructure.query_builder import TeamUserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
@@ -238,13 +237,7 @@ class WorkManagementManager(BaseManager):
             chain = QueryBuilderChain(
                 [
                     FieldValidationHandler(valid_fields.keys()),
-                    TeamUserRoleFilterHandler(
-                        team_id=self.service_provider.client.team_id,
-                        service_provider=self.service_provider,
-                        entity=CustomFieldEntityEnum.CONTRIBUTOR,
-                        parent=parent_entity,
-                    ),
-                    TeamUserStateFilterHandler(
+                    TeamUserFilterHandler(
                         team_id=self.service_provider.client.team_id,
                         service_provider=self.service_provider,
                         entity=CustomFieldEntityEnum.CONTRIBUTOR,
@@ -717,7 +710,7 @@ class ProjectManager(BaseManager):
                 FieldValidationHandler(valid_fields.keys()),
                 ProjectFilterHandler(
                     team_id=self.service_provider.client.team_id,
-                    project_id=None,
+                    project=None,
                     service_provider=self.service_provider,
                     entity=CustomFieldEntityEnum.PROJECT,
                     parent=CustomFieldEntityEnum.TEAM,
