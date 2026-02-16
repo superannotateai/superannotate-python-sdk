@@ -873,6 +873,14 @@ class BaseServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
+    def delete_export(
+        self,
+        project: entities.ProjectEntity,
+        export_id: int,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_project_images_count(
         self, project: entities.ProjectEntity
     ) -> ServiceResponse:

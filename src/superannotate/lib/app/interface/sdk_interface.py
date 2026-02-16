@@ -2512,6 +2512,48 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return response.data
 
+    def delete_exports(
+        self,
+        project: Union[NotEmptyStr, int],
+        exports: Union[List[int], List[str], Literal["*"]],
+    ):
+        """Delete one or more exports from the specified project. The exports argument
+        accepts a list of export names or export IDs. The special value “*” means delete all exports.
+
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param exports: A list of export names or IDs to delete. The special value "*" means delete all exports.
+        :type exports: Union[List[int], List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            # To delete a specific export
+            client.delete_exports(
+                project="my_project",
+                exports=["TestProject_Jan_30_2026_12_09"]
+            )
+
+            # To delete all exports in the project
+            client.delete_exports(
+                project="my_project",
+                exports="*"
+            )
+        """
+        project_entity = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        response = self.controller.delete_exports(
+            project=project_entity, exports=exports
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        logger.info(f"Successfully removed {response.data} export(s).")
+
     def upload_videos_from_folder_to_project(
         self,
         project: Union[NotEmptyStr, dict],
