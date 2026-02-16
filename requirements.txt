@@ -4,7 +4,7 @@ boto3~=1.26
 opencv-python-headless~=4.7
 plotly~=5.14
 pandas~=2.0
-pillow>=9.5,~=10.0
+pillow~=12.1
 tqdm~=4.66
 requests==2.*
 aiofiles==23.*
