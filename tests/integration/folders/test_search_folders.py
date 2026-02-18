@@ -51,13 +51,9 @@ class TestSearchFolders(BaseTestCase):
         assert len(folders_4) == 2
 
         # with invalid status
-        # Pydantic v2 error format - check for key error content
-        with self.assertRaises(AppException) as context:
-            folders = sa.search_folders(self.PROJECT_NAME, status="dummy")  # noqa
-
-        error_str = str(context.exception)
-        # Check that the error mentions valid status values
-        self.assertTrue(
-            "NotStarted" in error_str or "InProgress" in error_str or "Input should be" in error_str,
-            f"Expected status validation error, got: {error_str}"
+        pattern = (
+            r"(\s+)status(\s+)Available values are 'NotStarted', "
+            r"'InProgress', 'Completed', 'OnHold'.(\s+)value is not a valid list"
         )
+        with self.assertRaisesRegexp(AppException, pattern):
+            folders = sa.search_folders(self.PROJECT_NAME, status="dummy")  # noqa

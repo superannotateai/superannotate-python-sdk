@@ -1,17 +1,15 @@
-import re
 from functools import wraps
-from typing import Annotated
 from typing import Union
-
-from pydantic import AfterValidator
-from pydantic import StrictStr
-from pydantic import validate_call
-from pydantic import ValidationError
 
 from lib.core.enums import BaseTitledEnum
 from lib.core.exceptions import AppException
+from lib.core.pydantic_v1 import constr
 from lib.core.pydantic_v1 import errors
+from lib.core.pydantic_v1 import pydantic_validate_arguments
 from lib.core.pydantic_v1 import PydanticTypeError
+from lib.core.pydantic_v1 import StrictStr
+from lib.core.pydantic_v1 import StrRegexError
+from lib.core.pydantic_v1 import ValidationError
 from lib.infrastructure.validators import wrap_error
 
 
@@ -30,31 +28,27 @@ class EnumMemberError(PydanticTypeError):
 errors.EnumMemberError = EnumMemberError
 
 
-# Email validation pattern
-_EMAIL_PATTERN = re.compile(
-    r"^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)"
-    r"*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}"
-    r"[a-zA-Z0-9])?)*$"
-)
-
-
-def _validate_email(value: str) -> str:
-    """Validate email format."""
-    if not _EMAIL_PATTERN.match(value):
-        raise ValueError("Invalid email")
-    return value
-
-
-EmailStr = Annotated[StrictStr, AfterValidator(_validate_email)]
+class EmailStr(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        try:
+            constr(
+                regex=r"^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)"
+                r"*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}"
+                r"[a-zA-Z0-9])?)*$"
+            ).validate(  # noqa
+                value
+            )
+        except StrRegexError:
+            raise ValueError("Invalid email")
+        return value
 
 
 def validate_arguments(func):
-    validated_func = validate_call(func)
-
     @wraps(func)
     def wrapped(self, *args, **kwargs):
         try:
-            return validated_func(self, *args, **kwargs)
+            return pydantic_validate_arguments(func)(self, *args, **kwargs)
         except ValidationError as e:
             raise AppException(wrap_error(e)) from e
 

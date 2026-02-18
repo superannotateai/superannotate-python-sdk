@@ -4,10 +4,6 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
-
 from lib.core import entities
 from lib.core.entities.work_managament import TelemetryScoreEntity
 from lib.core.entities.work_managament import WMProjectEntity
@@ -15,78 +11,86 @@ from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
+from lib.core.pydantic_v1 import BaseModel
+from lib.core.pydantic_v1 import Extra
+from lib.core.pydantic_v1 import Field
 
 
 class Limit(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    max_image_count: Optional[int] = None
+    max_image_count: Optional[int]
     remaining_image_count: int
+
+    class Config:
+        extra = Extra.ignore
 
 
 class UserLimits(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    user_limit: Optional[Limit] = None
+    user_limit: Optional[Limit]
     project_limit: Limit
     folder_limit: Limit
 
+    class Config:
+        extra = Extra.ignore
+
 
 class UploadAnnotationAuthData(BaseModel):
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
-
-    access_key: str = Field(alias="accessKeyId")
-    secret_key: str = Field(alias="secretAccessKey")
-    session_token: str = Field(alias="sessionToken")
+    access_key: str
+    secret_key: str
+    session_token: str
     region: str
     bucket: str
     images: Dict[int, dict]
 
+    class Config:
+        extra = Extra.allow
+        fields = {
+            "access_key": "accessKeyId",
+            "secret_key": "secretAccessKey",
+            "session_token": "sessionToken",
+            "region": "region",
+        }
+
     def __init__(self, **data):
-        credentials = data.get("creds", {})
+        credentials = data["creds"]
         data.update(credentials)
-        if "creds" in data:
-            del data["creds"]
+        del data["creds"]
         super().__init__(**data)
 
 
 class UploadAnnotations(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
     class Resource(BaseModel):
-        model_config = ConfigDict(populate_by_name=True)
+        classes: List[str] = Field([], alias="class")
+        templates: List[str] = Field([], alias="template")
+        attributes: List[str] = Field([], alias="attribute")
+        attribute_groups: Optional[List[str]] = Field([], alias="attributeGroup")
 
-        classes: List[str] = Field(default_factory=list, alias="class")
-        templates: List[str] = Field(default_factory=list, alias="template")
-        attributes: List[str] = Field(default_factory=list, alias="attribute")
-        attribute_groups: Optional[List[str]] = Field(
-            default_factory=list, alias="attributeGroup"
-        )
+    failed_items: List[str] = Field([], alias="failedItems")
+    missing_resources: Resource = Field({}, alias="missingResources")
 
-    failed_items: List[str] = Field(default_factory=list, alias="failedItems")
-    missing_resources: Resource = Field(
-        default_factory=Resource, alias="missingResources"
-    )
+    class Config:
+        extra = Extra.ignore
 
 
 class UploadCustomFieldValues(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    succeeded_items: Optional[List[Any]]
+    failed_items: Optional[List[str]]
+    error: Optional[Any]
 
-    succeeded_items: Optional[List[Any]] = None
-    failed_items: Optional[List[str]] = None
-    error: Optional[Any] = None
+    class Config:
+        extra = Extra.ignore
 
 
 class ServiceResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    status: Optional[int] = None
-    reason: Optional[str] = None
+    status: Optional[int]
+    reason: Optional[str]
     content: Optional[Union[bytes, str]] = None
     res_data: Optional[Any] = None  # response data
     res_error: Optional[Union[str, list, dict]] = None
     count: Optional[int] = 0
     total: Optional[int] = 0
+
+    class Config:
+        extra = Extra.allow
 
     @property
     def total_count(self):

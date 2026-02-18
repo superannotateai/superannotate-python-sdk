@@ -16,7 +16,7 @@ class ClientInitTestCase(TestCase):
 
     def test_init_via_invalid_token(self):
         _token = "123"
-        with self.assertRaisesRegex(AppException, r"(\s+)token(\s+)Invalid token."):
+        with self.assertRaisesRegexp(AppException, r"(\s+)token(\s+)Invalid token."):
             SAClient(token=_token)
 
     @patch("lib.infrastructure.controller.Controller.get_current_user")
@@ -61,7 +61,7 @@ class ClientInitTestCase(TestCase):
                 with open(f"{config_dir}/config.json", "w") as config_json:
                     json.dump({"token": "INVALID_TOKEN"}, config_json)
                 for kwargs in ({}, {"config_path": f"{config_dir}/config.json"}):
-                    with self.assertRaisesRegex(
+                    with self.assertRaisesRegexp(
                         AppException, r"(\s+)token(\s+)Invalid token."
                     ):
                         SAClient(**kwargs)
@@ -137,7 +137,7 @@ class ClientInitTestCase(TestCase):
 
     @patch.dict(os.environ, {"SA_URL": "SOME_URL", "SA_TOKEN": "SOME_TOKEN"})
     def test_init_env_invalid_token(self):
-        with self.assertRaisesRegex(AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."):
+        with self.assertRaisesRegexp(AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."):
             SAClient()
 
     def test_init_via_config_ini_invalid_token(self):
@@ -157,14 +157,14 @@ class ClientInitTestCase(TestCase):
                     config_parser.write(config_ini)
 
                 for kwargs in ({}, {"config_path": f"{config_dir}/config.ini"}):
-                    with self.assertRaisesRegex(
+                    with self.assertRaisesRegexp(
                         AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."
                     ):
                         SAClient(**kwargs)
 
     def test_invalid_config_path(self):
         _path = "something"
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             AppException, f"SuperAnnotate config file {_path} not found."
         ):
             SAClient(config_path=_path)

@@ -37,7 +37,7 @@ class TestGenerateItemsMM(TestCase):
 
     def tearDown(self) -> None:
         try:
-            projects = sa.list_projects(name=self.PROJECT_NAME)
+            projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
             for project in projects:
                 try:
                     sa.delete_project(project)
@@ -72,20 +72,20 @@ class TestGenerateItemsMM(TestCase):
         assert actual_names == expected_names
 
     def test_invalid_name(self):
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             AppException,
             "Invalid item name.",
         ):
             sa.generate_items(self.PROJECT_NAME, 100, name="a" * 115)
 
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             AppException,
             "Invalid item name.",
         ):
             sa.generate_items(self.PROJECT_NAME, 100, name="m<:")
 
     def test_item_count(self):
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             AppException,
             "The number of items you want to attach exceeds the limit of 50 000 items per folder.",
         ):

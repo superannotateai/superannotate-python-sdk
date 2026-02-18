@@ -95,7 +95,7 @@ class TestAnnotationDelete(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, f"{self.folder_path}"
         )
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             AppException, "Invalid item names or empty folder."
         ):
             sa.delete_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_2])

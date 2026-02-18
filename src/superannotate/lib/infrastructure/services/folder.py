@@ -46,7 +46,7 @@ class FolderService(BaseFolderService):
     def update(self, project: entities.ProjectEntity, folder: entities.FolderEntity):
         params = {"project_id": project.id}
         return self.client.request(
-            self.URL_UPDATE.format(folder.id), "put", data=folder.model_dump(), params=params
+            self.URL_UPDATE.format(folder.id), "put", data=folder.dict(), params=params
         )
 
     def delete_multiple(

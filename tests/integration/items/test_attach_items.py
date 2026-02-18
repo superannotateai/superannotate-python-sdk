@@ -115,16 +115,13 @@ class TestAttachItemsVectorArguments(TestCase):
     PROJECT_NAME = "TestAttachItemsVectorArguments"
 
     def test_attach_items_invalid_payload(self):
-        # Pydantic v2 error messages - check for key error messages
-        # Field names may vary between Pydantic versions, so we check for the error messages
-        with self.assertRaises(AppException) as context:
+        error_msg = [
+            "attachments",
+            "str type expected",
+            "value is not a valid path",
+            r"attachments\[0].url",
+            "field required",
+        ]
+        pattern = r"(\s+)" + r"(\s+)".join(error_msg)
+        with self.assertRaisesRegexp(AppException, pattern):
             sa.attach_items(self.PROJECT_NAME, [{"name": "name"}])
-
-        error_str = str(context.exception)
-        # Check that the error contains the expected validation messages
-        self.assertIn("Field required", error_str)
-        # The error should mention url is required (either directly or via field path)
-        self.assertTrue(
-            "url" in error_str.lower() or "field required" in error_str.lower(),
-            f"Expected 'url' or 'Field required' in error: {error_str}"
-        )

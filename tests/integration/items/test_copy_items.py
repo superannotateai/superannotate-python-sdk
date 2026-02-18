@@ -74,11 +74,11 @@ class TestCopyItems(BaseTestCase):
             )
 
     def test_copy_items_from_not_existing_folder(self):
-        with self.assertRaisesRegex(AppException, "Folder not found."):
+        with self.assertRaisesRegexp(AppException, "Folder not found."):
             sa.copy_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}", self.PROJECT_NAME)
 
     def test_copy_items_to_not_existing_folder(self):
-        with self.assertRaisesRegex(AppException, "Folder not found."):
+        with self.assertRaisesRegexp(AppException, "Folder not found."):
             sa.copy_items(self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}")
 
     def test_copy_items_from_folder(self):

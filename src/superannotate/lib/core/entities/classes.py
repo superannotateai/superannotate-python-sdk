@@ -1,48 +1,33 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated
 from typing import Any
 from typing import List
 from typing import Optional
-from typing import Union
 
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
-from pydantic import RootModel
-from pydantic import StrictInt
-from pydantic import StrictStr
-from pydantic import field_validator
-from pydantic.functional_validators import BeforeValidator
-from pydantic_extra_types.color import Color
-
+from lib.core.entities.base import BaseModel
+from lib.core.entities.base import parse_datetime
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
+from lib.core.pydantic_v1 import Color
+from lib.core.pydantic_v1 import ColorType
+from lib.core.pydantic_v1 import Extra
+from lib.core.pydantic_v1 import Field
+from lib.core.pydantic_v1 import StrictInt
+from lib.core.pydantic_v1 import StrictStr
+from lib.core.pydantic_v1 import validator
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
 )
 
-ColorType = Union[Color, str, tuple]
 
+class HexColor(BaseModel):
+    __root__: ColorType
 
-def _validate_hex_color(v: Any) -> str:
-    """Validate and convert color to hex format."""
-    if isinstance(v, str) and v.startswith("#"):
-        return v
-    return "#{:02X}{:02X}{:02X}".format(*Color(v).as_rgb_tuple())
-
-
-class HexColor(RootModel[str]):
-    """Hex color model."""
-
-    root: str
-
-    @field_validator("root", mode="before")
-    @classmethod
+    @validator("__root__", pre=True)
     def validate_color(cls, v):
-        return _validate_hex_color(v)
+        return "#{:02X}{:02X}{:02X}".format(*Color(v).as_rgb_tuple())
 
 
 class GroupTypeEnum(str, Enum):
@@ -53,69 +38,56 @@ class GroupTypeEnum(str, Enum):
     OCR = "ocr"
 
 
-def _parse_string_date_classes(v: Any) -> Optional[str]:
-    """Parse datetime to string format for classes."""
-    if v is None:
-        return None
-    if isinstance(v, str):
-        return v
-    if isinstance(v, datetime):
+class StringDate(datetime):
+    @classmethod
+    def __get_validators__(cls):
+        yield parse_datetime
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: datetime):
         return v.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    try:
-        from dateutil.parser import parse
-
-        dt = parse(str(v))
-        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    except Exception:
-        return str(v)
-
-
-StringDate = Annotated[Optional[str], BeforeValidator(_parse_string_date_classes)]
 
 
 class TimedBaseModel(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    createdAt: StringDate = Field(default=None, alias="createdAt")
-    updatedAt: StringDate = Field(default=None, alias="updatedAt")
+    createdAt: StringDate = Field(None, alias="createdAt")
+    updatedAt: StringDate = Field(None, alias="updatedAt")
 
 
 class Attribute(TimedBaseModel):
-    model_config = ConfigDict(extra="ignore")
+    id: Optional[StrictInt]
+    group_id: Optional[StrictInt]
+    project_id: Optional[StrictInt]
+    name: Optional[StrictStr]
+    default: Any
 
-    id: Optional[StrictInt] = None
-    group_id: Optional[StrictInt] = None
-    project_id: Optional[StrictInt] = None
-    name: Optional[StrictStr] = None
-    default: Any = None
+    class Config:
+        extra = Extra.ignore
 
     def __hash__(self):
         return hash(f"{self.id}{self.group_id}{self.name}")
 
 
 class AttributeGroup(TimedBaseModel):
-    model_config = ConfigDict(extra="ignore", use_enum_values=True)
-
-    id: Optional[StrictInt] = None
-    group_type: Optional[GroupTypeEnum] = None
-    class_id: Optional[StrictInt] = None
-    name: Optional[StrictStr] = None
+    id: Optional[StrictInt]
+    group_type: Optional[GroupTypeEnum]
+    class_id: Optional[StrictInt]
+    name: Optional[StrictStr]
     isRequired: bool = Field(default=False)
-    attributes: Optional[List[Attribute]] = None
-    default_value: Any = None
+    attributes: Optional[List[Attribute]]
+    default_value: Any
+
+    class Config:
+        extra = Extra.ignore
+        use_enum_values = True
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
 
 
 class AnnotationClassEntity(TimedBaseModel):
-    model_config = ConfigDict(
-        extra="ignore",
-        validate_assignment=True,
-    )
-
-    id: Optional[StrictInt] = None
-    project_id: Optional[StrictInt] = None
+    id: Optional[StrictInt]
+    project_id: Optional[StrictInt]
     type: ClassTypeEnum = ClassTypeEnum.OBJECT
     name: StrictStr
     color: HexColor
@@ -123,3 +95,12 @@ class AnnotationClassEntity(TimedBaseModel):
 
     def __hash__(self):
         return hash(f"{self.id}{self.type}{self.name}")
+
+    class Config:
+        extra = Extra.ignore
+        json_encoders = {
+            HexColor: lambda v: v.__root__,
+            BaseTitledEnum: lambda v: v.value,
+        }
+        validate_assignment = True
+        use_enum_names = True

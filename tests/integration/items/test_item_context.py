@@ -67,7 +67,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
         with sa.item_context(path, item, overwrite=False) as ic:
             assert ic.get_component_value("component_id_1") is None
             ic.set_component_value("component_id_1", "value")
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             FileChangedError, "The file has changed and overwrite is set to False."
         ):
             with sa.item_context(path, item, overwrite=False) as ic:

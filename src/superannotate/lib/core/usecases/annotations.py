@@ -55,7 +55,10 @@ from lib.core.utils import run_async
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
 
-from pydantic import BaseModel
+try:
+    from pydantic.v1 import BaseModel
+except ImportError:
+    from pydantic import BaseModel
 
 logger = logging.getLogger("sa")
 
@@ -1616,7 +1619,7 @@ class DownloadAnnotations(BaseReportableUseCase):
             with open(classes_path / "classes.json", "w+", encoding="utf-8") as file:
                 json.dump(
                     [
-                        i.model_dump(
+                        i.dict(
                             exclude_unset=True,
                             by_alias=True,
                             exclude={

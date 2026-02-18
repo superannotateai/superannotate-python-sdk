@@ -4,10 +4,9 @@ from typing import List
 from typing import Set
 from typing import Union
 
-from pydantic import BaseModel
-
 import lib.core as constance
 from lib.core.entities import BaseEntity
+from lib.core.pydantic_v1 import BaseModel
 
 
 class BaseSerializer:
@@ -59,16 +58,16 @@ class BaseSerializer:
             if fields:
                 if len(fields) == 1:
                     if flat:
-                        return entity.model_dump(
+                        return entity.dict(
                             include=fields, by_alias=by_alias, exclude=exclude, **kwargs
                         )[next(iter(fields))]
-                    return entity.model_dump(
+                    return entity.dict(
                         include=fields, by_alias=by_alias, exclude=exclude, **kwargs
                     )
-                return entity.model_dump(
+                return entity.dict(
                     include=fields, by_alias=by_alias, exclude=exclude, **kwargs
                 )
-            return entity.model_dump(by_alias=by_alias, exclude=exclude, **kwargs)
+            return entity.dict(by_alias=by_alias, exclude=exclude, **kwargs)
         return entity.to_dict()
 
     @classmethod
@@ -116,7 +115,7 @@ class ProjectSerializer(BaseSerializer):
                 to_exclude[field] = True
         if self._entity.classes:
             self._entity.classes = [
-                i.model_dump(by_alias=True, exclude_unset=True) for i in self._entity.classes
+                i.dict(by_alias=True, exclude_unset=True) for i in self._entity.classes
             ]
         data = super().serialize(fields, by_alias, flat, to_exclude)
         if data.get("settings"):
@@ -194,4 +193,4 @@ class EntitySerializer:
                 nested_model, "fill_enum_values", False
             ):
                 setattr(data, key, cls.serialize(nested_model, **kwargs))
-        return data.model_dump(**kwargs)
+        return data.dict(**kwargs)

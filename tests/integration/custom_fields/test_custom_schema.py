@@ -42,7 +42,7 @@ class TestCustomSchema(BaseTestCase):
 
     def test_create_limit_25(self):
         payload = {i: {"type": "number"} for i in range(26)}
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             Exception,
             "Maximum number of custom fields is 25. You can only create 25 more custom fields.",
         ):
@@ -50,7 +50,7 @@ class TestCustomSchema(BaseTestCase):
 
     def test_create_duplicated(self):
         payload = {"1": {"type": "number"}}
-        with self.assertRaisesRegex(Exception, "Field name 1 is already used."):
+        with self.assertRaisesRegexp(Exception, "Field name 1 is already used."):
             for i in range(2):
                 sa.create_custom_fields(self.PROJECT_NAME, payload)
 
@@ -190,5 +190,5 @@ class TestCustomSchema(BaseTestCase):
             "-Minimum spec value of age_range can not be higher than maximum value.\n"
             "-Spec value type of age_enum is not valid."
         )
-        with self.assertRaisesRegex(AppException, error_msg):
+        with self.assertRaisesRegexp(AppException, error_msg):
             sa.create_custom_fields(self.PROJECT_NAME, INVALID_SCHEMA)

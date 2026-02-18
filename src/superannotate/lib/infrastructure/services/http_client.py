@@ -22,25 +22,24 @@ from lib.core.jsx_conditions import Limit
 from lib.core.jsx_conditions import Offset
 from lib.core.jsx_conditions import Query
 from lib.core.service_types import ServiceResponse
-from pydantic import BaseModel
-from pydantic import TypeAdapter
+from lib.core.serviceproviders import BaseClient
 from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
 
-from lib.core.serviceproviders import BaseClient
+try:
+    from pydantic.v1 import BaseModel
+    from pydantic.v1 import parse_obj_as
+except ImportError:
+    from pydantic import BaseModel
+    from pydantic import parse_obj_as
 
 logger = logging.getLogger("sa")
-
-
-def parse_obj_as(type_, obj):
-    """Compatibility function for pydantic v1 parse_obj_as."""
-    return TypeAdapter(type_).validate_python(obj)
 
 
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, BaseModel):
-            return json.loads(obj.model_dump_json(exclude_none=True))
+            return json.loads(obj.json(exclude_none=True))
         return json.JSONEncoder.default(self, obj)
 
 

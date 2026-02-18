@@ -253,7 +253,7 @@ class TestContributorsCategories(TestCase):
         test_categories = ["Category_A", "Category_B", "Category_C"]
         sa.create_categories(project=self.PROJECT_NAME, categories=test_categories)
 
-        with self.assertRaisesRegex(AppException, "Contributors not found.") as cm:
+        with self.assertRaisesRegexp(AppException, "Contributors not found.") as cm:
             sa.set_contributors_categories(
                 project=self.PROJECT_NAME,
                 contributors=[self.scapegoat["email"], "invalid_email@mail.com"],

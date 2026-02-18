@@ -162,7 +162,7 @@ class TestProjectCategories(TestCase):
         assert len(categories) == 0
 
     def test_delete_categories_with_empty_list(self):
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             AppException, "Categories should be a list of strings or '*'"
         ):
             sa.remove_categories(project=self.PROJECT_NAME, categories=[])
@@ -175,7 +175,7 @@ class TestProjectCategories(TestCase):
         )
 
     def test_create_categories_with_empty_categories(self):
-        with self.assertRaisesRegex(
+        with self.assertRaisesRegexp(
             AppException, "Categories should be a list of strings."
         ):
             sa.create_categories(project=self.PROJECT_NAME, categories=[])

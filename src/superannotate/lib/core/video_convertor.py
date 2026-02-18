@@ -5,27 +5,29 @@ from typing import Any
 from typing import List
 from typing import Optional
 
-from pydantic import BaseModel
-from pydantic import Field
-
 from lib.core.enums import AnnotationTypes
+
+try:
+    from pydantic.v1 import BaseModel
+except ImportError:
+    from pydantic import BaseModel
 
 
 class Annotation(BaseModel):
     instanceId: int
     type: str
-    className: Optional[str] = None
-    classId: Optional[int] = None
-    x: Optional[Any] = None
-    y: Optional[Any] = None
-    points: Any = None
-    attributes: Optional[List[Any]] = Field(default_factory=list)
+    className: Optional[str]
+    classId: Optional[int]
+    x: Optional[Any]
+    y: Optional[Any]
+    points: Any
+    attributes: Optional[List[Any]] = []
     keyframe: bool = False
 
 
 class FrameAnnotation(BaseModel):
     frame: int
-    annotations: List[Annotation] = Field(default_factory=list)
+    annotations: List[Annotation] = []
 
 
 class VideoFrameGenerator:
@@ -261,4 +263,4 @@ class VideoFrameGenerator:
     def __iter__(self):
         for frame_no in range(1, int(self.frames_count) + 1):
             frame = self.get_frame(frame_no)
-            yield {**frame.model_dump(exclude_unset=True), **frame.model_dump(exclude_none=True)}
+            yield {**frame.dict(exclude_unset=True), **frame.dict(exclude_none=True)}
