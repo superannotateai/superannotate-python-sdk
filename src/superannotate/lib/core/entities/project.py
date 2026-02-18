@@ -1,132 +1,135 @@
 import datetime
 import uuid
+from typing import Annotated
 from typing import Any
 from typing import List
 from typing import Optional
 from typing import Union
 
-from lib.core.entities.base import BaseModel
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic import StrictBool
+from pydantic import StrictFloat
+from pydantic import StrictInt
+from pydantic import StrictStr
+from pydantic.functional_validators import BeforeValidator
+
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
-from lib.core.pydantic_v1 import Extra
-from lib.core.pydantic_v1 import Field
-from lib.core.pydantic_v1 import parse_datetime
-from lib.core.pydantic_v1 import StrictBool
-from lib.core.pydantic_v1 import StrictFloat
-from lib.core.pydantic_v1 import StrictInt
-from lib.core.pydantic_v1 import StrictStr
 
 
-class StringDate(datetime.datetime):
-    @classmethod
-    def __get_validators__(cls):
-        yield parse_datetime
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: datetime):
-        v = v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+def _parse_string_date_project(v: Any) -> Optional[str]:
+    """Parse datetime to string format for project."""
+    if v is None:
+        return None
+    if isinstance(v, str):
         return v
+    if isinstance(v, datetime.datetime):
+        return v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    try:
+        from dateutil.parser import parse
+
+        dt = parse(str(v))
+        return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    except Exception:
+        return str(v)
+
+
+StringDate = Annotated[Optional[str], BeforeValidator(_parse_string_date_project)]
 
 
 class TimedBaseModel(BaseModel):
-    createdAt: Optional[StringDate] = None
-    updatedAt: Optional[StringDate] = None
+    model_config = ConfigDict(populate_by_name=True)
+
+    createdAt: StringDate = None
+    updatedAt: StringDate = None
 
 
 class AttachmentEntity(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
     url: str
     integration: Optional[str] = None
     integration_id: Optional[int] = None
-
-    class Config:
-        extra = Extra.ignore
 
     def __hash__(self):
         return hash(self.name)
 
 
 class StepEntity(BaseModel):
-    id: Optional[int]
-    project_id: Optional[int]
-    class_id: Optional[int]
-    className: Optional[str]
-    step: Optional[int]
-    tool: Optional[int]
-    attribute: List = tuple()
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    id: Optional[int] = None
+    project_id: Optional[int] = None
+    class_id: Optional[int] = None
+    className: Optional[str] = None
+    step: Optional[int] = None
+    tool: Optional[int] = None
+    attribute: List = Field(default_factory=list)
 
     def __copy__(self):
         return StepEntity(step=self.step, tool=self.tool, attribute=self.attribute)
 
 
 class SettingEntity(BaseModel):
-    id: Optional[int]
-    project_id: Optional[int]
+    model_config = ConfigDict(extra="ignore")
+
+    id: Optional[int] = None
+    project_id: Optional[int] = None
     attribute: str
     value: Union[StrictStr, StrictInt, StrictFloat, StrictBool]  # todo set any
-
-    class Config:
-        extra = Extra.ignore
 
     def __copy__(self):
         return SettingEntity(attribute=self.attribute, value=self.value)
 
 
 class WorkflowEntity(TimedBaseModel):
-    id: Optional[int]
-    name: Optional[str]
-    type: Optional[str]
-    description: Optional[str]
-    raw_config: Optional[dict]
+    model_config = ConfigDict(extra="ignore")
+
+    id: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[str] = None
+    description: Optional[str] = None
+    raw_config: Optional[dict] = None
 
     def is_system(self):
         return self.type == "system"
 
-    class Config:
-        extra = Extra.ignore
-
 
 class ProjectEntity(TimedBaseModel):
-    id: Optional[int]
-    team_id: Optional[int]
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    id: Optional[int] = None
+    team_id: Optional[int] = None
     name: str
     type: ProjectType
-    description: Optional[str]
-    instructions_link: Optional[str]
-    creator_id: Optional[str]
-    entropy_status: Optional[int]
-    sharing_status: Optional[int]
-    status: Optional[ProjectStatus]
-    folder_id: Optional[int]
-    workflow_id: Optional[int]
-    workflow: Optional[WorkflowEntity]
-    sync_status: Optional[int]
-    upload_state: Optional[int]
+    description: Optional[str] = None
+    instructions_link: Optional[str] = None
+    creator_id: Optional[str] = None
+    entropy_status: Optional[int] = None
+    sharing_status: Optional[int] = None
+    status: Optional[ProjectStatus] = None
+    folder_id: Optional[int] = None
+    workflow_id: Optional[int] = None
+    workflow: Optional[WorkflowEntity] = None
+    sync_status: Optional[int] = None
+    upload_state: Optional[int] = None
     contributors: List[WMProjectUserEntity] = []
     settings: List[SettingEntity] = []
     classes: List[AnnotationClassEntity] = []
-    item_count: Optional[int] = Field(None, alias="imageCount")
-    completed_items_count: Optional[int] = Field(None, alias="completedImagesCount")
+    item_count: Optional[int] = Field(default=None, alias="imageCount")
+    completed_items_count: Optional[int] = Field(
+        default=None, alias="completedImagesCount"
+    )
     root_folder_completed_items_count: Optional[int] = Field(
-        None, alias="rootFolderCompletedImagesCount"
+        default=None, alias="rootFolderCompletedImagesCount"
     )
     custom_fields: dict = {}
-
-    class Config:
-        extra = Extra.ignore
-        use_enum_names = True
-        json_encoders = {
-            BaseTitledEnum: lambda v: v.value,
-            datetime.date: lambda v: v.isoformat(),
-            datetime.datetime: lambda v: v.isoformat(),
-        }
 
     def __copy__(self):
         return ProjectEntity(
@@ -148,35 +151,28 @@ class ProjectEntity(TimedBaseModel):
 
 
 class UserEntity(BaseModel):
-    id: Optional[str]
-    first_name: Optional[str]
-    last_name: Optional[str]
-    email: Optional[str]
-    user_role: Optional[int]
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    id: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    user_role: Optional[int] = None
 
 
 class TeamEntity(BaseModel):
-    id: Optional[int]
-    name: Optional[str]
-    description: Optional[str]
-    type: Optional[str]
-    user_role: Optional[str]
-    is_default: Optional[bool]
-    users: Optional[List[UserEntity]]
-    pending_invitations: Optional[List[Any]]
-    creator_id: Optional[str]
-    owner_id: Optional[str]
-    scores: Optional[List[str]]
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    id: Optional[int] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_default: Optional[bool] = None
+    users: Optional[List[UserEntity]] = None
+    pending_invitations: Optional[List[Any]] = None
+    creator_id: Optional[str] = None
+    owner_id: Optional[str] = None
+    scores: Optional[List[str]] = None
 
 
 class CustomFieldEntity(BaseModel):
-    ...
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")

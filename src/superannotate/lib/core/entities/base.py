@@ -1,78 +1,89 @@
 import re
 from datetime import datetime
+from typing import Annotated
+from typing import Any
+from typing import Literal
 from typing import Optional
 from typing import Union
 
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic.functional_validators import BeforeValidator
+
 from lib.core import BACKEND_URL
 from lib.core import LOG_FILE_LOCATION
-from lib.core.pydantic_v1 import BaseModel
-from lib.core.pydantic_v1 import Extra
-from lib.core.pydantic_v1 import Field
-from lib.core.pydantic_v1 import Literal
-from lib.core.pydantic_v1 import parse_datetime
-from lib.core.pydantic_v1 import StrictStr
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
 )
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
-try:
-    from pydantic import AbstractSetIntStr  # noqa
-    from pydantic import MappingIntStrAny  # noqa
-except ImportError:
-    pass
 _missing = object()
 
 
-class StringDate(datetime):
-    @classmethod
-    def __get_validators__(cls):
-        yield parse_datetime
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: datetime):
-        v = v.isoformat().split("+")[0] + ".000Z"
+def _parse_string_date(v: Any) -> Optional[str]:
+    """Parse datetime to string format."""
+    if v is None:
+        return None
+    if isinstance(v, str):
         return v
+    if isinstance(v, datetime):
+        return v.isoformat().split("+")[0] + ".000Z"
+    # Try to parse as datetime
+    try:
+        from dateutil.parser import parse
+
+        dt = parse(str(v))
+        return dt.isoformat().split("+")[0] + ".000Z"
+    except Exception:
+        return str(v)
+
+
+# StringDate as Annotated type with BeforeValidator
+StringDate = Annotated[Optional[str], BeforeValidator(_parse_string_date)]
 
 
 class SubSetEntity(BaseModel):
-    id: Optional[int]
-    name: str
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    id: Optional[int] = None
+    name: str
 
 
 class TimedBaseModel(BaseModel):
-    createdAt: Optional[StringDate] = Field(
-        None, alias="createdAt", description="Date of creation"
+    model_config = ConfigDict(populate_by_name=True)
+
+    createdAt: StringDate = Field(
+        default=None, alias="createdAt", description="Date of creation"
     )
-    updatedAt: Optional[StringDate] = Field(
-        None, alias="updatedAt", description="Update date"
+    updatedAt: StringDate = Field(
+        default=None, alias="updatedAt", description="Update date"
     )
 
 
 class BaseItemEntity(TimedBaseModel):
-    id: Optional[int]
-    name: Optional[str]
-    folder_id: Optional[int]
-    path: Optional[str] = Field(
-        None, description="Item’s path in SuperAnnotate project"
-    )
-    url: Optional[str] = Field(description="Publicly available HTTP address")
-    annotator_email: Optional[str] = Field(None, description="Annotator email")
-    qa_email: Optional[str] = Field(None, description="QA email")
-    annotation_status: Optional[Union[int, str]] = Field(
-        None, description="Item annotation status"
-    )
-    entropy_value: Optional[float] = Field(description="Priority score of given item")
-    custom_metadata: Optional[dict]
-    assignments: Optional[list] = Field([])
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    class Config:
-        extra = Extra.allow
+    id: Optional[int] = None
+    name: Optional[str] = None
+    folder_id: Optional[int] = None
+    path: Optional[str] = Field(
+        default=None, description="Item’s path in SuperAnnotate project"
+    )
+    url: Optional[str] = Field(
+        default=None, description="Publicly available HTTP address"
+    )
+    annotator_email: Optional[str] = Field(default=None, description="Annotator email")
+    qa_email: Optional[str] = Field(default=None, description="QA email")
+    annotation_status: Optional[Union[int, str]] = Field(
+        default=None, description="Item annotation status"
+    )
+    entropy_value: Optional[float] = Field(
+        default=None, description="Priority score of given item"
+    )
+    custom_metadata: Optional[dict] = None
+    assignments: Optional[list] = Field(default_factory=list)
 
     def __hash__(self):
         return hash(self.name)
@@ -93,20 +104,21 @@ class BaseItemEntity(TimedBaseModel):
         return entity
 
 
-class TokenStr(StrictStr):
-    regex = r"^[-.@_A-Za-z0-9]+=\d+$"
+def _validate_token(value: str) -> str:
+    """Validate token string format."""
+    token_regex = r"^[-.@_A-Za-z0-9]+=\d+$"
+    if not re.match(token_regex, value):
+        raise ValueError("Invalid token.")
+    return value
 
-    @classmethod
-    def validate(cls, value: Union[str]) -> Union[str]:
-        if cls.curtail_length and len(value) > cls.curtail_length:
-            value = value[: cls.curtail_length]
-        if cls.regex:
-            if not re.match(cls.regex, value):
-                raise ValueError("Invalid token.")
-        return value
+
+# TokenStr as Annotated type for Pydantic v2 compatibility
+TokenStr = Annotated[str, BeforeValidator(_validate_token)]
 
 
 class ConfigEntity(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
     API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
     API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
     LOGGING_LEVEL: Literal[
@@ -114,10 +126,7 @@ class ConfigEntity(BaseModel):
     ] = "INFO"
     LOGGING_PATH: str = f"{LOG_FILE_LOCATION}"
     VERIFY_SSL: bool = True
-    ANNOTATION_CHUNK_SIZE = 5000
-    ITEM_CHUNK_SIZE = 2000
-    MAX_THREAD_COUNT = 4
-    MAX_COROUTINE_COUNT = 8
-
-    class Config:
-        extra = Extra.ignore
+    ANNOTATION_CHUNK_SIZE: int = 5000
+    ITEM_CHUNK_SIZE: int = 2000
+    MAX_THREAD_COUNT: int = 4
+    MAX_COROUTINE_COUNT: int = 8

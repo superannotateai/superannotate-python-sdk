@@ -255,7 +255,7 @@ class TestDeleteExports(BaseTestCase):
 
     def test_delete_exports_project_not_found(self):
         """Test deleting exports from non-existent project"""
-        with self.assertRaisesRegexp(AppException, "Project not found"):
+        with self.assertRaisesRegex(AppException, "Project not found"):
             sa.delete_exports("NonExistentProject123456", exports=["*"])
 
     def test_delete_mixed_valid_invalid_exports(self):

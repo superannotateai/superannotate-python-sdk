@@ -517,7 +517,7 @@ class GetStepsUseCase(BaseUseCase):
                 data = []
                 steps = self._service_provider.projects.list_steps(self._project).data
                 for step in steps:
-                    step_data = step.dict()
+                    step_data = step.model_dump()
                     annotation_classes = self._service_provider.annotation_classes.list(
                         Condition("project_id", self._project.id, EQ)
                     ).data
@@ -778,7 +778,7 @@ class GetTeamUseCase(BaseUseCase):
             if not response.ok:
                 raise AppException(response.error)
             self._response.data = response.data
-        except Exception:
+        except Exception as e:
             raise AppException(
                 "Unable to retrieve team data. Please verify your credentials."
             ) from None

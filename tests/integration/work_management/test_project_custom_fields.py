@@ -95,11 +95,11 @@ class TestProjectCustomFields(BaseTestCase):
         error_template_select = error_template + "\nValid options are: {options}."
 
         # test for text
-        with self.assertRaisesRegexp(AppException, error_template.format(type="str")):
+        with self.assertRaisesRegex(AppException, error_template.format(type="str")):
             sa.set_project_custom_field(self.PROJECT_NAME, "SDK_test_text", 123)
 
         # test for numeric
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, error_template.format(type="numeric")
         ):
             sa.set_project_custom_field(
@@ -107,7 +107,7 @@ class TestProjectCustomFields(BaseTestCase):
             )
 
         # test for date_picker
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, error_template.format(type="numeric")
         ):
             sa.set_project_custom_field(
@@ -115,7 +115,7 @@ class TestProjectCustomFields(BaseTestCase):
             )
 
         # test for multi_select
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             error_template_select.format(type="list", options="option1, option2"),
         ):
@@ -124,7 +124,7 @@ class TestProjectCustomFields(BaseTestCase):
             )
 
         # test for select
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             error_template_select.format(type="str", options="option1, option2"),
         ):
@@ -164,11 +164,11 @@ class TestProjectCustomFields(BaseTestCase):
         )
 
     def test_list_projects_by_native_invalid_fields(self):
-        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+        with self.assertRaisesRegex(AppException, "Invalid filter param provided."):
             sa.list_projects(name__in="text", status__gte="text")
-        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+        with self.assertRaisesRegex(AppException, "Invalid filter param provided."):
             sa.list_projects(name__invalid="text")
-        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+        with self.assertRaisesRegex(AppException, "Invalid filter param provided."):
             sa.list_projects(invalid_field="text")
 
     def test_list_projects_by_custom_fields(self):
@@ -322,7 +322,7 @@ class TestProjectCustomFields(BaseTestCase):
         )
 
     def test_list_projects_by_custom_invalid_field(self):
-        with self.assertRaisesRegexp(AppException, "Invalid filter param provided."):
+        with self.assertRaisesRegex(AppException, "Invalid filter param provided."):
             sa.list_projects(
                 include=["custom_fields"],
                 custom_field__INVALID_FIELD="text",
@@ -331,5 +331,5 @@ class TestProjectCustomFields(BaseTestCase):
     # TODO BED issue (custom_field filter without join)
     def test_list_projects_by_custom_fields_without_join(self):
         self._set_custom_field_values()
-        with self.assertRaisesRegexp(AppException, "Internal server error"):
+        with self.assertRaisesRegex(AppException, "Internal server error"):
             assert sa.list_projects(custom_field__SDK_test_numeric=123)

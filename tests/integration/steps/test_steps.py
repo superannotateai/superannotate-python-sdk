@@ -77,7 +77,7 @@ class TestProjectSteps(BaseTestCase):
         assert len(steps) == 2
 
     def test_missing_ids(self):
-        with self.assertRaisesRegexp(AppException, "Annotation class not found."):
+        with self.assertRaisesRegex(AppException, "Annotation class not found."):
             sa.set_project_steps(
                 self.PROJECT_NAME,
                 steps=[
@@ -115,7 +115,7 @@ class TestProjectSteps(BaseTestCase):
                 connections=[[1, 2]],
             )
 
-        with self.assertRaisesRegexp(AppException, "Invalid steps provided."):
+        with self.assertRaisesRegex(AppException, "Invalid steps provided."):
             sa.set_project_steps(
                 self.PROJECT_NAME,
                 steps=[
@@ -151,7 +151,7 @@ class TestProjectSteps(BaseTestCase):
                 connections=[[1, 2]],
             )
 
-        with self.assertRaisesRegexp(AppException, "Invalid steps provided."):
+        with self.assertRaisesRegex(AppException, "Invalid steps provided."):
             sa.set_project_steps(
                 self.PROJECT_NAME,
                 steps=[
@@ -223,7 +223,7 @@ class TestProjectSteps(BaseTestCase):
                 },
             ],
         )
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "Invalid connections: duplicates in a connection group."
         ):
             sa.set_project_steps(
@@ -233,7 +233,7 @@ class TestProjectSteps(BaseTestCase):
                     [2, 1],
                 ]
             )
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "Invalid connections: index out of allowed range."
         ):
             sa.set_project_steps(*args, connections=[[1, 3]])

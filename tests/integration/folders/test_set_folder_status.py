@@ -51,7 +51,7 @@ class TestSetFolderStatus(TestCase):
     @patch("lib.infrastructure.services.folder.FolderService.update")
     def test_set_folder_status_fail(self, update_function):
         update_function.return_value = ServiceResponse(_error="ERROR")
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             f"Failed to change {self.PROJECT_NAME}/{self.FOLDER_NAME} status.",
         ):
@@ -60,7 +60,7 @@ class TestSetFolderStatus(TestCase):
             )
 
     def test_set_folder_status_via_invalid_status(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "Available values are 'NotStarted', 'InProgress', 'Completed', 'OnHold'.",
         ):
@@ -71,7 +71,7 @@ class TestSetFolderStatus(TestCase):
             )
 
     def test_set_folder_status_via_invalid_project(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "Project not found.",
         ):
@@ -80,7 +80,7 @@ class TestSetFolderStatus(TestCase):
             )
 
     def test_set_folder_status_via_invalid_folder(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "Folder not found.",
         ):

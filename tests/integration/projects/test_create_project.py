@@ -89,7 +89,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
         assert "Z" not in metadata["createdAt"]
 
     def test_create_project_with_wrong_type(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "Available values are 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.",
         ):

@@ -669,7 +669,7 @@ class DownloadImageUseCase(BaseReportableUseCase):
                         project_type=constances.ProjectType(self._project.type).name,
                         image_path=download_path,
                         classes=[
-                            annotation_class.dict(exclude_unset=True)
+                            annotation_class.model_dump(exclude_unset=True)
                             for annotation_class in classes
                         ],
                         generate_overlay=self._include_overlay,

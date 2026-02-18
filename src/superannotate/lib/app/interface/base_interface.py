@@ -9,7 +9,10 @@ from inspect import signature
 from pathlib import Path
 from types import FunctionType
 from typing import Iterable
+from typing import Optional
 from typing import Sized
+
+from pydantic import ValidationError
 
 import lib.core as constants
 from lib.app.interface.types import validate_arguments
@@ -18,8 +21,6 @@ from lib.core import setup_logging
 from lib.core.entities.base import ConfigEntity
 from lib.core.entities.base import TokenStr
 from lib.core.exceptions import AppException
-from lib.core.pydantic_v1 import ErrorWrapper
-from lib.core.pydantic_v1 import ValidationError
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.utils import extract_project_folder_inputs
 from lib.infrastructure.validators import wrap_error
@@ -30,7 +31,7 @@ class BaseInterfaceFacade:
     REGISTRY = []
 
     @validate_arguments
-    def __init__(self, token: TokenStr = None, config_path: str = None):
+    def __init__(self, token: Optional[TokenStr] = None, config_path: Optional[str] = None):
         try:
             if token:
                 config = ConfigEntity(SA_TOKEN=token)
@@ -80,10 +81,7 @@ class BaseInterfaceFacade:
         try:
             config = ConfigEntity(SA_TOKEN=token)
         except ValidationError:
-            raise ValidationError(
-                [ErrorWrapper(ValueError("Invalid token."), loc="token")],
-                model=ConfigEntity,
-            )
+            raise AppException("Invalid token.")
         host = json_data.get("main_endpoint")
         verify_ssl = json_data.get("ssl_verify")
         if host:

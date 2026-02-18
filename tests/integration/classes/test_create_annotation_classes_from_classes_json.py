@@ -150,7 +150,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                     ]
                     """
                 )
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 AppException,
                 f"OCR attribute group is not supported for project type {self.PROJECT_TYPE}.",
             ):

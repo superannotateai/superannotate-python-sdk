@@ -27,7 +27,7 @@ class ItemService(BaseItemService):
         return self.client.request(
             self.URL_GET.format(item.id),
             "put",
-            data=item.dict(),
+            data=item.model_dump(),
             params={"project_id": project.id},
         )
 
@@ -44,7 +44,7 @@ class ItemService(BaseItemService):
             "project_id": project.id,
             "folder_id": folder.id,
             "team_id": project.team_id,
-            "images": [i.dict() for i in attachments],
+            "images": [i.model_dump() for i in attachments],
             "upload_state": upload_state_code,
             "meta": {},
         }

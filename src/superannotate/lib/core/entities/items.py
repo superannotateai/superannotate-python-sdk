@@ -1,82 +1,73 @@
 from typing import List
 from typing import Optional
 
+from pydantic import ConfigDict
+from pydantic import Field
+
 from lib.core.entities.base import BaseItemEntity
 from lib.core.entities.project import TimedBaseModel
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import ProjectType
-from lib.core.pydantic_v1 import Extra
-from lib.core.pydantic_v1 import Field
 
 
 class ImageEntity(BaseItemEntity):
-    approval_status: Optional[ApprovalStatus] = Field(None)
-    is_pinned: Optional[bool]
-    meta: Optional[dict]
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    approval_status: Optional[ApprovalStatus] = Field(default=None)
+    is_pinned: Optional[bool] = None
+    meta: Optional[dict] = None
 
 
 class CategoryEntity(TimedBaseModel):
-    id: int
-    value: str = Field(None, alias="name")
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    class Config:
-        extra = Extra.ignore
+    id: int
+    value: str = Field(default=None, alias="name")
 
 
 class ProjectCategoryEntity(TimedBaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     id: int
     name: str
     project_id: int
 
-    class Config:
-        extra = Extra.ignore
-
 
 class MultiModalItemCategoryEntity(TimedBaseModel):
-    id: int = Field(None, alias="category_id")
-    value: str = Field(None, alias="category_name")
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    class Config:
-        extra = Extra.ignore
+    id: int = Field(default=None, alias="category_id")
+    value: str = Field(default=None, alias="category_name")
 
 
 class MultiModalItemEntity(BaseItemEntity):
-    categories: Optional[List[MultiModalItemCategoryEntity]]
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    categories: Optional[List[MultiModalItemCategoryEntity]] = None
 
 
 class VideoEntity(BaseItemEntity):
-    approval_status: Optional[ApprovalStatus] = Field(None)
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    approval_status: Optional[ApprovalStatus] = Field(default=None)
 
 
 class DocumentEntity(BaseItemEntity):
-    approval_status: Optional[ApprovalStatus] = Field(None)
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    approval_status: Optional[ApprovalStatus] = Field(default=None)
 
 
 class TiledEntity(BaseItemEntity):
-    class Config:
-        extra = Extra.ignore
+    model_config = ConfigDict(extra="ignore")
 
 
 class ClassificationEntity(BaseItemEntity):
-    class Config:
-        extra = Extra.ignore
+    model_config = ConfigDict(extra="ignore")
 
 
 class PointCloudEntity(BaseItemEntity):
-    class Config:
-        extra = Extra.ignore
+    model_config = ConfigDict(extra="ignore")
 
 
 PROJECT_ITEM_ENTITY_MAP = {

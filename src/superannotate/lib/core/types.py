@@ -1,17 +1,17 @@
+from typing import Annotated
 from typing import Optional
 
-from lib.core.pydantic_v1 import BaseModel
-from lib.core.pydantic_v1 import constr
-from lib.core.pydantic_v1 import Extra
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import StringConstraints
 
-NotEmptyStr = constr(strict=True, min_length=1)
+NotEmptyStr = Annotated[str, StringConstraints(strict=True, min_length=1)]
 
 
 class Project(BaseModel):
-    name: NotEmptyStr
+    model_config = ConfigDict(extra="allow")
 
-    class Config:
-        extra = Extra.allow
+    name: NotEmptyStr
 
 
 class PriorityScoreEntity(BaseModel):

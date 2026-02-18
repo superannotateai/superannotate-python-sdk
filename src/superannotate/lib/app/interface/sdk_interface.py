@@ -56,20 +56,26 @@ from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
 from lib.core.enums import CustomFieldEntityEnum
+from pydantic import TypeAdapter
+from pydantic import ValidationError
+
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
-from lib.core.types import PriorityScoreEntity
-from lib.core.types import Project
-from lib.core.pydantic_v1 import ValidationError
 from lib.core.pydantic_v1 import constr
 from lib.core.pydantic_v1 import conlist
-from lib.core.pydantic_v1 import parse_obj_as
+from lib.core.types import PriorityScoreEntity
+from lib.core.types import Project
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
+
+
+def parse_obj_as(type_, obj):
+    """Compatibility function for pydantic v1 parse_obj_as."""
+    return TypeAdapter(type_).validate_python(obj)
 from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
@@ -1875,7 +1881,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = self.controller.projects.get_by_name(project_name).data
         settings = self.controller.projects.list_settings(project).data
         settings = [
-            SettingsSerializer(attribute.dict()).serialize() for attribute in settings
+            SettingsSerializer(attribute.model_dump()).serialize() for attribute in settings
         ]
         return settings
 
@@ -2821,7 +2827,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         attribute_groups = (
-            list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
+            list(map(lambda x: x.model_dump(), attribute_groups)) if attribute_groups else []
         )
         try:
             annotation_class = AnnotationClassEntity(

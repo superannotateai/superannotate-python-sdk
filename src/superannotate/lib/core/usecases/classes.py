@@ -29,7 +29,7 @@ class GetAnnotationClassesUseCase(BaseUseCase):
         response = self._service_provider.annotation_classes.list(self._condition)
         if response.ok:
             classes = [
-                entity.dict(by_alias=True, exclude_unset=True)
+                entity.model_dump(by_alias=True, exclude_unset=True)
                 for entity in response.data
             ]
             self._response.data = classes
@@ -180,7 +180,7 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
         )
         if response.ok:
             classes = [
-                entity.dict(by_alias=True, exclude_unset=True)
+                entity.model_dump(by_alias=True, exclude_unset=True)
                 for entity in response.data
             ]
             json_path = f"{self._download_path}/classes.json"
