@@ -12,6 +12,7 @@ from typing import Union
 from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.entities import CategoryEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.jsx_conditions import Query
@@ -241,6 +242,12 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         operation: Literal["set", "remove"],
         chunk_size=100,
     ) -> List[dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_annotation_class(
+        self, project_id: int, class_id: int, data: WMAnnotationClassEntity,
+    ) -> ServiceResponse:
         raise NotImplementedError
 
 

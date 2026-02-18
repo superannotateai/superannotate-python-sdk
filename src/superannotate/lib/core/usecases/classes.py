@@ -5,6 +5,7 @@ from typing import List
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities.classes import GroupTypeEnum
 from lib.core.enums import ProjectType
@@ -186,4 +187,29 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
             json_path = f"{self._download_path}/classes.json"
             json.dump(classes, open(json_path, "w"), indent=4)
             self._response.data = json_path
+        return self._response
+
+
+class UpdateAnnotationClassUseCase(BaseUseCase):
+    def __init__(
+            self,
+            project: ProjectEntity,
+            annotation_class: WMAnnotationClassEntity,
+            service_provider: BaseServiceProvider,
+    ):
+        super().__init__()
+        self._project = project
+        self._annotation_class = annotation_class
+        self._service_provider = service_provider
+
+    def execute(self):
+        response = self._service_provider.work_management.update_annotation_class(
+            project_id=self._project.id,
+            class_id=self._annotation_class.id,
+            data=self._annotation_class,
+        )
+        if response.ok:
+            self._response.data = response.data
+        else:
+            self._response.errors = response.error
         return self._response

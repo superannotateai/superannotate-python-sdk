@@ -26,8 +26,10 @@ from lib.core.service_types import ServiceResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
+from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
+from lib.core.service_types import AnnotationClassResponse
 
 
 def prepare_validation_error(func):
@@ -76,6 +78,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
     URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
+    URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -537,3 +540,22 @@ class WorkManagementService(BaseWorkManagementService):
             success_contributors.extend(response.data["data"])
 
         return success_contributors
+
+    def update_annotation_class(
+        self,
+        project_id: int,
+        class_id: int,
+        data: dict,
+    ) -> WMClassesResponse:
+        return self.client.request(
+            url=self.URL_UPDATE_ANNOTATION_CLASS.format(class_id=class_id),
+            method="patch",
+            data=data,
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
+            content_type=AnnotationClassResponse,
+            dispatcher="data",
+        )

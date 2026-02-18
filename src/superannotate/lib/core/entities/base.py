@@ -20,9 +20,22 @@ DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 try:
     from pydantic import AbstractSetIntStr  # noqa
     from pydantic import MappingIntStrAny  # noqa
+
 except ImportError:
     pass
 _missing = object()
+
+from lib.core.pydantic_v1 import Color
+from lib.core.pydantic_v1 import ColorType
+from lib.core.pydantic_v1 import validator
+
+
+class HexColor(BaseModel):
+    __root__: ColorType
+
+    @validator("__root__", pre=True)
+    def validate_color(cls, v):
+        return "#{:02X}{:02X}{:02X}".format(*Color(v).as_rgb_tuple())
 
 
 class StringDate(datetime):

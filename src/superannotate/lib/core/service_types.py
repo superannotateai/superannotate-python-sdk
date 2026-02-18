@@ -138,6 +138,10 @@ class ServiceResponse(BaseModel):
         return f"Status: {self.status_code}, Error {self.error}"
 
 
+class WMClassesResponse(ServiceResponse):
+    res_data: List[entities.WMAnnotationClassEntity] = None
+
+
 class BaseItemResponse(ServiceResponse):
     res_data: entities.BaseItemEntity = None
 
@@ -184,6 +188,10 @@ class _IntegrationResponse(ServiceResponse):
 
 class IntegrationListResponse(ServiceResponse):
     res_data: _IntegrationResponse
+
+
+class AnnotationClassResponse(ServiceResponse):
+    res_data: entities.AnnotationClassEntity = None
 
 
 class AnnotationClassListResponse(ServiceResponse):

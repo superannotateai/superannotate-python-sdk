@@ -25,6 +25,8 @@ from lib.core.entities.project import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import S3FileEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
+from lib.core.entities.work_managament import AnnotationClassEntity as WMAnnotationClassEntity
+
 
 __all__ = [
     # base
@@ -60,4 +62,6 @@ __all__ = [
     # multimodal
     "FormModel",
     "generate_classes_from_form",
+    # work management
+    "WMAnnotationClassEntity",
 ]

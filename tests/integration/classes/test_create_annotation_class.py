@@ -276,6 +276,70 @@ class TestVectorAnnotationClasses(BaseTestCase):
             )
             self.assertEqual({i["type"] for i in created}, {"tag", "object"})
 
+    def test_update_annotation_class_attribute_groups(self):
+        # Create initial annotation class with attribute groups
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update",
+            "#FF0000",
+            attribute_groups=[
+                {
+                    "name": "Size",
+                    "group_type": "radio",
+                    "attributes": [{"name": "Small"}, {"name": "Large"}],
+                    "default_value": "Small",
+                    "isRequired": False,
+                }
+            ],
+        )
+
+        # Retrieve the created class
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update")
+        self.assertEqual(len(classes), 1)
+        existing_class = classes[0]
+
+        # Verify initial state
+        self.assertEqual(len(existing_class["attribute_groups"]), 1)
+        self.assertEqual(len(existing_class["attribute_groups"][0]["attributes"]), 2)
+
+        # Modify attribute groups - add new attribute to existing group
+        updated_groups = existing_class["attribute_groups"]
+        updated_groups[0]["isRequired"] = True
+        updated_groups[0]["attributes"].append({"name": "Medium"})
+
+        # Add a new attribute group
+        updated_groups.append({
+            "group_type": "checklist",
+            "name": "Color",
+            "attributes": [{"name": "Red"}, {"name": "Blue"}, {"name": "Green"}],
+        })
+
+        # Update the annotation class
+        sa.update_annotation_class(
+            self.PROJECT_NAME,
+            "test_update",
+            attribute_groups=updated_groups
+        )
+
+        # Verify updates
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update")
+        self.assertEqual(len(classes), 1)
+        updated_class = classes[0]
+
+        # Check that we now have 2 attribute groups
+        self.assertEqual(len(updated_class["attribute_groups"]), 2)
+
+        # Check first group has 3 attributes now
+        size_group = next(g for g in updated_class["attribute_groups"] if g["name"] == "Size")
+        self.assertEqual(len(size_group["attributes"]), 3)
+        attribute_names = [attr["name"] for attr in size_group["attributes"]]
+        self.assertIn("Medium", attribute_names)
+
+        # Check second group exists with correct attributes
+        color_group = next(g for g in updated_class["attribute_groups"] if g["name"] == "Color")
+        self.assertEqual(color_group["group_type"], "checklist")
+        self.assertEqual(len(color_group["attributes"]), 3)
+
 
 class TestVideoCreateAnnotationClasses(BaseTestCase):
     PROJECT_NAME = "TestVideoCreateAnnotationClasses"

@@ -8,6 +8,8 @@ from typing import Union
 
 from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import WMUserStateEnum
+from lib.core.enums import WMGroupTypeEnum
+from lib.core.enums import WMClassTypeEnum
 from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import BaseModel
 from lib.core.pydantic_v1 import Extra
@@ -15,6 +17,9 @@ from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
 from lib.core.pydantic_v1 import root_validator
 from lib.core.pydantic_v1 import validator
+from lib.core.pydantic_v1 import StrictInt
+from lib.core.pydantic_v1 import StrictStr
+from lib.core.entities.base import HexColor
 
 
 class ProjectType(str, Enum):
@@ -209,3 +214,58 @@ class ScorePayloadEntity(BaseModel):
         ):
             raise AppException("Weight and Value must both be set or both be None.")
         return values
+
+
+class Attribute(TimedBaseModel):
+    id: Optional[StrictInt]
+    group_id: Optional[StrictInt]
+    project_id: Optional[StrictInt]
+    name: Optional[StrictStr]
+    default: Any
+
+    class Config:
+        extra = Extra.ignore
+
+    def __hash__(self):
+        return hash(f"{self.id}{self.group_id}{self.name}")
+
+
+class AttributeGroup(TimedBaseModel):
+    id: Optional[StrictInt]
+    group_type: Optional[WMGroupTypeEnum]
+    class_id: Optional[StrictInt]
+    name: Optional[StrictStr]
+    is_required: bool = Field(default=False, alias="isRequired")
+    attributes: Optional[List[Attribute]]
+    default_value: Any
+
+    class Config:
+        extra = Extra.ignore
+        use_enum_values = True
+        json_encoders = {
+            WMGroupTypeEnum: lambda v: v.name,
+        }
+
+    def __hash__(self):
+        return hash(f"{self.id}{self.class_id}{self.name}")
+
+
+class AnnotationClassEntity(TimedBaseModel):
+    id: Optional[StrictInt]
+    project_id: Optional[StrictInt]
+    type: WMClassTypeEnum = WMClassTypeEnum.OBJECT
+    name: StrictStr
+    color: HexColor
+    attributeGroups: List[AttributeGroup] = Field(default=[], alias="attribute_groups")
+
+    def __hash__(self):
+        return hash(f"{self.id}{self.type}{self.name}")
+
+    class Config:
+        extra = Extra.ignore
+        json_encoders = {
+            HexColor: lambda v: v.__root__,
+            WMClassTypeEnum: lambda v: v.name,
+        }
+        validate_assignment = True
+        use_enum_names = True
