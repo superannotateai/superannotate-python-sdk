@@ -400,8 +400,8 @@ class WorkManagementService(BaseWorkManagementService):
             method="delete",
             url=self.URL_CUSTOM_FIELD_TEMPLATE_DELETE.format(template_id=pk),
             params={
-                "entity": entity,
-                "parentEntity": parent_entity,
+                "entity": entity.value,
+                "parentEntity": parent_entity.value,
             },
             headers={
                 "x-sa-entity-context": self._generate_context(

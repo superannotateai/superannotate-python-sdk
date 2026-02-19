@@ -17,6 +17,7 @@ sa = SAClient()
 
 class TestMixpanel(TestCase):
     BLANK_PAYLOAD = {
+        "Env": "N/A",
         "SDK": True,
         "Team": sa.get_team_metadata()["name"],
         "User Email": sa.controller.current_user.email,
