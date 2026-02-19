@@ -3,11 +3,10 @@ from typing import Any
 from typing import List
 from typing import Optional
 
-from lib.core.entities.base import TimedBaseModel
 from lib.core.entities.base import HexColor
+from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
-
 from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import StrictInt
@@ -18,7 +17,6 @@ DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
 )
-
 
 
 class GroupTypeEnum(str, Enum):

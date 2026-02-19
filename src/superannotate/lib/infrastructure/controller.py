@@ -29,8 +29,8 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
-from lib.core.entities import WMProjectUserEntity
 from lib.core.entities import WMAnnotationClassEntity
+from lib.core.entities import WMProjectUserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters

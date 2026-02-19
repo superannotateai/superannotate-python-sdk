@@ -6,20 +6,20 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from lib.core.entities.base import HexColor
 from lib.core.entities.base import TimedBaseModel
-from lib.core.enums import WMUserStateEnum
-from lib.core.enums import WMGroupTypeEnum
 from lib.core.enums import WMClassTypeEnum
+from lib.core.enums import WMGroupTypeEnum
+from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import BaseModel
 from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
 from lib.core.pydantic_v1 import root_validator
-from lib.core.pydantic_v1 import validator
 from lib.core.pydantic_v1 import StrictInt
 from lib.core.pydantic_v1 import StrictStr
-from lib.core.entities.base import HexColor
+from lib.core.pydantic_v1 import validator
 
 
 class ProjectType(str, Enum):
@@ -248,13 +248,16 @@ class WMAttributeGroup(TimedBaseModel):
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
 
+
 class WMAnnotationClassEntity(TimedBaseModel):
     id: Optional[StrictInt]
     project_id: Optional[StrictInt]
     type: WMClassTypeEnum = WMClassTypeEnum.OBJECT
     name: StrictStr
     color: HexColor
-    attribute_groups: List[WMAttributeGroup] = Field(default=[], alias="attributeGroups")
+    attribute_groups: List[WMAttributeGroup] = Field(
+        default=[], alias="attributeGroups"
+    )
 
     def __hash__(self):
         return hash(f"{self.id}{self.type}{self.name}")

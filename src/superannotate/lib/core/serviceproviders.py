@@ -246,7 +246,10 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def update_annotation_class(
-        self, project_id: int, class_id: int, data: WMAnnotationClassEntity,
+        self,
+        project_id: int,
+        class_id: int,
+        data: WMAnnotationClassEntity,
     ) -> ServiceResponse:
         raise NotImplementedError
 

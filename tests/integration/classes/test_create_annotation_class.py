@@ -291,7 +291,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
                     "isRequired": False,
                 }
             ],
-            class_type="object"
+            class_type="object",
         )
 
         # Retrieve the created class
@@ -309,17 +309,17 @@ class TestVectorAnnotationClasses(BaseTestCase):
         updated_groups[0]["attributes"].append({"name": "Medium"})
 
         # Add a new attribute group
-        updated_groups.append({
-            "group_type": "checklist",
-            "name": "Color",
-            "attributes": [{"name": "Red"}, {"name": "Blue"}, {"name": "Green"}],
-        })
+        updated_groups.append(
+            {
+                "group_type": "checklist",
+                "name": "Color",
+                "attributes": [{"name": "Red"}, {"name": "Blue"}, {"name": "Green"}],
+            }
+        )
 
         # Update the annotation class
         update_response = sa.update_annotation_class(
-            self.PROJECT_NAME,
-            "test_update",
-            attribute_groups=updated_groups
+            self.PROJECT_NAME, "test_update", attribute_groups=updated_groups
         )
 
         # Verify updates
@@ -332,7 +332,9 @@ class TestVectorAnnotationClasses(BaseTestCase):
         self.assertEqual(len(updated_class["attribute_groups"]), 2)
 
         # Check first group has 3 attributes now
-        size_group = next(g for g in updated_class["attribute_groups"] if g["name"] == "Size")
+        size_group = next(
+            g for g in updated_class["attribute_groups"] if g["name"] == "Size"
+        )
         self.assertEqual(len(size_group["attributes"]), 3)
         attribute_names = [attr["name"] for attr in size_group["attributes"]]
         self.assertIn("Medium", attribute_names)
@@ -340,7 +342,9 @@ class TestVectorAnnotationClasses(BaseTestCase):
         self.assertTrue(size_group["isRequired"])
 
         # Check second group exists with correct attributes
-        color_group = next(g for g in updated_class["attribute_groups"] if g["name"] == "Color")
+        color_group = next(
+            g for g in updated_class["attribute_groups"] if g["name"] == "Color"
+        )
         self.assertEqual(color_group["group_type"], "checklist")
         self.assertEqual(len(color_group["attributes"]), 3)
         # check noting updated

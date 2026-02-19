@@ -5,8 +5,8 @@ from typing import List
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
-from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities.classes import GroupTypeEnum
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
@@ -192,10 +192,10 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
 
 class UpdateAnnotationClassUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            annotation_class: WMAnnotationClassEntity,
-            service_provider: BaseServiceProvider,
+        self,
+        project: ProjectEntity,
+        annotation_class: WMAnnotationClassEntity,
+        service_provider: BaseServiceProvider,
     ):
         super().__init__()
         self._project = project

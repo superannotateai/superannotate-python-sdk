@@ -3,7 +3,6 @@ from enum import Enum
 from types import DynamicClassAttribute
 
 
-
 class classproperty:  # noqa
     def __init__(self, getter):
         self.getter = getter
@@ -188,6 +187,7 @@ class WMGroupTypeEnum(Enum):
     NUMERIC = "numeric"
     TEXT = "text"
     OCR = "ocr"
+
 
 class IntegrationTypeEnum(BaseTitledEnum):
     AWS = "aws", 1

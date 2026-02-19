@@ -1974,10 +1974,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return BaseSerializer.serialize_iterable(response.data)
 
     def update_annotation_class(
-            self,
-            project: Union[NotEmptyStr, int],
-            name: NotEmptyStr,
-            attribute_groups: List[dict],
+        self,
+        project: Union[NotEmptyStr, int],
+        name: NotEmptyStr,
+        attribute_groups: List[dict],
     ):
         """Updates an existing annotation class by submitting a full, updated attribute_groups payload.
         You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values,
@@ -2056,7 +2056,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
         if not annotation_class:
-            raise AppException(f"Annotation class not found in project.")
+            raise AppException("Annotation class not found in project.")
 
         # Parse and validate attribute groups
         annotation_class["attributeGroups"] = attribute_groups
@@ -2065,26 +2065,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 group["is_required"] = group.pop("isRequired")
 
         from lib.core.entities import WMAnnotationClassEntity
+
         try:
             # validate annotation class
-            annotation_class = WMAnnotationClassEntity.parse_obj(BaseSerializer(annotation_class).serialize())
+            annotation_class = WMAnnotationClassEntity.parse_obj(
+                BaseSerializer(annotation_class).serialize()
+            )
         except ValidationError as e:
             raise AppException(wrap_error(e))
 
         # Update the annotation class with new attribute groups
 
-
         response = self.controller.annotation_classes.update(
-            project=project,
-            annotation_class=annotation_class
+            project=project, annotation_class=annotation_class
         )
 
         if response.errors:
             raise AppException(response.errors)
 
         return BaseSerializer(response.data).serialize(by_alias=True)
-
-
 
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status
@@ -2916,7 +2915,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize(exclude_unset=True, by_alias=False)
+        return BaseSerializer(response.data).serialize(
+            exclude_unset=True, by_alias=False
+        )
 
     def delete_annotation_class(
         self, project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]

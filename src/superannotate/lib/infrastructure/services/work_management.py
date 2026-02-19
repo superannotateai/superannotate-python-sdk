@@ -19,17 +19,17 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
+from lib.core.service_types import AnnotationClassResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
 from lib.core.service_types import ServiceResponse
+from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
-from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
-from lib.core.service_types import AnnotationClassResponse
 
 
 def prepare_validation_error(func):
