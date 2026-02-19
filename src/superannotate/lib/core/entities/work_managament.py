@@ -6,7 +6,10 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from lib.core.entities.base import HexColor
 from lib.core.entities.base import TimedBaseModel
+from lib.core.enums import WMClassTypeEnum
+from lib.core.enums import WMGroupTypeEnum
 from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
 from lib.core.pydantic_v1 import BaseModel
@@ -14,6 +17,8 @@ from lib.core.pydantic_v1 import Extra
 from lib.core.pydantic_v1 import Field
 from lib.core.pydantic_v1 import parse_datetime
 from lib.core.pydantic_v1 import root_validator
+from lib.core.pydantic_v1 import StrictInt
+from lib.core.pydantic_v1 import StrictStr
 from lib.core.pydantic_v1 import validator
 
 
@@ -209,3 +214,71 @@ class ScorePayloadEntity(BaseModel):
         ):
             raise AppException("Weight and Value must both be set or both be None.")
         return values
+
+
+class WMAttribute(TimedBaseModel):
+    id: Optional[StrictInt]
+    group_id: Optional[StrictInt]
+    project_id: Optional[StrictInt]
+    name: Optional[StrictStr]
+    default: Any
+
+    class Config:
+        extra = Extra.ignore
+
+    def __hash__(self):
+        return hash(f"{self.id}{self.group_id}{self.name}")
+
+
+class WMAttributeGroup(TimedBaseModel):
+    id: Optional[StrictInt]
+    group_type: Optional[WMGroupTypeEnum]
+    class_id: Optional[StrictInt]
+    name: Optional[StrictStr]
+    isRequired: bool = Field(default=False, alias="is_required")
+    attributes: Optional[List[WMAttribute]]
+    default_value: Any
+
+    class Config:
+        extra = Extra.ignore
+
+    def __hash__(self):
+        return hash(f"{self.id}{self.class_id}{self.name}")
+
+
+class WMAnnotationClassEntity(TimedBaseModel):
+    id: Optional[StrictInt]
+    project_id: Optional[StrictInt]
+    type: WMClassTypeEnum = WMClassTypeEnum.OBJECT
+    name: StrictStr
+    color: HexColor
+    attribute_groups: List[WMAttributeGroup] = Field(
+        default=[], alias="attributeGroups"
+    )
+
+    def __hash__(self):
+        return hash(f"{self.id}{self.type}{self.name}")
+
+    class Config:
+        extra = Extra.ignore
+        json_encoders = {
+            HexColor: lambda v: v.__root__,
+            # WMClassTypeEnum: lambda v: v.name,
+        }
+        validate_assignment = True
+
+    @validator("type", pre=True)
+    def validate_type(cls, v):
+        if isinstance(v, WMClassTypeEnum):
+            return v
+        if isinstance(v, str):
+            # Try by value first (e.g., "object")
+            for member in WMClassTypeEnum:
+                if member.value == v:
+                    return member
+            # Try by name (e.g., "OBJECT")
+            try:
+                return WMClassTypeEnum[v.upper()]
+            except KeyError:
+                pass
+        raise ValueError(f"Invalid type: {v}")

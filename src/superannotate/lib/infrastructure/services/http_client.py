@@ -18,6 +18,7 @@ from typing import Literal
 import aiohttp
 import requests
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Limit
 from lib.core.jsx_conditions import Offset
 from lib.core.jsx_conditions import Query
@@ -225,6 +226,8 @@ class HttpClient(BaseClient):
         total = []
 
         while True:
+            if body_query is None:
+                body_query = EmptyQuery()
             paginated_query = body_query & Limit(chunk_size) & Offset(offset)
             _response = self.request(
                 url=url,

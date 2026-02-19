@@ -9,6 +9,7 @@ from lib.core.entities import CategoryEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
+from lib.core.entities.work_managament import WMAnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
 from lib.core.entities.work_managament import WMScoreEntity
@@ -19,10 +20,12 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
+from lib.core.service_types import AnnotationClassResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
 from lib.core.service_types import ServiceResponse
+from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
@@ -76,6 +79,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
     URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
+    URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -537,3 +541,22 @@ class WorkManagementService(BaseWorkManagementService):
             success_contributors.extend(response.data["data"])
 
         return success_contributors
+
+    def update_annotation_class(
+        self,
+        project_id: int,
+        class_id: int,
+        data: WMAnnotationClassEntity,
+    ) -> WMClassesResponse:
+        return self.client.request(
+            url=self.URL_UPDATE_ANNOTATION_CLASS.format(class_id=class_id),
+            method="patch",
+            data=data,
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
+            content_type=AnnotationClassResponse,
+            dispatcher="data",
+        )

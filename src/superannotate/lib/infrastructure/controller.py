@@ -29,6 +29,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities import WMProjectUserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
@@ -826,6 +827,14 @@ class AnnotationClassManager(BaseManager):
         use_case = usecases.DownloadAnnotationClassesUseCase(
             project=project,
             download_path=download_path,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def update(self, project: ProjectEntity, annotation_class: WMAnnotationClassEntity):
+        use_case = usecases.UpdateAnnotationClassUseCase(
+            annotation_class=annotation_class,
+            project=project,
             service_provider=self.service_provider,
         )
         return use_case.execute()
