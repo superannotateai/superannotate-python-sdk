@@ -318,14 +318,14 @@ class WorkManagementService(BaseWorkManagementService):
         self,
         body_query: Query,
         chunk_size=100,
-        parent_entity: str = "Team",
+        parent_entity: CustomFieldEntityEnum = CustomFieldEntityEnum.TEAM,
         project_id: int = None,
         include_custom_fields=False,
     ) -> WMUserListResponse:
         if include_custom_fields:
             url = self.URL_SEARCH_CUSTOM_ENTITIES
         else:
-            if parent_entity == "Team":
+            if parent_entity == CustomFieldEntityEnum.TEAM:
                 url = self.URL_SEARCH_TEAM_USERS
             else:
                 url = self.URL_SEARCH_PROJECT_USERS
@@ -344,7 +344,7 @@ class WorkManagementService(BaseWorkManagementService):
             body_query=body_query,
             query_params={
                 "entity": "Contributor",
-                "parentEntity": parent_entity,
+                "parentEntity": parent_entity.value,
             },
             headers={
                 "x-sa-entity-context": entity_context,

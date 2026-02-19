@@ -167,7 +167,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def list_users(
         self,
         body_query: Query,
-        parent_entity: str = "Team",
+        parent_entity: CustomFieldEntityEnum = CustomFieldEntityEnum.TEAM,
         chunk_size=100,
         project_id: int = None,
         include_custom_fields=False,
