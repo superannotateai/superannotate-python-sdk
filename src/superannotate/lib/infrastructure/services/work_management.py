@@ -9,6 +9,7 @@ from lib.core.entities import CategoryEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
+from lib.core.entities.work_managament import WMAnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
 from lib.core.entities.work_managament import WMScoreEntity
@@ -545,7 +546,7 @@ class WorkManagementService(BaseWorkManagementService):
         self,
         project_id: int,
         class_id: int,
-        data: dict,
+        data: WMAnnotationClassEntity,
     ) -> WMClassesResponse:
         return self.client.request(
             url=self.URL_UPDATE_ANNOTATION_CLASS.format(class_id=class_id),

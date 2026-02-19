@@ -241,9 +241,6 @@ class WMAttributeGroup(TimedBaseModel):
 
     class Config:
         extra = Extra.ignore
-        json_encoders = {
-            # WMGroupTypeEnum: lambda v: v.name,
-        }
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
