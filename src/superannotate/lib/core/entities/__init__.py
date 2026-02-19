@@ -25,7 +25,7 @@ from lib.core.entities.project import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import S3FileEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
-from lib.core.entities.work_managament import AnnotationClassEntity as WMAnnotationClassEntity
+from lib.core.entities.work_managament import WMAnnotationClassEntity
 
 
 __all__ = [

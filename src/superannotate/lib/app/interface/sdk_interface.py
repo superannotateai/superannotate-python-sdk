@@ -2059,7 +2059,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(f"Annotation class not found in project.")
 
         # Parse and validate attribute groups
-        annotation_class["attribute_groups"] = attribute_groups
+        annotation_class["attributeGroups"] = attribute_groups
+        for group in annotation_class["attributeGroups"]:
+            if "isRequired" in group:
+                group["is_required"] = group.pop("isRequired")
 
         from lib.core.entities import WMAnnotationClassEntity
         try:
@@ -2079,7 +2082,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-        return BaseSerializer(response.data).serialize(exclude_unset=True, by_alias=False)
+        return BaseSerializer(response.data).serialize(by_alias=True)
 
 
 

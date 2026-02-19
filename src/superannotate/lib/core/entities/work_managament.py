@@ -216,7 +216,7 @@ class ScorePayloadEntity(BaseModel):
         return values
 
 
-class Attribute(TimedBaseModel):
+class WMAttribute(TimedBaseModel):
     id: Optional[StrictInt]
     group_id: Optional[StrictInt]
     project_id: Optional[StrictInt]
@@ -230,33 +230,31 @@ class Attribute(TimedBaseModel):
         return hash(f"{self.id}{self.group_id}{self.name}")
 
 
-class AttributeGroup(TimedBaseModel):
+class WMAttributeGroup(TimedBaseModel):
     id: Optional[StrictInt]
     group_type: Optional[WMGroupTypeEnum]
     class_id: Optional[StrictInt]
     name: Optional[StrictStr]
-    is_required: bool = Field(default=False, alias="isRequired")
-    attributes: Optional[List[Attribute]]
+    isRequired: bool = Field(default=False, alias="is_required")
+    attributes: Optional[List[WMAttribute]]
     default_value: Any
 
     class Config:
         extra = Extra.ignore
-        use_enum_values = True
         json_encoders = {
-            WMGroupTypeEnum: lambda v: v.name,
+            # WMGroupTypeEnum: lambda v: v.name,
         }
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
 
-
-class AnnotationClassEntity(TimedBaseModel):
+class WMAnnotationClassEntity(TimedBaseModel):
     id: Optional[StrictInt]
     project_id: Optional[StrictInt]
     type: WMClassTypeEnum = WMClassTypeEnum.OBJECT
     name: StrictStr
     color: HexColor
-    attributeGroups: List[AttributeGroup] = Field(default=[], alias="attribute_groups")
+    attribute_groups: List[WMAttributeGroup] = Field(default=[], alias="attributeGroups")
 
     def __hash__(self):
         return hash(f"{self.id}{self.type}{self.name}")
@@ -265,7 +263,22 @@ class AnnotationClassEntity(TimedBaseModel):
         extra = Extra.ignore
         json_encoders = {
             HexColor: lambda v: v.__root__,
-            WMClassTypeEnum: lambda v: v.name,
+            # WMClassTypeEnum: lambda v: v.name,
         }
         validate_assignment = True
-        use_enum_names = True
+
+    @validator("type", pre=True)
+    def validate_type(cls, v):
+        if isinstance(v, WMClassTypeEnum):
+            return v
+        if isinstance(v, str):
+            # Try by value first (e.g., "object")
+            for member in WMClassTypeEnum:
+                if member.value == v:
+                    return member
+            # Try by name (e.g., "OBJECT")
+            try:
+                return WMClassTypeEnum[v.upper()]
+            except KeyError:
+                pass
+        raise ValueError(f"Invalid type: {v}")

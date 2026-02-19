@@ -1492,7 +1492,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             with open(json_path, "w") as f:
                 json.dump(data["annotation_json"], f, indent=4)
 
-            self._response.data = (str(json_path), "")
+            self._response.data = (str(json_path), None)
         return self._response
 
 

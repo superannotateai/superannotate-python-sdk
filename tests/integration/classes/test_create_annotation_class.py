@@ -291,6 +291,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
                     "isRequired": False,
                 }
             ],
+            class_type="object"
         )
 
         # Retrieve the created class
@@ -315,7 +316,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
         })
 
         # Update the annotation class
-        sa.update_annotation_class(
+        update_response = sa.update_annotation_class(
             self.PROJECT_NAME,
             "test_update",
             attribute_groups=updated_groups
@@ -323,6 +324,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
 
         # Verify updates
         classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update")
+        self.assertDictEqual(classes[0], update_response)
         self.assertEqual(len(classes), 1)
         updated_class = classes[0]
 
@@ -334,11 +336,20 @@ class TestVectorAnnotationClasses(BaseTestCase):
         self.assertEqual(len(size_group["attributes"]), 3)
         attribute_names = [attr["name"] for attr in size_group["attributes"]]
         self.assertIn("Medium", attribute_names)
+        # Verify isRequired was updated
+        self.assertTrue(size_group["isRequired"])
 
         # Check second group exists with correct attributes
         color_group = next(g for g in updated_class["attribute_groups"] if g["name"] == "Color")
         self.assertEqual(color_group["group_type"], "checklist")
         self.assertEqual(len(color_group["attributes"]), 3)
+        # check noting updated
+        response = sa.update_annotation_class(
+            self.PROJECT_NAME,
+            "test_update",
+            attribute_groups=classes[0]["attribute_groups"],
+        )
+        self.assertDictEqual(response, classes[0])
 
 
 class TestVideoCreateAnnotationClasses(BaseTestCase):

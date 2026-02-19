@@ -176,13 +176,13 @@ class ClassTypeEnum(BaseTitledEnum):
         return cls.OBJECT.value
 
 
-class WMClassTypeEnum(str, Enum):
+class WMClassTypeEnum(Enum):
     OBJECT = "object"
     TAG = "tag"
     RELATIONSHIP = "relationship"
 
 
-class WMGroupTypeEnum(str, Enum):
+class WMGroupTypeEnum(Enum):
     RADIO = "radio"
     CHECKLIST = "checklist"
     NUMERIC = "numeric"
@@ -207,7 +207,7 @@ class TrainingStatus(BaseTitledEnum):
     FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL = "FailedAfterEvaluationWithSavedModel", 6
 
 
-class CustomFieldEntityEnum(str, Enum):
+class CustomFieldEntityEnum(Enum):
     CONTRIBUTOR = "Contributor"
     TEAM = "Team"
     PROJECT = "Project"
@@ -221,6 +221,6 @@ class CustomFieldType(Enum):
     NUMERIC = 5
 
 
-class WMUserStateEnum(str, Enum):
+class WMUserStateEnum(Enum):
     Pending = "PENDING"
     Confirmed = "CONFIRMED"
