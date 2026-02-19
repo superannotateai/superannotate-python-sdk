@@ -28,25 +28,6 @@ class ItemService(SuperannotateServiceProvider):
         )
         return result
 
-    def old_list(self, project_id: int, folder_id: Optional[int], query: Query):
-        query &= Join("metadata", ["path"])
-        entity_context = [
-            f'"team_id":{self.client.team_id}',
-            f'"project_id":{project_id}',
-        ]
-        if folder_id:
-            entity_context.append(f'"folder_id":{folder_id}')
-        result = self.client.paginate(
-            f"{self.URL_LIST}?{query.build_query()}",
-            item_type=BaseItemEntity,
-            headers={
-                "x-sa-entity-context": base64.b64encode(
-                    f"{{{','.join(entity_context)}}}".encode("utf-8")
-                ).decode()
-            },
-        )
-        return result
-
     def list(self, project_id: int, folder_id: Optional[int], query: Query):
         query &= Join("metadata", ["path"])
         entity_context = [
