@@ -32,6 +32,7 @@ from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
+from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
@@ -250,7 +251,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         project_id: int,
         class_id: int,
         data: WMAnnotationClassEntity,
-    ) -> ServiceResponse:
+    ) -> WMClassesResponse:
         raise NotImplementedError
 
 

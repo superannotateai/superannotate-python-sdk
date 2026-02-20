@@ -76,6 +76,7 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Join
 from lib.core.jsx_conditions import Fields
 from lib.core.entities.items import ProjectCategoryEntity
+from lib.core.entities import WMAnnotationClassEntity
 
 logger = logging.getLogger("sa")
 
@@ -2059,13 +2060,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException("Annotation class not found in project.")
 
         # Parse and validate attribute groups
-        annotation_class["attributeGroups"] = attribute_groups
-        for group in annotation_class["attributeGroups"]:
-            if "isRequired" in group:
-                group["is_required"] = group.pop("isRequired")
-
-        from lib.core.entities import WMAnnotationClassEntity
-
+        annotation_class["attribute_groups"] = attribute_groups
         try:
             # validate annotation class
             annotation_class = WMAnnotationClassEntity.parse_obj(
@@ -2083,7 +2078,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-        return BaseSerializer(response.data).serialize(by_alias=True)
+        return BaseSerializer(response.data).serialize(by_alias=False)
 
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status

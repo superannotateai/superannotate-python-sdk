@@ -240,10 +240,41 @@ class WMAttributeGroup(TimedBaseModel):
     default_value: Any
 
     class Config:
+        allow_population_by_field_name = True
         extra = Extra.ignore
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
+
+    @validator("group_type", pre=True)
+    def validate_group_type(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, WMGroupTypeEnum):
+            return v
+        if isinstance(v, str):
+            # Try by value first (e.g., "radio")
+            for member in WMGroupTypeEnum:
+                if member.value == v.lower():
+                    return member
+            # Try by name (e.g., "RADIO" or "radio")
+            try:
+                return WMGroupTypeEnum[v.upper()]
+            except KeyError:
+                pass
+        raise ValueError(f"Invalid group_type: {v}")
+
+    def dict(self, *args, **kwargs):
+        by_alias = kwargs.get("by_alias", False)
+        data = super().dict(*args, **kwargs)
+
+        if by_alias and "group_type" in data:
+            if isinstance(data["group_type"], WMGroupTypeEnum):
+                data["group_type"] = data["group_type"].name
+        elif not by_alias and "group_type" in data:
+            if isinstance(data["group_type"], WMGroupTypeEnum):
+                data["group_type"] = data["group_type"].value
+        return data
 
 
 class WMAnnotationClassEntity(TimedBaseModel):
@@ -260,12 +291,19 @@ class WMAnnotationClassEntity(TimedBaseModel):
         return hash(f"{self.id}{self.type}{self.name}")
 
     class Config:
+        allow_population_by_field_name = True
         extra = Extra.ignore
         json_encoders = {
             HexColor: lambda v: v.__root__,
             # WMClassTypeEnum: lambda v: v.name,
         }
         validate_assignment = True
+
+    def dict(self, *args, **kwargs):
+        data = super().dict(*args, **kwargs)
+        if "type" in data and isinstance(data["type"], WMClassTypeEnum):
+            data["type"] = data["type"].value
+        return data
 
     @validator("type", pre=True)
     def validate_type(cls, v):

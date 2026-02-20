@@ -324,7 +324,32 @@ class TestVectorAnnotationClasses(BaseTestCase):
 
         # Verify updates
         classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update")
-        self.assertDictEqual(classes[0], update_response)
+        # Verify response matches the current class state
+        self.assertEqual(update_response["id"], classes[0]["id"])
+        self.assertEqual(update_response["name"], classes[0]["name"])
+        self.assertEqual(update_response["color"], classes[0]["color"])
+        self.assertEqual(update_response["type"], classes[0]["type"])
+        self.assertEqual(
+            len(update_response["attribute_groups"]),
+            len(classes[0]["attribute_groups"]),
+        )
+
+        # Verify each attribute group matches
+        for resp_group, class_group in zip(
+            update_response["attribute_groups"], classes[0]["attribute_groups"]
+        ):
+            self.assertEqual(resp_group["name"], class_group["name"])
+            self.assertEqual(resp_group["group_type"], class_group["group_type"])
+            self.assertEqual(resp_group["isRequired"], class_group["isRequired"])
+            self.assertEqual(
+                len(resp_group["attributes"]), len(class_group["attributes"])
+            )
+
+            # Verify each attribute matches
+            for resp_attr, class_attr in zip(
+                resp_group["attributes"], class_group["attributes"]
+            ):
+                self.assertEqual(resp_attr["name"], class_attr["name"])
         self.assertEqual(len(classes), 1)
         updated_class = classes[0]
 
@@ -347,13 +372,188 @@ class TestVectorAnnotationClasses(BaseTestCase):
         )
         self.assertEqual(color_group["group_type"], "checklist")
         self.assertEqual(len(color_group["attributes"]), 3)
-        # check noting updated
-        response = sa.update_annotation_class(
+
+    def test_update_annotation_class_rename_attributes(self):
+        # Create annotation class
+        sa.create_annotation_class(
             self.PROJECT_NAME,
-            "test_update",
+            "test_update_rename",
+            "#00FF00",
+            attribute_groups=[
+                {
+                    "name": "Quality",
+                    "group_type": "radio",
+                    "attributes": [{"name": "Good"}, {"name": "Bad"}],
+                }
+            ],
+        )
+
+        # Retrieve and rename attribute
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update_rename")
+        updated_groups = classes[0]["attribute_groups"]
+        updated_groups[0]["attributes"][0]["name"] = "Excellent"
+        updated_groups[0]["name"] = "Rating"
+
+        # Update
+        sa.update_annotation_class(
+            self.PROJECT_NAME, "test_update_rename", attribute_groups=updated_groups
+        )
+
+        # Verify
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update_rename")
+        rating_group = classes[0]["attribute_groups"][0]
+        self.assertEqual(rating_group["name"], "Rating")
+        self.assertEqual(rating_group["attributes"][0]["name"], "Excellent")
+
+    def test_update_annotation_class_delete_attributes(self):
+        # Create annotation class with multiple attributes
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_delete",
+            "#0000FF",
+            attribute_groups=[
+                {
+                    "name": "Status",
+                    "group_type": "checklist",
+                    "attributes": [
+                        {"name": "Active"},
+                        {"name": "Inactive"},
+                        {"name": "Pending"},
+                    ],
+                }
+            ],
+        )
+
+        # Retrieve and remove one attribute
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update_delete")
+        updated_groups = classes[0]["attribute_groups"]
+        updated_groups[0]["attributes"] = [
+            attr
+            for attr in updated_groups[0]["attributes"]
+            if attr["name"] != "Pending"
+        ]
+
+        # Update
+        sa.update_annotation_class(
+            self.PROJECT_NAME, "test_update_delete", attribute_groups=updated_groups
+        )
+
+        # Verify
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update_delete")
+        status_group = classes[0]["attribute_groups"][0]
+        self.assertEqual(len(status_group["attributes"]), 2)
+        attribute_names = [attr["name"] for attr in status_group["attributes"]]
+        self.assertNotIn("Pending", attribute_names)
+
+    def test_update_annotation_class_change_required_and_default(self):
+        # Create annotation class
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_required",
+            "#FFFF00",
+            attribute_groups=[
+                {
+                    "name": "Priority",
+                    "group_type": "radio",
+                    "attributes": [
+                        {"name": "Low"},
+                        {"name": "Medium"},
+                        {"name": "High"},
+                    ],
+                    "default_value": "Low",
+                    "isRequired": False,
+                }
+            ],
+        )
+
+        # Retrieve and update required state and default value
+        classes = sa.search_annotation_classes(
+            self.PROJECT_NAME, "test_update_required"
+        )
+        updated_groups = classes[0]["attribute_groups"]
+        updated_groups[0]["isRequired"] = True
+        updated_groups[0]["attributes"][0]["default"] = 0
+        updated_groups[0]["attributes"][1]["default"] = 1
+
+        # Update
+        sa.update_annotation_class(
+            self.PROJECT_NAME, "test_update_required", attribute_groups=updated_groups
+        )
+
+        # Verify
+        classes = sa.search_annotation_classes(
+            self.PROJECT_NAME, "test_update_required"
+        )
+        priority_group = classes[0]["attribute_groups"][0]
+        self.assertTrue(priority_group["isRequired"])
+        self.assertEqual(priority_group["default_value"], "Medium")
+
+    def test_update_annotation_class_change_group_type(self):
+        # Create annotation class
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_type",
+            "#FF00FF",
+            attribute_groups=[
+                {
+                    "name": "Options",
+                    "group_type": "radio",
+                    "attributes": [{"name": "Option1"}, {"name": "Option2"}],
+                }
+            ],
+        )
+
+        # Retrieve and change group type
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update_type")
+        updated_groups = classes[0]["attribute_groups"]
+        updated_groups[0]["group_type"] = "checklist"
+
+        # Update
+        sa.update_annotation_class(
+            self.PROJECT_NAME, "test_update_type", attribute_groups=updated_groups
+        )
+
+        # Verify
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_update_type")
+        options_group = classes[0]["attribute_groups"][0]
+        self.assertEqual(options_group["group_type"], "checklist")
+
+    def test_update_annotation_class_no_changes(self):
+        # Create annotation class
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_nochange",
+            "#00FFFF",
+            attribute_groups=[
+                {
+                    "name": "Category",
+                    "group_type": "radio",
+                    "attributes": [{"name": "A"}, {"name": "B"}],
+                }
+            ],
+        )
+
+        # Retrieve class
+        classes = sa.search_annotation_classes(
+            self.PROJECT_NAME, "test_update_nochange"
+        )
+
+        # Update with same data
+        update_response = sa.update_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_nochange",
             attribute_groups=classes[0]["attribute_groups"],
         )
-        self.assertDictEqual(response, classes[0])
+
+        # Verify response matches the current class state
+        self.assertEqual(update_response["id"], classes[0]["id"])
+        self.assertEqual(update_response["name"], classes[0]["name"])
+        self.assertEqual(update_response["color"], classes[0]["color"])
+        self.assertEqual(update_response["type"], classes[0]["type"])
+        self.assertEqual(
+            len(update_response["attribute_groups"]),
+            len(classes[0]["attribute_groups"]),
+        )
 
 
 class TestVideoCreateAnnotationClasses(BaseTestCase):

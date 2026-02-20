@@ -139,7 +139,7 @@ class ServiceResponse(BaseModel):
 
 
 class WMClassesResponse(ServiceResponse):
-    res_data: List[entities.WMAnnotationClassEntity] = None
+    res_data: entities.WMAnnotationClassEntity = None
 
 
 class BaseItemResponse(ServiceResponse):
