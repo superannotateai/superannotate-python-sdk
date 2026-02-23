@@ -862,7 +862,7 @@ class AddContributorsToProject(BaseUseCase):
                 "role", constants.UserRole.CONTRIBUTOR.value, OperatorEnum.EQ
             )
             if user_to_retrieve:
-                _filter &= (Filter("email", user_to_retrieve, OperatorEnum.IN),)
+                _filter &= Filter("email", user_to_retrieve, OperatorEnum.IN)
             users = self._service_provider.work_management.list_users(
                 _filter,
                 parent_entity=CustomFieldEntityEnum.TEAM,

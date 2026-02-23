@@ -20,7 +20,6 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
-from lib.core.service_types import AnnotationClassResponse
 from lib.core.service_types import FolderListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
@@ -547,16 +546,16 @@ class WorkManagementService(BaseWorkManagementService):
         project_id: int,
         class_id: int,
         data: WMAnnotationClassEntity,
-    ) -> WMClassesResponse:
+    ) -> ServiceResponse:
         return self.client.request(
             url=self.URL_UPDATE_ANNOTATION_CLASS.format(class_id=class_id),
             method="patch",
-            data=data,
+            data=data.dict(exclude_unset=True, by_alias=True),
             headers={
                 "x-sa-entity-context": self._generate_context(
                     team_id=self.client.team_id, project_id=project_id
                 ),
             },
-            content_type=AnnotationClassResponse,
+            content_type=WMClassesResponse,
             dispatcher="data",
         )
