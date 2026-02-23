@@ -1974,6 +1974,78 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data)
 
+    def get_annotation_class(
+        self,
+        project: Union[NotEmptyStr, int],
+        annotation_class: Union[NotEmptyStr, int],
+    ):
+        """Retrieves metadata of annotation class defined in a project, including their attribute groups and attributes.
+
+        :param project: The name or ID of the project
+        :type project: str or int
+
+        :param annotation_class: The name or ID of the annotation_class.
+        :type annotation_class: str or int
+
+        :return: Annotation class metadata
+        :rtype: dict
+
+        Request Example:
+        ::
+
+            classes = client.get_annotation_class(
+                          project="classes",
+                          annotation_class="Example_class"
+                     )
+        Response Example:
+        ::
+
+             {
+                "createdAt": "2026-01-19T10:18:33.000Z",
+                "updatedAt": "2026-01-21T10:53:13.000Z",
+                "id": 5780791,
+                "project_id": 1296086,
+                "type": "object",
+                "name": "Example Class",
+                "color": "#F9E0FA",
+                "attribute_groups": [
+                    {
+                        "id": 5623209,
+                        "group_type": "radio",
+                        "name": "Vehicle",
+                        "isRequired": False,
+                        "default_value": "Car",
+                        "attributes": [
+                            {"id": 11393039, "name": "Car", "default": 1},
+                            {"id": 11393040, "name": "Truck", "default": 0}
+                        ]
+                    }
+                ]
+            }
+
+
+        """
+        project = self.controller.get_project(project)
+        condition = Condition("project_id", project.id, EQ)
+
+        if isinstance(annotation_class, str):
+            key = "name"
+            condition &= Condition("name", annotation_class, EQ) & Condition(
+                "pattern", True, EQ
+            )
+        else:
+            key = "id"
+        response = self.controller.annotation_classes.list(condition)
+        if response.errors:
+            raise AppException(response.errors)
+        instance = next(
+            (_class for _class in response.data if _class[key] == annotation_class),
+            None,
+        )
+        if not instance:
+            raise AppException(f"Annotation class {annotation_class} not found")
+        return BaseSerializer.serialize_iterable([instance])[0]
+
     def update_annotation_class(
         self,
         project: Union[NotEmptyStr, int],
@@ -2017,33 +2089,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             # Retrieve existing annotation class
-            classes = client.search_annotation_classes(project="Medical Project", name="Organ")
-            existing_class = classes[0]
+            annotation_class = sa_client.get_annotation_classes(project="classes", annotation_class="test_class")
 
-            # Modify attribute groups
-            updated_groups = existing_class["attribute_groups"]
+            # Rename attribute value and add a new one
+            annotation_class["attribute_groups"][0]["attributes"][0]["name"] = "Brand Alpha"
+            annotation_class["attribute_groups"][0]["attributes"].append({"name": "Brand Beta"})
 
-            # Add a new attribute to an existing group
-            updated_groups[0]["attributes"].append({"name": "Kidney"})
-
-            # Add a new attribute group
-            updated_groups.append({
-                "group_type": "radio",
-                "name": "Severity",
-                "attributes": [
-                    {"name": "Mild"},
-                    {"name": "Moderate"},
-                    {"name": "Severe"}
-                ],
-                "default_value": "Mild"
-            })
-
-            # Update the annotation class
-            client.update_annotation_class(
-                project="Medical Project",
-                name="Organ",
-                attribute_groups=updated_groups
+            sa.update_annotation_classes(
+                project="test_set_folder_status",
+                name="test_class",
+                attribute_groups=annotation_class["attribute_groups"]
             )
+
         """
         project = self.controller.get_project(project)
 

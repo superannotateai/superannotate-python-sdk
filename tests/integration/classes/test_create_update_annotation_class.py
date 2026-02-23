@@ -18,6 +18,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF")
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(len(classes), 1)
+        tt_class_id = classes[0]["id"]
         self.assertEqual(classes[0]["type"], "object")
         self.assertEqual(classes[0]["color"], "#FFFFFF")
         sa.create_annotation_class(self.PROJECT_NAME, "tb", "#FFFFFF")
@@ -26,6 +27,12 @@ class TestVectorAnnotationClasses(BaseTestCase):
         self.assertEqual(len(classes), 0)
         classes = sa.search_annotation_classes(self.PROJECT_NAME, "tt")
         self.assertEqual(len(classes), 1)
+
+        res_1 = sa.get_annotation_class(self.PROJECT_NAME, "tt")
+        res_2 = sa.get_annotation_class(self.PROJECT_NAME, tt_class_id)
+        assert res_1["name"] == res_2["name"]
+        assert res_1["id"] == res_2["id"]
+        assert res_1["type"] == res_2["type"]
 
     def test_create_tag_annotation_class(self):
         sa.create_annotation_class(
