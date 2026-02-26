@@ -1,4 +1,5 @@
 import tempfile
+from copy import deepcopy
 
 import pytest
 from src.superannotate import AppException
@@ -561,6 +562,97 @@ class TestVectorAnnotationClasses(BaseTestCase):
             len(update_response["attribute_groups"]),
             len(classes[0]["attribute_groups"]),
         )
+
+    def test_update_annotation_class_duplicated_groups(self):
+        # Create annotation class
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_nochange",
+            "#00FFFF",
+            attribute_groups=[
+                {
+                    "name": "Category",
+                    "group_type": "radio",
+                    "attributes": [{"name": "A"}, {"name": "B"}],
+                }
+            ],
+        )
+
+        # Retrieve class
+        classes = sa.search_annotation_classes(
+            self.PROJECT_NAME, "test_update_nochange"
+        )
+
+        # Update with same data
+        new_group = deepcopy(classes[0]["attribute_groups"][0])
+        new_group["name"] = "New name"
+        new_group["attributes"][0]["name"] = "New attr1"
+        new_group["attributes"][1]["name"] = "New attr2"
+        update_response = sa.update_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_nochange",
+            attribute_groups=[classes[0]["attribute_groups"][0], new_group],
+        )
+        # not validated response, second class that contain ids ignored
+        assert len(update_response["attribute_groups"]) == 1
+        assert True
+
+    def test_update_annotation_class_invalid_group_type(self):
+        # Create annotation class
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_nochange",
+            "#00FFFF",
+            attribute_groups=[
+                {
+                    "name": "Category",
+                    "group_type": "radio",
+                    "attributes": [{"name": "A"}, {"name": "B"}],
+                }
+            ],
+        )
+
+        # Retrieve class
+        classes = sa.search_annotation_classes(
+            self.PROJECT_NAME, "test_update_nochange"
+        )
+
+        classes[0]["attribute_groups"][0]["group_type"] = "invalid"
+        with self.assertRaisesRegexp(AppException, "Invalid group_type: invalid"):
+            sa.update_annotation_class(
+                self.PROJECT_NAME,
+                "test_update_nochange",
+                attribute_groups=classes[0]["attribute_groups"],
+            )
+
+    def test_update_annotation_class_without_group_type(self):
+        # Create annotation class
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_update_nochange",
+            "#00FFFF",
+            attribute_groups=[
+                {
+                    "name": "Category",
+                    "group_type": "radio",
+                    "attributes": [{"name": "A"}, {"name": "B"}],
+                }
+            ],
+        )
+
+        # Retrieve class
+        classes = sa.search_annotation_classes(
+            self.PROJECT_NAME, "test_update_nochange"
+        )
+
+        del classes[0]["attribute_groups"][0]["group_type"]
+        with self.assertRaisesRegexp(AppException, "Invalid group_type: invalid"):
+            res = sa.update_annotation_class(
+                self.PROJECT_NAME,
+                "test_update_nochange",
+                attribute_groups=classes[0]["attribute_groups"],
+            )
+            assert res["attribute_groups"][0]["group_type"] == "radio"
 
 
 class TestVideoCreateAnnotationClasses(BaseTestCase):
