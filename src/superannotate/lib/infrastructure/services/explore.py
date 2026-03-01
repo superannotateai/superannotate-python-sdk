@@ -32,7 +32,7 @@ class ExploreService(BaseExploreService):
     def explore_service_url(self):
         if self.client.api_url != constants.BACKEND_URL:
             return (
-                f"http://explore-service.devsuperannotate.com/api/{self.API_VERSION}/"
+                f"https://explore-service.devsuperannotate.com/api/{self.API_VERSION}/"
             )
         return f"https://explore-service.superannotate.com/api/{self.API_VERSION}/"
 

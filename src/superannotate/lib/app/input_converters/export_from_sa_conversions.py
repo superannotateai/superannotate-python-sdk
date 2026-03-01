@@ -16,11 +16,7 @@ logger = logging.getLogger("sa")
 
 
 def _load_files(path_to_imgs, task, ptype):
-    suffix = None
-    if ptype == "Pixel":
-        suffix = "___pixel.json"
-    else:
-        suffix = "___objects.json"
+    suffix = "___objects.json"
 
     orig_images = path_to_imgs.glob("*" + suffix)
     orig_images = [str(x).replace(suffix, "") for x in orig_images]
@@ -28,10 +24,6 @@ def _load_files(path_to_imgs, task, ptype):
 
     if task == "keypoint_detection":
         all_files = np.array([[fname, fname + suffix] for fname in orig_images])
-    elif ptype == "Pixel":
-        all_files = np.array(
-            [[fname, fname + suffix, fname + "___save.png"] for fname in orig_images]
-        )
     elif ptype == "Vector":
         all_files = np.array(
             [[fname, fname + suffix, fname + "___fuse.png"] for fname in orig_images]

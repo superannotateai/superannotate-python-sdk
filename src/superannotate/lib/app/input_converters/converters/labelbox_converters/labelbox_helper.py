@@ -1,17 +1,7 @@
 import logging
 
-import requests
 
 logger = logging.getLogger("sa")
-
-
-def image_downloader(url, file_name):
-    r = requests.get(url, stream=True)
-    if r.status_code == 200:
-        with open(file_name, "wb") as f:
-            f.write(r.content)
-        return True
-    return False
 
 
 def _create_classes_id_map(json_data):

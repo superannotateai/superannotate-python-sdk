@@ -9,7 +9,6 @@ from typing import Union
 
 import lib.core as constances
 import pandas as pd
-from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
 from lib.core.exceptions import AppException
 
@@ -162,8 +161,6 @@ class DataAggregator:
             self._annotation_suffix = ".json"
         elif VECTOR_ANNOTATION_POSTFIX in fname.name:
             self._annotation_suffix = VECTOR_ANNOTATION_POSTFIX
-        elif PIXEL_ANNOTATION_POSTFIX in fname.name:
-            self._annotation_suffix = PIXEL_ANNOTATION_POSTFIX
         else:
             self._annotation_suffix = ".json"
 
@@ -205,10 +202,7 @@ class DataAggregator:
         self.check_classes_path()
         annotation_paths = self.get_annotation_paths()
 
-        if self.project_type in (
-            constances.ProjectType.VECTOR,
-            constances.ProjectType.PIXEL,
-        ):
+        if self.project_type is constances.ProjectType.VECTOR:
             return self.aggregate_image_annotations_as_df(annotation_paths)
         if self.project_type is constances.ProjectType.VIDEO:
             return self.aggregate_video_annotations_as_df(annotation_paths)

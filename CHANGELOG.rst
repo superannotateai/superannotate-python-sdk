@@ -6,6 +6,20 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.5.2 - March 1, 2026
+________________________
+
+**Added**
+
+    - ``SAClient.delete_exports()`` Enables deletion of project export files directly from the platform.
+
+    - ``SAClient.update_annotation_class()`` Allows updating attribute groups and attributes within an existing annotation class in a project.
+
+    - ``SAClient.get_annotation_class()`` Retrieves metadata of a specific annotation class defined in a project.
+
+**Updated**
+
+    - ``SAClient.list_users()`` Added support for filtering users by project role.
 
 4.5.1 - February 5, 2026
 ________________________

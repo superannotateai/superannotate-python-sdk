@@ -13,12 +13,6 @@ class VocStrategy(baseStrategy):
         sa_classes = self._create_classes(classes)
         (self.output_dir / "classes").mkdir(exist_ok=True)
         write_to_json(self.output_dir / "classes" / "classes.json", sa_classes)
-
-        # if self.project_type == 'Pixel':
-        #     all_files = self.output_dir.glob('*.png')
-        #     for file in all_files:
-        #         if '___save.png' not in str(file.name):
-        #             (self.output_dir / file.name).unlink()
         all_files = self.output_dir.glob("*.png")
         for file in all_files:
             if "___save.png" not in str(file.name):

@@ -33,6 +33,16 @@ class TestListUsers(BaseTestCase):
 
         assert project["contributors"][1]["state"] == "PENDING"
 
+    @pytest.mark.skip(reason="For not send real email")
+    def test_project_role_filter_users(self):
+        test_email = "test1@superannotate.com"
+        sa.invite_contributors_to_team(emails=[test_email])
+        sa.add_contributors_to_project(self.PROJECT_NAME, [test_email], "Annotator")
+        users = sa.list_users(project=self.PROJECT_NAME, role="QA")
+        assert len(users) == 0
+        users = sa.list_users(project=self.PROJECT_NAME, role="Annotator")
+        assert len(users) == 2
+
     def test_list_users_by_project_name(self):
         project_users = sa.list_users(project=self.PROJECT_NAME)
         assert len(project_users) == 1

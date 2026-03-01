@@ -9,6 +9,7 @@ from lib.core.entities import CategoryEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
+from lib.core.entities.work_managament import WMAnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
 from lib.core.entities.work_managament import WMScoreEntity
@@ -23,6 +24,7 @@ from lib.core.service_types import FolderListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
 from lib.core.service_types import ServiceResponse
+from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
@@ -76,6 +78,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
     URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
+    URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
 
     @staticmethod
     def _generate_context(**kwargs):
@@ -314,14 +317,14 @@ class WorkManagementService(BaseWorkManagementService):
         self,
         body_query: Query,
         chunk_size=100,
-        parent_entity: str = "Team",
+        parent_entity: CustomFieldEntityEnum = CustomFieldEntityEnum.TEAM,
         project_id: int = None,
         include_custom_fields=False,
     ) -> WMUserListResponse:
         if include_custom_fields:
             url = self.URL_SEARCH_CUSTOM_ENTITIES
         else:
-            if parent_entity == "Team":
+            if parent_entity == CustomFieldEntityEnum.TEAM:
                 url = self.URL_SEARCH_TEAM_USERS
             else:
                 url = self.URL_SEARCH_PROJECT_USERS
@@ -340,7 +343,7 @@ class WorkManagementService(BaseWorkManagementService):
             body_query=body_query,
             query_params={
                 "entity": "Contributor",
-                "parentEntity": parent_entity,
+                "parentEntity": parent_entity.value,
             },
             headers={
                 "x-sa-entity-context": entity_context,
@@ -396,8 +399,8 @@ class WorkManagementService(BaseWorkManagementService):
             method="delete",
             url=self.URL_CUSTOM_FIELD_TEMPLATE_DELETE.format(template_id=pk),
             params={
-                "entity": entity,
-                "parentEntity": parent_entity,
+                "entity": entity.value,
+                "parentEntity": parent_entity.value,
             },
             headers={
                 "x-sa-entity-context": self._generate_context(
@@ -537,3 +540,22 @@ class WorkManagementService(BaseWorkManagementService):
             success_contributors.extend(response.data["data"])
 
         return success_contributors
+
+    def update_annotation_class(
+        self,
+        project_id: int,
+        class_id: int,
+        data: WMAnnotationClassEntity,
+    ) -> ServiceResponse:
+        return self.client.request(
+            url=self.URL_UPDATE_ANNOTATION_CLASS.format(class_id=class_id),
+            method="patch",
+            data=data.dict(exclude_unset=True, by_alias=True),
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
+            content_type=WMClassesResponse,
+            dispatcher="data",
+        )

@@ -42,7 +42,7 @@ To create a new project:
 
 .. code-block:: bash
 
-   superannotatecli create-project --name <project_name> --description <project_description> --type <project_type Vector or Pixel>
+   superannotatecli create-project --name <project_name> --description <project_description> --type <project_type Vector>
 
 ----------
 

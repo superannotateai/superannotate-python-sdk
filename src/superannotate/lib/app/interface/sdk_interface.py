@@ -76,6 +76,7 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Join
 from lib.core.jsx_conditions import Fields
 from lib.core.entities.items import ProjectCategoryEntity
+from lib.core.entities import WMAnnotationClassEntity
 
 logger = logging.getLogger("sa")
 
@@ -85,7 +86,6 @@ PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 PROJECT_TYPE = Literal[
     "Vector",
-    "Pixel",
     "Video",
     "Document",
     "Tiled",
@@ -561,6 +561,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - email__contains: str
             - email__starts: str
             - email__ends: str
+
+            Following params if project is selected::
+
+            - role: str
+            - role__in: List[str]
 
             Following params if project is not selected::
 
@@ -1194,7 +1199,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_description: The new project's description.
         :type project_description: str
 
-        :param project_type: The project type. Supported types: 'Vector', 'Pixel', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.
+        :param project_type: The project type. Supported types: 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.
         :type project_type: str
 
         :param settings: list of settings objects
@@ -1329,10 +1334,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: entities.ProjectEntity = response.data
 
         project_copy = copy.copy(project)
-        if project_copy.type in (
-            constants.ProjectType.VECTOR,
-            constants.ProjectType.PIXEL,
-        ):
+        if project_copy.type == constants.ProjectType.VECTOR:
             project_copy.upload_state = constants.UploadState.INITIAL
         if project_description:
             project_copy.description = project_description
@@ -1972,6 +1974,169 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data)
 
+    def get_annotation_class(
+        self,
+        project: Union[NotEmptyStr, int],
+        annotation_class: Union[NotEmptyStr, int],
+    ):
+        """Retrieves metadata of annotation class defined in a project, including their attribute groups and attributes.
+
+        :param project: The name or ID of the project
+        :type project: str or int
+
+        :param annotation_class: The name or ID of the annotation_class.
+        :type annotation_class: str or int
+
+        :return: Annotation class metadata
+        :rtype: dict
+
+        Request Example:
+        ::
+
+            classes = client.get_annotation_class(
+                          project="classes",
+                          annotation_class="Example_class"
+                     )
+        Response Example:
+        ::
+
+             {
+                "createdAt": "2026-01-19T10:18:33.000Z",
+                "updatedAt": "2026-01-21T10:53:13.000Z",
+                "id": 5780791,
+                "project_id": 1296086,
+                "type": "object",
+                "name": "Example Class",
+                "color": "#F9E0FA",
+                "attribute_groups": [
+                    {
+                        "id": 5623209,
+                        "group_type": "radio",
+                        "name": "Vehicle",
+                        "isRequired": False,
+                        "default_value": "Car",
+                        "attributes": [
+                            {"id": 11393039, "name": "Car", "default": 1},
+                            {"id": 11393040, "name": "Truck", "default": 0}
+                        ]
+                    }
+                ]
+            }
+
+
+        """
+        project = self.controller.get_project(project)
+        condition = Condition("project_id", project.id, EQ)
+
+        if isinstance(annotation_class, str):
+            key = "name"
+            condition &= Condition("name", annotation_class, EQ) & Condition(
+                "pattern", True, EQ
+            )
+        else:
+            key = "id"
+        response = self.controller.annotation_classes.list(condition)
+        if response.errors:
+            raise AppException(response.errors)
+        instance = next(
+            (_class for _class in response.data if _class[key] == annotation_class),
+            None,
+        )
+        if not instance:
+            raise AppException(f"Annotation class {annotation_class} not found")
+        return BaseSerializer.serialize_iterable([instance])[0]
+
+    def update_annotation_class(
+        self,
+        project: Union[NotEmptyStr, int],
+        name: NotEmptyStr,
+        attribute_groups: List[dict],
+    ):
+        """Updates an existing annotation class by submitting a full, updated attribute_groups payload.
+        You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values,
+        delete attribute groups, delete attribute values, update attribute group types, update default attributes,
+        and update the required state.
+
+        .. warning::
+            This operation replaces the entire attribute group structure of the annotation class.
+            Any attribute groups or attribute values omitted from the payload will be permanently removed.
+            Existing annotations that reference removed attribute groups or attributes will lose their associated values.
+
+        :param project: The name or ID of the project.
+        :type project: Union[str, int]
+
+        :param name: The name of the annotation class to update.
+        :type name: str
+
+        :param attribute_groups: The full list of attribute groups for the class.
+            Each attribute group may contain:
+
+            - id (optional, required for existing groups)
+            - group_type (required): "radio", "checklist", "text", "numeric", or "ocr"
+            - name (required)
+            - isRequired (optional)
+            - default_value (optional)
+            - attributes (required, list)
+
+            Each attribute may contain:
+
+            - id (optional, required for existing attributes)
+            - name (required)
+
+        :type attribute_groups: list of dicts
+
+        Request Example:
+        ::
+
+            # Retrieve existing annotation class
+            annotation_class = sa_client.get_annotation_classes(project="classes", annotation_class="test_class")
+
+            # Rename attribute value and add a new one
+            annotation_class["attribute_groups"][0]["attributes"][0]["name"] = "Brand Alpha"
+            annotation_class["attribute_groups"][0]["attributes"].append({"name": "Brand Beta"})
+
+            sa.update_annotation_classes(
+                project="test_set_folder_status",
+                name="test_class",
+                attribute_groups=annotation_class["attribute_groups"]
+            )
+
+        """
+        project = self.controller.get_project(project)
+
+        # Find the annotation class by nam
+        annotation_classes = self.controller.annotation_classes.list(
+            condition=Condition("project_id", project.id, EQ)
+        ).data
+
+        annotation_class = next(
+            (c for c in annotation_classes if c["name"] == name), None
+        )
+
+        if not annotation_class:
+            raise AppException("Annotation class not found in project.")
+
+        # Parse and validate attribute groups
+        annotation_class["attribute_groups"] = attribute_groups
+        try:
+            # validate annotation class
+            annotation_class = WMAnnotationClassEntity.parse_obj(
+                BaseSerializer(annotation_class).serialize()
+            )
+        except ValidationError as e:
+            raise AppException(wrap_error(e))
+
+        # Update the annotation class with new attribute groups
+
+        response = self.controller.annotation_classes.update(
+            project=project, annotation_class=annotation_class
+        )
+
+        if response.errors:
+            raise AppException(response.errors)
+
+        return BaseSerializer(response.data).serialize(by_alias=False)
+
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status
 
@@ -2378,7 +2543,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         image_name: NotEmptyStr,
         local_dir_path: Union[str, Path],
     ):
-        """Downloads annotations of the image (JSON and mask if pixel type project)
+        """Downloads annotations of the image
         to local_dir_path.
 
         :param project: Project and folder as a tuple, folder is optional. (e.g., "project1/folder1", (project_id, folder_id))
@@ -2510,6 +2675,48 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         return response.data
+
+    def delete_exports(
+        self,
+        project: Union[NotEmptyStr, int],
+        exports: Union[List[int], List[str], Literal["*"]],
+    ):
+        """Delete one or more exports from the specified project. The exports argument
+        accepts a list of export names or export IDs. The special value “*” means delete all exports.
+
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param exports: A list of export names or IDs to delete. The special value "*" means delete all exports.
+        :type exports: Union[List[int], List[str], Literal["*"]]
+
+        Request Example:
+        ::
+
+            # To delete a specific export
+            client.delete_exports(
+                project="my_project",
+                exports=["TestProject_Jan_30_2026_12_09"]
+            )
+
+            # To delete all exports in the project
+            client.delete_exports(
+                project="my_project",
+                exports="*"
+            )
+        """
+        project_entity = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        response = self.controller.delete_exports(
+            project=project_entity, exports=exports
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        logger.info(f"Successfully removed {response.data} export(s).")
 
     def upload_videos_from_folder_to_project(
         self,
@@ -2802,7 +3009,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize(exclude_unset=True)
+        return BaseSerializer(response.data).serialize(
+            exclude_unset=True, by_alias=False
+        )
 
     def delete_annotation_class(
         self, project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]
@@ -3173,10 +3382,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         The JSON files should follow specific naming convention. For Vector
         projects they should be named "<image_filename>___objects.json" (e.g., if
-        image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
-        JSON file should be named "<image_filename>___pixel.json" and also second mask
-        image file should be present with the name "<image_name>___save.png". In both cases
-        image with <image_name> should be already present on the platform.
+        image is cats.jpg the annotation filename should be cats.jpg___objects.json).
+        Image with <image_name> should be already present on the platform.
 
         Existing annotations will be overwritten.
 
@@ -3250,7 +3457,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         verbose: Optional[bool] = True,
         keep_status: bool = None,
     ):
-        """Upload annotations from JSON (also mask for pixel annotations)
+        """Upload annotations from JSON
         to the image.
 
         :param project: Project and folder as a tuple, folder is optional. (e.g., "project1/folder1", (project_id, folder_id))
@@ -3262,7 +3469,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
         :type annotation_json: dict or Path-like (str or Path)
 
-        :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
+        :param mask: deprecated
         :type mask: BytesIO or Path-like (str or Path)
 
         :param verbose: Turns on verbose output logging during the proces.
@@ -3286,19 +3493,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if project.type not in constants.ProjectType.images:
             raise AppException(LIMITED_FUNCTIONS[project.type])
 
-        if not mask:
-            if not isinstance(annotation_json, dict):
-                mask_path = str(annotation_json).replace("___pixel.json", "___save.png")
-            else:
-                mask_path = f"{image_name}___save.png"
-            if os.path.exists(mask_path):
-                with open(mask_path, "rb") as f:
-                    mask = f.read()
-        elif isinstance(mask, str) or isinstance(mask, Path):
-            if os.path.exists(mask):
-                with open(mask, "rb") as f:
-                    mask = f.read()
-
         if not isinstance(annotation_json, dict):
             if verbose:
                 logger.info("Uploading annotations from %s.", annotation_json)
@@ -3319,7 +3513,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             image=image,
             annotations=annotation_json,
             user=self.controller.current_user,
-            mask=mask,
             verbose=verbose,
             keep_status=keep_status,
         )
@@ -3501,7 +3694,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_root: the export path of the project
         :type project_root: Path-like (str or Path)
 
-        :param project_type: the project type, Vector/Pixel, Video or Document
+        :param project_type: the project type, Vector, Video or Document
         :type project_type: str
 
         :param folder_names: Aggregate the specified folders from project_root.
@@ -3548,7 +3741,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Validates given annotation JSON.
 
-        :param project_type: The project type Vector, Pixel, Video or Document
+        :param project_type: The project type Vector, Video or Document
         :type project_type: str
 
         :param annotations_json: path to annotation JSON

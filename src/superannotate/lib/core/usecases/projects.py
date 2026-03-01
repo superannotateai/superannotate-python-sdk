@@ -858,10 +858,13 @@ class AddContributorsToProject(BaseUseCase):
             for contributor in self._contributors:
                 role_email_map[contributor.role].append(contributor.email)
                 user_to_retrieve.append(contributor.email)
-
+            _filter = Filter(
+                "role", constants.UserRole.CONTRIBUTOR.value, OperatorEnum.EQ
+            )
+            if user_to_retrieve:
+                _filter &= Filter("email", user_to_retrieve, OperatorEnum.IN)
             users = self._service_provider.work_management.list_users(
-                Filter("role", constants.UserRole.CONTRIBUTOR.value, OperatorEnum.EQ)
-                & Filter("email", user_to_retrieve, OperatorEnum.IN),
+                _filter,
                 parent_entity=CustomFieldEntityEnum.TEAM,
             ).data
             for user in users:
@@ -869,9 +872,10 @@ class AddContributorsToProject(BaseUseCase):
 
             to_skip = []
             to_add = []
-
             project_users = self._service_provider.work_management.list_users(
-                Filter("email", user_to_retrieve, OperatorEnum.IN),
+                Filter("email", user_to_retrieve, OperatorEnum.IN)
+                if user_to_retrieve
+                else EmptyQuery(),
                 include_custom_fields=True,
                 parent_entity=CustomFieldEntityEnum.PROJECT,
                 project_id=self._project.id,

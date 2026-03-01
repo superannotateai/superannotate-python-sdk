@@ -277,10 +277,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._user = user
         self._transform_version = transform_version
 
-    def validate_project_type(self):
-        if self._project.type == constants.ProjectType.PIXEL.value:
-            raise AppException("Unsupported project type.")
-
     def _validate_json(self, json_data: dict) -> list:
         if self._project.type >= int(constants.ProjectType.PIXEL):
             return []
@@ -558,10 +554,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     def prepare_annotation(self, annotation: dict, size) -> dict:
         errors = None
-        if (
-            size < BIG_FILE_THRESHOLD
-            and self._project.type < constants.ProjectType.PIXEL.value
-        ):
+        if size < BIG_FILE_THRESHOLD:
             use_case = ValidateAnnotationUseCase(
                 reporter=self.reporter,
                 team_id=self._project.team_id,
@@ -583,31 +576,20 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     @staticmethod
     def get_mask_path(path: str) -> str:
-        if path.endswith(constants.PIXEL_ANNOTATION_POSTFIX):
-            replacement = constants.PIXEL_ANNOTATION_POSTFIX
-        else:
-            replacement = ".json"
+
+        replacement = ".json"
         parts = path.rsplit(replacement, 1)
         return constants.ANNOTATION_MASK_POSTFIX.join(parts)
 
     async def get_annotation(
         self, path: str
     ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
-        mask = None
-        mask_path = self.get_mask_path(path)
+
         if self._client_s3_bucket:
             content = self.get_annotation_from_s3(self._client_s3_bucket, path).read()
-            if self._project.type == constants.ProjectType.PIXEL.value:
-                mask = self.get_annotation_from_s3(self._client_s3_bucket, mask_path)
         else:
             async with aiofiles.open(path, encoding="utf-8") as file:
                 content = await file.read()
-            if (
-                self._project.type == constants.ProjectType.PIXEL.value
-                and os.path.exists(mask_path)
-            ):
-                async with aiofiles.open(mask_path, "rb") as mask:
-                    mask = await mask.read()
         if not isinstance(content, bytes):
             content = content.encode("utf8")
         file = io.BytesIO(content)
@@ -618,7 +600,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         if not annotation:
             self.reporter.store_message("invalid_jsons", path)
             raise AppException("Invalid json")
-        return annotation, mask, size
+        return annotation, None, size
 
     @staticmethod
     def chunks(data, size: int = 10000):
@@ -630,8 +612,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
     def extract_name(value: Path):
         if constants.VECTOR_ANNOTATION_POSTFIX in value.name:
             path = value.name.replace(constants.VECTOR_ANNOTATION_POSTFIX, "")
-        elif constants.PIXEL_ANNOTATION_POSTFIX in value.name:
-            path = value.name.replace(constants.PIXEL_ANNOTATION_POSTFIX, "")
         else:
             path = value.stem
         return path
@@ -691,16 +671,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 self._s3_bucket = resource.Bucket(upload_data.bucket)
         return self._s3_bucket
 
-    def _upload_mask(self, item_data: ItemToUpload):
-        if self._project.type == constants.ProjectType.PIXEL.value and item_data.mask:
-            self.s3_bucket.put_object(
-                Key=self.annotation_upload_data.images[item_data.item.id][
-                    "annotation_bluemap_path"
-                ],
-                Body=item_data.mask,
-                ContentType="image/jpeg",
-            )
-
     async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
         data: List[List[Any, bool]] = [[i, False] for i in items_to_upload]
         processed_count = 0
@@ -749,7 +719,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                     service_provider=self._service_provider,
                     report=self._report,
                     reporter=self.reporter,
-                    callback=self._upload_mask,
                 )
                 for _ in range(3)
             ],
@@ -762,7 +731,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 service_provider=self._service_provider,
                 reporter=self.reporter,
                 report=self._report,
-                callback=self._upload_mask,
             )
         )
 
@@ -914,26 +882,10 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                 annotation_json = json.load(
                     self.get_s3_file(self.from_s3, self._annotation_path)
                 )
-                if self._project.type == constants.ProjectType.PIXEL.value:
-                    self._mask = self.get_s3_file(
-                        self.from_s3,
-                        self._annotation_path.replace(
-                            constants.PIXEL_ANNOTATION_POSTFIX,
-                            constants.ANNOTATION_MASK_POSTFIX,
-                        ),
-                    )
             else:
                 annotation_json = json.load(
                     open(self._annotation_path, encoding="utf-8")
                 )
-                if self._project.type == constants.ProjectType.PIXEL.value:
-                    mask = open(
-                        self._annotation_path.replace(
-                            constants.PIXEL_ANNOTATION_POSTFIX,
-                            constants.ANNOTATION_MASK_POSTFIX,
-                        ),
-                        "rb",
-                    )
         else:
             return self._annotation_json, self._mask
         return annotation_json, mask
@@ -1024,17 +976,6 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                         for attr in missing_attrs:
                             self.reporter.log_warning(
                                 f"Couldn't find attribute {attr}."
-                            )
-
-                        if (
-                            self._project.type == constants.ProjectType.PIXEL.value
-                            and mask
-                        ):
-                            self.s3_bucket.put_object(
-                                Key=self.annotation_upload_data.images[self._image.id][
-                                    "annotation_bluemap_path"
-                                ],
-                                Body=mask,
                             )
                     workflow = self._service_provider.work_management.get_workflow(
                         self._project.workflow_id
@@ -1450,10 +1391,6 @@ class GetAnnotations(BaseReportableUseCase):
         self._item_names_provided = True
         self._big_annotations_queue = None
         self._transform_version = transform_version
-
-    def validate_project_type(self):
-        if self._project.type == constants.ProjectType.PIXEL.value:
-            raise AppException("The function is not supported for Pixel projects.")
 
     @staticmethod
     def items_duplication_validation(

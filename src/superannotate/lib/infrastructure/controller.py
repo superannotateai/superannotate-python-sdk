@@ -29,11 +29,13 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities import WMProjectUserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
-from lib.core.entities.filters import UserFilters
+from lib.core.entities.filters import ProjectUserFilters
+from lib.core.entities.filters import TeamUserFilters
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import ProjectCategoryEntity
 from lib.core.entities.work_managament import ScoreEntity
@@ -56,8 +58,9 @@ from lib.infrastructure.query_builder import FieldValidationHandler
 from lib.infrastructure.query_builder import IncludeHandler
 from lib.infrastructure.query_builder import ItemFilterHandler
 from lib.infrastructure.query_builder import ProjectFilterHandler
+from lib.infrastructure.query_builder import ProjectUserRoleFilterHandler
 from lib.infrastructure.query_builder import QueryBuilderChain
-from lib.infrastructure.query_builder import UserFilterHandler
+from lib.infrastructure.query_builder import TeamUserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.http_client import HttpClient
@@ -205,27 +208,44 @@ class WorkManagementManager(BaseManager):
         if project:
             parent_entity = CustomFieldEntityEnum.PROJECT
             project_id = context["project_id"] = project.id
+            valid_fields = generate_schema(
+                ProjectUserFilters.__annotations__,
+                self.service_provider.get_custom_fields_templates(
+                    context, CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
+                ),
+            )
+            chain = QueryBuilderChain(
+                [
+                    FieldValidationHandler(valid_fields.keys()),
+                    ProjectUserRoleFilterHandler(
+                        team_id=self.service_provider.client.team_id,
+                        project=project,
+                        service_provider=self.service_provider,
+                        entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                        parent=parent_entity,
+                    ),
+                ]
+            )
         else:
             parent_entity = CustomFieldEntityEnum.TEAM
             project_id = None
-        valid_fields = generate_schema(
-            UserFilters.__annotations__,
-            self.service_provider.get_custom_fields_templates(
-                context, CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
-            ),
-        )
-        chain = QueryBuilderChain(
-            [
-                FieldValidationHandler(valid_fields.keys()),
-                UserFilterHandler(
-                    team_id=self.service_provider.client.team_id,
-                    project_id=project_id,
-                    service_provider=self.service_provider,
-                    entity=CustomFieldEntityEnum.CONTRIBUTOR,
-                    parent=parent_entity,
+            valid_fields = generate_schema(
+                TeamUserFilters.__annotations__,
+                self.service_provider.get_custom_fields_templates(
+                    context, CustomFieldEntityEnum.CONTRIBUTOR, parent=parent_entity
                 ),
-            ]
-        )
+            )
+            chain = QueryBuilderChain(
+                [
+                    FieldValidationHandler(valid_fields.keys()),
+                    TeamUserFilterHandler(
+                        team_id=self.service_provider.client.team_id,
+                        service_provider=self.service_provider,
+                        entity=CustomFieldEntityEnum.CONTRIBUTOR,
+                        parent=parent_entity,
+                    ),
+                ]
+            )
         query = chain.handle(filters, EmptyQuery())
 
         if project and include and "categories" in include:
@@ -691,7 +711,7 @@ class ProjectManager(BaseManager):
                 FieldValidationHandler(valid_fields.keys()),
                 ProjectFilterHandler(
                     team_id=self.service_provider.client.team_id,
-                    project_id=None,
+                    project=None,
                     service_provider=self.service_provider,
                     entity=CustomFieldEntityEnum.PROJECT,
                     parent=CustomFieldEntityEnum.TEAM,
@@ -807,6 +827,14 @@ class AnnotationClassManager(BaseManager):
         use_case = usecases.DownloadAnnotationClassesUseCase(
             project=project,
             download_path=download_path,
+            service_provider=self.service_provider,
+        )
+        return use_case.execute()
+
+    def update(self, project: ProjectEntity, annotation_class: WMAnnotationClassEntity):
+        use_case = usecases.UpdateAnnotationClassUseCase(
+            annotation_class=annotation_class,
+            project=project,
             service_provider=self.service_provider,
         )
         return use_case.execute()
@@ -1086,29 +1114,18 @@ class ItemManager(BaseManager):
         item_names: List[str] = None,
         include_annotations: bool = True,
     ):
-        if project.type == ProjectType.PIXEL:
-            use_case = usecases.CopyItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-                include_annotations=include_annotations,
-            )
-        else:
-            use_case = usecases.CopyMoveItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-                include_annotations=include_annotations,
-                duplicate_strategy=duplicate_strategy,
-                operation="copy",
-                chunk_size=500,
-            )
+        use_case = usecases.CopyMoveItems(
+            reporter=Reporter(),
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            item_names=item_names,
+            service_provider=self.service_provider,
+            include_annotations=include_annotations,
+            duplicate_strategy=duplicate_strategy,
+            operation="copy",
+            chunk_size=500,
+        )
         return use_case.execute()
 
     def move_multiple(
@@ -1119,28 +1136,18 @@ class ItemManager(BaseManager):
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         item_names: List[str] = None,
     ):
-        if project.type == ProjectType.PIXEL:
-            use_case = usecases.MoveItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-            )
-        else:
-            use_case = usecases.CopyMoveItems(
-                reporter=Reporter(),
-                project=project,
-                from_folder=from_folder,
-                to_folder=to_folder,
-                item_names=item_names,
-                service_provider=self.service_provider,
-                duplicate_strategy=duplicate_strategy,
-                include_annotations=True,
-                operation="move",
-                chunk_size=500,
-            )
+        use_case = usecases.CopyMoveItems(
+            reporter=Reporter(),
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            item_names=item_names,
+            service_provider=self.service_provider,
+            duplicate_strategy=duplicate_strategy,
+            include_annotations=True,
+            operation="move",
+            chunk_size=500,
+        )
         return use_case.execute()
 
     def set_annotation_statuses(
@@ -1411,7 +1418,6 @@ class AnnotationManager(BaseManager):
         image: ImageEntity,
         user: UserEntity,
         annotations: dict,
-        mask: io.BytesIO = None,
         verbose: bool = True,
         keep_status: bool = False,
     ):
@@ -1422,7 +1428,6 @@ class AnnotationManager(BaseManager):
             service_provider=self.service_provider,
             image=image,
             annotations=annotations,
-            mask=mask,
             verbose=verbose,
             reporter=Reporter(),
             keep_status=keep_status,
@@ -1811,6 +1816,16 @@ class Controller(BaseController):
             annotation_statuses=annotation_statuses,
             integration_id=integration_id,
             export_type=export_type,
+        )
+        return use_case.execute()
+
+    def delete_exports(
+        self, project: ProjectEntity, exports: Union[List[int], List[str], Literal["*"]]
+    ):
+        use_case = usecases.DeleteExportsUseCase(
+            service_provider=self.service_provider,
+            project=project,
+            exports=exports,
         )
         return use_case.execute()
 

@@ -4,6 +4,7 @@ import os
 import platform
 import sys
 import typing
+from functools import lru_cache
 from inspect import signature
 from pathlib import Path
 from types import FunctionType
@@ -128,6 +129,7 @@ class Tracker:
         return Mixpanel(mp_token)
 
     @staticmethod
+    @lru_cache
     def get_default_payload(team_name, user_email):
         return {
             "SDK": True,
@@ -136,6 +138,7 @@ class Tracker:
             "Version": os.environ["sa_version"],
             "Python version": platform.python_version(),
             "Python interpreter type": platform.python_implementation(),
+            "Env": os.environ.get("SA_ENV", "N/A"),
         }
 
     def __init__(self, function):

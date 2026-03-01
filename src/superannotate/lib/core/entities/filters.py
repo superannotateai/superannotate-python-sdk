@@ -40,7 +40,7 @@ class ProjectFilters(BaseFilters):
     status__notin: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
 
 
-class UserFilters(TypedDict, total=False):
+class BaseUserFilters(TypedDict, total=False):
     id: Optional[int]
     id__in: Optional[List[int]]
     email: Optional[str]
@@ -48,6 +48,14 @@ class UserFilters(TypedDict, total=False):
     email__contains: Optional[str]
     email__starts: Optional[str]
     email__ends: Optional[str]
+
+
+class ProjectUserFilters(BaseUserFilters, total=False):
+    role: Optional[str]
+    role__in: Optional[List[str]]
+
+
+class TeamUserFilters(BaseUserFilters, total=False):
     state: Optional[str]
     state__in: Optional[List[str]]
     role: Optional[str]

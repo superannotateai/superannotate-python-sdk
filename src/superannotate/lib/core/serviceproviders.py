@@ -12,6 +12,7 @@ from typing import Union
 from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.entities import CategoryEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.jsx_conditions import Query
@@ -31,6 +32,7 @@ from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
+from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
@@ -166,7 +168,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def list_users(
         self,
         body_query: Query,
-        parent_entity: str = "Team",
+        parent_entity: CustomFieldEntityEnum = CustomFieldEntityEnum.TEAM,
         chunk_size=100,
         project_id: int = None,
         include_custom_fields=False,
@@ -241,6 +243,15 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         operation: Literal["set", "remove"],
         chunk_size=100,
     ) -> List[dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_annotation_class(
+        self,
+        project_id: int,
+        class_id: int,
+        data: WMAnnotationClassEntity,
+    ) -> WMClassesResponse:
         raise NotImplementedError
 
 
@@ -869,6 +880,14 @@ class BaseServiceProvider:
     @abstractmethod
     def get_export(
         self, project: entities.ProjectEntity, export_id: int
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_export(
+        self,
+        project: entities.ProjectEntity,
+        export_id: int,
     ) -> ServiceResponse:
         raise NotImplementedError
 

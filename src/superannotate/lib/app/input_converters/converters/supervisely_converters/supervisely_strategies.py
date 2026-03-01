@@ -27,13 +27,6 @@ class SuperviselyStrategy(baseStrategy):
             sa_jsons = self.conversion_algorithm(
                 json_files, classes_id_map, meta_json, self.output_dir
             )
-        elif (
-            self.conversion_algorithm.__name__
-            == "supervisely_instance_segmentation_to_sa_pixel"
-        ):
-            sa_jsons = self.conversion_algorithm(
-                json_files, classes_id_map, self.output_dir
-            )
         else:
             sa_jsons = self.conversion_algorithm(
                 json_files, classes_id_map, self.task, self.output_dir

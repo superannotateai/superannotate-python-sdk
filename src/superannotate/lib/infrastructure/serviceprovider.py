@@ -308,6 +308,17 @@ class ServiceProvider(BaseServiceProvider):
             params={"project_id": project.id},
         )
 
+    def delete_export(
+        self,
+        project: entities.ProjectEntity,
+        export_id: int,
+    ):
+        return self.client.request(
+            f"{self.URL_PREPARE_EXPORT}/{export_id}",
+            "delete",
+            params={"project_id": project.id},
+        )
+
     def get_project_images_count(self, project: entities.ProjectEntity):
         return self.client.request(
             self.URL_FOLDERS_IMAGES,

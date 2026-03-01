@@ -1,7 +1,5 @@
 import os
-import tempfile
 from os.path import dirname
-from pathlib import Path
 
 import pytest
 from src.superannotate import AppException
@@ -109,60 +107,3 @@ class TestVectorAnnotationsWithTagFolderUploadPreannotation(BaseTestCase):
     @property
     def classes_json_path(self):
         return f"{self.folder_path}/classes/classes.json"
-
-
-class TestPixelImages(BaseTestCase):
-    PROJECT_NAME = "sample_project_pixel"
-    PROJECT_TYPE = "Pixel"
-    PROJECT_DESCRIPTION = "Example Project test pixel basic images"
-    TEST_FOLDER_PTH = "data_set/sample_project_pixel"
-    EXAMPLE_IMAGE_1 = "example_image_1.jpg"
-
-    @property
-    def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PTH)
-
-    @property
-    def classes_json_path(self):
-        return f"{self.folder_path}/classes/classes.json"
-
-    def test_basic_images(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            sa.upload_images_from_folder_to_project(
-                self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-            )
-            sa.create_annotation_classes_from_classes_json(
-                self.PROJECT_NAME, self.classes_json_path
-            )
-            image = sa.get_item_metadata(self.PROJECT_NAME, "example_image_1.jpg")
-            del image["createdAt"]
-            del image["updatedAt"]
-            truth = {
-                "name": "example_image_1.jpg",
-                "annotation_status": "InProgress",
-                "approval_status": None,
-                "annotator_email": None,
-                "qa_email": None,
-                "entropy_value": None,
-            }
-
-            assert all([truth[i] == image[i] for i in truth])
-
-            sa.upload_image_annotations(
-                project=self.PROJECT_NAME,
-                image_name=self.EXAMPLE_IMAGE_1,
-                annotation_json=f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
-            )
-            downloaded = sa.download_image(
-                project=self.PROJECT_NAME,
-                image_name=self.EXAMPLE_IMAGE_1,
-                local_dir_path=temp_dir,
-                include_annotations=True,
-            )
-            self.assertNotEqual(downloaded[1], (None, None))
-            self.assertGreater(len(downloaded[0]), 0)
-
-            sa.download_image_annotations(
-                self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, temp_dir
-            )
-            self.assertEqual(len(list(Path(temp_dir).glob("*"))), 3)
