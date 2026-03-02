@@ -16,7 +16,6 @@ from pydantic import field_validator
 from pydantic.functional_validators import BeforeValidator
 from pydantic_extra_types.color import Color
 
-from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
