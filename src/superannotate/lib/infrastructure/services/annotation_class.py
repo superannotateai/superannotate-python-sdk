@@ -32,9 +32,11 @@ class AnnotationClassService(BaseAnnotationClassService):
 
     def list(self, condition: Condition = None) -> ServiceResponse:
         return self.client.paginate(
-            url=f"{self.URL_LIST}?{condition.build_query()}"
-            if condition
-            else self.URL_LIST,
+            url=(
+                f"{self.URL_LIST}?{condition.build_query()}"
+                if condition
+                else self.URL_LIST
+            ),
             item_type=entities.AnnotationClassEntity,
         )
 

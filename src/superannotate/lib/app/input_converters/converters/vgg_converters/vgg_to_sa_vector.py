@@ -1,6 +1,7 @@
 """
 VGG to SA conversion method.
 """
+
 import json
 import logging
 import threading
@@ -59,10 +60,8 @@ def vgg_to_sa(json_data, task, output_dir):
         instances = img["regions"]
         for instance in instances:
             if "type" not in instance["region_attributes"].keys():
-                raise KeyError(
-                    "'VGG' JSON should contain 'type' key which will \
-                    be category name. Please correct JSON file."
-                )
+                raise KeyError("'VGG' JSON should contain 'type' key which will \
+                    be category name. Please correct JSON file.")
             if not isinstance(instance["region_attributes"]["type"], str):
                 raise ValueError("Wrong attribute was choosen for 'type' attribute.")
 

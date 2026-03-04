@@ -11,44 +11,35 @@ from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
-from lib.core.pydantic_v1 import BaseModel
-from lib.core.pydantic_v1 import Extra
-from lib.core.pydantic_v1 import Field
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
 
 
 class Limit(BaseModel):
-    max_image_count: Optional[int]
-    remaining_image_count: int
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    max_image_count: Optional[int] = None
+    remaining_image_count: int
 
 
 class UserLimits(BaseModel):
-    user_limit: Optional[Limit]
+    model_config = ConfigDict(extra="ignore")
+
+    user_limit: Optional[Limit] = None
     project_limit: Limit
     folder_limit: Limit
 
-    class Config:
-        extra = Extra.ignore
-
 
 class UploadAnnotationAuthData(BaseModel):
-    access_key: str
-    secret_key: str
-    session_token: str
+    model_config = ConfigDict(extra="allow")
+
+    access_key: str = Field(..., alias="accessKeyId")
+    secret_key: str = Field(..., alias="secretAccessKey")
+    session_token: str = Field(..., alias="sessionToken")
     region: str
     bucket: str
     images: Dict[int, dict]
-
-    class Config:
-        extra = Extra.allow
-        fields = {
-            "access_key": "accessKeyId",
-            "secret_key": "secretAccessKey",
-            "session_token": "sessionToken",
-            "region": "region",
-        }
 
     def __init__(self, **data):
         credentials = data["creds"]
@@ -58,39 +49,38 @@ class UploadAnnotationAuthData(BaseModel):
 
 
 class UploadAnnotations(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     class Resource(BaseModel):
-        classes: List[str] = Field([], alias="class")
-        templates: List[str] = Field([], alias="template")
-        attributes: List[str] = Field([], alias="attribute")
-        attribute_groups: Optional[List[str]] = Field([], alias="attributeGroup")
+        classes: List[str] = Field(default_factory=list, alias="class")
+        templates: List[str] = Field(default_factory=list, alias="template")
+        attributes: List[str] = Field(default_factory=list, alias="attribute")
+        attribute_groups: Optional[List[str]] = Field(
+            default_factory=list, alias="attributeGroup"
+        )
 
-    failed_items: List[str] = Field([], alias="failedItems")
-    missing_resources: Resource = Field({}, alias="missingResources")
-
-    class Config:
-        extra = Extra.ignore
+    failed_items: List[str] = Field(default_factory=list, alias="failedItems")
+    missing_resources: Optional[Resource] = Field(None, alias="missingResources")
 
 
 class UploadCustomFieldValues(BaseModel):
-    succeeded_items: Optional[List[Any]]
-    failed_items: Optional[List[str]]
-    error: Optional[Any]
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    succeeded_items: Optional[List[Any]] = None
+    failed_items: Optional[List[str]] = None
+    error: Optional[Any] = None
 
 
 class ServiceResponse(BaseModel):
-    status: Optional[int]
-    reason: Optional[str]
+    model_config = ConfigDict(extra="allow")
+
+    status: Optional[int] = None
+    reason: Optional[str] = None
     content: Optional[Union[bytes, str]] = None
     res_data: Optional[Any] = None  # response data
     res_error: Optional[Union[str, list, dict]] = None
     count: Optional[int] = 0
     total: Optional[int] = 0
-
-    class Config:
-        extra = Extra.allow
 
     @property
     def total_count(self):
@@ -183,11 +173,11 @@ class ModelListResponse(ServiceResponse):
 
 
 class _IntegrationResponse(ServiceResponse):
-    integrations: List[entities.IntegrationEntity] = []
+    integrations: List[entities.IntegrationEntity] = Field(default_factory=list)
 
 
 class IntegrationListResponse(ServiceResponse):
-    res_data: _IntegrationResponse
+    res_data: Optional[_IntegrationResponse] = None
 
 
 class AnnotationClassResponse(ServiceResponse):

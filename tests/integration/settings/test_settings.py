@@ -63,7 +63,7 @@ class TestSettings(BaseTestCase):
             raise Exception("Test failed")
 
     def test_frame_rate_invalid_range_value(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "FrameRate is available only for Video projects"
         ):
             sa.create_project(
@@ -116,7 +116,7 @@ class TestVideoSettings(BaseTestCase):
             raise Exception("Test failed")
 
     def test_frame_rate_invalid_range_value(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "The FrameRate value range is between 0.001 - 120"
         ):
             sa.create_project(
@@ -127,7 +127,7 @@ class TestVideoSettings(BaseTestCase):
             )
 
     def test_frame_rate_invalid_str_value(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "The FrameRate value should be float"
         ):
             sa.create_project(

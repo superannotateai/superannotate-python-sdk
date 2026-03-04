@@ -5,13 +5,11 @@ from typing import Optional
 
 from lib.core.entities.base import HexColor
 from lib.core.entities.base import TimedBaseModel
-from lib.core.enums import BaseTitledEnum
 from lib.core.enums import ClassTypeEnum
-from lib.core.pydantic_v1 import Extra
-from lib.core.pydantic_v1 import Field
-from lib.core.pydantic_v1 import StrictInt
-from lib.core.pydantic_v1 import StrictStr
-
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic import StrictInt
+from pydantic import StrictStr
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
@@ -28,52 +26,46 @@ class GroupTypeEnum(str, Enum):
 
 
 class Attribute(TimedBaseModel):
-    id: Optional[StrictInt]
-    group_id: Optional[StrictInt]
-    project_id: Optional[StrictInt]
-    name: Optional[StrictStr]
-    default: Any
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    id: Optional[StrictInt] = None
+    group_id: Optional[StrictInt] = None
+    project_id: Optional[StrictInt] = None
+    name: Optional[StrictStr] = None
+    default: Any = None
 
     def __hash__(self):
         return hash(f"{self.id}{self.group_id}{self.name}")
 
 
 class AttributeGroup(TimedBaseModel):
-    id: Optional[StrictInt]
-    group_type: Optional[GroupTypeEnum]
-    class_id: Optional[StrictInt]
-    name: Optional[StrictStr]
-    isRequired: bool = Field(default=False)
-    attributes: Optional[List[Attribute]]
-    default_value: Any
+    model_config = ConfigDict(extra="ignore", use_enum_values=True)
 
-    class Config:
-        extra = Extra.ignore
-        use_enum_values = True
+    id: Optional[StrictInt] = None
+    group_type: Optional[GroupTypeEnum] = None
+    class_id: Optional[StrictInt] = None
+    name: Optional[StrictStr] = None
+    isRequired: bool = Field(default=False)
+    attributes: Optional[List[Attribute]] = None
+    default_value: Any = None
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
 
 
 class AnnotationClassEntity(TimedBaseModel):
-    id: Optional[StrictInt]
-    project_id: Optional[StrictInt]
+    model_config = ConfigDict(
+        extra="ignore",
+        validate_assignment=True,
+        json_encoders={HexColor: lambda v: v.__root__, Enum: lambda v: v.value},
+    )
+
+    id: Optional[StrictInt] = None
+    project_id: Optional[StrictInt] = None
     type: ClassTypeEnum = ClassTypeEnum.OBJECT
     name: StrictStr
     color: HexColor
-    attribute_groups: List[AttributeGroup] = []
+    attribute_groups: List[AttributeGroup] = Field(default_factory=list)
 
     def __hash__(self):
         return hash(f"{self.id}{self.type}{self.name}")
-
-    class Config:
-        extra = Extra.ignore
-        json_encoders = {
-            HexColor: lambda v: v.__root__,
-            BaseTitledEnum: lambda v: v.value,
-        }
-        validate_assignment = True
-        use_enum_names = True

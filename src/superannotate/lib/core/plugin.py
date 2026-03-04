@@ -82,7 +82,7 @@ class ImagePlugin:
         thumbnail_size = (128, 96)
         background = Image.new("RGB", thumbnail_size, "black")
         image.thumbnail(thumbnail_size, Image.LANCZOS)
-        (w, h) = image.size
+        w, h = image.size
         background.paste(
             image, ((thumbnail_size[0] - w) // 2, (thumbnail_size[1] - h) // 2)
         )

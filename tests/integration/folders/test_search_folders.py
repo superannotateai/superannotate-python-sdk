@@ -52,8 +52,8 @@ class TestSearchFolders(BaseTestCase):
 
         # with invalid status
         pattern = (
-            r"(\s+)status(\s+)Available values are 'NotStarted', "
-            r"'InProgress', 'Completed', 'OnHold'.(\s+)value is not a valid list"
+            r"(\s+)status(\s+)Input should be 'NotStarted', 'InProgress', "
+            r"'Completed' or 'OnHold'(\s+)Input should be a valid list"
         )
-        with self.assertRaisesRegexp(AppException, pattern):
+        with self.assertRaisesRegex(AppException, pattern):
             folders = sa.search_folders(self.PROJECT_NAME, status="dummy")  # noqa

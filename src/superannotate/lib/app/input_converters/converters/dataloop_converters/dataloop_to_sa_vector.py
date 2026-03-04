@@ -1,6 +1,7 @@
 """
 Dataloop to SA conversion method
 """
+
 import json
 import logging
 import threading

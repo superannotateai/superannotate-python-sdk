@@ -9,7 +9,6 @@ from src.superannotate.lib.app.helpers import get_annotation_paths
 from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
-
 logging.basicConfig(level=logging.DEBUG)
 
 sa = SAClient()

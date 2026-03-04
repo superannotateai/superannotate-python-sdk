@@ -24,11 +24,11 @@ def blue_color_generator(n, hex_values=True):
         )
         hex_color = (
             "#"
-            + "{:02x}".format(bgr_color[2])
+            + f"{bgr_color[2]:02x}"
             + "{:02x}".format(
                 bgr_color[1],
             )
-            + "{:02x}".format(bgr_color[0])
+            + f"{bgr_color[0]:02x}"
         )
         if hex_values:
             hex_colors.append(hex_color)

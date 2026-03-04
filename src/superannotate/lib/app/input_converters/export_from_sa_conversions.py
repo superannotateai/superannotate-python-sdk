@@ -2,6 +2,7 @@
 Module which will convert from
 superannotate annotation format to other annotation formats
 """
+
 import copy
 import json
 import logging

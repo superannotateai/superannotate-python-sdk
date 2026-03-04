@@ -669,7 +669,7 @@ class DownloadImageUseCase(BaseReportableUseCase):
                         project_type=constances.ProjectType(self._project.type).name,
                         image_path=download_path,
                         classes=[
-                            annotation_class.dict(exclude_unset=True)
+                            annotation_class.model_dump(exclude_unset=True)
                             for annotation_class in classes
                         ],
                         generate_overlay=self._include_overlay,
@@ -800,9 +800,11 @@ class UploadImageToProject(BaseUseCase):
 
             s3_upload_response = UploadImageS3UseCase(
                 project=self._project,
-                image_path=self._image_name
-                if self._image_name
-                else Path(self._image_path).name,
+                image_path=(
+                    self._image_name
+                    if self._image_name
+                    else Path(self._image_path).name
+                ),
                 service_provider=self._service_provider,
                 image=image_bytes,
                 s3_repo=self.s3_repo,

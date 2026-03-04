@@ -2,7 +2,6 @@ import time
 
 from src.superannotate.lib.core.enums import CustomFieldType
 
-
 CUSTOM_FIELD_PAYLOADS = [
     {
         "name": "SDK_test_text",

@@ -4,7 +4,6 @@ import src.superannotate.lib.core as constances
 from src.superannotate import AppException
 from src.superannotate import SAClient
 
-
 sa = SAClient()
 
 
@@ -89,9 +88,9 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
         assert "Z" not in metadata["createdAt"]
 
     def test_create_project_with_wrong_type(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
-            "Available values are 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.",
+            "Input should be 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'",
         ):
             sa.create_project(self.PROJECT, "desc", "wrong_type")
 

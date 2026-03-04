@@ -40,7 +40,6 @@ from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
 from typing_extensions import Literal
 
-
 logger = logging.getLogger("sa")
 
 
@@ -48,7 +47,7 @@ def serialize_item_entity(
     entity: Union[BaseItemEntity, dict], project: ProjectEntity, map_fields: bool = True
 ) -> BaseItemEntity:
     if isinstance(entity, BaseItemEntity):
-        entity = entity.dict()
+        entity = entity.model_dump()
     if map_fields:
         entity = BaseItemEntity.map_fields(entity)
     entity = BaseItemEntity(**entity)
@@ -61,13 +60,13 @@ def serialize_item_entity(
         if project.upload_state == constants.UploadState.EXTERNAL.value:
             tmp_entity.prediction_status = None
             tmp_entity.segmentation_status = None
-        return ImageEntity(**tmp_entity.dict(by_alias=True))
+        return ImageEntity(**tmp_entity.model_dump(by_alias=True))
     elif project.type == constants.ProjectType.VIDEO.value:
-        return VideoEntity(**entity.dict(by_alias=True))
+        return VideoEntity(**entity.model_dump(by_alias=True))
     elif project.type == constants.ProjectType.DOCUMENT.value:
-        return DocumentEntity(**entity.dict(by_alias=True))
+        return DocumentEntity(**entity.model_dump(by_alias=True))
     elif project.type == constants.ProjectType.MULTIMODAL.value:
-        return MultiModalItemEntity(**entity.dict(by_alias=True))
+        return MultiModalItemEntity(**entity.model_dump(by_alias=True))
     return entity
 
 

@@ -4,6 +4,7 @@ This object will receive the strategy from outside and will convert according to
    said strategy.
 
 """
+
 from .coco_converters.coco_strategies import CocoKeypointDetectionStrategy
 from .coco_converters.coco_strategies import CocoObjectDetectionStrategy
 from .coco_converters.coco_strategies import CocoPanopticConverterStrategy

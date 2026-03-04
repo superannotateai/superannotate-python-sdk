@@ -3,8 +3,8 @@ import os
 from typing import List
 from unittest import TestCase
 
-from lib.core.pydantic_v1 import parse_obj_as
-from lib.core.pydantic_v1 import ValidationError
+from pydantic import TypeAdapter
+from pydantic import ValidationError
 from superannotate.lib.app.serializers import BaseSerializer
 from superannotate.lib.core.entities.classes import AnnotationClassEntity
 from superannotate.lib.core.entities.classes import AttributeGroup
@@ -23,14 +23,18 @@ class TestClassesSerializers(TestCase):
     def test_type_user_serializer(self):
         with open(self.large_json_path) as file:
             data_json = json.load(file)
-            classes = parse_obj_as(List[AnnotationClassEntity], data_json)
+            classes = TypeAdapter(List[AnnotationClassEntity]).validate_python(
+                data_json
+            )
             serializer_data = BaseSerializer.serialize_iterable(classes)
             assert all([isinstance(i.get("type"), str) for i in serializer_data])
 
     def test_type_api_serializer(self):
         with open(self.large_json_path) as file:
             data_json = json.load(file)
-            classes = parse_obj_as(List[AnnotationClassEntity], data_json)
+            classes = TypeAdapter(List[AnnotationClassEntity]).validate_python(
+                data_json
+            )
             serializer_data = json.loads(json.dumps(classes, cls=PydanticEncoder))
             assert all([isinstance(i.get("type"), int) for i in serializer_data])
 
@@ -74,14 +78,16 @@ class TestClassesSerializers(TestCase):
                 ],
             )
         except ValidationError as e:
+            # Pydantic v2 error message format
             assert [
                 "group_type",
-                "Available",
-                "values",
-                "are:",
+                "Input",
+                "should",
+                "be",
                 "'radio',",
                 "'checklist',",
                 "'numeric',",
-                "'text',",
+                "'text'",
+                "or",
                 "'ocr'",
             ] == wrap_error(e).split()

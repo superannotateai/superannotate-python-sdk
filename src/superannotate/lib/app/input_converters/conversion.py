@@ -1,6 +1,7 @@
 """
 Main module for input converters
 """
+
 import os
 import shutil
 import tempfile
@@ -14,7 +15,6 @@ from lib.core.exceptions import AppException
 
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
-
 
 ALLOWED_TASK_TYPES = [
     "panoptic_segmentation",
@@ -108,7 +108,7 @@ def _passes_value_sanity(values_info):
     for value in values_info:
         if value[0] not in value[2]:
             raise AppException(
-                "'{}' should be one of the following '{}'".format(value[1], value[2])
+                f"'{value[1]}' should be one of the following '{value[2]}'"
             )
 
 

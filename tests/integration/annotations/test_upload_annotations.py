@@ -222,7 +222,7 @@ class MultiModalUploadDownloadAnnotations(BaseTestCase):
         with open(self.JSONL_ANNOTATIONS_PATH) as f:
             data = [json.loads(line) for line in f]
             sa.create_folder(self.PROJECT_NAME, "tmp")
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 AppException,
                 "You can't include a folder when uploading from within a folder.",
             ):
@@ -252,7 +252,7 @@ class MultiModalUploadDownloadAnnotations(BaseTestCase):
                 f"{self.PROJECT_NAME}", annotations=data, data_spec="multimodal"
             )
             assert len(res["failed"]) == 3
-            with self.assertRaisesRegexp(AppException, "Folder not found."):
+            with self.assertRaisesRegex(AppException, "Folder not found."):
                 sa.get_annotations(
                     f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
                 )

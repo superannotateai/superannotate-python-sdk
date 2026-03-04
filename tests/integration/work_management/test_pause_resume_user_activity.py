@@ -2,7 +2,6 @@ from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
-
 sa = SAClient()
 
 
@@ -42,7 +41,7 @@ class TestPauseUserActivity(BaseTestCase):
                 == f"INFO:sa:User with email {scapegoat['email']} has been successfully paused"
                 f" from the specified projects: {[self.PROJECT_NAME]}."
             )
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "The user does not have the required permissions for this assignment.",
         ):

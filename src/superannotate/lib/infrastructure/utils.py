@@ -21,7 +21,6 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import PathError
 from lib.infrastructure.services.work_management import WorkManagementService
 
-
 logger = logging.getLogger("sa")
 
 

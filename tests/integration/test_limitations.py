@@ -32,7 +32,7 @@ class TestLimitsUploadImagesFromFolderToProject(BaseTestCase):
         return_value=folder_limit_response,
     )
     def test_folder_limitations(self, *_):
-        with self.assertRaisesRegexp(AppException, UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE):
+        with self.assertRaisesRegex(AppException, UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE):
             _, _, __ = sa.upload_images_from_folder_to_project(
                 project=self._project["name"], folder_path=self.folder_path
             )
@@ -42,7 +42,7 @@ class TestLimitsUploadImagesFromFolderToProject(BaseTestCase):
         return_value=project_limit_response,
     )
     def test_project_limitations(self, *_):
-        with self.assertRaisesRegexp(AppException, UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE):
+        with self.assertRaisesRegex(AppException, UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE):
             _, _, __ = sa.upload_images_from_folder_to_project(
                 project=self._project["name"], folder_path=self.folder_path
             )
@@ -52,7 +52,7 @@ class TestLimitsUploadImagesFromFolderToProject(BaseTestCase):
         return_value=user_limit_response,
     )
     def test_user_limitations(self, *_):
-        with self.assertRaisesRegexp(AppException, UPLOAD_USER_LIMIT_ERROR_MESSAGE):
+        with self.assertRaisesRegex(AppException, UPLOAD_USER_LIMIT_ERROR_MESSAGE):
             _, _, __ = sa.upload_images_from_folder_to_project(
                 project=self._project["name"], folder_path=self.folder_path
             )

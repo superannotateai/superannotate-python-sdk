@@ -123,5 +123,5 @@ class TestAttachItemsVectorArguments(TestCase):
             "field required",
         ]
         pattern = r"(\s+)" + r"(\s+)".join(error_msg)
-        with self.assertRaisesRegexp(AppException, pattern):
+        with self.assertRaisesRegex(AppException, pattern):
             sa.attach_items(self.PROJECT_NAME, [{"name": "name"}])

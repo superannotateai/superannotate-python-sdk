@@ -11,7 +11,6 @@ import src.superannotate.lib.core as constants
 from src.superannotate import SAClient
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 
-
 try:
     CLI_VERSION = pkg_resources.get_distribution("superannotate").version
 except Exception:

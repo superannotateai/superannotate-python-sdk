@@ -29,6 +29,7 @@ Usage:
     # Or use the convenience function
     classes = generate_classes_from_form(form_json)
 """
+
 import random
 from typing import Any
 from typing import Dict
@@ -313,6 +314,7 @@ class FormModel(BaseModel):
         excluded_components = {
             "button",
             "container",
+            "modal",
             "group",
             "divider",
             "grid",

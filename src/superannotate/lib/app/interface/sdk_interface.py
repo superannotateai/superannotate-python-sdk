@@ -17,6 +17,9 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+from pydantic import Field
+from pydantic import StringConstraints
+from typing_extensions import Annotated
 from typing_extensions import Literal
 
 if sys.version_info < (3, 11):
@@ -27,6 +30,8 @@ else:
 import boto3
 
 from tqdm import tqdm
+from pydantic import ValidationError
+from pydantic import TypeAdapter
 
 import lib.core as constants
 from lib.infrastructure.controller import Controller
@@ -61,10 +66,6 @@ from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
 from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
-from lib.core.pydantic_v1 import ValidationError
-from lib.core.pydantic_v1 import constr
-from lib.core.pydantic_v1 import conlist
-from lib.core.pydantic_v1 import parse_obj_as
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
@@ -80,7 +81,7 @@ from lib.core.entities import WMAnnotationClassEntity
 
 logger = logging.getLogger("sa")
 
-NotEmptyStr = constr(strict=True, min_length=1)
+NotEmptyStr = Annotated[str, StringConstraints(strict=True, min_length=1)]
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
@@ -297,8 +298,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def __init__(
         self,
-        token: str = None,
-        config_path: str = None,
+        token: Optional[str] = None,
+        config_path: Optional[str] = None,
     ):
         super().__init__(token, config_path)
 
@@ -1231,7 +1232,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             )
         if settings:
-            settings = parse_obj_as(List[SettingEntity], settings)
+            settings = TypeAdapter(List[SettingEntity]).validate_python(settings)
         else:
             settings = []
         if ProjectType(project_type) == ProjectType.MULTIMODAL:
@@ -1245,7 +1246,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             settings.append(SettingEntity(attribute="TemplateState", value=1))
         if classes:
-            classes = parse_obj_as(List[AnnotationClassEntity], classes)
+            classes = TypeAdapter(List[AnnotationClassEntity]).validate_python(classes)
         project_entity = entities.ProjectEntity(
             name=project_name,
             description=project_description,
@@ -1876,7 +1877,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = self.controller.projects.get_by_name(project_name).data
         settings = self.controller.projects.list_settings(project).data
         settings = [
-            SettingsSerializer(attribute.dict()).serialize() for attribute in settings
+            SettingsSerializer(attribute.model_dump()).serialize()
+            for attribute in settings
         ]
         return settings
 
@@ -2120,8 +2122,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_class["attribute_groups"] = attribute_groups
         try:
             # validate annotation class
-            annotation_class = WMAnnotationClassEntity.parse_obj(
-                BaseSerializer(annotation_class).serialize()
+            annotation_class = TypeAdapter(WMAnnotationClassEntity).validate_python(
+                BaseSerializer(
+                    TypeAdapter(AnnotationClassEntity).validate_python(annotation_class)
+                ).serialize(),
+                by_name=True,
             )
         except ValidationError as e:
             raise AppException(wrap_error(e))
@@ -2135,7 +2140,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-        return BaseSerializer(response.data).serialize(by_alias=False)
+        return BaseSerializer(response.data.model_dump(mode="python")).serialize(
+            by_alias=False, use_enum_names=False
+        )
 
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status
@@ -2679,7 +2686,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_exports(
         self,
         project: Union[NotEmptyStr, int],
-        exports: Union[List[int], List[str], Literal["*"]],
+        exports: Union[List[Union[int, str]], Literal["*"]],
     ):
         """Delete one or more exports from the specified project. The exports argument
         accepts a list of export names or export IDs. The special value “*” means delete all exports.
@@ -2985,7 +2992,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         attribute_groups = (
-            list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
+            list(map(lambda x: x.model_dump(), attribute_groups))
+            if attribute_groups
+            else []
         )
         try:
             annotation_class = AnnotationClassEntity(
@@ -3105,7 +3114,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 with open(classes_json, encoding="utf-8") as f:
                     classes_json = json.load(f)
         try:
-            annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+            annotation_classes = TypeAdapter(
+                List[AnnotationClassEntity]
+            ).validate_python(classes_json)
         except ValidationError as _:
             raise AppException("Couldn't validate annotation classes.")
         project = self.controller.projects.get_by_name(project).data
@@ -3767,7 +3778,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def add_contributors_to_project(
         self,
         project: NotEmptyStr,
-        emails: conlist(EmailStr, min_items=1),
+        emails: Annotated[List[EmailStr], Field(min_length=1)],
         role: str,
     ) -> Tuple[List[str], List[str]]:
         """Add contributors to project.
@@ -3802,7 +3813,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def invite_contributors_to_team(
-        self, emails: conlist(EmailStr, min_items=1), admin: bool = False
+        self,
+        emails: Annotated[List[EmailStr], Field(min_length=1)],
+        admin: bool = False,
     ) -> Tuple[List[str], List[str]]:
         """Invites contributors to the team.
 
@@ -3920,7 +3933,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of uploaded, skipped items
         :rtype: tuple (2 members) of lists of strs
         """
-        scores = parse_obj_as(List[PriorityScoreEntity], scores)
+        scores = TypeAdapter(List[PriorityScoreEntity]).validate_python(scores)
         project, folder = self.controller.get_project_folder(project)
         project_folder_name = project.name + "" if folder.is_root else f"/{folder.name}"
         response = self.controller.projects.upload_priority_scores(
@@ -4583,7 +4596,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def attach_items(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        attachments: Union[NotEmptyStr, Path, conlist(Attachment, min_items=1)],
+        attachments: Union[
+            NotEmptyStr, Path, Annotated[List[Attachment], Field(min_length=1)]
+        ],
         annotation_status: str = None,
     ):
         """
@@ -4635,7 +4650,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
 
         try:
-            attachments = parse_obj_as(List[AttachmentEntity], attachments)
+            attachments = TypeAdapter(List[AttachmentEntity]).validate_python(
+                attachments
+            )
             unique_attachments = set(attachments)
             duplicate_attachments = [
                 item
@@ -4649,7 +4666,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ) = get_name_url_duplicated_from_csv(attachments)
         if duplicate_attachments:
             logger.info("Dropping duplicates.")
-        unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
+        unique_attachments = TypeAdapter(List[AttachmentEntity]).validate_python(
+            unique_attachments
+        )
         uploaded, fails, duplicated = [], [], []
         _unique_attachments = []
 
@@ -5170,7 +5189,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def delete_custom_fields(
-        self, project: NotEmptyStr, fields: conlist(str, min_items=1)
+        self, project: NotEmptyStr, fields: Annotated[List[str], Field(min_length=1)]
     ):
         """Remove custom fields from a project’s custom metadata schema.
 
@@ -5228,7 +5247,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def upload_custom_values(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: conlist(Dict[str, dict], min_items=1),
+        items: Annotated[List[Dict[str, dict]], Field(min_length=1)],
     ):
         """
         Attach custom metadata to items.
@@ -5303,7 +5322,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_custom_values(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: conlist(Dict[str, List[str]], min_items=1),
+        items: Annotated[List[Dict[str, List[str]]], Field(min_length=1)],
     ):
         """
         Remove custom data from items

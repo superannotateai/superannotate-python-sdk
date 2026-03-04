@@ -12,14 +12,14 @@ from lib.core.enums import WMClassTypeEnum
 from lib.core.enums import WMGroupTypeEnum
 from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
-from lib.core.pydantic_v1 import BaseModel
-from lib.core.pydantic_v1 import Extra
-from lib.core.pydantic_v1 import Field
-from lib.core.pydantic_v1 import parse_datetime
-from lib.core.pydantic_v1 import root_validator
-from lib.core.pydantic_v1 import StrictInt
-from lib.core.pydantic_v1 import StrictStr
-from lib.core.pydantic_v1 import validator
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic import field_serializer
+from pydantic import field_validator
+from pydantic import model_validator
+from pydantic import StrictInt
+from pydantic import StrictStr
 
 
 class ProjectType(str, Enum):
@@ -52,125 +52,99 @@ class ProjectStatus(str, Enum):
         return self._name_
 
 
-class StringDate(datetime.datetime):
-    @classmethod
-    def __get_validators__(cls):
-        yield parse_datetime
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: datetime):
-        v = v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+def _validate_string_date_wm(v: datetime.datetime) -> str:
+    """Convert datetime to string format for WM entities."""
+    if isinstance(v, str):
         return v
+    return v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
 class WMProjectEntity(TimedBaseModel):
-    id: Optional[int]
-    team_id: Optional[int]
+    model_config = ConfigDict(extra="ignore")
+
+    id: Optional[int] = None
+    team_id: Optional[int] = None
     name: str
     type: ProjectType
-    description: Optional[str]
-    creator_id: Optional[str]
-    status: Optional[ProjectStatus]
-    workflow_id: Optional[int]
-    sync_status: Optional[int]
-    upload_state: Optional[str]
-    custom_fields: Optional[dict] = Field(dict(), alias="customField")
+    description: Optional[str] = None
+    creator_id: Optional[str] = None
+    status: Optional[ProjectStatus] = None
+    workflow_id: Optional[int] = None
+    sync_status: Optional[int] = None
+    upload_state: Optional[str] = None
+    custom_fields: Optional[dict] = Field(default_factory=dict, alias="customField")
 
-    @validator("custom_fields")
+    @field_validator("custom_fields", mode="before")
+    @classmethod
     def custom_fields_transformer(cls, v):
         if v and "custom_field_values" in v:
             return v.get("custom_field_values", {})
         return {}
-
-    class Config:
-        extra = Extra.ignore
-        use_enum_names = True
-
-        json_encoders = {
-            Enum: lambda v: v.value,
-            datetime.date: lambda v: v.isoformat(),
-            datetime.datetime: lambda v: v.isoformat(),
-        }
 
     def __eq__(self, other):
         return self.id == other.id
 
-    def json(self, **kwargs):
+    def model_dump_json(self, **kwargs):
         if "exclude" not in kwargs:
             kwargs["exclude"] = {"custom_fields"}
-        return super().json(**kwargs)
+        return super().model_dump_json(**kwargs)
 
 
 class WMUserEntity(TimedBaseModel):
-    id: Optional[int]
-    team_id: Optional[int]
+    model_config = ConfigDict(extra="ignore")
+
+    id: Optional[int] = None
+    team_id: Optional[int] = None
     role: WMUserTypeEnum
-    email: Optional[str]
-    state: Optional[WMUserStateEnum]
-    custom_fields: Optional[dict] = Field(dict(), alias="customField")
+    email: Optional[str] = None
+    state: Optional[WMUserStateEnum] = None
+    custom_fields: Optional[dict] = Field(default_factory=dict, alias="customField")
 
-    class Config:
-        extra = Extra.ignore
-        use_enum_names = True
-
-        json_encoders = {
-            Enum: lambda v: v.value,
-            datetime.date: lambda v: v.isoformat(),
-            datetime.datetime: lambda v: v.isoformat(),
-        }
-
-    @validator("custom_fields")
+    @field_validator("custom_fields", mode="before")
+    @classmethod
     def custom_fields_transformer(cls, v):
         if v and "custom_field_values" in v:
             return v.get("custom_field_values", {})
         return {}
 
-    def json(self, **kwargs):
+    def model_dump_json(self, **kwargs):
         if "exclude" not in kwargs:
             kwargs["exclude"] = {"custom_fields"}
-        return super().json(**kwargs)
+        return super().model_dump_json(**kwargs)
 
 
 class WMProjectUserEntity(TimedBaseModel):
-    id: Optional[int]
-    team_id: Optional[int]
-    role: Optional[int]
-    email: Optional[str]
-    state: Optional[WMUserStateEnum]
-    custom_fields: Optional[dict] = Field(dict(), alias="customField")
-    permissions: Optional[dict]
-    categories: Optional[List[dict]]
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
-        use_enum_names = True
+    id: Optional[int] = None
+    team_id: Optional[int] = None
+    role: Optional[int] = None
+    email: Optional[str] = None
+    state: Optional[WMUserStateEnum] = None
+    custom_fields: Optional[dict] = Field(default_factory=dict, alias="customField")
+    permissions: Optional[dict] = None
+    categories: Optional[List[dict]] = None
 
-        json_encoders = {
-            Enum: lambda v: v.value,
-            datetime.date: lambda v: v.isoformat(),
-            datetime.datetime: lambda v: v.isoformat(),
-        }
-
-    @validator("custom_fields")
+    @field_validator("custom_fields", mode="before")
+    @classmethod
     def custom_fields_transformer(cls, v):
         if v and "custom_field_values" in v:
             return v.get("custom_field_values", {})
         return {}
 
-    def json(self, **kwargs):
+    def model_dump_json(self, **kwargs):
         if "exclude" not in kwargs:
             kwargs["exclude"] = {"custom_fields"}
-        return super().json(**kwargs)
+        return super().model_dump_json(**kwargs)
 
 
 class WMScoreEntity(TimedBaseModel):
     id: int
     team_id: int
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     type: str
-    payload: Optional[dict]
+    payload: Optional[dict] = None
 
 
 class TelemetryScoreEntity(BaseModel):
@@ -180,74 +154,69 @@ class TelemetryScoreEntity(BaseModel):
     user_id: str
     user_role: str
     score_id: int
-    value: Optional[Any]
-    weight: Optional[float]
+    value: Optional[Any] = None
+    weight: Optional[float] = None
 
 
 class ScoreEntity(TimedBaseModel):
     id: int
     name: str
-    value: Optional[Any]
-    weight: Optional[float]
+    value: Optional[Any] = None
+    weight: Optional[float] = None
 
 
 class ScorePayloadEntity(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     component_id: str
-    value: Any
+    value: Any = None
     weight: Optional[Union[float, int]] = 1.0
 
-    class Config:
-        extra = Extra.forbid
-
-    @validator("weight", pre=True, always=True)
+    @field_validator("weight", mode="before")
+    @classmethod
     def validate_weight(cls, v):
         if v is not None and (not isinstance(v, (int, float)) or v <= 0):
             raise AppException("Please provide a valid number greater than 0")
         return v
 
-    @root_validator()
-    def check_weight_and_value(cls, values):
-        value = values.get("value")
-        weight = values.get("weight")
-        if (weight is None and value is not None) or (
-            weight is not None and value is None
+    @model_validator(mode="after")
+    def check_weight_and_value(self):
+        if (self.weight is None and self.value is not None) or (
+            self.weight is not None and self.value is None
         ):
             raise AppException("Weight and Value must both be set or both be None.")
-        return values
+        return self
 
 
 class WMAttribute(TimedBaseModel):
-    id: Optional[StrictInt]
-    group_id: Optional[StrictInt]
-    project_id: Optional[StrictInt]
-    name: Optional[StrictStr]
-    default: Any
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        extra = Extra.ignore
+    id: Optional[StrictInt] = None
+    group_id: Optional[StrictInt] = None
+    project_id: Optional[StrictInt] = None
+    name: Optional[StrictStr] = None
+    default: Any = None
 
     def __hash__(self):
         return hash(f"{self.id}{self.group_id}{self.name}")
 
 
 class WMAttributeGroup(TimedBaseModel):
-    id: Optional[StrictInt]
-    group_type: Optional[WMGroupTypeEnum]
-    class_id: Optional[StrictInt]
-    name: Optional[StrictStr]
-    isRequired: bool = Field(default=False, alias="is_required")
-    attributes: Optional[List[WMAttribute]]
-    default_value: Any
+    model_config = ConfigDict(extra="ignore")
 
-    class Config:
-        allow_population_by_field_name = True
-        extra = Extra.ignore
+    id: Optional[StrictInt] = None
+    group_type: Optional[WMGroupTypeEnum] = None
+    class_id: Optional[StrictInt] = None
+    name: Optional[StrictStr] = None
+    isRequired: bool = Field(default=False, alias="is_required")
+    attributes: Optional[List[WMAttribute]] = None
+    default_value: Any = None
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
 
-    @validator("group_type", pre=True)
-    def validate_group_type(cls, v):
+    @classmethod
+    def _serialize_group_type(cls, v: Optional[WMGroupTypeEnum], _info):
         if v is None:
             return v
         if isinstance(v, WMGroupTypeEnum):
@@ -264,48 +233,40 @@ class WMAttributeGroup(TimedBaseModel):
                 pass
         raise ValueError(f"Invalid group_type: {v}")
 
-    def dict(self, *args, **kwargs):
-        by_alias = kwargs.get("by_alias", False)
-        data = super().dict(*args, **kwargs)
+    @field_validator("group_type", mode="before")
+    @classmethod
+    def validate_group_type(cls, v):
+        return cls._serialize_group_type(v, None)
 
-        if by_alias and "group_type" in data:
-            if isinstance(data["group_type"], WMGroupTypeEnum):
-                data["group_type"] = data["group_type"].name
-        elif not by_alias and "group_type" in data:
-            if isinstance(data["group_type"], WMGroupTypeEnum):
-                data["group_type"] = data["group_type"].value
-        return data
+    @field_serializer("group_type", when_used="json")
+    def serialize_group_type(self, v: WMGroupTypeEnum):
+        return v.name
 
 
 class WMAnnotationClassEntity(TimedBaseModel):
-    id: Optional[StrictInt]
-    project_id: Optional[StrictInt]
+    model_config = ConfigDict(
+        extra="ignore", validate_assignment=True, arbitrary_types_allowed=True
+    )
+
+    id: Optional[StrictInt] = None
+    project_id: Optional[StrictInt] = None
     type: WMClassTypeEnum = WMClassTypeEnum.OBJECT
     name: StrictStr
     color: HexColor
     attribute_groups: List[WMAttributeGroup] = Field(
-        default=[], alias="attributeGroups"
+        default_factory=list, alias="attributeGroups"
     )
 
     def __hash__(self):
         return hash(f"{self.id}{self.type}{self.name}")
 
-    class Config:
-        allow_population_by_field_name = True
-        extra = Extra.ignore
-        json_encoders = {
-            HexColor: lambda v: v.__root__,
-            # WMClassTypeEnum: lambda v: v.name,
-        }
-        validate_assignment = True
+    @field_serializer("type")
+    def serialize_type(self, v: WMClassTypeEnum, _info):
+        # API expects lowercase enum values (object, tag, etc.)
+        return v.value
 
-    def dict(self, *args, **kwargs):
-        data = super().dict(*args, **kwargs)
-        if "type" in data and isinstance(data["type"], WMClassTypeEnum):
-            data["type"] = data["type"].value
-        return data
-
-    @validator("type", pre=True)
+    @field_validator("type", mode="before")
+    @classmethod
     def validate_type(cls, v):
         if isinstance(v, WMClassTypeEnum):
             return v

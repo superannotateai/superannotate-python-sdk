@@ -2,7 +2,6 @@ from lib.core.enums import CustomFieldType
 from lib.core.jsx_conditions import OperatorEnum
 from typing_extensions import Any
 
-
 FIELD_TYPE_SUPPORTED_OPERATIONS_MAPPING = {
     CustomFieldType.Text: [
         OperatorEnum.EQ,

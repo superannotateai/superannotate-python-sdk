@@ -28,7 +28,6 @@ from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from pydantic import ValidationError
 
-
 logger = logging.getLogger("sa")
 
 
@@ -279,9 +278,11 @@ class CreateProjectUseCase(BaseUseCase):
             > 0
         ):
             self._project.name = "".join(
-                "_"
-                if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                else char
+                (
+                    "_"
+                    if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                )
                 for char in self._project.name
             )
             logger.warning(
@@ -328,10 +329,10 @@ class CreateProjectUseCase(BaseUseCase):
             if self._service_provider.annotation_classes:
 
                 for annotation_class in self._project.classes:
-                    annotation_classes_mapping[
-                        annotation_class.id
-                    ] = self._service_provider.annotation_classes.create_multiple(
-                        entity, [annotation_class]
+                    annotation_classes_mapping[annotation_class.id] = (
+                        self._service_provider.annotation_classes.create_multiple(
+                            entity, [annotation_class]
+                        )
                     )
                 data["classes"] = self._project.classes
             logger.info(
@@ -420,9 +421,11 @@ class UpdateProjectUseCase(BaseUseCase):
                 > 0
             ):
                 self._project.name = "".join(
-                    "_"
-                    if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    else char
+                    (
+                        "_"
+                        if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                        else char
+                    )
                     for char in self._project.name
                 )
                 logger.warning(
@@ -517,7 +520,7 @@ class GetStepsUseCase(BaseUseCase):
                 data = []
                 steps = self._service_provider.projects.list_steps(self._project).data
                 for step in steps:
-                    step_data = step.dict()
+                    step_data = step.model_dump()
                     annotation_classes = self._service_provider.annotation_classes.list(
                         Condition("project_id", self._project.id, EQ)
                     ).data
@@ -778,7 +781,7 @@ class GetTeamUseCase(BaseUseCase):
             if not response.ok:
                 raise AppException(response.error)
             self._response.data = response.data
-        except Exception:
+        except Exception as e:
             raise AppException(
                 "Unable to retrieve team data. Please verify your credentials."
             ) from None
@@ -873,9 +876,11 @@ class AddContributorsToProject(BaseUseCase):
             to_skip = []
             to_add = []
             project_users = self._service_provider.work_management.list_users(
-                Filter("email", user_to_retrieve, OperatorEnum.IN)
-                if user_to_retrieve
-                else EmptyQuery(),
+                (
+                    Filter("email", user_to_retrieve, OperatorEnum.IN)
+                    if user_to_retrieve
+                    else EmptyQuery()
+                ),
                 include_custom_fields=True,
                 parent_entity=CustomFieldEntityEnum.PROJECT,
                 project_id=self._project.id,

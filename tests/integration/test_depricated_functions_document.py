@@ -10,7 +10,6 @@ from src.superannotate.lib.core import INVALID_PROJECT_TYPE_TO_PROCESS
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
 from src.superannotate.lib.core import ProjectType
 
-
 sa = SAClient()
 
 

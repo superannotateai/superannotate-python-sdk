@@ -1,6 +1,7 @@
 """
 Supervisely to SA conversion method
 """
+
 import json
 import logging
 import threading
@@ -92,9 +93,11 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
                     elif obj["geometryType"] == "bitmap":
                         for ppoints in _base64_to_polygon(obj["bitmap"]["data"]):
                             points = [
-                                x + obj["bitmap"]["origin"][0]
-                                if i % 2 == 0
-                                else x + obj["bitmap"]["origin"][1]
+                                (
+                                    x + obj["bitmap"]["origin"][0]
+                                    if i % 2 == 0
+                                    else x + obj["bitmap"]["origin"][1]
+                                )
                                 for i, x in enumerate(ppoints)
                             ]
                         instance_type = "polygon"
