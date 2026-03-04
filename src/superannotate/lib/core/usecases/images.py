@@ -800,9 +800,11 @@ class UploadImageToProject(BaseUseCase):
 
             s3_upload_response = UploadImageS3UseCase(
                 project=self._project,
-                image_path=self._image_name
-                if self._image_name
-                else Path(self._image_path).name,
+                image_path=(
+                    self._image_name
+                    if self._image_name
+                    else Path(self._image_path).name
+                ),
                 service_provider=self._service_provider,
                 image=image_bytes,
                 s3_repo=self.s3_repo,
@@ -1492,7 +1494,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             with open(json_path, "w") as f:
                 json.dump(data["annotation_json"], f, indent=4)
 
-            self._response.data = (str(json_path), "")
+            self._response.data = (str(json_path), None)
         return self._response
 
 

@@ -81,7 +81,7 @@ class TestSetApprovalStatuses(BaseTestCase):
     def test_set_invalid_approval_statuses(self):
         sa.attach_items(self.PROJECT_NAME, [ATTACHMENT_LIST[0]])
         with self.assertRaisesRegex(
-            AppException, "Input should be 'Approved', 'Disapproved' or None"
+            AppException, "Available values are 'Approved', 'Disapproved'."
         ):
             sa.set_approval_statuses(
                 self.PROJECT_NAME,

@@ -17,13 +17,11 @@ from lib.core.reporter import Reporter
 from lib.core.service_types import UploadAnnotations
 from lib.core.service_types import UploadAnnotationsResponse
 from lib.core.serviceproviders import BaseAnnotationService
+from lib.infrastructure.services.http_client import AIOHttpSession
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from lib.infrastructure.utils import annotation_is_valid
 from lib.infrastructure.utils import divide_to_chunks
-
 from pydantic import TypeAdapter
-
-from lib.infrastructure.services.http_client import AIOHttpSession
 
 logger = logging.getLogger("sa")
 
@@ -332,7 +330,9 @@ class AnnotationService(BaseAnnotationService):
             response.status = _response.status
             response._content = await _response.text()
             #  TODO add error handling
-            response.res_data = TypeAdapter(UploadAnnotations).validate_python(data_json)
+            response.res_data = TypeAdapter(UploadAnnotations).validate_python(
+                data_json
+            )
             return response
 
     async def upload_big_annotation(

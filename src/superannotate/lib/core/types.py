@@ -1,9 +1,9 @@
-from typing import Annotated
 from typing import Optional
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import StringConstraints
+from typing_extensions import Annotated
 
 NotEmptyStr = Annotated[str, StringConstraints(strict=True, min_length=1)]
 

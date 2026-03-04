@@ -1,6 +1,6 @@
 repos:
   - repo: 'https://github.com/asottile/reorder_python_imports'
-    rev: v3.13.0
+    rev: v3.16.0
     hooks:
       - id: reorder-python-imports
         exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
@@ -9,12 +9,12 @@ repos:
           - '--application-directories'
           - app
   - repo: 'https://github.com/python/black'
-    rev: 22.3.0
+    rev: 26.1.0
     hooks:
       - id: black
         name: Code Formatter (black)
   - repo: 'https://github.com/PyCQA/flake8'
-    rev: 6.1.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         exclude:  src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
@@ -23,7 +23,7 @@ repos:
           - '--max-line-length=120'
           - --ignore=D100,D203,D405,W503,E203,E501,F841,E126,E712,E123,E131,F821,E121,W605,E402
   - repo: 'https://github.com/asottile/pyupgrade'
-    rev: v2.4.3
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
         exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
@@ -31,7 +31,7 @@ repos:
         args:
           - '--py37-plus'
   - repo: 'https://github.com/PyCQA/doc8'
-    rev: v1.1.1
+    rev: v2.0.0
     hooks:
       - id: doc8
         name: doc8

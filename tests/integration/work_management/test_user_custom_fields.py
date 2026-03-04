@@ -7,7 +7,6 @@ from src.superannotate import SAClient
 from src.superannotate.lib.core.enums import CustomFieldEntityEnum
 from tests.integration.work_management.data_set import CUSTOM_FIELD_PAYLOADS
 
-
 sa = SAClient()
 
 

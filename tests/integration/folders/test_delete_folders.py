@@ -2,7 +2,6 @@ from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
-
 sa = SAClient()
 
 
@@ -34,7 +33,7 @@ class TestDeleteFolders(BaseTestCase):
 
         with self.assertRaisesRegex(AppException, "There is no folder to delete."):
             sa.delete_folders(self.PROJECT_NAME, [])
-        pattern = r"(\s+)folder_names(\s+)none is not an allowed value"
+        pattern = r"(\s+)folder_names(\s+)Input should be a valid list"
 
         with self.assertRaisesRegex(AppException, pattern):
             sa.delete_folders(self.PROJECT_NAME, None)  # noqa

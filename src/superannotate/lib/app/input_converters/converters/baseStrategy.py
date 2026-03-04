@@ -1,5 +1,5 @@
-"""
-"""
+""" """
+
 import logging
 
 from .coco_converters.coco_to_sa_vector import coco_instance_segmentation_to_sa_vector

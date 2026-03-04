@@ -1,6 +1,7 @@
 """
 Labelbox to SA conversion method
 """
+
 import logging
 import threading
 

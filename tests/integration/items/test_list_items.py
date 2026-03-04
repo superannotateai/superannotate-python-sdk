@@ -41,13 +41,9 @@ class TestListItems(BaseTestCase):
         assert len(items) == 100
 
     def test_invalid_filter(self):
-        with self.assertRaisesRegex(
-            AppException, "Invalid assignments role provided."
-        ):
+        with self.assertRaisesRegex(AppException, "Invalid assignments role provided."):
             sa.list_items(self.PROJECT_NAME, assignments__user_role__in=["Approved"])
-        with self.assertRaisesRegex(
-            AppException, "Invalid assignments role provided."
-        ):
+        with self.assertRaisesRegex(AppException, "Invalid assignments role provided."):
             sa.list_items(self.PROJECT_NAME, assignments__user_role="Dummy")
         with self.assertRaisesRegex(AppException, "Invalid status provided."):
             sa.list_items(self.PROJECT_NAME, annotation_status="Dummy")
@@ -137,3 +133,27 @@ class TestListItemsMultimodal(BaseTestCase):
             )
             == 1
         )
+
+
+class TestListItemsSpecialCharacters(BaseTestCase):
+    PROJECT_NAME = "TestListItemsSpecialCharacters"
+    PROJECT_DESCRIPTION = "TestSearchItems"
+    PROJECT_TYPE = "Vector"
+
+    def test_attach_and_list(self):
+        sa.attach_items(
+            self.PROJECT_NAME,
+            [
+                {"name": "1", "url": "url"},
+                {"name": "2", "url": "url"},
+                {"name": "1,2", "url": "url"},
+            ],
+        )
+        items = sa.list_items(self.PROJECT_NAME)
+        assert len(items) == 3
+        items = sa.list_items(self.PROJECT_NAME, name="1,2")
+        assert len(items) == 1
+        assert items[0]["name"] == "1,2"
+        annotations = sa.get_annotations(self.PROJECT_NAME, ["1,2"])
+        assert len(annotations) == 1
+        assert annotations[0]["metadata"]["name"] == "1,2"

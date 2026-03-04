@@ -54,8 +54,8 @@ from lib.core.usecases.items import AttachItems
 from lib.core.utils import run_async
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
-
 from pydantic import BaseModel
+from pydantic import ConfigDict
 
 logger = logging.getLogger("sa")
 
@@ -103,14 +103,13 @@ def log_report(
 
 
 class ItemToUpload(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     item: BaseItemEntity
     annotation_json: Optional[dict] = None
     path: Optional[str] = None
     file_size: Optional[int] = None
     mask: Optional[io.BytesIO] = None
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 def set_annotation_statuses_in_progress(
@@ -1973,9 +1972,9 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                     ] = annotation
                     valid_items_count += 1
                     if serialized_folder_name not in serialized_original_folder_map:
-                        serialized_original_folder_map[
-                            serialized_folder_name
-                        ] = folder_name
+                        serialized_original_folder_map[serialized_folder_name] = (
+                            folder_name
+                        )
                 else:
                     failed.append(annotation)
             logger.info(

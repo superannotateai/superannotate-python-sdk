@@ -5,7 +5,6 @@ from src.superannotate import AppException
 from src.superannotate.lib.core.service_types import ServiceResponse
 from superannotate import SAClient
 
-
 sa = SAClient()
 
 

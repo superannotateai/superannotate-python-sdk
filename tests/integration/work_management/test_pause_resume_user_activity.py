@@ -2,7 +2,6 @@ from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
-
 sa = SAClient()
 
 

@@ -28,7 +28,6 @@ from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from pydantic import ValidationError
 
-
 logger = logging.getLogger("sa")
 
 
@@ -279,9 +278,11 @@ class CreateProjectUseCase(BaseUseCase):
             > 0
         ):
             self._project.name = "".join(
-                "_"
-                if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                else char
+                (
+                    "_"
+                    if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                )
                 for char in self._project.name
             )
             logger.warning(
@@ -328,10 +329,10 @@ class CreateProjectUseCase(BaseUseCase):
             if self._service_provider.annotation_classes:
 
                 for annotation_class in self._project.classes:
-                    annotation_classes_mapping[
-                        annotation_class.id
-                    ] = self._service_provider.annotation_classes.create_multiple(
-                        entity, [annotation_class]
+                    annotation_classes_mapping[annotation_class.id] = (
+                        self._service_provider.annotation_classes.create_multiple(
+                            entity, [annotation_class]
+                        )
                     )
                 data["classes"] = self._project.classes
             logger.info(
@@ -420,9 +421,11 @@ class UpdateProjectUseCase(BaseUseCase):
                 > 0
             ):
                 self._project.name = "".join(
-                    "_"
-                    if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    else char
+                    (
+                        "_"
+                        if char in constants.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                        else char
+                    )
                     for char in self._project.name
                 )
                 logger.warning(
@@ -858,10 +861,13 @@ class AddContributorsToProject(BaseUseCase):
             for contributor in self._contributors:
                 role_email_map[contributor.role].append(contributor.email)
                 user_to_retrieve.append(contributor.email)
-
+            _filter = Filter(
+                "role", constants.UserRole.CONTRIBUTOR.value, OperatorEnum.EQ
+            )
+            if user_to_retrieve:
+                _filter &= Filter("email", user_to_retrieve, OperatorEnum.IN)
             users = self._service_provider.work_management.list_users(
-                Filter("role", constants.UserRole.CONTRIBUTOR.value, OperatorEnum.EQ)
-                & Filter("email", user_to_retrieve, OperatorEnum.IN),
+                _filter,
                 parent_entity=CustomFieldEntityEnum.TEAM,
             ).data
             for user in users:
@@ -869,9 +875,12 @@ class AddContributorsToProject(BaseUseCase):
 
             to_skip = []
             to_add = []
-
             project_users = self._service_provider.work_management.list_users(
-                Filter("email", user_to_retrieve, OperatorEnum.IN),
+                (
+                    Filter("email", user_to_retrieve, OperatorEnum.IN)
+                    if user_to_retrieve
+                    else EmptyQuery()
+                ),
                 include_custom_fields=True,
                 parent_entity=CustomFieldEntityEnum.PROJECT,
                 project_id=self._project.id,

@@ -271,7 +271,7 @@ class TestDeleteExports(BaseTestCase):
         with self.assertLogs("sa", level="INFO") as cm:
             sa.delete_exports(
                 self.PROJECT_NAME,
-                exports=[export1["name"], "invalid_name", 99999, export2["id"]],
+                exports=[export1["name"], "invalid_name", export2["name"]],
             )
             assert "Successfully removed 2 export(s)." in cm.output[0]
 

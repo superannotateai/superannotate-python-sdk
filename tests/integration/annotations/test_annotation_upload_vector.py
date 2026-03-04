@@ -10,7 +10,6 @@ import pytest
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
-
 sa = SAClient()
 
 

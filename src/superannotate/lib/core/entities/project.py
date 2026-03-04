@@ -1,11 +1,14 @@
-import datetime
 import uuid
-from typing import Annotated
 from typing import Any
 from typing import List
 from typing import Optional
 from typing import Union
 
+from lib.core.entities.base import TimedBaseModel
+from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.work_managament import WMProjectUserEntity
+from lib.core.enums import ProjectStatus
+from lib.core.enums import ProjectType
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
@@ -13,49 +16,14 @@ from pydantic import StrictBool
 from pydantic import StrictFloat
 from pydantic import StrictInt
 from pydantic import StrictStr
-from pydantic.functional_validators import BeforeValidator
-
-from lib.core.entities.classes import AnnotationClassEntity
-from lib.core.entities.work_managament import WMProjectUserEntity
-from lib.core.enums import BaseTitledEnum
-from lib.core.enums import ProjectStatus
-from lib.core.enums import ProjectType
-
-
-def _parse_string_date_project(v: Any) -> Optional[str]:
-    """Parse datetime to string format for project."""
-    if v is None:
-        return None
-    if isinstance(v, str):
-        return v
-    if isinstance(v, datetime.datetime):
-        return v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    try:
-        from dateutil.parser import parse
-
-        dt = parse(str(v))
-        return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    except Exception:
-        return str(v)
-
-
-StringDate = Annotated[Optional[str], BeforeValidator(_parse_string_date_project)]
-
-
-class TimedBaseModel(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    createdAt: StringDate = None
-    updatedAt: StringDate = None
 
 
 class AttachmentEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     name: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
     url: str
     integration: Optional[str] = None
     integration_id: Optional[int] = None
+    model_config = ConfigDict(extra="ignore")
 
     def __hash__(self):
         return hash(self.name)
@@ -82,7 +50,7 @@ class SettingEntity(BaseModel):
     id: Optional[int] = None
     project_id: Optional[int] = None
     attribute: str
-    value: Union[StrictStr, StrictInt, StrictFloat, StrictBool]  # todo set any
+    value: Union[StrictStr, StrictInt, StrictFloat, StrictBool, None] = None
 
     def __copy__(self):
         return SettingEntity(attribute=self.attribute, value=self.value)
@@ -102,7 +70,7 @@ class WorkflowEntity(TimedBaseModel):
 
 
 class ProjectEntity(TimedBaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", use_enum_values=False)
 
     id: Optional[int] = None
     team_id: Optional[int] = None
@@ -119,17 +87,15 @@ class ProjectEntity(TimedBaseModel):
     workflow: Optional[WorkflowEntity] = None
     sync_status: Optional[int] = None
     upload_state: Optional[int] = None
-    contributors: List[WMProjectUserEntity] = []
-    settings: List[SettingEntity] = []
-    classes: List[AnnotationClassEntity] = []
-    item_count: Optional[int] = Field(default=None, alias="imageCount")
-    completed_items_count: Optional[int] = Field(
-        default=None, alias="completedImagesCount"
-    )
+    contributors: List[WMProjectUserEntity] = Field(default_factory=list)
+    settings: List[SettingEntity] = Field(default_factory=list)
+    classes: List[AnnotationClassEntity] = Field(default_factory=list)
+    item_count: Optional[int] = Field(None, alias="imageCount")
+    completed_items_count: Optional[int] = Field(None, alias="completedImagesCount")
     root_folder_completed_items_count: Optional[int] = Field(
-        default=None, alias="rootFolderCompletedImagesCount"
+        None, alias="rootFolderCompletedImagesCount"
     )
-    custom_fields: dict = {}
+    custom_fields: dict = Field(default_factory=dict)
 
     def __copy__(self):
         return ProjectEntity(
@@ -161,11 +127,13 @@ class UserEntity(BaseModel):
 
 
 class TeamEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore", coerce_numbers_to_str=True)
 
     id: Optional[int] = None
     name: Optional[str] = None
     description: Optional[str] = None
+    type: Optional[str] = None
+    user_role: Optional[int] = None
     is_default: Optional[bool] = None
     users: Optional[List[UserEntity]] = None
     pending_invitations: Optional[List[Any]] = None

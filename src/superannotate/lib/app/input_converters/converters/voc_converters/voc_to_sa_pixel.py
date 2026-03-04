@@ -1,6 +1,7 @@
 """
 VOC to SA conversion method
 """
+
 import logging
 
 import cv2

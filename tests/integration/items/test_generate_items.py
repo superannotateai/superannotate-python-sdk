@@ -37,7 +37,7 @@ class TestGenerateItemsMM(TestCase):
 
     def tearDown(self) -> None:
         try:
-            projects = sa.list_projects(name=self.PROJECT_NAME)
+            projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
             for project in projects:
                 try:
                     sa.delete_project(project)

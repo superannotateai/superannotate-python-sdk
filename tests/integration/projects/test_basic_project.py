@@ -166,3 +166,14 @@ class TestProjectBasic(BaseTestCase):
             self.PROJECT_NAME, include_complete_item_count=True
         )
         assert metadata["completed_items_count"] == 4
+
+
+class TestProjectCreateSpecialCahrachters(BaseTestCase):
+    PROJECT_NAME = "TestWorkflowGet,TestWorkflowGet"
+    PROJECT_TYPE = "Vector"
+    PROJECT_DESCRIPTION = "DESCRIPTION"
+
+    def test_include_complete_image_count(self):
+        projects = sa.list_projects(name=self.PROJECT_NAME)
+        assert len(projects) == 1
+        assert projects[0]["name"] == self.PROJECT_NAME

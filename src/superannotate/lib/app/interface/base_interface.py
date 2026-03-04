@@ -12,8 +12,6 @@ from typing import Iterable
 from typing import Optional
 from typing import Sized
 
-from pydantic import ValidationError
-
 import lib.core as constants
 from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
@@ -25,13 +23,16 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.utils import extract_project_folder_inputs
 from lib.infrastructure.validators import wrap_error
 from mixpanel import Mixpanel
+from pydantic import ValidationError
 
 
 class BaseInterfaceFacade:
     REGISTRY = []
 
     @validate_arguments
-    def __init__(self, token: Optional[TokenStr] = None, config_path: Optional[str] = None):
+    def __init__(
+        self, token: Optional[TokenStr] = None, config_path: Optional[str] = None
+    ):
         try:
             if token:
                 config = ConfigEntity(SA_TOKEN=token)

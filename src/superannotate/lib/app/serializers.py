@@ -4,10 +4,9 @@ from typing import List
 from typing import Set
 from typing import Union
 
-from pydantic import BaseModel
-
 import lib.core as constance
 from lib.core.entities import BaseEntity
+from pydantic import BaseModel
 
 
 class BaseSerializer:
@@ -15,11 +14,20 @@ class BaseSerializer:
         self._entity = entity
 
     @staticmethod
-    def _fill_enum_values(data: dict):
+    def _fill_enum_values(data: dict, by_name: bool = True):
         if isinstance(data, dict):
             for key, value in data.items():
-                if isinstance(value, Enum):
-                    data[key] = value.name
+                if isinstance(value, list):
+                    for v in value:
+                        BaseSerializer._fill_enum_values(v, by_name)
+                elif isinstance(value, Enum):
+                    if by_name:
+                        data[key] = value.name
+                    else:
+                        data[key] = value.value
+        elif isinstance(data, list):
+            for val in data:
+                BaseSerializer._fill_enum_values(val, by_name)
         return data
 
     def serialize(
@@ -28,7 +36,8 @@ class BaseSerializer:
         by_alias: bool = True,
         flat: bool = False,
         exclude: Set[str] = None,
-        exclude_unset=False,
+        exclude_unset: bool = False,
+        use_enum_names: bool = True,
     ):
         return self._fill_enum_values(
             self._serialize(
@@ -38,7 +47,8 @@ class BaseSerializer:
                 flat,
                 exclude=exclude,
                 exclude_unset=exclude_unset,
-            )
+            ),
+            by_name=use_enum_names,
         )
 
     @staticmethod
@@ -69,7 +79,7 @@ class BaseSerializer:
                     include=fields, by_alias=by_alias, exclude=exclude, **kwargs
                 )
             return entity.model_dump(by_alias=by_alias, exclude=exclude, **kwargs)
-        return entity.to_dict()
+        return entity.model_dump()
 
     @classmethod
     def serialize_iterable(
@@ -91,8 +101,7 @@ class BaseSerializer:
         return serialized_data
 
 
-class TeamSerializer(BaseSerializer):
-    ...
+class TeamSerializer(BaseSerializer): ...  # noqa E701
 
 
 class ProjectSerializer(BaseSerializer):
@@ -116,7 +125,8 @@ class ProjectSerializer(BaseSerializer):
                 to_exclude[field] = True
         if self._entity.classes:
             self._entity.classes = [
-                i.model_dump(by_alias=True, exclude_unset=True) for i in self._entity.classes
+                i.model_dump(by_alias=True, exclude_unset=True)
+                for i in self._entity.classes
             ]
         data = super().serialize(fields, by_alias, flat, to_exclude)
         if data.get("settings"):
@@ -177,14 +187,13 @@ class SettingsSerializer:
         return self.data
 
 
-class ItemSerializer(BaseSerializer):
-    ...
+class ItemSerializer(BaseSerializer): ...  # noqa E701
 
 
 class EntitySerializer:
     @classmethod
     def serialize(
-        cls, data: Union[BaseModel, List[BaseModel]], **kwargs
+        cls, data: Union[BaseModel, List], **kwargs
     ) -> Union[List[dict], dict]:
         if isinstance(data, (list, set)):
             for idx, item in enumerate(data):

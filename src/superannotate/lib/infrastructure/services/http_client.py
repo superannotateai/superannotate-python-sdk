@@ -9,6 +9,7 @@ import threading
 import time
 import urllib.parse
 from contextlib import contextmanager
+from enum import Enum
 from functools import lru_cache
 from typing import Any
 from typing import Dict
@@ -18,29 +19,26 @@ from typing import Literal
 import aiohttp
 import requests
 from lib.core.exceptions import AppException
+from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Limit
 from lib.core.jsx_conditions import Offset
 from lib.core.jsx_conditions import Query
 from lib.core.service_types import ServiceResponse
+from lib.core.serviceproviders import BaseClient
 from pydantic import BaseModel
 from pydantic import TypeAdapter
 from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
 
-from lib.core.serviceproviders import BaseClient
-
 logger = logging.getLogger("sa")
-
-
-def parse_obj_as(type_, obj):
-    """Compatibility function for pydantic v1 parse_obj_as."""
-    return TypeAdapter(type_).validate_python(obj)
 
 
 class PydanticEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, BaseModel):
-            return json.loads(obj.model_dump_json(exclude_none=True))
+            return obj.model_dump(exclude_none=True, mode="json")
+        if isinstance(obj, Enum):
+            return obj.value
         return json.JSONEncoder.default(self, obj)
 
 
@@ -200,7 +198,7 @@ class HttpClient(BaseClient):
         if item_type:
             response = ServiceResponse(
                 status=_response.status,
-                res_data=parse_obj_as(List[item_type], total),
+                res_data=TypeAdapter(List[item_type]).validate_python(total),
             )
         else:
             response = ServiceResponse(
@@ -226,6 +224,8 @@ class HttpClient(BaseClient):
         total = []
 
         while True:
+            if body_query is None:
+                body_query = EmptyQuery()
             paginated_query = body_query & Limit(chunk_size) & Offset(offset)
             _response = self.request(
                 url=url,
@@ -250,7 +250,7 @@ class HttpClient(BaseClient):
         if item_type:
             response = ServiceResponse(
                 status=_response.status,
-                res_data=parse_obj_as(List[item_type], total),
+                res_data=TypeAdapter(List[item_type]).validate_python(total),
             )
         else:
             response = ServiceResponse(
@@ -272,9 +272,9 @@ class HttpClient(BaseClient):
         try:
             if not response.ok:
                 if response.status_code in (502, 504):
-                    data[
-                        "res_error"
-                    ] = "Our service is currently unavailable, please try again later."
+                    data["res_error"] = (
+                        "Our service is currently unavailable, please try again later."
+                    )
                     return content_type(**data)
                 else:
                     data_json = response.json()

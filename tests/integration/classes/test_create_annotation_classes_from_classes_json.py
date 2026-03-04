@@ -80,8 +80,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"
             with open(temp_path, "w") as new_classes:
-                new_classes.write(
-                    """
+                new_classes.write("""
                     [
                        {
                           "id":56820,
@@ -105,8 +104,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                        }
                     ]
 
-                    """
-                )
+                    """)
             msg = ""
             try:
                 sa.create_annotation_classes_from_classes_json(
@@ -123,8 +121,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"
             with open(temp_path, "w") as new_classes:
-                new_classes.write(
-                    """
+                new_classes.write("""
                     [
                        {
                           "id":56820,
@@ -148,8 +145,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                           ]
                        }
                     ]
-                    """
-                )
+                    """)
             with self.assertRaisesRegex(
                 AppException,
                 f"OCR attribute group is not supported for project type {self.PROJECT_TYPE}.",

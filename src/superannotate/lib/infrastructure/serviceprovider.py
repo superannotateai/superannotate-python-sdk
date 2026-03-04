@@ -345,9 +345,7 @@ class ServiceProvider(BaseServiceProvider):
             method="post",
             headers={
                 "x-sa-entity-context": base64.b64encode(
-                    f'{{"team_id":{self.client.team_id},"organization_id":"{org_id}"}}'.encode(
-                        "utf-8"
-                    )
+                    f'{{"team_id":{self.client.team_id},"organization_id":"{org_id}"}}'.encode()
                 ).decode()
             },
             data=data,

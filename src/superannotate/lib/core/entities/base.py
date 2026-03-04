@@ -1,18 +1,17 @@
 import re
 from datetime import datetime
 from typing import Annotated
-from typing import Any
 from typing import Literal
 from typing import Optional
 from typing import Union
 
+from lib.core import BACKEND_URL
+from lib.core import LOG_FILE_LOCATION
+from pydantic import AfterValidator
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
-from pydantic.functional_validators import BeforeValidator
-
-from lib.core import BACKEND_URL
-from lib.core import LOG_FILE_LOCATION
+from pydantic_extra_types.color import Color
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
@@ -22,26 +21,23 @@ DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 _missing = object()
 
 
-def _parse_string_date(v: Any) -> Optional[str]:
-    """Parse datetime to string format."""
-    if v is None:
-        return None
+def _validate_hex_color(v: str) -> str:
+    """Convert color to hex format."""
+    color = Color(v)
+    return "#{:02X}{:02X}{:02X}".format(*color.as_rgb_tuple()[:3])
+
+
+HexColor = Annotated[str, AfterValidator(_validate_hex_color)]
+
+
+def _validate_string_date(v: datetime) -> str:
+    """Convert datetime to string format."""
     if isinstance(v, str):
         return v
-    if isinstance(v, datetime):
-        return v.isoformat().split("+")[0] + ".000Z"
-    # Try to parse as datetime
-    try:
-        from dateutil.parser import parse
-
-        dt = parse(str(v))
-        return dt.isoformat().split("+")[0] + ".000Z"
-    except Exception:
-        return str(v)
+    return v.isoformat().split("+")[0] + ".000Z"
 
 
-# StringDate as Annotated type with BeforeValidator
-StringDate = Annotated[Optional[str], BeforeValidator(_parse_string_date)]
+StringDate = Annotated[datetime, AfterValidator(_validate_string_date)]
 
 
 class SubSetEntity(BaseModel):
@@ -52,35 +48,31 @@ class SubSetEntity(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    createdAt: StringDate = Field(
-        default=None, alias="createdAt", description="Date of creation"
+    createdAt: Optional[StringDate] = Field(
+        None, alias="createdAt", description="Date of creation"
     )
-    updatedAt: StringDate = Field(
-        default=None, alias="updatedAt", description="Update date"
+    updatedAt: Optional[StringDate] = Field(
+        None, alias="updatedAt", description="Update date"
     )
 
 
 class BaseItemEntity(TimedBaseModel):
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow")
 
     id: Optional[int] = None
     name: Optional[str] = None
     folder_id: Optional[int] = None
     path: Optional[str] = Field(
-        default=None, description="Item’s path in SuperAnnotate project"
+        None, description="Item’s path in SuperAnnotate project"
     )
-    url: Optional[str] = Field(
-        default=None, description="Publicly available HTTP address"
-    )
-    annotator_email: Optional[str] = Field(default=None, description="Annotator email")
-    qa_email: Optional[str] = Field(default=None, description="QA email")
+    url: Optional[str] = Field(None, description="Publicly available HTTP address")
+    annotator_email: Optional[str] = Field(None, description="Annotator email")
+    qa_email: Optional[str] = Field(None, description="QA email")
     annotation_status: Optional[Union[int, str]] = Field(
-        default=None, description="Item annotation status"
+        None, description="Item annotation status"
     )
     entropy_value: Optional[float] = Field(
-        default=None, description="Priority score of given item"
+        None, description="Priority score of given item"
     )
     custom_metadata: Optional[dict] = None
     assignments: Optional[list] = Field(default_factory=list)
@@ -104,22 +96,24 @@ class BaseItemEntity(TimedBaseModel):
         return entity
 
 
+TOKEN_PATTERN = re.compile(r"^[-.@_A-Za-z0-9]+=\d+$")
+
+
 def _validate_token(value: str) -> str:
-    """Validate token string format."""
-    token_regex = r"^[-.@_A-Za-z0-9]+=\d+$"
-    if not re.match(token_regex, value):
+    """Validate token format."""
+    if not TOKEN_PATTERN.match(value):
         raise ValueError("Invalid token.")
     return value
 
 
-# TokenStr as Annotated type for Pydantic v2 compatibility
-TokenStr = Annotated[str, BeforeValidator(_validate_token)]
+# Pydantic v2 compatible TokenStr using Annotated
+TokenStr = Annotated[str, AfterValidator(_validate_token)]
 
 
 class ConfigEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore")
 
-    API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
+    API_TOKEN: str = Field(alias="SA_TOKEN")
     API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
     LOGGING_LEVEL: Literal[
         "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"

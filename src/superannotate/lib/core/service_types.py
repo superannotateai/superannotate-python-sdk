@@ -4,10 +4,6 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
-
 from lib.core import entities
 from lib.core.entities.work_managament import TelemetryScoreEntity
 from lib.core.entities.work_managament import WMProjectEntity
@@ -15,6 +11,9 @@ from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
 
 
 class Limit(BaseModel):
@@ -33,29 +32,26 @@ class UserLimits(BaseModel):
 
 
 class UploadAnnotationAuthData(BaseModel):
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow")
 
-    access_key: str = Field(alias="accessKeyId")
-    secret_key: str = Field(alias="secretAccessKey")
-    session_token: str = Field(alias="sessionToken")
+    access_key: str = Field(..., alias="accessKeyId")
+    secret_key: str = Field(..., alias="secretAccessKey")
+    session_token: str = Field(..., alias="sessionToken")
     region: str
     bucket: str
     images: Dict[int, dict]
 
     def __init__(self, **data):
-        credentials = data.get("creds", {})
+        credentials = data["creds"]
         data.update(credentials)
-        if "creds" in data:
-            del data["creds"]
+        del data["creds"]
         super().__init__(**data)
 
 
 class UploadAnnotations(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore")
 
     class Resource(BaseModel):
-        model_config = ConfigDict(populate_by_name=True)
-
         classes: List[str] = Field(default_factory=list, alias="class")
         templates: List[str] = Field(default_factory=list, alias="template")
         attributes: List[str] = Field(default_factory=list, alias="attribute")
@@ -64,9 +60,7 @@ class UploadAnnotations(BaseModel):
         )
 
     failed_items: List[str] = Field(default_factory=list, alias="failedItems")
-    missing_resources: Resource = Field(
-        default_factory=Resource, alias="missingResources"
-    )
+    missing_resources: Optional[Resource] = Field(None, alias="missingResources")
 
 
 class UploadCustomFieldValues(BaseModel):
@@ -134,6 +128,10 @@ class ServiceResponse(BaseModel):
         return f"Status: {self.status_code}, Error {self.error}"
 
 
+class WMClassesResponse(ServiceResponse):
+    res_data: entities.WMAnnotationClassEntity = None
+
+
 class BaseItemResponse(ServiceResponse):
     res_data: entities.BaseItemEntity = None
 
@@ -175,11 +173,15 @@ class ModelListResponse(ServiceResponse):
 
 
 class _IntegrationResponse(ServiceResponse):
-    integrations: List[entities.IntegrationEntity] = []
+    integrations: List[entities.IntegrationEntity] = Field(default_factory=list)
 
 
 class IntegrationListResponse(ServiceResponse):
-    res_data: _IntegrationResponse
+    res_data: Optional[_IntegrationResponse] = None
+
+
+class AnnotationClassResponse(ServiceResponse):
+    res_data: entities.AnnotationClassEntity = None
 
 
 class AnnotationClassListResponse(ServiceResponse):

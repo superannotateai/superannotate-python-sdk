@@ -1,6 +1,7 @@
 """
 COCO to SA conversion method
 """
+
 import logging
 
 from .coco_api import _maskfrRLE

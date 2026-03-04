@@ -1,19 +1,17 @@
-from enum import Enum
 from typing import List
 from typing import Optional
 
+from lib.core.entities.base import TimedBaseModel
+from lib.core.enums import FolderStatus
+from lib.core.enums import WMUserStateEnum
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import model_validator
 
-from lib.core.entities.base import TimedBaseModel
-from lib.core.enums import FolderStatus
-from lib.core.enums import WMUserStateEnum
-
 
 class FolderUserEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore")
 
     email: Optional[str] = None
     id: Optional[int] = None
@@ -22,7 +20,7 @@ class FolderUserEntity(BaseModel):
 
 
 class FolderEntity(TimedBaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore")
 
     id: Optional[int] = None
     name: Optional[str] = None
@@ -33,7 +31,6 @@ class FolderEntity(TimedBaseModel):
     contributors: Optional[List[FolderUserEntity]] = Field(
         default_factory=list, alias="folderUsers"
     )
-
     completedCount: Optional[int] = None
 
     @model_validator(mode="before")

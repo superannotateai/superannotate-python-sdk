@@ -5,7 +5,6 @@ from src.superannotate import AppException
 from src.superannotate.lib.core.service_types import ServiceResponse
 from superannotate import SAClient
 
-
 sa = SAClient()
 
 
@@ -62,7 +61,7 @@ class TestSetFolderStatus(TestCase):
     def test_set_folder_status_via_invalid_status(self):
         with self.assertRaisesRegex(
             AppException,
-            "Available values are 'NotStarted', 'InProgress', 'Completed', 'OnHold'.",
+            "Input should be 'NotStarted', 'InProgress', 'Completed' or 'OnHold'",
         ):
             sa.set_folder_status(
                 project=self.PROJECT_NAME,

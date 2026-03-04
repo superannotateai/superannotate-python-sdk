@@ -17,6 +17,9 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+from pydantic import Field
+from pydantic import StringConstraints
+from typing_extensions import Annotated
 from typing_extensions import Literal
 
 if sys.version_info < (3, 11):
@@ -27,6 +30,8 @@ else:
 import boto3
 
 from tqdm import tqdm
+from pydantic import ValidationError
+from pydantic import TypeAdapter
 
 import lib.core as constants
 from lib.infrastructure.controller import Controller
@@ -56,14 +61,9 @@ from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
 from lib.core.enums import ImageQuality
 from lib.core.enums import CustomFieldEntityEnum
-from pydantic import TypeAdapter
-from pydantic import ValidationError
-
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
-from lib.core.pydantic_v1 import constr
-from lib.core.pydantic_v1 import conlist
 from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
@@ -71,21 +71,17 @@ from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapt
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
 from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
-
-
-def parse_obj_as(type_, obj):
-    """Compatibility function for pydantic v1 parse_obj_as."""
-    return TypeAdapter(type_).validate_python(obj)
 from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Join
 from lib.core.jsx_conditions import Fields
 from lib.core.entities.items import ProjectCategoryEntity
+from lib.core.entities import WMAnnotationClassEntity
 
 logger = logging.getLogger("sa")
 
-NotEmptyStr = constr(strict=True, min_length=1)
+NotEmptyStr = Annotated[str, StringConstraints(strict=True, min_length=1)]
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
@@ -302,8 +298,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def __init__(
         self,
-        token: str = None,
-        config_path: str = None,
+        token: Optional[str] = None,
+        config_path: Optional[str] = None,
     ):
         super().__init__(token, config_path)
 
@@ -1236,7 +1232,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             )
         if settings:
-            settings = parse_obj_as(List[SettingEntity], settings)
+            settings = TypeAdapter(List[SettingEntity]).validate_python(settings)
         else:
             settings = []
         if ProjectType(project_type) == ProjectType.MULTIMODAL:
@@ -1250,7 +1246,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             settings.append(SettingEntity(attribute="TemplateState", value=1))
         if classes:
-            classes = parse_obj_as(List[AnnotationClassEntity], classes)
+            classes = TypeAdapter(List[AnnotationClassEntity]).validate_python(classes)
         project_entity = entities.ProjectEntity(
             name=project_name,
             description=project_description,
@@ -1881,7 +1877,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = self.controller.projects.get_by_name(project_name).data
         settings = self.controller.projects.list_settings(project).data
         settings = [
-            SettingsSerializer(attribute.model_dump()).serialize() for attribute in settings
+            SettingsSerializer(attribute.model_dump()).serialize()
+            for attribute in settings
         ]
         return settings
 
@@ -1978,6 +1975,174 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data)
+
+    def get_annotation_class(
+        self,
+        project: Union[NotEmptyStr, int],
+        annotation_class: Union[NotEmptyStr, int],
+    ):
+        """Retrieves metadata of annotation class defined in a project, including their attribute groups and attributes.
+
+        :param project: The name or ID of the project
+        :type project: str or int
+
+        :param annotation_class: The name or ID of the annotation_class.
+        :type annotation_class: str or int
+
+        :return: Annotation class metadata
+        :rtype: dict
+
+        Request Example:
+        ::
+
+            classes = client.get_annotation_class(
+                          project="classes",
+                          annotation_class="Example_class"
+                     )
+        Response Example:
+        ::
+
+             {
+                "createdAt": "2026-01-19T10:18:33.000Z",
+                "updatedAt": "2026-01-21T10:53:13.000Z",
+                "id": 5780791,
+                "project_id": 1296086,
+                "type": "object",
+                "name": "Example Class",
+                "color": "#F9E0FA",
+                "attribute_groups": [
+                    {
+                        "id": 5623209,
+                        "group_type": "radio",
+                        "name": "Vehicle",
+                        "isRequired": False,
+                        "default_value": "Car",
+                        "attributes": [
+                            {"id": 11393039, "name": "Car", "default": 1},
+                            {"id": 11393040, "name": "Truck", "default": 0}
+                        ]
+                    }
+                ]
+            }
+
+
+        """
+        project = self.controller.get_project(project)
+        condition = Condition("project_id", project.id, EQ)
+
+        if isinstance(annotation_class, str):
+            key = "name"
+            condition &= Condition("name", annotation_class, EQ) & Condition(
+                "pattern", True, EQ
+            )
+        else:
+            key = "id"
+        response = self.controller.annotation_classes.list(condition)
+        if response.errors:
+            raise AppException(response.errors)
+        instance = next(
+            (_class for _class in response.data if _class[key] == annotation_class),
+            None,
+        )
+        if not instance:
+            raise AppException(f"Annotation class {annotation_class} not found")
+        return BaseSerializer.serialize_iterable([instance])[0]
+
+    def update_annotation_class(
+        self,
+        project: Union[NotEmptyStr, int],
+        name: NotEmptyStr,
+        attribute_groups: List[dict],
+    ):
+        """Updates an existing annotation class by submitting a full, updated attribute_groups payload.
+        You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values,
+        delete attribute groups, delete attribute values, update attribute group types, update default attributes,
+        and update the required state.
+
+        .. warning::
+            This operation replaces the entire attribute group structure of the annotation class.
+            Any attribute groups or attribute values omitted from the payload will be permanently removed.
+            Existing annotations that reference removed attribute groups or attributes will lose their associated values.
+
+        :param project: The name or ID of the project.
+        :type project: Union[str, int]
+
+        :param name: The name of the annotation class to update.
+        :type name: str
+
+        :param attribute_groups: The full list of attribute groups for the class.
+            Each attribute group may contain:
+
+            - id (optional, required for existing groups)
+            - group_type (required): "radio", "checklist", "text", "numeric", or "ocr"
+            - name (required)
+            - isRequired (optional)
+            - default_value (optional)
+            - attributes (required, list)
+
+            Each attribute may contain:
+
+            - id (optional, required for existing attributes)
+            - name (required)
+
+        :type attribute_groups: list of dicts
+
+        Request Example:
+        ::
+
+            # Retrieve existing annotation class
+            annotation_class = sa_client.get_annotation_classes(project="classes", annotation_class="test_class")
+
+            # Rename attribute value and add a new one
+            annotation_class["attribute_groups"][0]["attributes"][0]["name"] = "Brand Alpha"
+            annotation_class["attribute_groups"][0]["attributes"].append({"name": "Brand Beta"})
+
+            sa.update_annotation_classes(
+                project="test_set_folder_status",
+                name="test_class",
+                attribute_groups=annotation_class["attribute_groups"]
+            )
+
+        """
+        project = self.controller.get_project(project)
+
+        # Find the annotation class by nam
+        annotation_classes = self.controller.annotation_classes.list(
+            condition=Condition("project_id", project.id, EQ)
+        ).data
+
+        annotation_class = next(
+            (c for c in annotation_classes if c["name"] == name), None
+        )
+
+        if not annotation_class:
+            raise AppException("Annotation class not found in project.")
+
+        # Parse and validate attribute groups
+        annotation_class["attribute_groups"] = attribute_groups
+        try:
+            # validate annotation class
+            annotation_class = TypeAdapter(WMAnnotationClassEntity).validate_python(
+                BaseSerializer(
+                    TypeAdapter(AnnotationClassEntity).validate_python(annotation_class)
+                ).serialize(),
+                by_name=True,
+            )
+        except ValidationError as e:
+            raise AppException(wrap_error(e))
+
+        # Update the annotation class with new attribute groups
+
+        response = self.controller.annotation_classes.update(
+            project=project, annotation_class=annotation_class
+        )
+
+        if response.errors:
+            raise AppException(response.errors)
+
+        return BaseSerializer(response.data.model_dump(mode="python")).serialize(
+            by_alias=False, use_enum_names=False
+        )
 
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status
@@ -2521,7 +2686,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_exports(
         self,
         project: Union[NotEmptyStr, int],
-        exports: Union[List[int], List[str], Literal["*"]],
+        exports: Union[List[Union[int, str]], Literal["*"]],
     ):
         """Delete one or more exports from the specified project. The exports argument
         accepts a list of export names or export IDs. The special value “*” means delete all exports.
@@ -2827,7 +2992,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         attribute_groups = (
-            list(map(lambda x: x.model_dump(), attribute_groups)) if attribute_groups else []
+            list(map(lambda x: x.model_dump(), attribute_groups))
+            if attribute_groups
+            else []
         )
         try:
             annotation_class = AnnotationClassEntity(
@@ -2851,7 +3018,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize(exclude_unset=True)
+        return BaseSerializer(response.data).serialize(
+            exclude_unset=True, by_alias=False
+        )
 
     def delete_annotation_class(
         self, project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]
@@ -2945,7 +3114,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 with open(classes_json, encoding="utf-8") as f:
                     classes_json = json.load(f)
         try:
-            annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+            annotation_classes = TypeAdapter(
+                List[AnnotationClassEntity]
+            ).validate_python(classes_json)
         except ValidationError as _:
             raise AppException("Couldn't validate annotation classes.")
         project = self.controller.projects.get_by_name(project).data
@@ -3607,7 +3778,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def add_contributors_to_project(
         self,
         project: NotEmptyStr,
-        emails: conlist(EmailStr, min_items=1),
+        emails: Annotated[List[EmailStr], Field(min_length=1)],
         role: str,
     ) -> Tuple[List[str], List[str]]:
         """Add contributors to project.
@@ -3642,7 +3813,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def invite_contributors_to_team(
-        self, emails: conlist(EmailStr, min_items=1), admin: bool = False
+        self,
+        emails: Annotated[List[EmailStr], Field(min_length=1)],
+        admin: bool = False,
     ) -> Tuple[List[str], List[str]]:
         """Invites contributors to the team.
 
@@ -3760,7 +3933,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of uploaded, skipped items
         :rtype: tuple (2 members) of lists of strs
         """
-        scores = parse_obj_as(List[PriorityScoreEntity], scores)
+        scores = TypeAdapter(List[PriorityScoreEntity]).validate_python(scores)
         project, folder = self.controller.get_project_folder(project)
         project_folder_name = project.name + "" if folder.is_root else f"/{folder.name}"
         response = self.controller.projects.upload_priority_scores(
@@ -4423,7 +4596,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def attach_items(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        attachments: Union[NotEmptyStr, Path, conlist(Attachment, min_items=1)],
+        attachments: Union[
+            NotEmptyStr, Path, Annotated[List[Attachment], Field(min_length=1)]
+        ],
         annotation_status: str = None,
     ):
         """
@@ -4475,7 +4650,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
 
         try:
-            attachments = parse_obj_as(List[AttachmentEntity], attachments)
+            attachments = TypeAdapter(List[AttachmentEntity]).validate_python(
+                attachments
+            )
             unique_attachments = set(attachments)
             duplicate_attachments = [
                 item
@@ -4489,7 +4666,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ) = get_name_url_duplicated_from_csv(attachments)
         if duplicate_attachments:
             logger.info("Dropping duplicates.")
-        unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
+        unique_attachments = TypeAdapter(List[AttachmentEntity]).validate_python(
+            unique_attachments
+        )
         uploaded, fails, duplicated = [], [], []
         _unique_attachments = []
 
@@ -5010,7 +5189,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def delete_custom_fields(
-        self, project: NotEmptyStr, fields: conlist(str, min_items=1)
+        self, project: NotEmptyStr, fields: Annotated[List[str], Field(min_length=1)]
     ):
         """Remove custom fields from a project’s custom metadata schema.
 
@@ -5068,7 +5247,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def upload_custom_values(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: conlist(Dict[str, dict], min_items=1),
+        items: Annotated[List[Dict[str, dict]], Field(min_length=1)],
     ):
         """
         Attach custom metadata to items.
@@ -5143,7 +5322,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_custom_values(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: conlist(Dict[str, List[str]], min_items=1),
+        items: Annotated[List[Dict[str, List[str]]], Field(min_length=1)],
     ):
         """
         Remove custom data from items

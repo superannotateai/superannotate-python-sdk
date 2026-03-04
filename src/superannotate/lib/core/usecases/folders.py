@@ -63,9 +63,11 @@ class CreateFolderUseCase(BaseUseCase):
             > 0
         ):
             self._folder.name = "".join(
-                "_"
-                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                else char
+                (
+                    "_"
+                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                )
                 for char in self._folder.name
             )
             logger.warning(
@@ -180,9 +182,11 @@ class UpdateFolderUseCase(BaseUseCase):
             > 0
         ):
             self._folder.name = "".join(
-                "_"
-                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                else char
+                (
+                    "_"
+                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                )
                 for char in self._folder.name
             )
             logger.warning(

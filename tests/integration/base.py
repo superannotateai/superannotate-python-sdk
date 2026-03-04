@@ -2,7 +2,6 @@ from unittest import TestCase
 
 from src.superannotate import SAClient
 
-
 sa = SAClient()
 
 
@@ -24,7 +23,7 @@ class BaseTestCase(TestCase):
 
     def tearDown(self) -> None:
         try:
-            projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
+            projects = sa.list_projects(name=self.PROJECT_NAME)
             for project in projects:
                 try:
                     sa.delete_project(project)
