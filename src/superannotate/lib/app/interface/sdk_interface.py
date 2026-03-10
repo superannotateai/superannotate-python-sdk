@@ -1187,9 +1187,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         settings: List[Setting] = None,
         classes: List[AnnotationClassEntity] = None,
         workflows: Any = None,
-        instructions_link: str = None,
-        workflow: str = None,
-        form: dict = None,
+        instructions_link: Optional[str] = None,
+        workflow: Optional[str] = None,
+        form: Optional[dict] = None,
     ):
         """Creates a new project in the team. For Multimodal projects, you must provide a valid form object,
         which serves as a template determining the layout and behavior of the project's interface.
@@ -2054,15 +2054,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         name: NotEmptyStr,
         attribute_groups: List[dict],
     ):
-        """Updates an existing annotation class by submitting a full, updated attribute_groups payload.
-        You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values,
-        delete attribute groups, delete attribute values, update attribute group types, update default attributes,
-        and update the required state.
+        """
+        Updates an existing annotation class by submitting a full, updated attribute_groups payload. You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values, delete attribute groups, delete attribute values, update attribute group types, update default attributes, and update the required state.
+        This function does not support Multimodal projects.
 
-        .. warning::
-            This operation replaces the entire attribute group structure of the annotation class.
-            Any attribute groups or attribute values omitted from the payload will be permanently removed.
-            Existing annotations that reference removed attribute groups or attributes will lose their associated values.
+        Warning:
+        Use update_annotation_class() With Extreme Caution
+        The update_annotation_class() method replaces the entire attribute group structure of the annotation class.
+        Any attribute group or attribute group ID not included in the payload will be permanently deleted.
+        Any attribute value or attribute ID not included in the payload will be permanently deleted.
+        Existing annotations that reference removed attribute groups or attributes will lose their associated values.
+
+        This action cannot be undone.
 
         :param project: The name or ID of the project.
         :type project: Union[str, int]
@@ -2090,18 +2093,69 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            # Retrieve existing annotation class
-            annotation_class = sa_client.get_annotation_classes(project="classes", annotation_class="test_class")
+            annotation_class = sa_client.get_annotation_class(project='classes', annotation_class="Example Class")
+            attribute_groups = annotation_class["attribute_groups"]
 
-            # Rename attribute value and add a new one
-            annotation_class["attribute_groups"][0]["attributes"][0]["name"] = "Brand Alpha"
-            annotation_class["attribute_groups"][0]["attributes"].append({"name": "Brand Beta"})
+            # Add a NEW Attribute to Existing Group
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["attributes"].append({
+                        "name": "blue"
+                    })
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
 
-            sa.update_annotation_classes(
-                project="test_set_folder_status",
-                name="test_class",
-                attribute_groups=annotation_class["attribute_groups"]
-            )
+            # Rename the Existing Attribute
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    for attr in group["attributes"]:
+                        if attr["id"] == 11394966:
+                            attr["name"] = "yellow"
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Rename the Attribute Group
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                group["name"] = "color"
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Add a Completely New Attribute Group
+            attribute_groups.append({
+                "group_type": "text",
+                "name": "comment",
+                "isRequired": False,
+                "attributes": []
+            })
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Delete the Attribute Group
+            attribute_groups = [group for group in attribute_groups if group["id"] != 5659666]
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Delete the Attribute
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["attributes"] = [attr for attr in group["attributes"]if attr["id"] != 11394966]
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Set Default Value
+            for group in attribute_groups:
+                if group["id"] == 5624734:  # color group
+                    for attr in group["attributes"]:
+                        if attr["id"] == 11438900:
+                            attr["default"] = 1
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Make Group Required
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["isRequired"] = True
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+            # Change Group Type (Multiple Selection (Checklist) → Single Selection (Radio))
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["group_type"] = "radio"
+                    group["default_value"] = None  # radio requires single default or None
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
 
         """
         project = self.controller.get_project(project)
