@@ -205,7 +205,7 @@ class WMAttributeGroup(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: Optional[StrictInt] = None
-    group_type: Optional[WMGroupTypeEnum] = None
+    group_type: WMGroupTypeEnum
     class_id: Optional[StrictInt] = None
     name: Optional[StrictStr] = None
     isRequired: bool = Field(default=False, alias="is_required")

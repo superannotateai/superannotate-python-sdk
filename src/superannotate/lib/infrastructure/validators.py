@@ -65,13 +65,55 @@ def get_tabulation() -> int:
         return 48
 
 
+def _is_pydantic_internal_loc(loc_part: typing.Any) -> bool:
+    """
+    Check if a location part is a Pydantic v2 internal type descriptor.
+    These are not human-readable and should be filtered out.
+    Examples of internal descriptors:
+    - 'constrained-str'
+    - 'lax-or-strict[...]'
+    - 'list[SomeModel]'
+    - 'json-or-python[...]'
+    - 'function-after[...]'
+    - 'union[...]'
+    """
+    if not isinstance(loc_part, str):
+        return False
+    # These patterns indicate internal Pydantic type descriptors
+    internal_patterns = (
+        "constrained-",
+        "lax-or-strict[",
+        "json-or-python[",
+        "function-after[",
+        "function-before[",
+        "function-wrap[",
+        "union[",
+        "is-instance[",
+    )
+    if loc_part.startswith(internal_patterns):
+        return True
+    # Also filter out patterns like 'list[Model]' or 'dict[str, Model]'
+    # but keep simple field names
+    if "[" in loc_part and "]" in loc_part:
+        # Check if it looks like a type descriptor (e.g., 'list[Attachment]')
+        # rather than a field name
+        return True
+    return False
+
+
 def wrap_error(e: ValidationError) -> str:
     tabulation = get_tabulation()
     error_messages = defaultdict(list)
     for error in e.errors():
-        errors_list = (
-            list(error["loc"])[:-1] if len(error["loc"]) > 1 else list(error["loc"])
-        )
+        error_loc = list(error["loc"])
+        # Filter out Pydantic v2 internal type descriptors
+        error_loc = [loc for loc in error_loc if not _is_pydantic_internal_loc(loc)]
+        if len(error_loc) == 0:
+            continue
+        if len(error_loc) == 1 and isinstance(error_loc[0], int):
+            errors_list = [f"argument at index {error_loc[0]}"]
+        else:
+            errors_list = list(error_loc)
         if "__root__" in errors_list:
             errors_list.remove("__root__")
         errors_list[1::] = [

@@ -11,6 +11,7 @@ from pydantic import AfterValidator
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import PlainSerializer
 from pydantic_extra_types.color import Color
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
@@ -37,7 +38,20 @@ def _validate_string_date(v: datetime) -> str:
     return v.isoformat().split("+")[0] + ".000Z"
 
 
-StringDate = Annotated[datetime, AfterValidator(_validate_string_date)]
+def _serialize_string_date(v) -> str:
+    """Serialize datetime or string to string format."""
+    if isinstance(v, str):
+        return v
+    if isinstance(v, datetime):
+        return v.isoformat().split("+")[0] + ".000Z"
+    return v
+
+
+StringDate = Annotated[
+    datetime,
+    AfterValidator(_validate_string_date),
+    PlainSerializer(_serialize_string_date, return_type=str),
+]
 
 
 class SubSetEntity(BaseModel):

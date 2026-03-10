@@ -90,7 +90,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
     def test_create_project_with_wrong_type(self):
         with self.assertRaisesRegex(
             AppException,
-            "Input should be 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'",
+            "Input should be 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud' or 'Multimodal'",
         ):
             sa.create_project(self.PROJECT, "desc", "wrong_type")
 

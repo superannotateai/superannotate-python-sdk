@@ -175,21 +175,21 @@ class CLITest(TestCase):
         self.safe_run(
             self._cli.attach_video_urls, self.PROJECT_NAME, str(self.video_csv_path)
         )
-        self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
+        self.assertEqual(3, len(sa.list_items(self.PROJECT_NAME)))
 
     def test_upload_videos(self):
         self._create_project()
         self.safe_run(
             self._cli.upload_videos, self.PROJECT_NAME, str(self.video_folder_path)
         )
-        self.assertEqual(121, len(sa.search_items(self.PROJECT_NAME)))
+        self.assertEqual(121, len(sa.list_items(self.PROJECT_NAME)))
 
     def test_attach_document_urls(self):
         self._create_project("Document")
         self.safe_run(
             self._cli.attach_document_urls, self.PROJECT_NAME, str(self.video_csv_path)
         )
-        self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
+        self.assertEqual(3, len(sa.list_items(self.PROJECT_NAME)))
 
     def test_init(self):
         _token = "asd=123"

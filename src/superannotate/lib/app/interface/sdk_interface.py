@@ -2105,7 +2105,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         """
         project = self.controller.get_project(project)
-
+        if project.type == ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is not supported for Multimodal projects."
+            )
         # Find the annotation class by nam
         annotation_classes = self.controller.annotation_classes.list(
             condition=Condition("project_id", project.id, EQ)
@@ -3006,6 +3009,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         except ValidationError as e:
             raise AppException(wrap_error(e))
         project = self.controller.get_project(project)
+        if project.type == ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is not supported for Multimodal projects."
+            )
         if (
             project.type != ProjectType.DOCUMENT
             and annotation_class.type == ClassTypeEnum.RELATIONSHIP
