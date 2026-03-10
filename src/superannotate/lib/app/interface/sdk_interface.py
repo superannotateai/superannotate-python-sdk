@@ -2794,7 +2794,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         target_fps: Optional[int] = None,
         start_time: Optional[float] = 0.0,
         end_time: Optional[float] = None,
-        annotation_status: str = None,
+        annotation_status: Optional[str] = None,
         image_quality_in_editor: Optional[IMAGE_QUALITY] = None,
     ):
         """Uploads image frames from all videos with given extensions from folder_path to the project.
@@ -3361,7 +3361,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
         annotations: List[dict],
-        keep_status: bool = None,
+        keep_status: Optional[bool] = None,
         *,
         data_spec: Literal["default", "multimodal"] = "default",
     ):
@@ -4221,7 +4221,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
         name_contains: NotEmptyStr = None,
-        annotation_status: str = None,
+        annotation_status: Optional[str] = None,
         annotator_email: Optional[NotEmptyStr] = None,
         qa_email: Optional[NotEmptyStr] = None,
         recursive: bool = False,
@@ -4660,7 +4660,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         attachments: Union[
             NotEmptyStr, Path, Annotated[List[Attachment], Field(min_length=1)]
         ],
-        annotation_status: str = None,
+        annotation_status: Optional[str] = None,
     ):
         """
         Link items from external storage to SuperAnnotate using URLs.
@@ -5028,10 +5028,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def download_annotations(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        path: Union[str, Path] = None,
+        path: Optional[Union[str, Path]] = None,
         items: Optional[List[NotEmptyStr]] = None,
         recursive: bool = False,
-        callback: Callable = None,
+        callback: Optional[Callable] = None,
         data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Downloads annotation JSON files of the selected items to the local directory.
