@@ -1999,6 +1999,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                           project="classes",
                           annotation_class="Example_class"
                      )
+
         Response Example:
         ::
 
@@ -2074,19 +2075,36 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type name: str
 
         :param attribute_groups: The full list of attribute groups for the class.
+
             Each attribute group may contain:
 
-            - id (optional, required for existing groups)
-            - group_type (required): "radio", "checklist", "text", "numeric", or "ocr"
-            - name (required)
-            - isRequired (optional)
-            - default_value (optional)
-            - attributes (required, list)
+            ::
+
+                * id (optional, required for existing groups)
+                * group_type (required)
+                * name (required)
+                * isRequired (optional)
+                * default_value (optional)
+                * attributes (list, required for Single and Multiple selection)
 
             Each attribute may contain:
+            ::
 
-            - id (optional, required for existing attributes)
-            - name (required)
+                * id (optional, required for existing attributes)
+                * name (required)
+
+            The values for the group_type key are:
+            ::
+
+                * radio (Single selection)
+                * checklist (Multiple selection)
+                * text (Text input)
+                * numeric (Numeric input)
+                * ocr (OCR input)
+
+            The ocr key is only available for Vector projects.
+
+
 
         :type attribute_groups: list of dicts
 
