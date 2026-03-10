@@ -2058,7 +2058,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Updates an existing annotation class by submitting a full, updated attribute_groups payload. You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values, delete attribute groups, delete attribute values, update attribute group types, update default attributes, and update the required state.
         This function does not support Multimodal projects.
 
-        Warning:
+        .. warning::
         Use update_annotation_class() With Extreme Caution
         The update_annotation_class() method replaces the entire attribute group structure of the annotation class.
         Any attribute group or attribute group ID not included in the payload will be permanently deleted.
