@@ -2059,13 +2059,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         This function does not support Multimodal projects.
 
         .. warning::
-        Use update_annotation_class() With Extreme Caution
-        The update_annotation_class() method replaces the entire attribute group structure of the annotation class.
-        Any attribute group or attribute group ID not included in the payload will be permanently deleted.
-        Any attribute value or attribute ID not included in the payload will be permanently deleted.
-        Existing annotations that reference removed attribute groups or attributes will lose their associated values.
+            Use update_annotation_class() With Extreme Caution
+            The update_annotation_class() method replaces the entire attribute group structure of the annotation class.
+            Any attribute group or attribute group ID not included in the payload will be permanently deleted.
+            Any attribute value or attribute ID not included in the payload will be permanently deleted.
+            Existing annotations that reference removed attribute groups or attributes will lose their associated values.
 
-        This action cannot be undone.
+            This action cannot be undone.
 
         :param project: The name or ID of the project.
         :type project: Union[str, int]
