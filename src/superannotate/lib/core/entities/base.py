@@ -31,15 +31,21 @@ def _validate_hex_color(v: str) -> str:
 HexColor = Annotated[str, AfterValidator(_validate_hex_color)]
 
 
-def _validate_string_date(v: datetime) -> str:
-    """Convert datetime to string format."""
+def _validate_string_date(v: Union[datetime, str]) -> str:
+    """Convert datetime to string format. For case data output."""
     if isinstance(v, str):
-        return v
-    return v.isoformat().split("+")[0] + ".000Z"
+        try:
+            dt = datetime.fromisoformat(v.replace("Z", "+00:00"))
+            return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        except (ValueError, AttributeError):
+            return v
+    elif isinstance(v, datetime):
+        return v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    return v
 
 
-def _serialize_string_date(v) -> str:
-    """Serialize datetime or string to string format."""
+def _serialize_string_date(v: Union[datetime, str]) -> str:
+    """Serialize datetime or string to string format. For case data input."""
     if isinstance(v, str):
         return v
     if isinstance(v, datetime):
@@ -127,7 +133,7 @@ TokenStr = Annotated[str, AfterValidator(_validate_token)]
 class ConfigEntity(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    API_TOKEN: str = Field(alias="SA_TOKEN")
+    API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
     API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
     LOGGING_LEVEL: Literal[
         "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
