@@ -2,6 +2,10 @@ import typing
 from enum import Enum
 from types import DynamicClassAttribute
 
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
+from pydantic_core import PydanticCustomError
+
 
 class classproperty:  # noqa
     def __init__(self, getter):
@@ -32,6 +36,47 @@ class BaseTitledEnum(int, Enum):
 
     def __unicode__(self):
         return self.__doc__
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
+        """Customize Pydantic v2 validation to show titles in error messages."""
+        return core_schema.no_info_after_validator_function(
+            cls._validate,
+            core_schema.union_schema(
+                [
+                    core_schema.is_instance_schema(cls),
+                    core_schema.int_schema(),
+                    core_schema.str_schema(),
+                ]
+            ),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda x: x.value if isinstance(x, cls) else x, when_used="json"
+            ),
+        )
+
+    @classmethod
+    def _validate(cls, value):
+        """Validate and convert value to enum member."""
+        if isinstance(value, cls):
+            return value
+
+        # Try to find by value
+        if isinstance(value, int):
+            for enum in cls:
+                if enum.value == value:
+                    return enum
+
+        # Try to find by title or name
+        if isinstance(value, str):
+            for enum in cls:
+                if enum.__doc__ and enum.__doc__.lower() == value.lower():
+                    return enum
+            if value in cls.__members__:
+                return cls.__members__[value]
+
+        # Build error message with titles
+        available = ", ".join(f"{enum.__doc__.lower()}" for enum in cls if enum.__doc__)
+        raise PydanticCustomError("enum", f"Input should be: {available}")
 
     @classmethod
     def choices(cls) -> typing.Tuple[str]:

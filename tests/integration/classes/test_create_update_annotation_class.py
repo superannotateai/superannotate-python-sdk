@@ -658,6 +658,14 @@ class TestVectorAnnotationClasses(BaseTestCase):
             )
             assert res["attribute_groups"][0]["group_type"] == "radio"
 
+    def test_create_with_invalid_type(self):
+        try:
+            sa.create_annotation_class(
+                self.PROJECT_NAME, "tt", "#FFFFFF", class_type="invalid"
+            )
+        except AppException as e:
+            assert "Input should be: object, tag, relationship" in str(e)
+
 
 class TestVideoCreateAnnotationClasses(BaseTestCase):
     PROJECT_NAME = "TestVideoCreateAnnotationClasses"

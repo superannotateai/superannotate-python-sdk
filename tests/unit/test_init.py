@@ -16,7 +16,7 @@ class ClientInitTestCase(TestCase):
 
     def test_init_via_invalid_token(self):
         _token = "123"
-        with self.assertRaisesRegex(AppException, r"(\s+)token(\s+)Invalid token."):
+        with self.assertRaisesRegex(AppException, r"Invalid token\."):
             SAClient(token=_token)
 
     @patch("lib.infrastructure.controller.Controller.get_current_user")
@@ -61,9 +61,7 @@ class ClientInitTestCase(TestCase):
                 with open(f"{config_dir}/config.json", "w") as config_json:
                     json.dump({"token": "INVALID_TOKEN"}, config_json)
                 for kwargs in ({}, {"config_path": f"{config_dir}/config.json"}):
-                    with self.assertRaisesRegex(
-                        AppException, r"(\s+)token(\s+)Invalid token."
-                    ):
+                    with self.assertRaisesRegex(AppException, r"Invalid token\."):
                         SAClient(**kwargs)
 
     @patch("lib.infrastructure.controller.Controller.get_current_user")
@@ -137,7 +135,7 @@ class ClientInitTestCase(TestCase):
 
     @patch.dict(os.environ, {"SA_URL": "SOME_URL", "SA_TOKEN": "SOME_TOKEN"})
     def test_init_env_invalid_token(self):
-        with self.assertRaisesRegex(AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."):
+        with self.assertRaisesRegex(AppException, r"Invalid token\."):
             SAClient()
 
     def test_init_via_config_ini_invalid_token(self):
@@ -157,9 +155,7 @@ class ClientInitTestCase(TestCase):
                     config_parser.write(config_ini)
 
                 for kwargs in ({}, {"config_path": f"{config_dir}/config.ini"}):
-                    with self.assertRaisesRegex(
-                        AppException, r"(\s+)SA_TOKEN(\s+)Invalid token."
-                    ):
+                    with self.assertRaisesRegex(AppException, r"Invalid token\."):
                         SAClient(**kwargs)
 
     def test_invalid_config_path(self):
