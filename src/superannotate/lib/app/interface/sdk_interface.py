@@ -150,9 +150,9 @@ class ItemContext:
         self.item = item
         self._annotation_adapter: Optional[BaseMultimodalAnnotationAdapter] = None
         self._overwrite = overwrite
-        self._annotation = None
+        self._annotation: Optional[dict] = None
 
-    def _set_small_annotation_adapter(self, annotation: dict = None):
+    def _set_small_annotation_adapter(self, annotation: Optional[dict] = None):
         self._annotation_adapter = MultimodalSmallAnnotationAdapter(
             project=self.project,
             folder=self.folder,
@@ -162,7 +162,7 @@ class ItemContext:
             annotation=annotation,
         )
 
-    def _set_large_annotation_adapter(self, annotation: dict = None):
+    def _set_large_annotation_adapter(self, annotation: Optional[dict] = None):
         self._annotation_adapter = MultimodalLargeAnnotationAdapter(
             project=self.project,
             folder=self.folder,
@@ -341,7 +341,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project_id: int,
         item_id: int,
-        include: List[Literal["custom_metadata", "categories"]] = None,
+        include: Optional[List[Literal["custom_metadata", "categories"]]] = None,
     ):
         """Returns the item metadata
 
@@ -396,7 +396,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         return BaseSerializer(item).serialize(exclude={"url", "meta"}, by_alias=False)
 
-    def get_team_metadata(self, include: List[Literal["scores"]] = None):
+    def get_team_metadata(self, include: Optional[List[Literal["scores"]]] = None):
         """
         Returns team metadata, including optionally, scores.
 
@@ -421,7 +421,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return TeamSerializer(team).serialize(exclude_unset=True)
 
     def get_user_metadata(
-        self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
+        self,
+        pk: Union[int, str],
+        include: Optional[List[Literal["custom_fields"]]] = None,
     ):
         """
         Returns user metadata including optionally, custom fields
@@ -514,8 +516,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def list_users(
         self,
         *,
-        project: Union[NotEmptyStr, int] = None,
-        include: List[Literal["custom_fields", "categories"]] = None,
+        project: Optional[Union[NotEmptyStr, int]] = None,
+        include: Optional[List[Literal["custom_fields", "categories"]]] = None,
         **filters,
     ):
         """
@@ -1074,9 +1076,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def search_team_contributors(
         self,
-        email: EmailStr = None,
-        first_name: NotEmptyStr = None,
-        last_name: NotEmptyStr = None,
+        email: Optional[EmailStr] = None,
+        first_name: Optional[NotEmptyStr] = None,
+        last_name: Optional[NotEmptyStr] = None,
         return_metadata: bool = True,
     ):
         """Search for contributors in the team
@@ -1184,9 +1186,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name: NotEmptyStr,
         project_description: NotEmptyStr,
         project_type: PROJECT_TYPE,
-        settings: List[Setting] = None,
-        classes: List[AnnotationClassEntity] = None,
-        workflows: Any = None,
+        settings: Optional[List[Setting]] = None,
+        classes: Optional[List[AnnotationClassEntity]] = None,
+        workflows: Optional[Any] = None,
         instructions_link: Optional[str] = None,
         workflow: Optional[str] = None,
         form: Optional[dict] = None,
@@ -3250,7 +3252,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, dict],
         steps: List[dict],
-        connections: List[List[int]] = None,
+        connections: Optional[List[List[int]]] = None,
     ):
         """Sets project's steps.
 
@@ -3545,7 +3547,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_json: Union[str, Path, dict],
         mask: Optional[Union[str, Path, bytes]] = None,
         verbose: Optional[bool] = True,
-        keep_status: bool = None,
+        keep_status: Optional[bool] = None,
     ):
         """Upload annotations from JSON
         to the image.
@@ -3654,7 +3656,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         img,
         image_name: Optional[NotEmptyStr] = None,
         annotation_status: Optional[str] = None,
-        from_s3_bucket=None,
+        from_s3_bucket: Optional[str] = None,
         image_quality_in_editor: Optional[NotEmptyStr] = None,
     ):
         """Uploads image (io.BytesIO() or filepath to image) to project.
@@ -4238,7 +4240,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def search_items(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        name_contains: NotEmptyStr = None,
+        name_contains: Optional[NotEmptyStr] = None,
         annotation_status: Optional[str] = None,
         annotator_email: Optional[NotEmptyStr] = None,
         qa_email: Optional[NotEmptyStr] = None,
@@ -4362,7 +4364,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, int],
         folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
-        include: List[Literal["custom_metadata", "categories"]] = None,
+        include: Optional[List[Literal["custom_metadata", "categories"]]] = None,
         **filters,
     ):
         """
@@ -4549,7 +4551,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def list_projects(
         self,
         *,
-        include: List[Literal["custom_fields"]] = None,
+        include: Optional[List[Literal["custom_fields"]]] = None,
         **filters,
     ):
         """
