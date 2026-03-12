@@ -320,6 +320,7 @@ class TestProjectCustomFields(BaseTestCase):
             )
             == 1
         )
+        sa.delete_project(other_project_name)
 
     def test_list_projects_by_custom_invalid_field(self):
         with self.assertRaisesRegex(AppException, "Invalid filter param provided."):
