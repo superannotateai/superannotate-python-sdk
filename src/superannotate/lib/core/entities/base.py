@@ -32,16 +32,10 @@ HexColor = Annotated[str, AfterValidator(_validate_hex_color)]
 
 
 def _validate_string_date(v: Union[datetime, str]) -> str:
-    """Convert datetime to string format. For case data output."""
+    """Convert datetime to string format."""
     if isinstance(v, str):
-        try:
-            dt = datetime.fromisoformat(v.replace("Z", "+00:00"))
-            return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        except (ValueError, AttributeError):
-            return v
-    elif isinstance(v, datetime):
-        return v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    return v
+        return v
+    return v.isoformat().split("+")[0] + ".000Z"
 
 
 def _serialize_string_date(v: Union[datetime, str]) -> str:

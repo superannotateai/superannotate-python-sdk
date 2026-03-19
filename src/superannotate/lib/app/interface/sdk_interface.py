@@ -1805,8 +1805,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             {
-                "createdAt": "2025-02-04T12:04:01+00:00",
-                "updatedAt": "2024-02-04T12:04:01+00:00",
+                "createdAt": "2025-02-04T12:04:01.000Z",
+                "updatedAt": "2024-02-04T12:04:01.000Z",
                 "id": 902174,
                 "team_id": 233435,
                 "name": "Medical Annotations",
@@ -1820,8 +1820,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "folder_id": 1191383,
                 "workflow_id": 1,
                 "workflow": {
-                    "createdAt": "2024-09-03T12:48:09+00:00",
-                    "updatedAt": "2024-09-03T12:48:09+00:00",
+                    "createdAt": "2024-09-03T12:48:09.000Z",
+                    "updatedAt": "2024-09-03T12:48:09.000Z",
                     "id": 1,
                     "name": "System workflow",
                     "type": "system",
@@ -4640,7 +4640,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "classes": [],
                     "completed_items_count": None,
                     "contributors": [],
-                    "createdAt": "2025-02-04T12:04:01+00:00",
+                    "createdAt": "2025-02-04T12:04:01.000Z",
                     "creator_id": "ecample@email.com",
                     "custom_fields": {
                         "Notes": "Something",
@@ -4662,7 +4662,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "status": "InProgress",
                     "team_id": 233435,
                     "type": "Vector",
-                    "updatedAt": "2024-02-04T12:04:01+00:00",
+                    "updatedAt": "2024-02-04T12:04:01.000Z",
                     "upload_state": "INITIAL",
                     "users": [],
                     "workflow_id": 1,
@@ -5687,8 +5687,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             [
                 {
-                    "createdAt": "2024-09-03T12:48:09+00:00",
-                    "updatedAt": "2024-09-04T12:48:09+00:00",
+                    "createdAt": "2024-09-03T12:48:09.000Z",
+                    "updatedAt": "2024-09-04T12:48:09.000Z",
                     "id": 1,
                     "name": "System workflow",
                     "type": "system",
@@ -5696,8 +5696,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "raw_config": {"roles": ["Annotator", "QA"], ...}
                 },
                 {
-                    "createdAt": "2025-01-03T12:48:09+00:00",
-                    "updatedAt": "2025-01-05T12:48:09+00:00",
+                    "createdAt": "2025-01-03T12:48:09.000Z",
+                    "updatedAt": "2025-01-05T12:48:09.000Z",
                     "id": 58758,
                     "name": "Custom workflow",
                     "type": "user",
