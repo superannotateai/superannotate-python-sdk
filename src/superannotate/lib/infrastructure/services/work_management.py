@@ -20,7 +20,6 @@ from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
-from lib.core.service_types import FolderListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
 from lib.core.service_types import ServiceResponse
@@ -85,7 +84,7 @@ class WorkManagementService(BaseWorkManagementService):
         encoded_context = base64.b64encode(json.dumps(kwargs).encode("utf-8"))
         return encoded_context.decode("utf-8")
 
-    def list_folders(self, project_id: int, query: Query) -> FolderListResponse:
+    def list_folders(self, project_id: int, query: Query) -> ServiceResponse:
         result = self.client.jsx_paginate(
             self.URL_LIST_FOLDERS,
             body_query=query,

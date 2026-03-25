@@ -136,7 +136,7 @@ class WorkManagementManager(BaseManager):
         response.raise_for_status()
         for folder in response.data:
             for user in folder.contributors:
-                user.role = self.service_provider.get_role_name(project, user.role)
+                user.role = self.service_provider.get_role_name(project, user.role)  # type: ignore
                 user.state = user.state.name
 
         return response
