@@ -29,7 +29,7 @@ class TestDF(BaseTestCase):
         )
 
     def test_invalid_project_type(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "The function is not supported for PointCloud projects."
         ):
             sa.aggregate_annotations_as_df(self.folder_path, "PointCloud")

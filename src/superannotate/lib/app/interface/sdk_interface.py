@@ -17,6 +17,9 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+from pydantic import Field
+from pydantic import StringConstraints
+from typing_extensions import Annotated
 from typing_extensions import Literal
 
 if sys.version_info < (3, 11):
@@ -27,6 +30,8 @@ else:
 import boto3
 
 from tqdm import tqdm
+from pydantic import ValidationError
+from pydantic import TypeAdapter
 
 import lib.core as constants
 from lib.infrastructure.controller import Controller
@@ -61,10 +66,6 @@ from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
 from lib.core.types import PriorityScoreEntity
 from lib.core.types import Project
-from lib.core.pydantic_v1 import ValidationError
-from lib.core.pydantic_v1 import constr
-from lib.core.pydantic_v1 import conlist
-from lib.core.pydantic_v1 import parse_obj_as
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
@@ -80,7 +81,7 @@ from lib.core.entities import WMAnnotationClassEntity
 
 logger = logging.getLogger("sa")
 
-NotEmptyStr = constr(strict=True, min_length=1)
+NotEmptyStr = Annotated[str, StringConstraints(strict=True, min_length=1)]
 
 PROJECT_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
@@ -149,9 +150,9 @@ class ItemContext:
         self.item = item
         self._annotation_adapter: Optional[BaseMultimodalAnnotationAdapter] = None
         self._overwrite = overwrite
-        self._annotation = None
+        self._annotation: Optional[dict] = None
 
-    def _set_small_annotation_adapter(self, annotation: dict = None):
+    def _set_small_annotation_adapter(self, annotation: Optional[dict] = None):
         self._annotation_adapter = MultimodalSmallAnnotationAdapter(
             project=self.project,
             folder=self.folder,
@@ -161,7 +162,7 @@ class ItemContext:
             annotation=annotation,
         )
 
-    def _set_large_annotation_adapter(self, annotation: dict = None):
+    def _set_large_annotation_adapter(self, annotation: Optional[dict] = None):
         self._annotation_adapter = MultimodalLargeAnnotationAdapter(
             project=self.project,
             folder=self.folder,
@@ -297,8 +298,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def __init__(
         self,
-        token: str = None,
-        config_path: str = None,
+        token: Optional[str] = None,
+        config_path: Optional[str] = None,
     ):
         super().__init__(token, config_path)
 
@@ -340,7 +341,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project_id: int,
         item_id: int,
-        include: List[Literal["custom_metadata", "categories"]] = None,
+        include: Optional[List[Literal["custom_metadata", "categories"]]] = None,
     ):
         """Returns the item metadata
 
@@ -395,7 +396,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         return BaseSerializer(item).serialize(exclude={"url", "meta"}, by_alias=False)
 
-    def get_team_metadata(self, include: List[Literal["scores"]] = None):
+    def get_team_metadata(self, include: Optional[List[Literal["scores"]]] = None):
         """
         Returns team metadata, including optionally, scores.
 
@@ -420,7 +421,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return TeamSerializer(team).serialize(exclude_unset=True)
 
     def get_user_metadata(
-        self, pk: Union[int, str], include: List[Literal["custom_fields"]] = None
+        self,
+        pk: Union[int, str],
+        include: Optional[List[Literal["custom_fields"]]] = None,
     ):
         """
         Returns user metadata including optionally, custom fields
@@ -513,8 +516,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def list_users(
         self,
         *,
-        project: Union[NotEmptyStr, int] = None,
-        include: List[Literal["custom_fields", "categories"]] = None,
+        project: Optional[Union[NotEmptyStr, int]] = None,
+        include: Optional[List[Literal["custom_fields", "categories"]]] = None,
         **filters,
     ):
         """
@@ -1073,9 +1076,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def search_team_contributors(
         self,
-        email: EmailStr = None,
-        first_name: NotEmptyStr = None,
-        last_name: NotEmptyStr = None,
+        email: Optional[EmailStr] = None,
+        first_name: Optional[NotEmptyStr] = None,
+        last_name: Optional[NotEmptyStr] = None,
         return_metadata: bool = True,
     ):
         """Search for contributors in the team
@@ -1183,12 +1186,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name: NotEmptyStr,
         project_description: NotEmptyStr,
         project_type: PROJECT_TYPE,
-        settings: List[Setting] = None,
-        classes: List[AnnotationClassEntity] = None,
-        workflows: Any = None,
-        instructions_link: str = None,
-        workflow: str = None,
-        form: dict = None,
+        settings: Optional[List[Setting]] = None,
+        classes: Optional[List[AnnotationClassEntity]] = None,
+        workflows: Optional[Any] = None,
+        instructions_link: Optional[str] = None,
+        workflow: Optional[str] = None,
+        form: Optional[dict] = None,
     ):
         """Creates a new project in the team. For Multimodal projects, you must provide a valid form object,
         which serves as a template determining the layout and behavior of the project's interface.
@@ -1231,7 +1234,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             )
         if settings:
-            settings = parse_obj_as(List[SettingEntity], settings)
+            settings = TypeAdapter(List[SettingEntity]).validate_python(settings)
         else:
             settings = []
         if ProjectType(project_type) == ProjectType.MULTIMODAL:
@@ -1245,7 +1248,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             settings.append(SettingEntity(attribute="TemplateState", value=1))
         if classes:
-            classes = parse_obj_as(List[AnnotationClassEntity], classes)
+            classes = TypeAdapter(List[AnnotationClassEntity]).validate_python(classes)
         project_entity = entities.ProjectEntity(
             name=project_name,
             description=project_description,
@@ -1802,8 +1805,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             {
-                "createdAt": "2025-02-04T12:04:01+00:00",
-                "updatedAt": "2024-02-04T12:04:01+00:00",
+                "createdAt": "2025-02-04T12:04:01.000Z",
+                "updatedAt": "2024-02-04T12:04:01.000Z",
                 "id": 902174,
                 "team_id": 233435,
                 "name": "Medical Annotations",
@@ -1817,8 +1820,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "folder_id": 1191383,
                 "workflow_id": 1,
                 "workflow": {
-                    "createdAt": "2024-09-03T12:48:09+00:00",
-                    "updatedAt": "2024-09-03T12:48:09+00:00",
+                    "createdAt": "2024-09-03T12:48:09.000Z",
+                    "updatedAt": "2024-09-03T12:48:09.000Z",
                     "id": 1,
                     "name": "System workflow",
                     "type": "system",
@@ -1876,7 +1879,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project = self.controller.projects.get_by_name(project_name).data
         settings = self.controller.projects.list_settings(project).data
         settings = [
-            SettingsSerializer(attribute.dict()).serialize() for attribute in settings
+            SettingsSerializer(attribute.model_dump()).serialize()
+            for attribute in settings
         ]
         return settings
 
@@ -1997,6 +2001,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                           project="classes",
                           annotation_class="Example_class"
                      )
+
         Response Example:
         ::
 
@@ -2052,15 +2057,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         name: NotEmptyStr,
         attribute_groups: List[dict],
     ):
-        """Updates an existing annotation class by submitting a full, updated attribute_groups payload.
-        You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values,
-        delete attribute groups, delete attribute values, update attribute group types, update default attributes,
-        and update the required state.
+        """
+        Updates an existing annotation class by submitting a full, updated attribute_groups payload. You can add new attribute groups, add new attribute values, rename attribute groups, rename attribute values, delete attribute groups, delete attribute values, update attribute group types, update default attributes, and update the required state.
+        This function does not support Multimodal projects.
 
         .. warning::
-            This operation replaces the entire attribute group structure of the annotation class.
-            Any attribute groups or attribute values omitted from the payload will be permanently removed.
+            Use update_annotation_class() With Extreme Caution
+            The update_annotation_class() method replaces the entire attribute group structure of the annotation class.
+            Any attribute group or attribute group ID not included in the payload will be permanently deleted.
+            Any attribute value or attribute ID not included in the payload will be permanently deleted.
             Existing annotations that reference removed attribute groups or attributes will lose their associated values.
+
+            This action cannot be undone.
 
         :param project: The name or ID of the project.
         :type project: Union[str, int]
@@ -2069,41 +2077,112 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type name: str
 
         :param attribute_groups: The full list of attribute groups for the class.
+
             Each attribute group may contain:
 
-            - id (optional, required for existing groups)
-            - group_type (required): "radio", "checklist", "text", "numeric", or "ocr"
-            - name (required)
-            - isRequired (optional)
-            - default_value (optional)
-            - attributes (required, list)
+            ::
+
+                * id (optional, required for existing groups)
+                * group_type (required)
+                * name (required)
+                * isRequired (optional)
+                * default_value (optional)
+                * attributes (list, required for Single and Multiple selection)
 
             Each attribute may contain:
+            ::
 
-            - id (optional, required for existing attributes)
-            - name (required)
+                * id (optional, required for existing attributes)
+                * name (required)
+
+            The values for the group_type key are:
+            ::
+
+                * radio (Single selection)
+                * checklist (Multiple selection)
+                * text (Text input)
+                * numeric (Numeric input)
+                * ocr (OCR input)
+
+            The ocr key is only available for Vector projects.
+
+
 
         :type attribute_groups: list of dicts
 
         Request Example:
         ::
 
-            # Retrieve existing annotation class
-            annotation_class = sa_client.get_annotation_classes(project="classes", annotation_class="test_class")
+            annotation_class = sa_client.get_annotation_class(project='classes', annotation_class="Example Class")
+            attribute_groups = annotation_class["attribute_groups"]
 
-            # Rename attribute value and add a new one
-            annotation_class["attribute_groups"][0]["attributes"][0]["name"] = "Brand Alpha"
-            annotation_class["attribute_groups"][0]["attributes"].append({"name": "Brand Beta"})
+            # Add a NEW Attribute to Existing Group
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["attributes"].append({
+                        "name": "blue"
+                    })
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
 
-            sa.update_annotation_classes(
-                project="test_set_folder_status",
-                name="test_class",
-                attribute_groups=annotation_class["attribute_groups"]
-            )
+            # Rename the Existing Attribute
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    for attr in group["attributes"]:
+                        if attr["id"] == 11394966:
+                            attr["name"] = "yellow"
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Rename the Attribute Group
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                group["name"] = "color"
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Add a Completely New Attribute Group
+            attribute_groups.append({
+                "group_type": "text",
+                "name": "comment",
+                "isRequired": False,
+                "attributes": []
+            })
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Delete the Attribute Group
+            attribute_groups = [group for group in attribute_groups if group["id"] != 5659666]
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Delete the Attribute
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["attributes"] = [attr for attr in group["attributes"]if attr["id"] != 11394966]
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Set Default Value
+            for group in attribute_groups:
+                if group["id"] == 5624734:  # color group
+                    for attr in group["attributes"]:
+                        if attr["id"] == 11438900:
+                            attr["default"] = 1
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+
+            # Make Group Required
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["isRequired"] = True
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
+            # Change Group Type (Multiple Selection (Checklist) → Single Selection (Radio))
+            for group in attribute_groups:
+                if group["id"] == 5624734:
+                    group["group_type"] = "radio"
+                    group["default_value"] = None  # radio requires single default or None
+            sa_client.update_annotation_class(project='classes', name="Example Class", attribute_groups=attribute_groups)
 
         """
         project = self.controller.get_project(project)
-
+        if project.type == ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is not supported for Multimodal projects."
+            )
         # Find the annotation class by nam
         annotation_classes = self.controller.annotation_classes.list(
             condition=Condition("project_id", project.id, EQ)
@@ -2120,8 +2199,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_class["attribute_groups"] = attribute_groups
         try:
             # validate annotation class
-            annotation_class = WMAnnotationClassEntity.parse_obj(
-                BaseSerializer(annotation_class).serialize()
+            annotation_class = TypeAdapter(WMAnnotationClassEntity).validate_python(
+                BaseSerializer(
+                    TypeAdapter(AnnotationClassEntity).validate_python(annotation_class)
+                ).serialize(),
+                by_name=True,
             )
         except ValidationError as e:
             raise AppException(wrap_error(e))
@@ -2135,7 +2217,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-        return BaseSerializer(response.data).serialize(by_alias=False)
+        return BaseSerializer(response.data.model_dump(mode="python")).serialize(
+            by_alias=False, use_enum_names=False
+        )
 
     def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
         """Set project status
@@ -2679,7 +2763,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_exports(
         self,
         project: Union[NotEmptyStr, int],
-        exports: Union[List[int], List[str], Literal["*"]],
+        exports: Union[List[Union[int, str]], Literal["*"]],
     ):
         """Delete one or more exports from the specified project. The exports argument
         accepts a list of export names or export IDs. The special value “*” means delete all exports.
@@ -2730,7 +2814,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         target_fps: Optional[int] = None,
         start_time: Optional[float] = 0.0,
         end_time: Optional[float] = None,
-        annotation_status: str = None,
+        annotation_status: Optional[str] = None,
         image_quality_in_editor: Optional[IMAGE_QUALITY] = None,
     ):
         """Uploads image frames from all videos with given extensions from folder_path to the project.
@@ -2985,7 +3069,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
 
         attribute_groups = (
-            list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
+            list(map(lambda x: x.model_dump(), attribute_groups))
+            if attribute_groups
+            else []
         )
         try:
             annotation_class = AnnotationClassEntity(
@@ -2997,6 +3083,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         except ValidationError as e:
             raise AppException(wrap_error(e))
         project = self.controller.get_project(project)
+        if project.type == ProjectType.MULTIMODAL:
+            raise AppException(
+                "This function is not supported for Multimodal projects."
+            )
         if (
             project.type != ProjectType.DOCUMENT
             and annotation_class.type == ClassTypeEnum.RELATIONSHIP
@@ -3105,7 +3195,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 with open(classes_json, encoding="utf-8") as f:
                     classes_json = json.load(f)
         try:
-            annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+            annotation_classes = TypeAdapter(
+                List[AnnotationClassEntity]
+            ).validate_python(classes_json)
         except ValidationError as _:
             raise AppException("Couldn't validate annotation classes.")
         project = self.controller.projects.get_by_name(project).data
@@ -3160,7 +3252,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, dict],
         steps: List[dict],
-        connections: List[List[int]] = None,
+        connections: Optional[List[List[int]]] = None,
     ):
         """Sets project's steps.
 
@@ -3289,7 +3381,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
         annotations: List[dict],
-        keep_status: bool = None,
+        keep_status: Optional[bool] = None,
         *,
         data_spec: Literal["default", "multimodal"] = "default",
     ):
@@ -3455,7 +3547,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotation_json: Union[str, Path, dict],
         mask: Optional[Union[str, Path, bytes]] = None,
         verbose: Optional[bool] = True,
-        keep_status: bool = None,
+        keep_status: Optional[bool] = None,
     ):
         """Upload annotations from JSON
         to the image.
@@ -3564,7 +3656,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         img,
         image_name: Optional[NotEmptyStr] = None,
         annotation_status: Optional[str] = None,
-        from_s3_bucket=None,
+        from_s3_bucket: Optional[str] = None,
         image_quality_in_editor: Optional[NotEmptyStr] = None,
     ):
         """Uploads image (io.BytesIO() or filepath to image) to project.
@@ -3767,7 +3859,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def add_contributors_to_project(
         self,
         project: NotEmptyStr,
-        emails: conlist(EmailStr, min_items=1),
+        emails: Annotated[List[EmailStr], Field(min_length=1)],
         role: str,
     ) -> Tuple[List[str], List[str]]:
         """Add contributors to project.
@@ -3802,7 +3894,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def invite_contributors_to_team(
-        self, emails: conlist(EmailStr, min_items=1), admin: bool = False
+        self,
+        emails: Annotated[List[EmailStr], Field(min_length=1)],
+        admin: bool = False,
     ) -> Tuple[List[str], List[str]]:
         """Invites contributors to the team.
 
@@ -3920,7 +4014,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of uploaded, skipped items
         :rtype: tuple (2 members) of lists of strs
         """
-        scores = parse_obj_as(List[PriorityScoreEntity], scores)
+        scores = TypeAdapter(List[PriorityScoreEntity]).validate_python(scores)
         project, folder = self.controller.get_project_folder(project)
         project_folder_name = project.name + "" if folder.is_root else f"/{folder.name}"
         response = self.controller.projects.upload_priority_scores(
@@ -4146,8 +4240,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def search_items(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        name_contains: NotEmptyStr = None,
-        annotation_status: str = None,
+        name_contains: Optional[NotEmptyStr] = None,
+        annotation_status: Optional[str] = None,
         annotator_email: Optional[NotEmptyStr] = None,
         qa_email: Optional[NotEmptyStr] = None,
         recursive: bool = False,
@@ -4270,7 +4364,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: Union[NotEmptyStr, int],
         folder: Optional[Union[NotEmptyStr, int]] = None,
         *,
-        include: List[Literal["custom_metadata", "categories"]] = None,
+        include: Optional[List[Literal["custom_metadata", "categories"]]] = None,
         **filters,
     ):
         """
@@ -4457,7 +4551,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def list_projects(
         self,
         *,
-        include: List[Literal["custom_fields"]] = None,
+        include: Optional[List[Literal["custom_fields"]]] = None,
         **filters,
     ):
         """
@@ -4546,7 +4640,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "classes": [],
                     "completed_items_count": None,
                     "contributors": [],
-                    "createdAt": "2025-02-04T12:04:01+00:00",
+                    "createdAt": "2025-02-04T12:04:01.000Z",
                     "creator_id": "ecample@email.com",
                     "custom_fields": {
                         "Notes": "Something",
@@ -4568,7 +4662,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "status": "InProgress",
                     "team_id": 233435,
                     "type": "Vector",
-                    "updatedAt": "2024-02-04T12:04:01+00:00",
+                    "updatedAt": "2024-02-04T12:04:01.000Z",
                     "upload_state": "INITIAL",
                     "users": [],
                     "workflow_id": 1,
@@ -4583,8 +4677,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def attach_items(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        attachments: Union[NotEmptyStr, Path, conlist(Attachment, min_items=1)],
-        annotation_status: str = None,
+        attachments: Union[
+            NotEmptyStr, Path, Annotated[List[Attachment], Field(min_length=1)]
+        ],
+        annotation_status: Optional[str] = None,
     ):
         """
         Link items from external storage to SuperAnnotate using URLs.
@@ -4635,7 +4731,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
 
         try:
-            attachments = parse_obj_as(List[AttachmentEntity], attachments)
+            attachments = TypeAdapter(List[AttachmentEntity]).validate_python(
+                attachments
+            )
             unique_attachments = set(attachments)
             duplicate_attachments = [
                 item
@@ -4649,7 +4747,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ) = get_name_url_duplicated_from_csv(attachments)
         if duplicate_attachments:
             logger.info("Dropping duplicates.")
-        unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
+        unique_attachments = TypeAdapter(List[AttachmentEntity]).validate_python(
+            unique_attachments
+        )
         uploaded, fails, duplicated = [], [], []
         _unique_attachments = []
 
@@ -4948,10 +5048,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def download_annotations(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        path: Union[str, Path] = None,
+        path: Optional[Union[str, Path]] = None,
         items: Optional[List[NotEmptyStr]] = None,
         recursive: bool = False,
-        callback: Callable = None,
+        callback: Optional[Callable] = None,
         data_spec: Literal["default", "multimodal"] = "default",
     ):
         """Downloads annotation JSON files of the selected items to the local directory.
@@ -5170,7 +5270,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         return response.data
 
     def delete_custom_fields(
-        self, project: NotEmptyStr, fields: conlist(str, min_items=1)
+        self, project: NotEmptyStr, fields: Annotated[List[str], Field(min_length=1)]
     ):
         """Remove custom fields from a project’s custom metadata schema.
 
@@ -5228,7 +5328,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def upload_custom_values(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: conlist(Dict[str, dict], min_items=1),
+        items: Annotated[List[Dict[str, dict]], Field(min_length=1)],
     ):
         """
         Attach custom metadata to items.
@@ -5303,7 +5403,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_custom_values(
         self,
         project: Union[NotEmptyStr, int, Tuple[int, int], Tuple[str, str]],
-        items: conlist(Dict[str, List[str]], min_items=1),
+        items: Annotated[List[Dict[str, List[str]]], Field(min_length=1)],
     ):
         """
         Remove custom data from items
@@ -5587,8 +5687,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             [
                 {
-                    "createdAt": "2024-09-03T12:48:09+00:00",
-                    "updatedAt": "2024-09-04T12:48:09+00:00",
+                    "createdAt": "2024-09-03T12:48:09.000Z",
+                    "updatedAt": "2024-09-04T12:48:09.000Z",
                     "id": 1,
                     "name": "System workflow",
                     "type": "system",
@@ -5596,8 +5696,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "raw_config": {"roles": ["Annotator", "QA"], ...}
                 },
                 {
-                    "createdAt": "2025-01-03T12:48:09+00:00",
-                    "updatedAt": "2025-01-05T12:48:09+00:00",
+                    "createdAt": "2025-01-03T12:48:09.000Z",
+                    "updatedAt": "2025-01-05T12:48:09.000Z",
                     "id": 58758,
                     "name": "Custom workflow",
                     "type": "user",

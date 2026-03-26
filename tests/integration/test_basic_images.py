@@ -55,7 +55,7 @@ class TestPinImage(BaseTestCase):
     PROJECT_DESCRIPTION = "TestPinImage"
 
     def test_pin_image_negative_name(self):
-        with self.assertRaisesRegexp(AppException, "Item not found."):
+        with self.assertRaisesRegex(AppException, "Item not found."):
             sa.pin_image(self.PROJECT_NAME, "NEW NAME")
 
 

@@ -164,9 +164,11 @@ class AttachIntegrations(BaseReportableUseCase):
                 project=self._project,
                 folder=self._folder,
                 integration=self._integration,
-                folder_name=self._folder_path
-                if self._integration.type not in self.MULTIMODAL_INTEGRATIONS
-                else None,
+                folder_name=(
+                    self._folder_path
+                    if self._integration.type not in self.MULTIMODAL_INTEGRATIONS
+                    else None
+                ),
                 options=self._options if self._options else None,
             )
             if not attache_response.ok:

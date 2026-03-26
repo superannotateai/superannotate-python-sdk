@@ -68,7 +68,6 @@ from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
 from typing_extensions import Unpack
 
-
 logger = logging.getLogger("sa")
 
 

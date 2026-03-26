@@ -1,7 +1,6 @@
 import logging
 import shutil
 
-
 logger = logging.getLogger("sa")
 
 

@@ -11,7 +11,6 @@ from src.superannotate import __version__
 from src.superannotate import AppException
 from src.superannotate import SAClient
 
-
 sa = SAClient()
 
 

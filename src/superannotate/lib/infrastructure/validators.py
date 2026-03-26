@@ -1,18 +1,41 @@
 import os
 import typing
 from collections import defaultdict
+from typing import get_args
+from typing import get_origin
 
-from lib.core.pydantic_v1 import ValidationError
-from lib.core.pydantic_v1 import validators
-from lib.core.pydantic_v1 import WrongConstantError
-
-
-def wrong_constant_error(self):
-    permitted = ", ".join(repr(v) for v in self.permitted)  # type: ignore
-    return f"Available values are {permitted}."
+from pydantic import ValidationError
 
 
-WrongConstantError.__str__ = wrong_constant_error
+class WrongConstantError(ValueError):
+    """Custom error for wrong constant values."""
+
+    def __init__(self, given: typing.Any, permitted: typing.Tuple[typing.Any, ...]):
+        self.given = given
+        self.permitted = permitted
+        super().__init__(self._message())
+
+    def _message(self) -> str:
+        permitted = ", ".join(repr(v) for v in self.permitted)
+        return f"Available values are {permitted}."
+
+    def __str__(self) -> str:
+        return self._message()
+
+
+def all_literal_values(type_: typing.Any) -> typing.Tuple[typing.Any, ...]:
+    """Extract all literal values from a Literal type."""
+    origin = get_origin(type_)
+    if origin is typing.Literal:
+        return get_args(type_)
+    # Handle Union of Literals
+    if origin is typing.Union:
+        values = []
+        for arg in get_args(type_):
+            if get_origin(arg) is typing.Literal:
+                values.extend(get_args(arg))
+        return tuple(values)
+    return ()
 
 
 def make_literal_validator(
@@ -21,46 +44,18 @@ def make_literal_validator(
     """
     Adding ability to input literal in the lower case.
     """
-    permitted_choices = validators.all_literal_values(type_)
-    allowed_choices = {v.lower() if v else v: v for v in permitted_choices}
+    permitted_choices = all_literal_values(type_)
+    allowed_choices = {
+        v.lower() if isinstance(v, str) and v else v: v for v in permitted_choices
+    }
 
     def literal_validator(v: typing.Any) -> typing.Any:
         try:
-            return allowed_choices[v.lower()]
+            return allowed_choices[v.lower() if isinstance(v, str) else v]
         except (KeyError, AttributeError):
             raise WrongConstantError(given=v, permitted=permitted_choices)
 
     return literal_validator
-
-
-def make_typeddict_validator(
-    typeddict_cls: typing.Type["TypedDict"], config: typing.Type["BaseConfig"]  # type: ignore[valid-type]
-) -> typing.Callable[[typing.Any], typing.Dict[str, typing.Any]]:
-    """
-    Wrapping to ignore extra keys
-    """
-    from lib.core.pydantic_v1 import Extra
-    from lib.core.pydantic_v1 import create_model_from_typeddict
-
-    create_model_from_typeddict = create_model_from_typeddict
-
-    config.extra = Extra.ignore
-
-    TypedDictModel = create_model_from_typeddict(  # noqa
-        typeddict_cls,
-        __config__=config,
-        __module__=typeddict_cls.__module__,
-    )
-    typeddict_cls.__pydantic_model__ = TypedDictModel  # type: ignore[attr-defined]
-
-    def typeddict_validator(values: "TypedDict") -> typing.Dict[str, typing.Any]:  # type: ignore[valid-type]
-        return TypedDictModel.parse_obj(values).dict(exclude_unset=True)
-
-    return typeddict_validator
-
-
-validators.make_literal_validator = make_literal_validator
-validators.make_typeddict_validator = make_typeddict_validator
 
 
 def get_tabulation() -> int:
@@ -70,11 +65,55 @@ def get_tabulation() -> int:
         return 48
 
 
+def _is_pydantic_internal_loc(loc_part: typing.Any) -> bool:
+    """
+    Check if a location part is a Pydantic v2 internal type descriptor.
+    These are not human-readable and should be filtered out.
+    Examples of internal descriptors:
+    - 'constrained-str'
+    - 'lax-or-strict[...]'
+    - 'list[SomeModel]'
+    - 'json-or-python[...]'
+    - 'function-after[...]'
+    - 'union[...]'
+    """
+    if not isinstance(loc_part, str):
+        return False
+    # These patterns indicate internal Pydantic type descriptors
+    internal_patterns = (
+        "constrained-",
+        "lax-or-strict[",
+        "json-or-python[",
+        "function-after[",
+        "function-before[",
+        "function-wrap[",
+        "union[",
+        "is-instance[",
+    )
+    if loc_part.startswith(internal_patterns):
+        return True
+    # Also filter out patterns like 'list[Model]' or 'dict[str, Model]'
+    # but keep simple field names
+    if "[" in loc_part and "]" in loc_part:
+        # Check if it looks like a type descriptor (e.g., 'list[Attachment]')
+        # rather than a field name
+        return True
+    return False
+
+
 def wrap_error(e: ValidationError) -> str:
     tabulation = get_tabulation()
     error_messages = defaultdict(list)
     for error in e.errors():
-        errors_list = list(error["loc"])
+        error_loc = list(error["loc"])
+        # Filter out Pydantic v2 internal type descriptors
+        error_loc = [loc for loc in error_loc if not _is_pydantic_internal_loc(loc)]
+        if len(error_loc) == 0:
+            continue
+        if len(error_loc) == 1 and isinstance(error_loc[0], int):
+            errors_list = [f"argument at index {error_loc[0]}"]
+        else:
+            errors_list = list(error_loc)
         if "__root__" in errors_list:
             errors_list.remove("__root__")
         errors_list[1::] = [

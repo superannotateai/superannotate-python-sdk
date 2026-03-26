@@ -14,7 +14,7 @@ class TestCreateFolder(BaseTestCase):
 
     def test_create_long_name(self):
         err_msg = "The folder name is too long. The maximum length for this field is 80 characters."
-        with self.assertRaisesRegexp(AppException, err_msg):
+        with self.assertRaisesRegex(AppException, err_msg):
             sa.create_folder(
                 self.PROJECT_NAME,
                 "A while back I needed to count the amount of letters that "

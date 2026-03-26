@@ -189,7 +189,7 @@ class TestUserScoring(TestCase):
         self._attach_item(self.PROJECT_NAME, item_name)
 
         # case when one of wight and value is None
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "Weight and Value must both be set or both be None."
         ):
             sa.set_user_scores(
@@ -205,7 +205,7 @@ class TestUserScoring(TestCase):
                 ],
             )
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "Weight and Value must both be set or both be None."
         ):
             sa.set_user_scores(
@@ -222,7 +222,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid keys
-        with self.assertRaisesRegexp(AppException, "Invalid Scores."):
+        with self.assertRaisesRegex(AppException, "Invalid Scores."):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,
@@ -238,7 +238,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid score name
-        with self.assertRaisesRegexp(AppException, "Invalid component_id provided"):
+        with self.assertRaisesRegex(AppException, "Invalid component_id provided"):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,
@@ -253,7 +253,7 @@ class TestUserScoring(TestCase):
             )
 
         # case without value key in score
-        with self.assertRaisesRegexp(AppException, "Invalid Scores."):
+        with self.assertRaisesRegex(AppException, "Invalid Scores."):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,
@@ -267,7 +267,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with duplicated acore names
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "Component IDs in scores data must be unique."
         ):
             sa.set_user_scores(
@@ -289,7 +289,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid weight
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "Please provide a valid number greater than 0"
         ):
             sa.set_user_scores(
@@ -306,7 +306,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid scored_user
-        with self.assertRaisesRegexp(AppException, "User not found."):
+        with self.assertRaisesRegex(AppException, "User not found."):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item=item_name,
@@ -321,7 +321,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid item
-        with self.assertRaisesRegexp(AppException, "Item not found."):
+        with self.assertRaisesRegex(AppException, "Item not found."):
             sa.set_user_scores(
                 project=self.PROJECT_NAME,
                 item="invalid_item_name",
@@ -336,7 +336,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid project
-        with self.assertRaisesRegexp(AppException, "Project not found."):
+        with self.assertRaisesRegex(AppException, "Project not found."):
             sa.set_user_scores(
                 project="invalid_project_name",
                 item=item_name,
@@ -351,7 +351,7 @@ class TestUserScoring(TestCase):
             )
 
         # case with invalid folder
-        with self.assertRaisesRegexp(AppException, "Folder not found."):
+        with self.assertRaisesRegex(AppException, "Folder not found."):
             sa.set_user_scores(
                 project=(self.PROJECT_NAME, "invalid_folder_name"),
                 item=item_name,

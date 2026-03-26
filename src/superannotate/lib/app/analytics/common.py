@@ -6,7 +6,6 @@ import pandas as pd
 import plotly.express as px
 from lib.core.exceptions import AppException
 
-
 logger = logging.getLogger("sa")
 
 

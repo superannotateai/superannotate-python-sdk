@@ -66,7 +66,7 @@ class TestSetAnnotationStatuses(BaseTestCase):
 
     def test_image_annotation_status_via_invalid_names(self):
         sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT_LIST, "InProgress")
-        with self.assertRaisesRegexp(AppException, SetAnnotationStatues.ERROR_MESSAGE):
+        with self.assertRaisesRegex(AppException, SetAnnotationStatues.ERROR_MESSAGE):
             sa.set_annotation_statuses(
                 self.PROJECT_NAME,
                 "QualityCheck",

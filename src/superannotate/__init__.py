@@ -2,8 +2,7 @@ import logging
 import os
 import sys
 
-
-__version__ = "4.5.2"
+__version__ = "4.5.3"
 
 
 os.environ.update({"sa_version": __version__})
@@ -21,7 +20,6 @@ from superannotate.lib.app.input_converters import export_annotation
 from superannotate.lib.app.input_converters import import_annotation
 from superannotate.lib.app.interface.sdk_interface import SAClient
 from superannotate.lib.app.interface.sdk_interface import ItemContext
-
 
 SESSIONS = {}
 

@@ -167,8 +167,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"
             with open(temp_path, "w") as new_classes:
-                new_classes.write(
-                    """
+                new_classes.write("""
                     [
                        {
                           "id":56820,
@@ -276,8 +275,7 @@ class TestVectorAnnotationClasses(BaseTestCase):
                        }
                     ]
 
-                    """
-                )
+                    """)
 
             created = sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, temp_path
@@ -618,7 +616,10 @@ class TestVectorAnnotationClasses(BaseTestCase):
         )
 
         classes[0]["attribute_groups"][0]["group_type"] = "invalid"
-        with self.assertRaisesRegexp(AppException, "Invalid group_type: invalid"):
+        with self.assertRaisesRegex(
+            AppException,
+            "Input should be 'radio', 'checklist', 'numeric', 'text' or 'ocr'",
+        ):
             sa.update_annotation_class(
                 self.PROJECT_NAME,
                 "test_update_nochange",
@@ -646,13 +647,24 @@ class TestVectorAnnotationClasses(BaseTestCase):
         )
 
         del classes[0]["attribute_groups"][0]["group_type"]
-        with self.assertRaisesRegexp(AppException, "Invalid group_type: invalid"):
+        with self.assertRaisesRegex(
+            AppException,
+            "Input should be 'radio', 'checklist', 'numeric', 'text' or 'ocr'",
+        ):
             res = sa.update_annotation_class(
                 self.PROJECT_NAME,
                 "test_update_nochange",
                 attribute_groups=classes[0]["attribute_groups"],
             )
             assert res["attribute_groups"][0]["group_type"] == "radio"
+
+    def test_create_with_invalid_type(self):
+        try:
+            sa.create_annotation_class(
+                self.PROJECT_NAME, "tt", "#FFFFFF", class_type="invalid"
+            )
+        except AppException as e:
+            assert "Input should be: object, tag, relationship" in str(e)
 
 
 class TestVideoCreateAnnotationClasses(BaseTestCase):
@@ -665,8 +677,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             temp_path = f"{tmpdir_name}/new_classes.json"
             with open(temp_path, "w") as new_classes:
-                new_classes.write(
-                    """
+                new_classes.write("""
                     [
                        {
                           "id":56820,
@@ -689,8 +700,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
                        }
                     ]
 
-                    """
-                )
+                    """)
             msg = ""
             try:
                 sa.create_annotation_classes_from_classes_json(
@@ -704,7 +714,7 @@ class TestVideoCreateAnnotationClasses(BaseTestCase):
             )
 
     def test_create_annotation_class_via_ocr_group_type(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             f"OCR attribute group is not supported for project type {self.PROJECT_TYPE}.",
         ):

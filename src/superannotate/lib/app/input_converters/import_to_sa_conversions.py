@@ -2,6 +2,7 @@
 Module which will convert from other
 annotation formats to superannotate annotation format
 """
+
 import logging
 import shutil
 from pathlib import Path

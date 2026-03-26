@@ -6,6 +6,16 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.5.3 - March 26, 2026
+________________________
+
+**Updated**
+    - SDK will now support Python version 3.14.
+
+**Fixed**
+    - ``SAClient.get_item_by_id()`` to return item assignment metadata when the project has a folder.
+
+
 4.5.2 - March 1, 2026
 ________________________
 

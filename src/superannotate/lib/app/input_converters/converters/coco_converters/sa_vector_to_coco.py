@@ -1,6 +1,7 @@
 """
 SA to COCO conversion methods
 """
+
 import logging
 import threading
 

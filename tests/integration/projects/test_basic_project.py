@@ -52,22 +52,6 @@ class TestMultimodalProjectBasic(BaseTestCase):
     def test_search(self):
         projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
         assert projects
-
-        sa.create_annotation_class(
-            self.PROJECT_NAME,
-            "class1",
-            "#FFAAFF",
-            [
-                {
-                    "name": "Human",
-                    "attributes": [{"name": "yes"}, {"name": "no"}],
-                },
-                {
-                    "name": "age",
-                    "attributes": [{"name": "young"}, {"name": "old"}],
-                },
-            ],
-        )
         sa.attach_items(self.PROJECT_NAME, attachments=[{"url": "", "name": "name"}])
         annotation = json.load(open(self.annotation_path))
         annotation["metadata"]["name"] = "name"

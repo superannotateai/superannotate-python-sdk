@@ -41,15 +41,11 @@ class TestListItems(BaseTestCase):
         assert len(items) == 100
 
     def test_invalid_filter(self):
-        with self.assertRaisesRegexp(
-            AppException, "Invalid assignments role provided."
-        ):
+        with self.assertRaisesRegex(AppException, "Invalid assignments role provided."):
             sa.list_items(self.PROJECT_NAME, assignments__user_role__in=["Approved"])
-        with self.assertRaisesRegexp(
-            AppException, "Invalid assignments role provided."
-        ):
+        with self.assertRaisesRegex(AppException, "Invalid assignments role provided."):
             sa.list_items(self.PROJECT_NAME, assignments__user_role="Dummy")
-        with self.assertRaisesRegexp(AppException, "Invalid status provided."):
+        with self.assertRaisesRegex(AppException, "Invalid status provided."):
             sa.list_items(self.PROJECT_NAME, annotation_status="Dummy")
 
     def test_list_items_URL_limit(self):

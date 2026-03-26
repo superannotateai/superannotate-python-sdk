@@ -7,7 +7,6 @@ from src.superannotate import SAClient
 from src.superannotate.lib.core.enums import CustomFieldEntityEnum
 from tests.integration.work_management.data_set import CUSTOM_FIELD_PAYLOADS
 
-
 sa = SAClient()
 
 
@@ -180,17 +179,17 @@ class TestWorkManagement(TestCase):
         # by role
         assert len(sa.list_users(role="contributor")) == len(all_contributors)
         assert len(sa.list_users(role__in=["contributor"])) == len(all_contributors)
-        with self.assertRaisesRegexp(AppException, "Invalid user role provided."):
+        with self.assertRaisesRegex(AppException, "Invalid user role provided."):
             sa.list_users(role__in=["invalid_role"])
 
         # by state
         assert len(sa.list_users(state="Confirmed")) == len(all_confirmed)
         assert len(sa.list_users(state__in=["Pending"])) == len(all_pending)
-        with self.assertRaisesRegexp(AppException, "Invalid user state provided."):
+        with self.assertRaisesRegex(AppException, "Invalid user state provided."):
             assert len(sa.list_users(state__in=["invalid_state"])) == len(all_pending)
 
     def test_get_user_metadata_invalid(self):
-        with self.assertRaisesRegexp(AppException, "User not found."):
+        with self.assertRaisesRegex(AppException, "User not found."):
             sa.get_user_metadata("invalid_user")
 
     def test_set_user_custom_field_validation(self):
@@ -203,17 +202,17 @@ class TestWorkManagement(TestCase):
         scapegoat = [u for u in users if u["role"] == "Contributor"][0]
 
         # test for Team_Owner
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, "Setting custom fields for the Team Owner is not allowed."
         ):
             sa.set_user_custom_field(team_owner["email"], "SDK_test_text", 123)
 
         # test for text
-        with self.assertRaisesRegexp(AppException, error_template.format(type="str")):
+        with self.assertRaisesRegex(AppException, error_template.format(type="str")):
             sa.set_user_custom_field(scapegoat["email"], "SDK_test_text", 123)
 
         # test for numeric
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, error_template.format(type="numeric")
         ):
             sa.set_user_custom_field(
@@ -221,7 +220,7 @@ class TestWorkManagement(TestCase):
             )
 
         # test for date_picker
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException, error_template.format(type="numeric")
         ):
             sa.set_user_custom_field(
@@ -229,7 +228,7 @@ class TestWorkManagement(TestCase):
             )
 
         # test for multi_select
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             error_template_select.format(type="list", options="option1, option2"),
         ):
@@ -238,7 +237,7 @@ class TestWorkManagement(TestCase):
             )
 
         # test for select
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             error_template_select.format(type="str", options="option1, option2"),
         ):

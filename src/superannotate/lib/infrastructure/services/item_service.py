@@ -22,7 +22,7 @@ class ItemService(SuperannotateServiceProvider):
             headers={
                 "x-sa-entity-context": base64.b64encode(
                     f'{{"team_id":{self.client.team_id},'
-                    f'"project_id":{project_id}}}'.encode("utf-8")
+                    f'"project_id":{project_id}}}'.encode()
                 ).decode()
             },
         )
@@ -45,7 +45,7 @@ class ItemService(SuperannotateServiceProvider):
             item_type=BaseItemEntity,
             headers={
                 "x-sa-entity-context": base64.b64encode(
-                    f"{{{','.join(entity_context)}}}".encode("utf-8")
+                    f"{{{','.join(entity_context)}}}".encode()
                 ).decode()
             },
         )

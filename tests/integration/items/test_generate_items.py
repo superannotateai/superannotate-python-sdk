@@ -72,20 +72,20 @@ class TestGenerateItemsMM(TestCase):
         assert actual_names == expected_names
 
     def test_invalid_name(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "Invalid item name.",
         ):
             sa.generate_items(self.PROJECT_NAME, 100, name="a" * 115)
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "Invalid item name.",
         ):
             sa.generate_items(self.PROJECT_NAME, 100, name="m<:")
 
     def test_item_count(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "The number of items you want to attach exceeds the limit of 50 000 items per folder.",
         ):

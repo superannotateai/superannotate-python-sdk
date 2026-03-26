@@ -1,44 +1,43 @@
-from enum import Enum
 from typing import List
 from typing import Optional
 
-from lib.core.entities.base import BaseModel
 from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import FolderStatus
 from lib.core.enums import WMUserStateEnum
-from lib.core.pydantic_v1 import Extra
-from lib.core.pydantic_v1 import Field
-from lib.core.pydantic_v1 import root_validator
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic import model_validator
 
 
 class FolderUserEntity(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     email: Optional[str] = None
     id: Optional[int] = None
     role: Optional[int] = None
     state: Optional[WMUserStateEnum] = None
 
-    class Config:
-        use_enum_names = True
-        allow_population_by_field_name = True
-        extra = Extra.ignore
-        json_encoders = {Enum: lambda v: v.value}
-
 
 class FolderEntity(TimedBaseModel):
-    id: Optional[int]
-    name: Optional[str]
-    status: Optional[FolderStatus]
-    project_id: Optional[int]
-    team_id: Optional[int]
+    model_config = ConfigDict(extra="ignore")
+
+    id: Optional[int] = None
+    name: Optional[str] = None
+    status: Optional[FolderStatus] = None
+    project_id: Optional[int] = None
+    team_id: Optional[int] = None
     is_root: Optional[bool] = False
     contributors: Optional[List[FolderUserEntity]] = Field(
         default_factory=list, alias="folderUsers"
     )
+    completedCount: Optional[int] = None
 
-    completedCount: Optional[int]
-
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def normalize_folder_users(cls, values: dict) -> dict:
+        if not isinstance(values, dict):
+            return values
         folder_users = values.get("folderUsers")
         if not folder_users:
             return values
@@ -58,7 +57,3 @@ class FolderEntity(TimedBaseModel):
 
         values["folderUsers"] = normalized
         return values
-
-    class Config:
-        extra = Extra.ignore
-        allow_population_by_field_name = True

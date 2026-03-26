@@ -374,9 +374,9 @@ class WorkManagementService(BaseWorkManagementService):
             data={
                 "name": name,
                 "component_id": component_id,
-                "component_payload": component_payload
-                if component_payload is not None
-                else {},
+                "component_payload": (
+                    component_payload if component_payload is not None else {}
+                ),
                 "access": access if access is not None else {},
             },
             headers={
@@ -550,7 +550,9 @@ class WorkManagementService(BaseWorkManagementService):
         return self.client.request(
             url=self.URL_UPDATE_ANNOTATION_CLASS.format(class_id=class_id),
             method="patch",
-            data=data.dict(exclude_unset=True, by_alias=True),
+            data=data.model_dump(
+                exclude_unset=True, by_alias=True, mode="json", exclude_none=True
+            ),
             headers={
                 "x-sa-entity-context": self._generate_context(
                     team_id=self.client.team_id, project_id=project_id

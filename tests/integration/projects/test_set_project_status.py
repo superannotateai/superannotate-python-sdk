@@ -5,7 +5,6 @@ from src.superannotate import AppException
 from src.superannotate.lib.core.service_types import ServiceResponse
 from superannotate import SAClient
 
-
 sa = SAClient()
 
 
@@ -43,21 +42,21 @@ class TestSetProjectStatus(TestCase):
     @patch("lib.infrastructure.services.project.ProjectService.update")
     def test_set_project_status_fail(self, update_function):
         update_function.return_value = ServiceResponse(_error="ERROR")
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             f"Failed to change {self.PROJECT_NAME} status.",
         ):
             sa.set_project_status(project=self.PROJECT_NAME, status="Completed")
 
     def test_set_project_status_via_invalid_status(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
-            "Available values are 'NotStarted', 'InProgress', 'Completed', 'OnHold'.",
+            "Input should be 'NotStarted', 'InProgress', 'Completed' or 'OnHold'",
         ):
             sa.set_project_status(project=self.PROJECT_NAME, status="InvalidStatus")
 
     def test_set_project_status_via_invalid_project(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AppException,
             "Project not found.",
         ):
