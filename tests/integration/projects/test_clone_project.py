@@ -6,6 +6,7 @@ import src.superannotate.lib.core as constances
 from src.superannotate import SAClient
 from superannotate import AppException
 from tests import DATA_SET_PATH
+from tests.integration.projects.test_basic_project import BaseMultimodalProjectCreate
 
 sa = SAClient()
 
@@ -234,3 +235,43 @@ class TestCloneVideoProject(TestCase):
         for s in new_settings:
             if s["attribute"] == "FrameMode":
                 assert not s["value"]
+
+
+class TestCloneMultimodalProject(BaseMultimodalProjectCreate):
+    FORM_PATH = DATA_SET_PATH / "multimodal_form" / "form.json"
+    PROJECT_NAME = "test_clone_multimodal_project"
+    PROJECT_NAME_CLONE = "test_clone_multimodal_project_clone"
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        sa.delete_project(self.PROJECT_NAME_CLONE)
+
+    def test_clone_multimodal_project(self):
+        from_project = sa.get_project_metadata(self.PROJECT_NAME)
+        self.assertEqual(
+            from_project["type"], "Multimodal", "Project type is not Multimodal"
+        )
+
+        cloned_project = sa.clone_project(
+            project_name=self.PROJECT_NAME_CLONE,
+            from_project=self.PROJECT_NAME,
+            copy_annotation_classes=True,  # not affected
+            copy_settings=True,
+            copy_contributors=True,
+            copy_workflow=True,
+        )
+        self.assertEqual(cloned_project["name"], self.PROJECT_NAME_CLONE)
+        self.assertEqual(cloned_project["type"], "Multimodal")
+        self.assertEqual(cloned_project["description"], self.PROJECT_DESCRIPTION)
+        self.assertEqual(
+            cloned_project["status"], constances.ProjectStatus.NotStarted.name
+        )
+
+        from_project_template = sa.controller.projects.get_editor_template(
+            from_project["id"]
+        )
+        cloned_project_template = sa.controller.projects.get_editor_template(
+            cloned_project["id"]
+        )
+
+        self.assertEqual(from_project_template, cloned_project_template)

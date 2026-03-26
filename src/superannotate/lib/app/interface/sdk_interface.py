@@ -1353,7 +1353,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 self.controller.team, new_project, project.contributors
             )
             new_project.contributors = project.contributors
-        if copy_annotation_classes:
+        # for multimodal project, classes are generated from form
+        if copy_annotation_classes and project.type != constants.ProjectType.MULTIMODAL:
             logger.info(
                 f"Cloning annotation classes from {from_project} to {project_name}."
             )
@@ -1362,6 +1363,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
             classes_response.raise_for_status()
             project.classes = classes_response.data
+        # attach form to a multimodal project
+        if project.type == constants.ProjectType.MULTIMODAL:
+            form = self.controller.projects.get_editor_template(project.id)
+            self.controller.projects.attach_form(new_project, form)
         response = self.controller.projects.get_metadata(
             new_project,
             include_settings=copy_settings,
