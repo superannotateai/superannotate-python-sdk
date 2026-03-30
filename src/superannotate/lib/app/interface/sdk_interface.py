@@ -78,6 +78,10 @@ from lib.core.jsx_conditions import Join
 from lib.core.jsx_conditions import Fields
 from lib.core.entities.items import ProjectCategoryEntity
 from lib.core.entities import WMAnnotationClassEntity
+from lib.infrastructure.query_builder import FolderFilterHandler
+from lib.core.entities.filters import FolderFilters
+from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.query_builder import FieldValidationHandler
 
 logger = logging.getLogger("sa")
 
@@ -1651,7 +1655,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project = self.controller.get_project(project)
         query = Filter("name", folder_name, OperatorEnum.EQ)
-        fields = ["id", "project_id", "name", "status", "team_id"]
+        fields = [
+            "id",
+            "project_id",
+            "name",
+            "status",
+            "team_id",
+            "createdAt",
+            "updatedAt",
+        ]
 
         if include_contributors:
             query &= Join("folderUsers", fields=["id"])
@@ -1749,6 +1761,105 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 if not folder.is_root
             ]
         return [folder.name for folder in data if not folder.is_root]
+
+    def list_folders(
+        self,
+        project: Union[NotEmptyStr, int],
+        **filters,
+    ):
+        """
+        Search folders by filtering criteria.
+
+        :param project: The project name or project ID to search within.
+        :type project: Union[NotEmptyStr, int]
+
+        :param filters: Filtering criteria. All conditions are combined using logical AND.If no filter operation is provided, an exact match is applied.
+
+            Supported filter operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - name: str
+            - name__in: list[str]
+            - name__contains: str
+            - name__starts: str
+            - name__ends: str
+            - status: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
+            - status__ne: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
+            - status__in: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
+            - status__notin: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
+
+        :type filters: FolderFilters, optional
+
+        :return: A list of folder metadata that matches the filtering criteria.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client.list_folders(
+                project="test_project",
+                status="NotStarted"
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "createdAt": "2025-10-27T06:54:09.000Z",
+                    "updatedAt": "2025-10-27T06:54:09.000Z",
+                    "id": 1487195,
+                    "name": "test_folder",
+                    "status": "NotStarted",
+                    "project_id": 1203397,
+                    "team_id": 85922,
+                    "is_root": False
+                },
+                {
+                    "createdAt": "2025-10-27T06:54:09.000Z",
+                    "updatedAt": "2025-10-27T06:54:09.000Z",
+                    "id": 1379813,
+                    "name": "root",
+                    "status": None,
+                    "project_id": 1203397,
+                    "team_id": 85922,
+                    "is_root": True
+                }
+            ]
+        """
+        project_entity = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+
+        valid_fields = FolderFilters.__annotations__
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(valid_fields.keys()),
+                FolderFilterHandler(),
+            ]
+        )
+        query = chain.handle(filters, EmptyQuery())
+
+        response = self.controller.work_management.list_folders(
+            project=project_entity, query=query
+        )
+        return BaseSerializer.serialize_iterable(
+            response.data,
+            exclude={"completedCount", "contributors"},
+            by_alias=False,
+        )
 
     def get_project_metadata(
         self,

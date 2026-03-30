@@ -10,3 +10,4 @@ Folders
 .. automethod:: superannotate.SAClient.get_folder_metadata
 .. automethod:: superannotate.SAClient.create_folder
 .. automethod:: superannotate.SAClient.delete_folders
+.. automethod:: superannotate.SAClient.list_folders

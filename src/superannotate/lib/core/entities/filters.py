@@ -40,6 +40,10 @@ class ProjectFilters(BaseFilters):
     status__notin: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
 
 
+class FolderFilters(ProjectFilters):
+    pass
+
+
 class BaseUserFilters(TypedDict, total=False):
     id: Optional[int]
     id__in: Optional[List[int]]

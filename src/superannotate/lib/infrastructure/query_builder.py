@@ -12,6 +12,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
+from lib.core.enums import FolderStatus
 from lib.core.enums import ProjectStatus
 from lib.core.enums import UserRole
 from lib.core.enums import WMUserStateEnum
@@ -323,6 +324,28 @@ class ProjectFilterHandler(BaseCustomFieldHandler):
                 else ProjectStatus(val).value
             )
         return super()._handle_special_fields(keys, val)
+
+
+class FolderFilterHandler(AbstractQueryHandler):
+    def _handle_special_fields(self, keys: List[str], val):
+        """Handle special fields like 'status'."""
+        if keys[0] == "status":
+            val = (
+                [FolderStatus(i).value for i in val]
+                if isinstance(val, (list, tuple, set))
+                else FolderStatus(val).value
+            )
+        return val
+
+    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+        if query is None:
+            query = EmptyQuery()
+        for key, val in filters.items():
+            _keys = key.split("__")
+            val = self._handle_special_fields(_keys, val)
+            condition, _key = determine_condition_and_key(_keys)
+            query &= Filter(_key, val, condition)
+        return super().handle(filters, query)
 
 
 class QueryBuilderChain:
