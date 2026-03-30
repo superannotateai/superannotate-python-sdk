@@ -918,7 +918,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         categories: Union[List[NotEmptyStr], Literal["*"]],
     ):
         """
-        Assign one or more categories to a contributor with an assignable role (Annotator, QA or custom role)
+        Assign one or more categories to a contributor with an assignable role (Annotator, QA, or custom role)
         in a Multimodal project. Project Admins are not eligible for category assignments. "*" in the category
         list will match all categories defined in the project.
 
@@ -1294,7 +1294,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         copy_workflow: Optional[bool] = False,
         copy_contributors: Optional[bool] = False,
     ):
-        """Create a new project in the team using annotation classes and settings from from_project.
+        """Duplicate an existing project and create a new project that reuses selected annotation classes, settings,
+        and workflows from the source project. Copying contributors also copies Groups related settings.
+        For Multimodal projects, copying annotation classes is not supported.
 
         :param project_name: new project's name
         :type project_name: str
@@ -2395,7 +2397,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         user: str,
     ):
         """Assigns items  to a user. The assignment role, QA or Annotator, will
-        be deduced from the user's role in the project. The type of the objects` image, video or text
+        be deduced from the user's role in the project. The type of the objects` image, video, or text
         will be deduced from the project type. With SDK, the user can be
         assigned to a role in the project with the share_project function.
 
@@ -3791,7 +3793,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_root: the export path of the project
         :type project_root: Path-like (str or Path)
 
-        :param project_type: the project type, Vector, Video or Document
+        :param project_type: the project type, Vector, Video, or Document
         :type project_type: str
 
         :param folder_names: Aggregate the specified folders from project_root.
@@ -3838,7 +3840,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Validates given annotation JSON.
 
-        :param project_type: The project type Vector, Video or Document
+        :param project_type: The project type Vector, Video, or Document
         :type project_type: str
 
         :param annotations_json: path to annotation JSON
@@ -4700,7 +4702,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :type annotation_status: str
 
-        :return: uploaded, failed and duplicated item names
+        :return: uploaded, failed, and duplicated item names
         :rtype: tuple of list of strs
 
         Example:
@@ -5461,7 +5463,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 Required keys are 'name' and 'path' if the 'id' key is not provided in the dict.
         :type items: list of dicts
 
-        :return: dictionary with succeeded, skipped and failed items lists.
+        :return: dictionary with succeeded, skipped, and failed items lists.
         :rtype: dict
 
         Request Example:
