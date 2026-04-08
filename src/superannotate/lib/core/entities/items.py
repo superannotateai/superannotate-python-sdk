@@ -1,5 +1,4 @@
-from typing import List
-from typing import Optional
+from __future__ import annotations
 
 from lib.core.entities.base import BaseItemEntity
 from lib.core.entities.project import TimedBaseModel
@@ -10,9 +9,9 @@ from pydantic import Field
 
 
 class ImageEntity(BaseItemEntity):
-    approval_status: Optional[ApprovalStatus] = Field(None)
-    is_pinned: Optional[bool] = Field(None)
-    meta: Optional[dict] = Field(None)
+    approval_status: ApprovalStatus | None = Field(None)
+    is_pinned: bool | None = Field(None)
+    meta: dict | None = Field(None)
     model_config = ConfigDict(extra="ignore")
 
 
@@ -36,17 +35,17 @@ class MultiModalItemCategoryEntity(TimedBaseModel):
 
 
 class MultiModalItemEntity(BaseItemEntity):
-    categories: Optional[List[MultiModalItemCategoryEntity]] = None
+    categories: list[MultiModalItemCategoryEntity] | None = None
     model_config = ConfigDict(extra="ignore")
 
 
 class VideoEntity(BaseItemEntity):
-    approval_status: Optional[ApprovalStatus] = Field(None)
+    approval_status: ApprovalStatus | None = Field(None)
     model_config = ConfigDict(extra="ignore")
 
 
 class DocumentEntity(BaseItemEntity):
-    approval_status: Optional[ApprovalStatus] = Field(None)
+    approval_status: ApprovalStatus | None = Field(None)
     model_config = ConfigDict(extra="ignore")
 
 

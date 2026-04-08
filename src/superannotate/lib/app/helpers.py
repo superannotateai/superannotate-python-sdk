@@ -1,9 +1,8 @@
+from __future__ import annotations
+
 import os
 import uuid
 from pathlib import Path
-from typing import List
-from typing import Tuple
-from typing import Union
 
 import boto3
 import numpy as np
@@ -23,8 +22,8 @@ def get_annotation_paths(folder_path, s3_bucket=None, recursive=False):
 
 
 def get_local_annotation_paths(
-    folder_path: Union[str, Path], annotation_paths: set, recursive: bool
-) -> List[str]:
+    folder_path: str | Path, annotation_paths: set, recursive: bool
+) -> list[str]:
     all_items = [*Path(folder_path).glob("*")]
     all_folders = [i for i in all_items if i.is_dir()]
     all_not_folders = [i for i in all_items if not i.is_dir()]
@@ -112,7 +111,7 @@ def get_tabulation() -> int:
         return 48
 
 
-def wrap_error(errors_list: List[Tuple[str, str]]) -> str:
+def wrap_error(errors_list: list[tuple[str, str]]) -> str:
     tabulation = get_tabulation()
     msgs = []
     for key, value in errors_list:

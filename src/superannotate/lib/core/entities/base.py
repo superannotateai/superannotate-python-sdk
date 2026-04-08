@@ -2,8 +2,6 @@ import re
 from datetime import datetime
 from typing import Annotated
 from typing import Literal
-from typing import Optional
-from typing import Union
 
 from lib.core import BACKEND_URL
 from lib.core import LOG_FILE_LOCATION
@@ -31,14 +29,14 @@ def _validate_hex_color(v: str) -> str:
 HexColor = Annotated[str, AfterValidator(_validate_hex_color)]
 
 
-def _validate_string_date(v: Union[datetime, str]) -> str:
+def _validate_string_date(v: datetime | str) -> str:
     """Convert datetime to string format."""
     if isinstance(v, str):
         return v
     return v.isoformat().split("+")[0] + ".000Z"
 
 
-def _serialize_string_date(v: Union[datetime, str]) -> str:
+def _serialize_string_date(v: datetime | str) -> str:
     """Serialize datetime or string to string format. For case data input."""
     if isinstance(v, str):
         return v
@@ -57,15 +55,15 @@ StringDate = Annotated[
 class SubSetEntity(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
+    id: int | None = None
     name: str
 
 
 class TimedBaseModel(BaseModel):
-    createdAt: Optional[StringDate] = Field(
+    createdAt: StringDate | None = Field(
         None, alias="createdAt", description="Date of creation"
     )
-    updatedAt: Optional[StringDate] = Field(
+    updatedAt: StringDate | None = Field(
         None, alias="updatedAt", description="Update date"
     )
 
@@ -73,23 +71,21 @@ class TimedBaseModel(BaseModel):
 class BaseItemEntity(TimedBaseModel):
     model_config = ConfigDict(extra="allow")
 
-    id: Optional[int] = None
-    name: Optional[str] = None
-    folder_id: Optional[int] = None
-    path: Optional[str] = Field(
-        None, description="Item’s path in SuperAnnotate project"
-    )
-    url: Optional[str] = Field(None, description="Publicly available HTTP address")
-    annotator_email: Optional[str] = Field(None, description="Annotator email")
-    qa_email: Optional[str] = Field(None, description="QA email")
-    annotation_status: Optional[Union[int, str]] = Field(
+    id: int | None = None
+    name: str | None = None
+    folder_id: int | None = None
+    path: str | None = Field(None, description="Item’s path in SuperAnnotate project")
+    url: str | None = Field(None, description="Publicly available HTTP address")
+    annotator_email: str | None = Field(None, description="Annotator email")
+    qa_email: str | None = Field(None, description="QA email")
+    annotation_status: int | str | None = Field(
         None, description="Item annotation status"
     )
-    entropy_value: Optional[float] = Field(
+    entropy_value: float | None = Field(
         None, description="Priority score of given item"
     )
-    custom_metadata: Optional[dict] = None
-    assignments: Optional[list] = Field(default_factory=list)
+    custom_metadata: dict | None = None
+    assignments: list | None = Field(default_factory=list)
 
     def __hash__(self):
         return hash(self.name)

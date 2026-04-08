@@ -1,9 +1,9 @@
+from __future__ import annotations
+
 import itertools
 import math
 from collections import defaultdict
 from typing import Any
-from typing import List
-from typing import Optional
 
 from lib.core.enums import AnnotationTypes
 from pydantic import BaseModel
@@ -12,18 +12,18 @@ from pydantic import BaseModel
 class Annotation(BaseModel):
     instanceId: int
     type: str
-    className: Optional[str] = None
-    classId: Optional[int] = None
-    x: Optional[Any] = None
-    y: Optional[Any] = None
+    className: str | None = None
+    classId: int | None = None
+    x: Any | None = None
+    y: Any | None = None
     points: Any = None
-    attributes: Optional[List[Any]] = []
+    attributes: list[Any] | None = []
     keyframe: bool = False
 
 
 class FrameAnnotation(BaseModel):
     frame: int
-    annotations: List[Annotation] = []
+    annotations: list[Annotation] = []
 
 
 class VideoFrameGenerator:
@@ -88,7 +88,7 @@ class VideoFrameGenerator:
                 classId=class_id,
                 attributes=data.get("attributes"),
                 keyframe=False,
-                **tmp_data
+                **tmp_data,
             )
         return annotations
 
@@ -103,7 +103,7 @@ class VideoFrameGenerator:
         next(b, None)
         return zip(a, b)
 
-    def get_median(self, annotations: List[dict]) -> dict:
+    def get_median(self, annotations: list[dict]) -> dict:
         if len(annotations) >= 1:
             return annotations[0]
         # Let's just leave the code for reference.

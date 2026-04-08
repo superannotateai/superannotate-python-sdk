@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import decimal
 import logging
 import math
 from collections import defaultdict
-from typing import List
 
 import lib.core as constants
 from lib.core.conditions import Condition
@@ -536,7 +537,7 @@ class GetStepsUseCase(BaseUseCase):
 class UpdateSettingsUseCase(BaseUseCase):
     def __init__(
         self,
-        to_update: List,
+        to_update: list,
         service_provider: BaseServiceProvider,
         project: ProjectEntity,
     ):
@@ -605,7 +606,7 @@ class SetStepsUseCase(BaseUseCase):
         service_provider: BaseServiceProvider,
         steps: list,
         project: ProjectEntity,
-        connections: List[List[int]] = None,
+        connections: list[list[int]] = None,
     ):
         super().__init__()
         self._service_provider = service_provider
@@ -832,7 +833,7 @@ class AddContributorsToProject(BaseUseCase):
         self,
         team: TeamEntity,
         project: ProjectEntity,
-        contributors: List[WMProjectUserEntity],
+        contributors: list[WMProjectUserEntity],
         service_provider: BaseServiceProvider,
     ):
         super().__init__()

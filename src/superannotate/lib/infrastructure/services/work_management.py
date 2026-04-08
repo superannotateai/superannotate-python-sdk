@@ -1,9 +1,8 @@
+from __future__ import annotations
+
 import base64
 import json
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Union
 
 from lib.core.entities import CategoryEntity
 from lib.core.entities import FolderEntity
@@ -100,7 +99,7 @@ class WorkManagementService(BaseWorkManagementService):
 
     def list_project_categories(
         self, project_id: int, entity: BaseEntity = CategoryEntity
-    ) -> Union[ListCategoryResponse, ListProjectCategoryResponse]:
+    ) -> ListCategoryResponse | ListProjectCategoryResponse:
         response = self.client.paginate(
             url=self.URL_LIST_CATEGORIES,
             item_type=entity,
@@ -115,7 +114,7 @@ class WorkManagementService(BaseWorkManagementService):
         return response
 
     def create_project_categories(
-        self, project_id: int, categories: List[str]
+        self, project_id: int, categories: list[str]
     ) -> ListProjectCategoryResponse:
         response = self.client.request(
             method="post",
@@ -359,7 +358,7 @@ class WorkManagementService(BaseWorkManagementService):
         parent_entity: CustomFieldEntityEnum,
         component_payload: dict = None,
         access: dict = None,
-        entity_context: Optional[dict] = None,
+        entity_context: dict | None = None,
     ) -> WMCustomFieldResponse:
         if entity_context is None:
             entity_context = {}
@@ -390,7 +389,7 @@ class WorkManagementService(BaseWorkManagementService):
         pk: int,
         entity: CustomFieldEntityEnum,
         parent_entity: CustomFieldEntityEnum,
-        entity_context: Optional[dict] = None,
+        entity_context: dict | None = None,
     ):
         if entity_context is None:
             entity_context = {}
@@ -417,7 +416,7 @@ class WorkManagementService(BaseWorkManagementService):
         data: dict,
         entity: CustomFieldEntityEnum,
         parent_entity: CustomFieldEntityEnum,
-        context: Optional[dict] = None,
+        context: dict | None = None,
     ):
         return self.client.request(
             url=self.URL_SET_CUSTOM_ENTITIES.format(pk=entity_id),
@@ -465,7 +464,7 @@ class WorkManagementService(BaseWorkManagementService):
     def create_score(
         self,
         name: str,
-        description: Optional[str],
+        description: str | None,
         score_type: Literal["rating", "number", "radio"],
         payload: dict,
     ) -> ServiceResponse:
@@ -500,11 +499,11 @@ class WorkManagementService(BaseWorkManagementService):
     def set_remove_contributor_categories(
         self,
         project_id: int,
-        contributor_ids: List[int],
-        category_ids: List[int],
+        contributor_ids: list[int],
+        category_ids: list[int],
         operation: Literal["set", "remove"],
         chunk_size=100,
-    ) -> List[dict]:
+    ) -> list[dict]:
         params = {
             "entity": "Contributor",
             "parentEntity": "Project",

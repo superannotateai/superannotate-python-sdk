@@ -1,5 +1,4 @@
-from typing import Dict
-from typing import Optional
+from __future__ import annotations
 
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
@@ -43,10 +42,10 @@ class AttachIntegrations(BaseReportableUseCase):
         service_provider: BaseServiceProvider,
         integration: IntegrationEntity,
         folder_path: str = None,
-        query: Optional[str] = None,
-        item_name_column: Optional[str] = None,
-        custom_item_name: Optional[str] = None,
-        component_mapping: Optional[Dict[str, str]] = None,
+        query: str | None = None,
+        item_name_column: str | None = None,
+        custom_item_name: str | None = None,
+        component_mapping: dict[str, str] | None = None,
     ):
         super().__init__(reporter)
         self._project = project

@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import threading
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Dict
 
 
 class Session:
@@ -54,7 +55,7 @@ class Singleton(type):
 
 @dataclass()
 class Config(metaclass=Singleton):
-    SESSIONS: Dict[int, Session] = field(default_factory=dict)
+    SESSIONS: dict[int, Session] = field(default_factory=dict)
 
     def get_current_session(self):
         session = self.SESSIONS.get(threading.get_ident())

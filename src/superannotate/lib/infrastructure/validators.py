@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import typing
 from collections import defaultdict
@@ -10,7 +12,7 @@ from pydantic import ValidationError
 class WrongConstantError(ValueError):
     """Custom error for wrong constant values."""
 
-    def __init__(self, given: typing.Any, permitted: typing.Tuple[typing.Any, ...]):
+    def __init__(self, given: typing.Any, permitted: tuple[typing.Any, ...]):
         self.given = given
         self.permitted = permitted
         super().__init__(self._message())
@@ -23,7 +25,7 @@ class WrongConstantError(ValueError):
         return self._message()
 
 
-def all_literal_values(type_: typing.Any) -> typing.Tuple[typing.Any, ...]:
+def all_literal_values(type_: typing.Any) -> tuple[typing.Any, ...]:
     """Extract all literal values from a Literal type."""
     origin = get_origin(type_)
     if origin is typing.Literal:

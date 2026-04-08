@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from abc import ABC
 from abc import ABCMeta
 from abc import abstractmethod
-from typing import Iterable
-from typing import List
+from collections.abc import Iterable
 
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
@@ -69,6 +70,6 @@ class BaseUserBasedUseCase(BaseUseCase, metaclass=ABCMeta):
     class contain validation of unique emails
     """
 
-    def __init__(self, emails: List[str]):
+    def __init__(self, emails: list[str]):
         super().__init__()
         self._emails = emails

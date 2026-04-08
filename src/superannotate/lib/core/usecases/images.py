@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import concurrent.futures
 import copy
 import io
@@ -11,8 +13,6 @@ import uuid
 from collections import defaultdict
 from collections import namedtuple
 from pathlib import Path
-from typing import List
-from typing import Optional
 
 import boto3
 import cv2
@@ -84,7 +84,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        attachments: List[ImageEntity],
+        attachments: list[ImageEntity],
         service_provider: BaseServiceProvider,
         annotation_status_value: int = None,
         upload_state_code: int = constances.UploadState.EXTERNAL.value,
@@ -694,7 +694,7 @@ class UploadImageToProject(BaseUseCase):
         folder: FolderEntity,
         s3_repo,
         service_provider: BaseServiceProvider,
-        annotation_status_value: Optional[int] = None,
+        annotation_status_value: int | None = None,
         image_bytes: io.BytesIO = None,
         image_path: str = None,
         image_name: str = None,
@@ -835,11 +835,11 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         folder: FolderEntity,
         s3_repo,
         service_provider: BaseServiceProvider,
-        paths: List[str],
+        paths: list[str],
         extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status_value: Optional[int] = None,
+        annotation_status_value: int | None = None,
         from_s3_bucket=None,
-        exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        exclude_file_patterns: list[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_sub_folders: bool = False,
         image_quality_in_editor=None,
     ):
@@ -984,7 +984,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             uploaded=False, path=image_path, entity=None, name=Path(image_path).name
         )
 
-    def filter_paths(self, paths: List[str]):
+    def filter_paths(self, paths: list[str]):
         paths = [
             path
             for path in paths
@@ -1118,9 +1118,9 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
         service_provider: BaseServiceProvider,
         folder_path: str,
         extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status_value: Optional[int] = None,
+        annotation_status_value: int | None = None,
         from_s3_bucket=None,
-        exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        exclude_file_patterns: list[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_sub_folders: bool = False,
         image_quality_in_editor=None,
     ):
@@ -1297,7 +1297,7 @@ class DeleteAnnotations(BaseUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         service_provider: BaseServiceProvider,
-        image_names: Optional[List[str]] = None,
+        image_names: list[str] | None = None,
     ):
         super().__init__()
         self._project = project
@@ -1658,12 +1658,12 @@ class UploadVideosAsImages(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         s3_repo,
-        paths: List[str],
+        paths: list[str],
         target_fps: int,
-        extensions: List[str] = constances.DEFAULT_VIDEO_EXTENSIONS,
-        exclude_file_patterns: List[str] = (),
-        start_time: Optional[float] = 0.0,
-        end_time: Optional[float] = None,
+        extensions: list[str] = constances.DEFAULT_VIDEO_EXTENSIONS,
+        exclude_file_patterns: list[str] = (),
+        start_time: float | None = 0.0,
+        end_time: float | None = None,
         annotation_status_value: int = None,
         image_quality_in_editor=None,
     ):

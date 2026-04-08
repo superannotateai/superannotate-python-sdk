@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 from lib.core import entities
 from lib.core.conditions import Condition
@@ -14,7 +14,7 @@ class AnnotationClassService(BaseAnnotationClassService):
     def create_multiple(
         self,
         project: entities.ProjectEntity,
-        classes: List[entities.AnnotationClassEntity],
+        classes: list[entities.AnnotationClassEntity],
     ):
         params = {
             "project_id": project.id,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import base64
 import io
@@ -12,8 +14,6 @@ from contextlib import contextmanager
 from enum import Enum
 from functools import lru_cache
 from typing import Any
-from typing import Dict
-from typing import List
 from typing import Literal
 
 import aiohttp
@@ -167,8 +167,8 @@ class HttpClient(BaseClient):
         url: str,
         item_type: Any = None,
         chunk_size: int = 2000,
-        query_params: Dict[str, Any] = None,
-        headers: Dict = None,
+        query_params: dict[str, Any] = None,
+        headers: dict = None,
     ) -> ServiceResponse:
         offset = 0
         total = []
@@ -198,7 +198,7 @@ class HttpClient(BaseClient):
         if item_type:
             response = ServiceResponse(
                 status=_response.status,
-                res_data=TypeAdapter(List[item_type]).validate_python(total),
+                res_data=TypeAdapter(list[item_type]).validate_python(total),
             )
         else:
             response = ServiceResponse(
@@ -215,8 +215,8 @@ class HttpClient(BaseClient):
         url: str,
         method: str = Literal["get", "post"],
         body_query: Query = None,
-        query_params: Dict = None,
-        headers: Dict = None,
+        query_params: dict = None,
+        headers: dict = None,
         chunk_size: int = 100,
         item_type: Any = None,
     ) -> ServiceResponse:
@@ -250,7 +250,7 @@ class HttpClient(BaseClient):
         if item_type:
             response = ServiceResponse(
                 status=_response.status,
-                res_data=TypeAdapter(List[item_type]).validate_python(total),
+                res_data=TypeAdapter(list[item_type]).validate_python(total),
             )
         else:
             response = ServiceResponse(

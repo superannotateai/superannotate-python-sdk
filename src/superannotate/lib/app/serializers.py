@@ -1,8 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any
-from typing import List
-from typing import Set
-from typing import Union
 
 import lib.core as constance
 from lib.core.entities import BaseEntity
@@ -32,10 +31,10 @@ class BaseSerializer:
 
     def serialize(
         self,
-        fields: List[str] = None,
+        fields: list[str] = None,
         by_alias: bool = True,
         flat: bool = False,
-        exclude: Set[str] = None,
+        exclude: set[str] = None,
         exclude_unset: bool = False,
         use_enum_names: bool = True,
     ):
@@ -54,11 +53,11 @@ class BaseSerializer:
     @staticmethod
     def _serialize(
         entity: Any,
-        fields: List[str] = None,
+        fields: list[str] = None,
         by_alias: bool = False,
         flat: bool = False,
-        exclude: Set[str] = None,
-        **kwargs
+        exclude: set[str] = None,
+        **kwargs,
     ):
         if not entity:
             return None
@@ -84,13 +83,13 @@ class BaseSerializer:
     @classmethod
     def serialize_iterable(
         cls,
-        data: List[Any],
-        fields: Union[List[str], Set[str]] = None,
+        data: list[Any],
+        fields: list[str] | set[str] = None,
         by_alias: bool = False,
         flat: bool = False,
-        exclude: Set = None,
-        **kwargs: object
-    ) -> List[Any]:
+        exclude: set = None,
+        **kwargs: object,
+    ) -> list[Any]:
         serialized_data = []
         for i in data:
             serialized_data.append(
@@ -107,10 +106,10 @@ class TeamSerializer(BaseSerializer): ...  # noqa E701
 class ProjectSerializer(BaseSerializer):
     def serialize(
         self,
-        fields: List[str] = None,
+        fields: list[str] = None,
         by_alias: bool = False,
         flat: bool = False,
-        exclude: Set[str] = None,
+        exclude: set[str] = None,
         exclude_unset=False,
     ):
 
@@ -145,10 +144,10 @@ class ProjectSerializer(BaseSerializer):
 class WMProjectSerializer(BaseSerializer):
     def serialize(
         self,
-        fields: List[str] = None,
+        fields: list[str] = None,
         by_alias: bool = False,
         flat: bool = False,
-        exclude: Set[str] = None,
+        exclude: set[str] = None,
         exclude_unset=False,
     ):
 
@@ -165,10 +164,10 @@ class WMProjectSerializer(BaseSerializer):
 class FolderSerializer(BaseSerializer):
     def serialize(
         self,
-        fields: List[str] = None,
+        fields: list[str] = None,
         by_alias: bool = False,
         flat: bool = False,
-        exclude: Set[str] = None,
+        exclude: set[str] = None,
     ):
         data = super().serialize(fields, by_alias, flat, exclude)
         if not data.get("status"):
@@ -192,9 +191,7 @@ class ItemSerializer(BaseSerializer): ...  # noqa E701
 
 class EntitySerializer:
     @classmethod
-    def serialize(
-        cls, data: Union[BaseModel, List], **kwargs
-    ) -> Union[List[dict], dict]:
+    def serialize(cls, data: BaseModel | list, **kwargs) -> list[dict] | dict:
         if isinstance(data, (list, set)):
             for idx, item in enumerate(data):
                 data[idx] = cls.serialize(item, **kwargs)

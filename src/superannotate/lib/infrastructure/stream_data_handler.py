@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import copy
 import json
 import logging
 import os
-import typing
-from typing import Callable
+from collections.abc import Callable
 
 import aiohttp
 from lib.core.exceptions import AppException
@@ -118,7 +119,7 @@ class StreamedAnnotations:
         self,
         method: str,
         url: str,
-        data: typing.List[int] = None,
+        data: list[int] = None,
         params: dict = None,
     ):
         params = copy.copy(params)
@@ -142,7 +143,7 @@ class StreamedAnnotations:
         method: str,
         url: str,
         download_path,
-        data: typing.List[int],
+        data: list[int],
         params: dict = None,
     ):
         params = copy.copy(params)

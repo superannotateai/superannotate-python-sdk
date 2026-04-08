@@ -3,9 +3,6 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Union
 
 import lib.core as constances
 import pandas as pd
@@ -143,8 +140,8 @@ class DataAggregator:
     def __init__(
         self,
         project_type: str,
-        project_root: Union[str, Path],
-        folder_names: Optional[List[Union[Path, str]]] = None,
+        project_root: str | Path,
+        folder_names: list[Path | str] | None = None,
     ):
         self.project_type = project_type
         if isinstance(project_type, str):
@@ -224,7 +221,7 @@ class DataAggregator:
             raws.append(element_raw)
         return raws
 
-    def aggregate_video_annotations_as_df(self, annotation_paths: List[str]):
+    def aggregate_video_annotations_as_df(self, annotation_paths: list[str]):
         raws = []
         for annotation_path in annotation_paths:
             annotation_path = Path(annotation_path)
@@ -306,7 +303,7 @@ class DataAggregator:
         df = pd.DataFrame([raw.__dict__ for raw in raws], dtype=object)
         return df.where(pd.notnull(df), None)
 
-    def aggregate_document_annotations_as_df(self, annotation_paths: List[str]):
+    def aggregate_document_annotations_as_df(self, annotation_paths: list[str]):
         raws = []
         for annotation_path in annotation_paths:
             annotation_path = Path(annotation_path)
@@ -359,7 +356,7 @@ class DataAggregator:
         df = pd.DataFrame([raw.__dict__ for raw in raws], dtype=object)
         return df.where(pd.notnull(df), None)
 
-    def aggregate_image_annotations_as_df(self, annotations_paths: List[str]):
+    def aggregate_image_annotations_as_df(self, annotations_paths: list[str]):
         with open(self.classes_path) as f:
             classes_json = json.load(f)
         class_name_to_color = {}

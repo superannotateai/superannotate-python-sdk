@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import base64
 import datetime
-from typing import List
 
 import lib.core as constants
 from lib.core import entities
@@ -89,7 +90,7 @@ class ServiceProvider(BaseServiceProvider):
         context: EntityContext,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
-    ) -> List[str]:
+    ) -> list[str]:
         return self._cached_work_management_repository.list_custom_field_names(
             context,
             entity=entity,
@@ -245,7 +246,7 @@ class ServiceProvider(BaseServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_ids: List[int],
+        item_ids: list[int],
     ):
         return self.client.request(
             self.URL_ANNOTATION_UPLOAD_PATH_TOKEN,
@@ -262,10 +263,10 @@ class ServiceProvider(BaseServiceProvider):
     def prepare_export(
         self,
         project: entities.ProjectEntity,
-        folders: List[str],
+        folders: list[str],
         include_fuse: bool,
         only_pinned: bool,
-        annotation_statuses: List[str] = None,
+        annotation_statuses: list[str] = None,
         integration_id: int = None,
         export_type: int = None,
     ):
@@ -332,7 +333,7 @@ class ServiceProvider(BaseServiceProvider):
             list_users_url = f"{list_users_url}?{condition.build_query()}"
         return self.client.paginate(list_users_url)
 
-    def invite_contributors(self, team_id: int, team_role: int, emails: List[str]):
+    def invite_contributors(self, team_id: int, team_role: int, emails: list[str]):
         return self.client.request(
             self.URL_INVITE_CONTRIBUTORS.format(team_id),
             "post",
@@ -351,7 +352,7 @@ class ServiceProvider(BaseServiceProvider):
             data=data,
         )
 
-    def remove_users(self, emails: List[str]):
+    def remove_users(self, emails: list[str]):
         response = self.client.request(
             url=self.URL_REMOVE_USERS_FROM_TEAM.format(team_id=self.client.team_id),
             method="delete",
@@ -360,7 +361,7 @@ class ServiceProvider(BaseServiceProvider):
         response.raise_for_status()
         return response.data
 
-    def remove_users_from_project(self, project_id: int, emails: List[str]):
+    def remove_users_from_project(self, project_id: int, emails: list[str]):
         response = self.client.request(
             url=self.URL_REMOVE_USERS_FROM_PROJECT.format(project_id=project_id),
             method="delete",

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-from typing import List
 
 import lib.core as constances
 from lib.core.conditions import Condition
@@ -138,7 +139,7 @@ class DeleteFolderUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        folders: List[FolderEntity],
+        folders: list[FolderEntity],
         service_provider: BaseServiceProvider,
     ):
         super().__init__()
@@ -210,7 +211,7 @@ class AssignFolderUseCase(BaseUseCase):
         service_provider: BaseServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
-        users: List[str],
+        users: list[str],
     ):
         super().__init__()
         self._service_provider = service_provider

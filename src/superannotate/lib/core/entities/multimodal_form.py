@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+import random
+from typing import Any
+
+from pydantic import BaseModel
+
 """
 Multimodal form validator and class generator for SuperAnnotate projects.
 
@@ -30,22 +37,13 @@ Usage:
     classes = generate_classes_from_form(form_json)
 """
 
-import random
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
-
-from pydantic import BaseModel
-
 
 class BaseComponent(BaseModel):
     id: str
     type: str
-    label: Optional[str] = None
-    isRequired: Optional[bool] = False
-    exclude: Optional[bool] = False
+    label: str | None = None
+    isRequired: bool | None = False
+    exclude: bool | None = False
 
 
 class BaseClassComponent(BaseComponent):
@@ -69,9 +67,9 @@ class BaseClassComponent(BaseComponent):
 
 
 class SelectComponent(BaseClassComponent):
-    options: List[Dict[str, Any]] = []
-    isMultiselect: Optional[bool] = False
-    isDynamic: Optional[bool] = False
+    options: list[dict[str, Any]] = []
+    isMultiselect: bool | None = False
+    isDynamic: bool | None = False
 
     def generate_class(self):
         """Generate class for select component"""
@@ -135,9 +133,9 @@ class SelectComponent(BaseClassComponent):
 
 
 class NumberComponent(BaseClassComponent):
-    min: Optional[float] = None
-    max: Optional[float] = None
-    step: Optional[float] = 1
+    min: float | None = None
+    max: float | None = None
+    step: float | None = 1
 
     def generate_class(self):
         """Generate class for number component"""
@@ -153,9 +151,9 @@ class NumberComponent(BaseClassComponent):
 
 
 class TextComponent(BaseClassComponent):
-    placeholder: Optional[str] = None
-    min: Optional[int] = None
-    max: Optional[int] = None
+    placeholder: str | None = None
+    min: int | None = None
+    max: int | None = None
 
     def generate_class(self):
         """Generate class for text component"""
@@ -171,7 +169,7 @@ class TextComponent(BaseClassComponent):
 
 
 class RadioComponent(BaseClassComponent):
-    options: List[Dict[str, Any]] = []
+    options: list[dict[str, Any]] = []
 
     def generate_class(self):
         """Generate class for radio component"""
@@ -211,7 +209,7 @@ class RadioComponent(BaseClassComponent):
 
 
 class CheckboxComponent(BaseClassComponent):
-    options: List[Dict[str, Any]] = []
+    options: list[dict[str, Any]] = []
 
     def generate_class(self):
         """Generate class for checkbox component"""
@@ -251,9 +249,9 @@ class CheckboxComponent(BaseClassComponent):
 
 
 class FormModel(BaseModel):
-    components: List[Dict[str, Any]]
-    code: Optional[Union[str, List]] = ""
-    environments: List[Any] = []
+    components: list[dict[str, Any]]
+    code: str | list | None = ""
+    environments: list[Any] = []
 
     @property
     def code_as_string(self) -> str:
@@ -263,8 +261,8 @@ class FormModel(BaseModel):
         return self.code or ""
 
     def _extract_all_components(
-        self, components: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, components: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Recursively extract all components including nested ones"""
         all_components = []
 
@@ -283,7 +281,7 @@ class FormModel(BaseModel):
 
         return all_components
 
-    def generate_classes(self) -> List[Dict[str, Any]]:
+    def generate_classes(self) -> list[dict[str, Any]]:
         """Generate classes from form components"""
         classes = []
 
@@ -358,7 +356,7 @@ class FormModel(BaseModel):
         return classes
 
 
-def generate_classes_from_form(form_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+def generate_classes_from_form(form_json: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Generate classes JSON from form components.
 

@@ -1,11 +1,10 @@
 from typing import NoReturn
-from typing import Union
 
 from lib.core.exceptions import AppException
 
 
 class Response:
-    def __init__(self, status: str = None, data: Union[dict, list] = None):
+    def __init__(self, status: str = None, data: dict | list = None):
         self._status = status
         self._data = data
         self._report = []

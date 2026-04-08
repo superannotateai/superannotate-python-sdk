@@ -1,10 +1,9 @@
+from __future__ import annotations
+
 import datetime
 from enum import auto
 from enum import Enum
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Union
 
 from lib.core.entities.base import HexColor
 from lib.core.entities.base import TimedBaseModel
@@ -62,17 +61,17 @@ def _validate_string_date_wm(v: datetime.datetime) -> str:
 class WMProjectEntity(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
-    team_id: Optional[int] = None
+    id: int | None = None
+    team_id: int | None = None
     name: str
     type: ProjectType
-    description: Optional[str] = None
-    creator_id: Optional[str] = None
-    status: Optional[ProjectStatus] = None
-    workflow_id: Optional[int] = None
-    sync_status: Optional[int] = None
-    upload_state: Optional[str] = None
-    custom_fields: Optional[dict] = Field(default_factory=dict, alias="customField")
+    description: str | None = None
+    creator_id: str | None = None
+    status: ProjectStatus | None = None
+    workflow_id: int | None = None
+    sync_status: int | None = None
+    upload_state: str | None = None
+    custom_fields: dict | None = Field(default_factory=dict, alias="customField")
 
     @field_validator("custom_fields", mode="before")
     @classmethod
@@ -93,12 +92,12 @@ class WMProjectEntity(TimedBaseModel):
 class WMUserEntity(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
-    team_id: Optional[int] = None
+    id: int | None = None
+    team_id: int | None = None
     role: WMUserTypeEnum
-    email: Optional[str] = None
-    state: Optional[WMUserStateEnum] = None
-    custom_fields: Optional[dict] = Field(default_factory=dict, alias="customField")
+    email: str | None = None
+    state: WMUserStateEnum | None = None
+    custom_fields: dict | None = Field(default_factory=dict, alias="customField")
 
     @field_validator("custom_fields", mode="before")
     @classmethod
@@ -116,14 +115,14 @@ class WMUserEntity(TimedBaseModel):
 class WMProjectUserEntity(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
-    team_id: Optional[int] = None
-    role: Optional[int] = None
-    email: Optional[str] = None
-    state: Optional[WMUserStateEnum] = None
-    custom_fields: Optional[dict] = Field(default_factory=dict, alias="customField")
-    permissions: Optional[dict] = None
-    categories: Optional[List[dict]] = None
+    id: int | None = None
+    team_id: int | None = None
+    role: int | None = None
+    email: str | None = None
+    state: WMUserStateEnum | None = None
+    custom_fields: dict | None = Field(default_factory=dict, alias="customField")
+    permissions: dict | None = None
+    categories: list[dict] | None = None
 
     @field_validator("custom_fields", mode="before")
     @classmethod
@@ -142,9 +141,9 @@ class WMScoreEntity(TimedBaseModel):
     id: int
     team_id: int
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     type: str
-    payload: Optional[dict] = None
+    payload: dict | None = None
 
 
 class TelemetryScoreEntity(BaseModel):
@@ -154,15 +153,15 @@ class TelemetryScoreEntity(BaseModel):
     user_id: str
     user_role: str
     score_id: int
-    value: Optional[Any] = None
-    weight: Optional[float] = None
+    value: Any | None = None
+    weight: float | None = None
 
 
 class ScoreEntity(TimedBaseModel):
     id: int
     name: str
-    value: Optional[Any] = None
-    weight: Optional[float] = None
+    value: Any | None = None
+    weight: float | None = None
 
 
 class ScorePayloadEntity(BaseModel):
@@ -170,7 +169,7 @@ class ScorePayloadEntity(BaseModel):
 
     component_id: str
     value: Any = None
-    weight: Optional[Union[float, int]] = 1.0
+    weight: float | int | None = 1.0
 
     @field_validator("weight", mode="before")
     @classmethod
@@ -191,10 +190,10 @@ class ScorePayloadEntity(BaseModel):
 class WMAttribute(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[StrictInt] = None
-    group_id: Optional[StrictInt] = None
-    project_id: Optional[StrictInt] = None
-    name: Optional[StrictStr] = None
+    id: StrictInt | None = None
+    group_id: StrictInt | None = None
+    project_id: StrictInt | None = None
+    name: StrictStr | None = None
     default: Any = None
 
     def __hash__(self):
@@ -204,19 +203,19 @@ class WMAttribute(TimedBaseModel):
 class WMAttributeGroup(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[StrictInt] = None
+    id: StrictInt | None = None
     group_type: WMGroupTypeEnum
-    class_id: Optional[StrictInt] = None
-    name: Optional[StrictStr] = None
+    class_id: StrictInt | None = None
+    name: StrictStr | None = None
     isRequired: bool = Field(default=False, alias="is_required")
-    attributes: Optional[List[WMAttribute]] = None
+    attributes: list[WMAttribute] | None = None
     default_value: Any = None
 
     def __hash__(self):
         return hash(f"{self.id}{self.class_id}{self.name}")
 
     @classmethod
-    def _serialize_group_type(cls, v: Optional[WMGroupTypeEnum], _info):
+    def _serialize_group_type(cls, v: WMGroupTypeEnum | None, _info):
         if v is None:
             return v
         if isinstance(v, WMGroupTypeEnum):
@@ -248,12 +247,12 @@ class WMAnnotationClassEntity(TimedBaseModel):
         extra="ignore", validate_assignment=True, arbitrary_types_allowed=True
     )
 
-    id: Optional[StrictInt] = None
-    project_id: Optional[StrictInt] = None
+    id: StrictInt | None = None
+    project_id: StrictInt | None = None
     type: WMClassTypeEnum = WMClassTypeEnum.OBJECT
     name: StrictStr
     color: HexColor
-    attribute_groups: List[WMAttributeGroup] = Field(
+    attribute_groups: list[WMAttributeGroup] = Field(
         default_factory=list, alias="attributeGroups"
     )
 

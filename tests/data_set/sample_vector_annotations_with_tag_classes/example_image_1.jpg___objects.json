@@ -134,7 +134,6 @@
     },
     {
       "type": "template",
-      "templateName": "some",
       "classId": 72274,
       "probability": 100,
       "points": [
@@ -1090,7 +1089,6 @@
     },
     {
       "type": "template",
-      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -1328,7 +1326,6 @@
     },
     {
       "type": "template",
-      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -1566,7 +1563,6 @@
     },
     {
       "type": "template",
-      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -1804,7 +1800,6 @@
     },
     {
       "type": "template",
-      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -2044,7 +2039,6 @@
     },
     {
       "type": "template",
-      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -2284,7 +2278,6 @@
     },
     {
       "type": "template",
-      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
