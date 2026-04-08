@@ -1,6 +1,5 @@
 import time
 from typing import Any
-from typing import Dict
 
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
@@ -52,7 +51,7 @@ class TestProjectCustomFields(BaseTestCase):
                     parent_entity=CustomFieldEntityEnum.TEAM,
                 )
 
-    def _set_custom_field_values(self, field_value_map: Dict[str, Any] = None) -> None:
+    def _set_custom_field_values(self, field_value_map: dict[str, Any] = None) -> None:
         if not field_value_map:
             field_value_map = FIELD_VALUE_MAP
         for k, v in field_value_map.items():

@@ -1,5 +1,4 @@
 import base64
-from typing import Optional
 
 from lib.core.entities import BaseItemEntity
 from lib.core.jsx_conditions import Join
@@ -28,7 +27,7 @@ class ItemService(SuperannotateServiceProvider):
         )
         return result
 
-    def list(self, project_id: int, folder_id: Optional[int], query: Query):
+    def list(self, project_id: int, folder_id: int | None, query: Query):
         query &= Join("metadata", ["path"])
         entity_context = [
             f'"team_id":{self.client.team_id}',

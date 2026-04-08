@@ -1,13 +1,11 @@
+from __future__ import annotations
+
 import io
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Union
 
 from lib.core import entities
 from lib.core.conditions import Condition
@@ -72,8 +70,8 @@ class BaseClient(ABC):
         url: str,
         item_type: Any,
         chunk_size: int = 2000,
-        query_params: Dict[str, Any] = None,
-        headers: Dict = None,
+        query_params: dict[str, Any] = None,
+        headers: dict = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -83,8 +81,8 @@ class BaseClient(ABC):
         url: str,
         method: str = Literal["get", "post"],
         body_query: Query = None,
-        query_params: Dict = None,
-        headers: Dict = None,
+        query_params: dict = None,
+        headers: dict = None,
         chunk_size: int = 100,
         item_type: Any = None,
     ) -> ServiceResponse:
@@ -149,7 +147,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     @abstractmethod
     def list_project_categories(
         self, project_id: int, entity: BaseEntity = CategoryEntity
-    ) -> Union[ListCategoryResponse, ListProjectCategoryResponse]:
+    ) -> ListCategoryResponse | ListProjectCategoryResponse:
         raise NotImplementedError
 
     @abstractmethod
@@ -160,7 +158,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def create_project_categories(
-        self, project_id: int, categories: List[str]
+        self, project_id: int, categories: list[str]
     ) -> ListProjectCategoryResponse:
         raise NotImplementedError
 
@@ -182,9 +180,9 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         component_id: int,
         entity: CustomFieldEntityEnum,
         parent_entity: CustomFieldEntityEnum,
-        component_payload: Optional[dict] = None,
-        access: Optional[dict] = None,
-        entity_context: Optional[dict] = None,
+        component_payload: dict | None = None,
+        access: dict | None = None,
+        entity_context: dict | None = None,
     ) -> WMCustomFieldResponse:
         raise NotImplementedError
 
@@ -194,7 +192,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         pk: int,
         entity: CustomFieldEntityEnum,
         parent_entity: CustomFieldEntityEnum,
-        entity_context: Optional[dict] = None,
+        entity_context: dict | None = None,
     ):
         raise NotImplementedError
 
@@ -206,7 +204,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         data: dict,
         entity: CustomFieldEntityEnum,
         parent_entity: CustomFieldEntityEnum,
-        context: Optional[dict] = None,
+        context: dict | None = None,
     ):
         raise NotImplementedError
 
@@ -224,7 +222,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def create_score(
         self,
         name: str,
-        description: Optional[str],
+        description: str | None,
         score_type: Literal["rating", "number", "radio"],
         payload: dict,
     ) -> ServiceResponse:
@@ -238,11 +236,11 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def set_remove_contributor_categories(
         self,
         project_id: int,
-        contributor_ids: List[int],
-        category_ids: List[int],
+        contributor_ids: list[int],
+        category_ids: list[int],
         operation: Literal["set", "remove"],
         chunk_size=100,
-    ) -> List[dict]:
+    ) -> list[dict]:
         raise NotImplementedError
 
     @abstractmethod
@@ -294,7 +292,7 @@ class BaseProjectService(SuperannotateServiceProvider):
 
     @abstractmethod
     def set_settings(
-        self, project: entities.ProjectEntity, data: List[entities.SettingEntity]
+        self, project: entities.ProjectEntity, data: list[entities.SettingEntity]
     ):
         raise NotImplementedError
 
@@ -338,7 +336,7 @@ class BaseProjectService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         user: str,
-        item_names: List[str],
+        item_names: list[str],
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -347,7 +345,7 @@ class BaseProjectService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -382,7 +380,7 @@ class BaseFolderService(SuperannotateServiceProvider):
 
     @abstractmethod
     def delete_multiple(
-        self, project: entities.ProjectEntity, folders: List[entities.FolderEntity]
+        self, project: entities.ProjectEntity, folders: list[entities.FolderEntity]
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -415,7 +413,7 @@ class BaseAnnotationClassService(SuperannotateServiceProvider):
     def create_multiple(
         self,
         project: entities.ProjectEntity,
-        classes: List[entities.AnnotationClassEntity],
+        classes: list[entities.AnnotationClassEntity],
     ) -> AnnotationClassListResponse:
         raise NotImplementedError
 
@@ -444,10 +442,10 @@ class BaseItemService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        attachments: List[Attachment],
+        attachments: list[Attachment],
         upload_state_code,
         annotation_status_code=None,
-        meta: Dict[str, AttachmentMeta] = None,
+        meta: dict[str, AttachmentMeta] = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -457,7 +455,7 @@ class BaseItemService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         from_folder: entities.FolderEntity,
         to_folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -467,7 +465,7 @@ class BaseItemService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         from_folder: entities.FolderEntity,
         to_folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         include_annotations: bool = False,
         include_pin: bool = False,
     ) -> ServiceResponse:
@@ -479,7 +477,7 @@ class BaseItemService(SuperannotateServiceProvider):
         project: entities.ProjectEntity,
         from_folder: entities.FolderEntity,
         to_folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         operation: Literal["copy", "move"],
         include_annotations: bool = True,
@@ -502,7 +500,7 @@ class BaseItemService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         annotation_status: int,
     ) -> ServiceResponse:
         raise NotImplementedError
@@ -512,26 +510,26 @@ class BaseItemService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         approval_status: int,
     ) -> ServiceResponse:
         raise NotImplementedError
 
     @abstractmethod
     def delete_multiple(
-        self, project: entities.ProjectEntity, item_ids: List[int]
+        self, project: entities.ProjectEntity, item_ids: list[int]
     ) -> ServiceResponse:
         raise NotImplementedError
 
     @abstractmethod
     def bulk_attach_categories(
-        self, project_id: int, folder_id: int, item_id_category_id_map: Dict[int, int]
+        self, project_id: int, folder_id: int, item_id_category_id_map: dict[int, int]
     ) -> ServiceResponse:
         raise NotImplementedError
 
     @abstractmethod
     def bulk_detach_categories(
-        self, project_id: int, folder_id: int, item_ids: List[int]
+        self, project_id: int, folder_id: int, item_ids: list[int]
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -552,20 +550,20 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_ids: List[int],
+        item_ids: list[int],
         reporter: Reporter,
         callback: Callable = None,
         transform_version: str = None,
-    ) -> List[dict]:
+    ) -> list[dict]:
         raise NotImplementedError
 
     @abstractmethod
     def get_upload_chunks(
         self,
         project: entities.ProjectEntity,
-        item_ids: List[int],
+        item_ids: list[int],
         chunk_size: int = 1000,
-    ) -> Dict[str, List]:
+    ) -> dict[str, list]:
         raise NotImplementedError
 
     @abstractmethod
@@ -586,7 +584,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         folder: entities.FolderEntity,
         reporter: Reporter,
         download_path: str,
-        item_ids: List[int],
+        item_ids: list[int],
         callback: Callable = None,
         transform_version: str = None,
     ):
@@ -597,7 +595,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items_name_data_map: Dict[str, dict],
+        items_name_data_map: dict[str, dict],
         transform_version: str = None,
     ) -> UploadAnnotationsResponse:
         raise NotImplementedError
@@ -619,7 +617,7 @@ class BaseAnnotationService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity = None,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -669,7 +667,7 @@ class BaseIntegrationService(SuperannotateServiceProvider):
         folder: entities.FolderEntity,
         integration: entities.IntegrationEntity,
         folder_name: str = None,
-        options: Dict[str, str] = None,
+        options: dict[str, str] = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -680,7 +678,7 @@ class BaseExploreService(SuperannotateServiceProvider):
     SAQUL_CHUNK_SIZE: int
 
     @abstractmethod
-    def list_fields(self, project: entities.ProjectEntity, item_ids: List[int]):
+    def list_fields(self, project: entities.ProjectEntity, item_ids: list[int]):
         raise NotImplementedError
 
     @abstractmethod
@@ -692,7 +690,7 @@ class BaseExploreService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_fields(self, project: entities.ProjectEntity, fields: List[str]):
+    def delete_fields(self, project: entities.ProjectEntity, fields: list[str]):
         raise NotImplementedError
 
     @abstractmethod
@@ -700,7 +698,7 @@ class BaseExploreService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items: List[dict],
+        items: list[dict],
     ):
         raise NotImplementedError
 
@@ -709,7 +707,7 @@ class BaseExploreService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items: List[Dict[str, List[str]]],
+        items: list[dict[str, list[str]]],
     ):
         raise NotImplementedError
 
@@ -720,7 +718,7 @@ class BaseExploreService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def create_multiple_subsets(self, project: entities.ProjectEntity, name: List[str]):
+    def create_multiple_subsets(self, project: entities.ProjectEntity, name: list[str]):
         raise NotImplementedError
 
     @abstractmethod
@@ -728,7 +726,7 @@ class BaseExploreService(SuperannotateServiceProvider):
         self,
         project: entities.ProjectEntity,
         subset: entities.SubSetEntity,
-        item_ids: List[int],
+        item_ids: list[int],
     ):
         raise NotImplementedError
 
@@ -766,7 +764,7 @@ class BaseTelemetryScoringService(SuperannotateServiceProvider):
     def set_score_values(
         self,
         project_id: int,
-        data: List[dict],
+        data: list[dict],
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -856,7 +854,7 @@ class BaseServiceProvider:
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_ids: List[int],
+        item_ids: list[int],
     ) -> UploadAnnotationAuthDataResponse:
         raise NotImplementedError
 
@@ -864,11 +862,11 @@ class BaseServiceProvider:
     def prepare_export(
         self,
         project: entities.ProjectEntity,
-        folders: List[str],
+        folders: list[str],
         include_fuse: bool,
         only_pinned: bool,
         integration_id: int,
-        annotation_statuses: List[str] = None,
+        annotation_statuses: list[str] = None,
         export_type: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError
@@ -903,7 +901,7 @@ class BaseServiceProvider:
 
     @abstractmethod
     def invite_contributors(
-        self, team_id: int, team_role: int, emails: List[str]
+        self, team_id: int, team_role: int, emails: list[str]
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -913,7 +911,7 @@ class BaseServiceProvider:
         context: dict,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
-    ) -> List[str]:
+    ) -> list[str]:
         raise NotImplementedError
 
     @abstractmethod
@@ -956,9 +954,9 @@ class BaseServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
-    def remove_users(self, emails: List[str]):
+    def remove_users(self, emails: list[str]):
         raise NotImplementedError
 
     @abstractmethod
-    def remove_users_from_project(self, project_id: int, emails: List[str]):
+    def remove_users_from_project(self, project_id: int, emails: list[str]):
         raise NotImplementedError

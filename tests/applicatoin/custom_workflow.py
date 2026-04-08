@@ -4,7 +4,6 @@ import os
 import re
 import time
 from functools import lru_cache
-from typing import List
 from unittest import TestCase
 
 from src.superannotate import AppException
@@ -80,8 +79,8 @@ class TestWorkflow(TestCase):
     def annotations_path(self):
         return os.path.join(DATA_SET_PATH, self.ANNOTATIONS_PATH)
 
-    @lru_cache()
-    def get_non_admin_contributor_emails(self) -> List[str]:
+    @lru_cache
+    def get_non_admin_contributor_emails(self) -> list[str]:
         contributor_emails = []
         for i in sa.search_team_contributors():
             if i["user_role"] != 2:  # skipping admins etc

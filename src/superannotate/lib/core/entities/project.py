@@ -1,8 +1,7 @@
+from __future__ import annotations
+
 import uuid
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Union
 
 from lib.core.entities.base import TimedBaseModel
 from lib.core.entities.classes import AnnotationClassEntity
@@ -19,10 +18,10 @@ from pydantic import StrictStr
 
 
 class AttachmentEntity(BaseModel):
-    name: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str | None = Field(default_factory=lambda: str(uuid.uuid4()))
     url: str
-    integration: Optional[str] = None
-    integration_id: Optional[int] = None
+    integration: str | None = None
+    integration_id: int | None = None
     model_config = ConfigDict(extra="ignore")
 
     def __hash__(self):
@@ -32,13 +31,13 @@ class AttachmentEntity(BaseModel):
 class StepEntity(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
-    project_id: Optional[int] = None
-    class_id: Optional[int] = None
-    className: Optional[str] = None
-    step: Optional[int] = None
-    tool: Optional[int] = None
-    attribute: List = Field(default_factory=list)
+    id: int | None = None
+    project_id: int | None = None
+    class_id: int | None = None
+    className: str | None = None
+    step: int | None = None
+    tool: int | None = None
+    attribute: list = Field(default_factory=list)
 
     def __copy__(self):
         return StepEntity(step=self.step, tool=self.tool, attribute=self.attribute)
@@ -47,10 +46,10 @@ class StepEntity(BaseModel):
 class SettingEntity(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
-    project_id: Optional[int] = None
+    id: int | None = None
+    project_id: int | None = None
     attribute: str
-    value: Union[StrictStr, StrictInt, StrictFloat, StrictBool, None] = None
+    value: StrictStr | StrictInt | StrictFloat | StrictBool | None = None
 
     def __copy__(self):
         return SettingEntity(attribute=self.attribute, value=self.value)
@@ -59,11 +58,11 @@ class SettingEntity(BaseModel):
 class WorkflowEntity(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
-    name: Optional[str] = None
-    type: Optional[str] = None
-    description: Optional[str] = None
-    raw_config: Optional[dict] = None
+    id: int | None = None
+    name: str | None = None
+    type: str | None = None
+    description: str | None = None
+    raw_config: dict | None = None
 
     def is_system(self):
         return self.type == "system"
@@ -72,27 +71,27 @@ class WorkflowEntity(TimedBaseModel):
 class ProjectEntity(TimedBaseModel):
     model_config = ConfigDict(extra="ignore", use_enum_values=False)
 
-    id: Optional[int] = None
-    team_id: Optional[int] = None
+    id: int | None = None
+    team_id: int | None = None
     name: str
     type: ProjectType
-    description: Optional[str] = None
-    instructions_link: Optional[str] = None
-    creator_id: Optional[str] = None
-    entropy_status: Optional[int] = None
-    sharing_status: Optional[int] = None
-    status: Optional[ProjectStatus] = None
-    folder_id: Optional[int] = None
-    workflow_id: Optional[int] = None
-    workflow: Optional[WorkflowEntity] = None
-    sync_status: Optional[int] = None
-    upload_state: Optional[int] = None
-    contributors: List[WMProjectUserEntity] = Field(default_factory=list)
-    settings: List[SettingEntity] = Field(default_factory=list)
-    classes: List[AnnotationClassEntity] = Field(default_factory=list)
-    item_count: Optional[int] = Field(None, alias="imageCount")
-    completed_items_count: Optional[int] = Field(None, alias="completedImagesCount")
-    root_folder_completed_items_count: Optional[int] = Field(
+    description: str | None = None
+    instructions_link: str | None = None
+    creator_id: str | None = None
+    entropy_status: int | None = None
+    sharing_status: int | None = None
+    status: ProjectStatus | None = None
+    folder_id: int | None = None
+    workflow_id: int | None = None
+    workflow: WorkflowEntity | None = None
+    sync_status: int | None = None
+    upload_state: int | None = None
+    contributors: list[WMProjectUserEntity] = Field(default_factory=list)
+    settings: list[SettingEntity] = Field(default_factory=list)
+    classes: list[AnnotationClassEntity] = Field(default_factory=list)
+    item_count: int | None = Field(None, alias="imageCount")
+    completed_items_count: int | None = Field(None, alias="completedImagesCount")
+    root_folder_completed_items_count: int | None = Field(
         None, alias="rootFolderCompletedImagesCount"
     )
     custom_fields: dict = Field(default_factory=dict)
@@ -119,27 +118,27 @@ class ProjectEntity(TimedBaseModel):
 class UserEntity(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-    user_role: Optional[int] = None
+    id: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
+    user_role: int | None = None
 
 
 class TeamEntity(BaseModel):
     model_config = ConfigDict(extra="ignore", coerce_numbers_to_str=True)
 
-    id: Optional[int] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    type: Optional[str] = None
-    user_role: Optional[int] = None
-    is_default: Optional[bool] = None
-    users: Optional[List[UserEntity]] = None
-    pending_invitations: Optional[List[Any]] = None
-    creator_id: Optional[str] = None
-    owner_id: Optional[str] = None
-    scores: Optional[List[str]] = None
+    id: int | None = None
+    name: str | None = None
+    description: str | None = None
+    type: str | None = None
+    user_role: int | None = None
+    is_default: bool | None = None
+    users: list[UserEntity] | None = None
+    pending_invitations: list[Any] | None = None
+    creator_id: str | None = None
+    owner_id: str | None = None
+    scores: list[str] | None = None
 
 
 class CustomFieldEntity(BaseModel):

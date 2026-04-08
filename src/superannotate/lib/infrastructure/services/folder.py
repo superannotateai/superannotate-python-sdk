@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 from lib.core import entities
 from lib.core.conditions import Condition
@@ -53,7 +53,7 @@ class FolderService(BaseFolderService):
         )
 
     def delete_multiple(
-        self, project: entities.ProjectEntity, folders: List[entities.FolderEntity]
+        self, project: entities.ProjectEntity, folders: list[entities.FolderEntity]
     ):
         params = {"project_id": project.id}
         return self.client.request(

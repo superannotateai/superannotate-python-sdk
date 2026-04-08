@@ -1,10 +1,8 @@
+from __future__ import annotations
+
 import io
 import logging
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 import cv2
 from lib.core.exceptions import ImageProcessingException
@@ -72,7 +70,7 @@ class ImagePlugin:
             )
         return im
 
-    def get_size(self) -> Tuple[float, float]:
+    def get_size(self) -> tuple[float, float]:
         return self._image.size
 
     def generate_thumb(self):
@@ -93,7 +91,7 @@ class ImagePlugin:
         width, height = im.size
         return buffer, width, height
 
-    def generate_huge(self, base_width: int = 600) -> Tuple[io.BytesIO, float, float]:
+    def generate_huge(self, base_width: int = 600) -> tuple[io.BytesIO, float, float]:
         im = self._get_image()
         width, height = im.size
         buffer = io.BytesIO()
@@ -124,14 +122,14 @@ class ImagePlugin:
         self._image.convert("RGBA")
         self._image = Image.alpha_composite(self._image, image)
 
-    def draw_polygon(self, points: List, fill_color, outline_color):
+    def draw_polygon(self, points: list, fill_color, outline_color):
         image = self.get_empty_image()
         draw = ImageDraw.Draw(image)
         draw.polygon(points, fill_color, outline_color)
         self._image.convert("RGBA")
         self._image = Image.alpha_composite(self._image, image)
 
-    def draw_polyline(self, points: List, fill_color, width=2):
+    def draw_polyline(self, points: list, fill_color, width=2):
         image = self.get_empty_image()
         draw = ImageDraw.Draw(image)
         draw.line(points, fill_color, width=width)
@@ -184,7 +182,7 @@ class VideoPlugin:
         return count
 
     @staticmethod
-    def get_fps(video_path: str) -> Union[int, float]:
+    def get_fps(video_path: str) -> int | float:
         video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
         return video.get(cv2.CAP_PROP_FPS)
 
@@ -222,7 +220,7 @@ class VideoPlugin:
 
     @staticmethod
     def frames_generator(
-        video_path: str, start_time, end_time, target_fps: Optional[float], log=True
+        video_path: str, start_time, end_time, target_fps: float | None, log=True
     ):
         video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
         if not video.isOpened():
@@ -286,7 +284,7 @@ class VideoPlugin:
         limit: int,
         target_fps: float,
         chunk_size: int = 100,
-    ) -> List[str]:
+    ) -> list[str]:
         total_num_of_frames = VideoPlugin.get_frames_count(video_path)
         zero_fill_count = len(str(total_num_of_frames))
         video_name = Path(video_path).stem

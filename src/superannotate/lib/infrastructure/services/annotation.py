@@ -1,12 +1,12 @@
+from __future__ import annotations
+
 import asyncio
 import copy
 import io
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
-from typing import Dict
-from typing import List
 from urllib.parse import urljoin
 
 import aiohttp
@@ -142,11 +142,11 @@ class AnnotationService(BaseAnnotationService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_ids: List[int],
+        item_ids: list[int],
         reporter: Reporter,
         callback: Callable = None,
         transform_version: str = None,
-    ) -> List[dict]:
+    ) -> list[dict]:
         query_params = {
             "team_id": project.team_id,
             "project_id": project.id,
@@ -171,9 +171,9 @@ class AnnotationService(BaseAnnotationService):
     def get_upload_chunks(
         self,
         project: entities.ProjectEntity,
-        item_ids: List[int],
+        item_ids: list[int],
         chunk_size: int = 1000,
-    ) -> Dict[str, List]:
+    ) -> dict[str, list]:
         small = []
         large = []
 
@@ -254,7 +254,7 @@ class AnnotationService(BaseAnnotationService):
         folder: entities.FolderEntity,
         reporter: Reporter,
         download_path: str,
-        item_ids: List[int],
+        item_ids: list[int],
         callback: Callable = None,
         transform_version: str = None,
     ):
@@ -284,7 +284,7 @@ class AnnotationService(BaseAnnotationService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items_name_data_map: Dict[str, dict],
+        items_name_data_map: dict[str, dict],
         transform_version: str = None,
     ) -> UploadAnnotationsResponse:
         params = [
@@ -439,7 +439,7 @@ class AnnotationService(BaseAnnotationService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity = None,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         data = {}
         params = {"project_id": project.id}

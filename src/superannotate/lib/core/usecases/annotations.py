@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import copy
 import io
@@ -10,19 +12,13 @@ import re
 import time
 import traceback
 from collections import defaultdict
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from itertools import islice
 from operator import itemgetter
 from pathlib import Path
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Set
-from typing import Tuple
-from typing import Union
 
 import aiofiles
 import boto3
@@ -106,17 +102,17 @@ class ItemToUpload(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     item: BaseItemEntity
-    annotation_json: Optional[dict] = None
-    path: Optional[str] = None
-    file_size: Optional[int] = None
-    mask: Optional[io.BytesIO] = None
+    annotation_json: dict | None = None
+    path: str | None = None
+    file_size: int | None = None
+    mask: io.BytesIO | None = None
 
 
 def set_annotation_statuses_in_progress(
     service_provider: BaseServiceProvider,
     project: ProjectEntity,
     folder: FolderEntity,
-    item_names: List[str],
+    item_names: list[str],
     chunk_size=500,
 ) -> bool:
     failed_on_chunk = False
@@ -145,7 +141,7 @@ async def upload_small_annotations(
     callback: Callable = None,
     transform_version: str = None,
 ):
-    async def upload(_chunk: List[ItemToUpload]):
+    async def upload(_chunk: list[ItemToUpload]):
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
             [],
             [],
@@ -184,7 +180,7 @@ async def upload_small_annotations(
             reporter.update_progress(len(chunk))
 
     _size = 0
-    chunk: List[ItemToUpload] = []
+    chunk: list[ItemToUpload] = []
     while True:
         item_data: ItemToUpload = await queue.get()
         queue.task_done()
@@ -216,7 +212,7 @@ async def upload_big_annotations(
     report: Report,
     callback: Callable = None,
 ):
-    async def _upload_big_annotation(item_data: ItemToUpload) -> Tuple[str, bool]:
+    async def _upload_big_annotation(item_data: ItemToUpload) -> tuple[str, bool]:
         try:
             buff = io.StringIO()
             json.dump(item_data.annotation_json, buff, allow_nan=False)
@@ -257,7 +253,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        annotations: List[dict],
+        annotations: list[dict],
         service_provider: BaseServiceProvider,
         user: UserEntity,
         keep_status: bool = False,
@@ -285,7 +281,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         )
         return use_case.execute().data
 
-    def list_existing_items(self, item_names: List[str]) -> List[BaseItemEntity]:
+    def list_existing_items(self, item_names: list[str]) -> list[BaseItemEntity]:
         existing_items = []
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
@@ -297,8 +293,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
             existing_items.extend(data)
         return existing_items
 
-    async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
-        data: List[List[ItemToUpload, bool]] = [[i, False] for i in items_to_upload]
+    async def distribute_queues(self, items_to_upload: list[ItemToUpload]):
+        data: list[list[ItemToUpload, bool]] = [[i, False] for i in items_to_upload]
         items_count = len(items_to_upload)
         processed_count = 0
         while processed_count < items_count:
@@ -348,7 +344,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._big_files_queue.put_nowait(None)
         self._small_files_queue.put_nowait(None)
 
-    async def run_workers(self, items_to_upload: List[ItemToUpload]):
+    async def run_workers(self, items_to_upload: list[ItemToUpload]):
         self._big_files_queue, self._small_files_queue = (
             asyncio.Queue(),
             asyncio.Queue(),
@@ -401,7 +397,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                     f"Couldn't find {len_provided - len_existing}/{len_provided} "
                     "items in the given directory that match the annotations."
                 )
-            items_to_upload: List[ItemToUpload] = []
+            items_to_upload: list[ItemToUpload] = []
             for annotation in name_annotation_map.values():
                 annotation_name = annotation["metadata"]["name"]
                 item = name_item_map.get(annotation_name)
@@ -468,7 +464,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         user: UserEntity,
-        annotation_paths: List[str],
+        annotation_paths: list[str],
         service_provider: BaseServiceProvider,
         pre_annotation: bool = False,
         client_s3_bucket=None,
@@ -505,7 +501,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     @staticmethod
     def get_name_path_mappings(annotation_paths):
-        name_path_mappings: Dict[str, str] = {}
+        name_path_mappings: dict[str, str] = {}
 
         for item_path in annotation_paths:
             name_path_mappings[
@@ -579,7 +575,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
 
     async def get_annotation(
         self, path: str
-    ) -> (Optional[Tuple[io.StringIO]], Optional[io.BytesIO]):
+    ) -> (tuple[io.StringIO] | None, io.BytesIO | None):
 
         if self._client_s3_bucket:
             content = self.get_annotation_from_s3(self._client_s3_bucket, path).read()
@@ -613,7 +609,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         return path
 
     def get_existing_name_item_mapping(
-        self, name_path_mappings: Dict[str, str]
+        self, name_path_mappings: dict[str, str]
     ) -> dict:
         item_names = list(name_path_mappings.keys())
         existing_name_item_mapping = {}
@@ -667,8 +663,8 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 self._s3_bucket = resource.Bucket(upload_data.bucket)
         return self._s3_bucket
 
-    async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
-        data: List[List[Any, bool]] = [[i, False] for i in items_to_upload]
+    async def distribute_queues(self, items_to_upload: list[ItemToUpload]):
+        data: list[list[Any, bool]] = [[i, False] for i in items_to_upload]
         processed_count = 0
         while processed_count < len(data):
             for idx, (item_to_upload, processed) in enumerate(data):
@@ -700,7 +696,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
         self._big_files_queue.put_nowait(None)
         self._small_files_queue.put_nowait(None)
 
-    async def run_workers(self, items_to_upload: List[ItemToUpload]):
+    async def run_workers(self, items_to_upload: list[ItemToUpload]):
         self._big_files_queue, self._small_files_queue = (
             asyncio.Queue(),
             asyncio.Queue(),
@@ -740,7 +736,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             name_path_mappings
         )
         name_path_mappings_to_upload = {}
-        items_to_upload: List[ItemToUpload] = []
+        items_to_upload: list[ItemToUpload] = []
 
         for name, path in name_path_mappings.items():
             try:
@@ -1066,7 +1062,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
         reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        scores: List[PriorityScoreEntity],
+        scores: list[PriorityScoreEntity],
         project_folder_name: str,
         service_provider: BaseServiceProvider,
     ):
@@ -1148,7 +1144,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCase):
 
 class ValidateAnnotationUseCase(BaseReportableUseCase):
     DEFAULT_VERSION = "V1.00"
-    SCHEMAS: Dict[str, superannotate_schemas.Draft7Validator] = {}
+    SCHEMAS: dict[str, superannotate_schemas.Draft7Validator] = {}
     PATTERN_MAP = {
         "\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d(?:\\.\\d{3})Z": "does not match YYYY-MM-DDTHH:MM:SS.fffZ",
         "^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$": "invalid email",
@@ -1350,7 +1346,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         extract_path = ValidateAnnotationUseCase.extract_path
         validator = self._get_validator(version)
         errors = sorted(validator.iter_errors(self._annotation), key=lambda e: e.path)
-        errors_report: Set[Tuple[str, str]] = set()
+        errors_report: set[tuple[str, str]] = set()
         if errors:
             for error in errors:
                 if not error:
@@ -1374,7 +1370,7 @@ class GetAnnotations(BaseReportableUseCase):
         project: ProjectEntity,
         service_provider: BaseServiceProvider,
         folder: FolderEntity = None,
-        items: Optional[Union[List[str], List[int]]] = None,
+        items: list[str] | list[int] | None = None,
         transform_version: str = None,
     ):
         super().__init__(reporter)
@@ -1390,8 +1386,8 @@ class GetAnnotations(BaseReportableUseCase):
 
     @staticmethod
     def items_duplication_validation(
-        reporter, items: Union[List[str], List[int]]
-    ) -> Union[List[str], List[int]]:
+        reporter, items: list[str] | list[int]
+    ) -> list[str] | list[int]:
         unique_items = list(set(items))
         len_unique_items, len_items = len(unique_items), len(items)
         if len_unique_items < len_items:
@@ -1407,7 +1403,7 @@ class GetAnnotations(BaseReportableUseCase):
             seen = set()
             self._items = [i for i in self._items if not (i in seen or seen.add(i))]
 
-    def _prettify_annotations(self, annotations: List[dict]):
+    def _prettify_annotations(self, annotations: list[dict]):
         re_struct = {}
         if self._items:
             names_provided = isinstance(self._items[0], str)
@@ -1441,7 +1437,7 @@ class GetAnnotations(BaseReportableUseCase):
                 break
         return large_annotations
 
-    async def get_small_annotations(self, item_ids: List[int]):
+    async def get_small_annotations(self, item_ids: list[int]):
         return await self._service_provider.annotations.list_small_annotations(
             project=self._project,
             folder=self._folder,
@@ -1452,8 +1448,8 @@ class GetAnnotations(BaseReportableUseCase):
 
     async def run_workers(
         self,
-        big_annotations: List[BaseItemEntity],
-        small_annotations: List[List[Dict]],
+        big_annotations: list[BaseItemEntity],
+        small_annotations: list[list[dict]],
     ):
         annotations = []
         if big_annotations:
@@ -1502,7 +1498,7 @@ class GetAnnotations(BaseReportableUseCase):
                         )
                         items.extend(data)
                 else:
-                    items: List[BaseItemEntity] = []
+                    items: list[BaseItemEntity] = []
                     for i in range(0, len(self._items), self.CHUNK_SIZE):
                         search_ids = self._items[i : i + self.CHUNK_SIZE]  # noqa
                         data = self._service_provider.item_service.list(
@@ -1540,10 +1536,10 @@ class GetAnnotations(BaseReportableUseCase):
                 item_ids=list(id_item_map),
             )
             large_item_ids = set(map(itemgetter("id"), sort_response["large"]))
-            large_items: List[BaseItemEntity] = list(
+            large_items: list[BaseItemEntity] = list(
                 filter(lambda item: item.id in large_item_ids, items)
             )
-            small_items: List[List[dict]] = sort_response["small"]
+            small_items: list[list[dict]] = sort_response["small"]
             try:
                 annotations = run_async(self.run_workers(large_items, small_items))
             except Exception as e:
@@ -1564,7 +1560,7 @@ class DownloadAnnotations(BaseReportableUseCase):
         folder: FolderEntity,
         destination: str,
         recursive: bool,
-        item_names: List[str],
+        item_names: list[str],
         service_provider: BaseServiceProvider,
         callback: Callable = None,
         transform_version=None,
@@ -1650,7 +1646,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                 break
 
     async def download_small_annotations(
-        self, item_ids: List[int], export_path, folder: FolderEntity
+        self, item_ids: list[int], export_path, folder: FolderEntity
     ):
         await self._service_provider.annotations.download_small_annotations(
             project=self._project,
@@ -1664,8 +1660,8 @@ class DownloadAnnotations(BaseReportableUseCase):
 
     async def run_workers(
         self,
-        big_annotations: List[BaseItemEntity],
-        small_annotations: List[List[dict]],
+        big_annotations: list[BaseItemEntity],
+        small_annotations: list[list[dict]],
         folder: FolderEntity,
         export_path,
     ):
@@ -1733,10 +1729,10 @@ class DownloadAnnotations(BaseReportableUseCase):
                     item_ids=list(id_item_map),
                 )
                 large_item_ids = set(map(itemgetter("id"), sort_response["large"]))
-                large_items: List[BaseItemEntity] = list(
+                large_items: list[BaseItemEntity] = list(
                     filter(lambda item: item.id in large_item_ids, items)
                 )
-                small_items: List[List[dict]] = sort_response["small"]
+                small_items: list[list[dict]] = sort_response["small"]
                 try:
                     run_async(
                         self.run_workers(
@@ -1765,7 +1761,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         root_folder: FolderEntity,
-        annotations: List[dict],
+        annotations: list[dict],
         service_provider: BaseServiceProvider,
         user: UserEntity,
         keep_status: bool = False,
@@ -1800,8 +1796,8 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         return isinstance(json_data.get("metadata", {}).get("name"), str)
 
     def list_items(
-        self, folder: FolderEntity, item_names: List[str]
-    ) -> List[BaseItemEntity]:
+        self, folder: FolderEntity, item_names: list[str]
+    ) -> list[BaseItemEntity]:
         existing_items = []
         for i in range(0, len(item_names), self.CHUNK_SIZE):
             items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
@@ -1813,7 +1809,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             existing_items.extend(data)
         return existing_items
 
-    async def distribute_queues(self, items_to_upload: List[ItemToUpload]):
+    async def distribute_queues(self, items_to_upload: list[ItemToUpload]):
         data = [[i, False] for i in items_to_upload]
         items_count = len(items_to_upload)
         processed_count = 0
@@ -1854,7 +1850,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         self._files_queue.put_nowait(None)
 
     async def run_workers(
-        self, folder: FolderEntity, items_to_upload: List[ItemToUpload]
+        self, folder: FolderEntity, items_to_upload: list[ItemToUpload]
     ):
         await asyncio.gather(
             self.distribute_queues(items_to_upload),
@@ -1908,8 +1904,8 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         return response.data
 
     def attach_items(
-        self, folder: FolderEntity, item_names: List[str]
-    ) -> List[BaseItemEntity]:
+        self, folder: FolderEntity, item_names: list[str]
+    ) -> list[BaseItemEntity]:
         """
         @param folder:
         @param item_names:
@@ -1961,7 +1957,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             serialized_original_folder_map = {}
             failed, skipped, uploaded = [], [], []
             # folder_id -> item_name -> annotation
-            distributed_items: Dict[str, Dict[str, Any]] = defaultdict(dict)
+            distributed_items: dict[str, dict[str, Any]] = defaultdict(dict)
             valid_items_count = 0
             for annotation in self._annotations:
                 if self._validate_json(annotation):
@@ -2006,7 +2002,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                     **{i.name: i for i in attached_items},
                 }
 
-                items_to_upload: List[ItemToUpload] = []
+                items_to_upload: list[ItemToUpload] = []
                 for name, annotation in name_annotation_map.items():
                     item = name_item_map.get(name)
                     if item:
@@ -2073,9 +2069,9 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             }
             return self._response
 
-    def _attach_categories(self, folder_id: int, item_id_category_map: Dict[int, str]):
-        categories_to_create: List[str] = []
-        item_id_category_id_map: Dict[int, int] = {}
+    def _attach_categories(self, folder_id: int, item_id_category_map: dict[int, str]):
+        categories_to_create: list[str] = []
+        item_id_category_id_map: dict[int, int] = {}
         if not self._category_name_to_id_map:
             response = self._service_provider.work_management.list_project_categories(
                 self._project.id

@@ -1,6 +1,6 @@
+from __future__ import annotations
+
 import time
-from typing import Dict
-from typing import List
 from typing import Literal
 
 from lib.core import entities
@@ -35,9 +35,9 @@ class ItemService(BaseItemService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        attachments: List[Attachment],
+        attachments: list[Attachment],
         upload_state_code,
-        meta: Dict[str, AttachmentMeta] = None,
+        meta: dict[str, AttachmentMeta] = None,
         annotation_status_code=None,
     ):
         data = {
@@ -59,7 +59,7 @@ class ItemService(BaseItemService):
         project: entities.ProjectEntity,
         from_folder: entities.FolderEntity,
         to_folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         include_annotations: bool = False,
         include_pin: bool = False,
     ):
@@ -104,7 +104,7 @@ class ItemService(BaseItemService):
         project: entities.ProjectEntity,
         from_folder: entities.FolderEntity,
         to_folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
     ):
         return self.client.request(
             self.URL_MOVE_MULTIPLE,
@@ -122,7 +122,7 @@ class ItemService(BaseItemService):
         project: entities.ProjectEntity,
         from_folder: entities.FolderEntity,
         to_folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
         operation: Literal["copy", "move"],
         include_annotations: bool = True,
@@ -177,7 +177,7 @@ class ItemService(BaseItemService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         annotation_status: int,
     ):
         return self.client.request(
@@ -195,7 +195,7 @@ class ItemService(BaseItemService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         approval_status: int,
     ):
         return self.client.request(
@@ -208,7 +208,7 @@ class ItemService(BaseItemService):
             },
         )
 
-    def delete_multiple(self, project: entities.ProjectEntity, item_ids: List[int]):
+    def delete_multiple(self, project: entities.ProjectEntity, item_ids: list[int]):
         return self.client.request(
             self.URL_DELETE_ITEMS,
             "put",
@@ -217,7 +217,7 @@ class ItemService(BaseItemService):
         )
 
     def bulk_attach_categories(
-        self, project_id: int, folder_id: int, item_id_category_id_map: Dict[int, int]
+        self, project_id: int, folder_id: int, item_id_category_id_map: dict[int, int]
     ) -> bool:
         params = {"project_id": project_id, "folder_id": folder_id}
         response = self.client.request(
@@ -235,7 +235,7 @@ class ItemService(BaseItemService):
         return response
 
     def bulk_detach_categories(
-        self, project_id: int, folder_id: int, item_ids: List[int]
+        self, project_id: int, folder_id: int, item_ids: list[int]
     ) -> bool:
         params = {"project_id": project_id, "folder_id": folder_id}
         response = self.client.request(

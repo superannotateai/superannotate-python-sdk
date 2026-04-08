@@ -4,7 +4,6 @@ import sys
 import threading
 import time
 from collections import defaultdict
-from typing import Union
 
 import tqdm
 from lib.core import CONFIG
@@ -103,7 +102,7 @@ class Reporter:
 
     def start_progress(
         self,
-        iterations: Union[int, range],
+        iterations: int | range,
         description: str = "Processing",
         disable=False,
     ):
@@ -111,7 +110,7 @@ class Reporter:
 
     @staticmethod
     def get_progress_bar(
-        iterations: Union[int, range], description: str = "Processing", disable=False
+        iterations: int | range, description: str = "Processing", disable=False
     ):
         if isinstance(iterations, range):
             return tqdm.tqdm(iterations, desc=description, disable=disable)
@@ -134,7 +133,7 @@ class Reporter:
 
 
 class Progress:
-    def __init__(self, iterations: Union[int, range], description: str = "Processing"):
+    def __init__(self, iterations: int | range, description: str = "Processing"):
         self._iterations = iterations
         self._description = description
         self._progress_bar = None

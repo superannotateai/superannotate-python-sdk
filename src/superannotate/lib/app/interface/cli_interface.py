@@ -3,7 +3,6 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
-from typing import Optional
 
 import lib.core as constances
 from lib.app.input_converters.conversion import import_annotation
@@ -199,7 +198,7 @@ class CLIFacade:
         self,
         project: str,
         attachments: str,
-        annotation_status: Optional[Any] = "NotStarted",
+        annotation_status: Any | None = "NotStarted",
     ):
         """
         To attach image URLs to project use:
@@ -216,7 +215,7 @@ class CLIFacade:
         self,
         project: str,
         attachments: str,
-        annotation_status: Optional[Any] = "NotStarted",
+        annotation_status: Any | None = "NotStarted",
     ):
         SAClient().attach_items(
             project=project,
@@ -227,7 +226,7 @@ class CLIFacade:
 
     @staticmethod
     def attach_document_urls(
-        project: str, attachments: str, annotation_status: Optional[Any] = "NotStarted"
+        project: str, attachments: str, annotation_status: Any | None = "NotStarted"
     ):
         SAClient().attach_items(
             project=project,

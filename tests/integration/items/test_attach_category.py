@@ -2,7 +2,6 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import List
 from unittest import TestCase
 
 from src.superannotate import SAClient
@@ -75,7 +74,7 @@ class TestItemAttachCategory(TestCase):
                 pass
 
     @staticmethod
-    def _attach_items(path: str, names: List[str]):
+    def _attach_items(path: str, names: list[str]):
         sa.attach_items(path, [{"name": name, "url": f"url-{name}"} for name in names])
 
     def test_attache_category(self):

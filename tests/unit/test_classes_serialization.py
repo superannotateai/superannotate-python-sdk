@@ -1,6 +1,5 @@
 import json
 import os
-from typing import List
 from unittest import TestCase
 
 from pydantic import TypeAdapter
@@ -23,7 +22,7 @@ class TestClassesSerializers(TestCase):
     def test_type_user_serializer(self):
         with open(self.large_json_path) as file:
             data_json = json.load(file)
-            classes = TypeAdapter(List[AnnotationClassEntity]).validate_python(
+            classes = TypeAdapter(list[AnnotationClassEntity]).validate_python(
                 data_json
             )
             serializer_data = BaseSerializer.serialize_iterable(classes)
@@ -32,7 +31,7 @@ class TestClassesSerializers(TestCase):
     def test_type_api_serializer(self):
         with open(self.large_json_path) as file:
             data_json = json.load(file)
-            classes = TypeAdapter(List[AnnotationClassEntity]).validate_python(
+            classes = TypeAdapter(list[AnnotationClassEntity]).validate_python(
                 data_json
             )
             serializer_data = json.loads(json.dumps(classes, cls=PydanticEncoder))

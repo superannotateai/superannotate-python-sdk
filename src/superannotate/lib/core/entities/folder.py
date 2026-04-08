@@ -1,5 +1,4 @@
-from typing import List
-from typing import Optional
+from __future__ import annotations
 
 from lib.core.entities.base import TimedBaseModel
 from lib.core.enums import FolderStatus
@@ -13,25 +12,25 @@ from pydantic import model_validator
 class FolderUserEntity(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    email: Optional[str] = None
-    id: Optional[int] = None
-    role: Optional[int] = None
-    state: Optional[WMUserStateEnum] = None
+    email: str | None = None
+    id: int | None = None
+    role: int | None = None
+    state: WMUserStateEnum | None = None
 
 
 class FolderEntity(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[int] = None
-    name: Optional[str] = None
-    status: Optional[FolderStatus] = None
-    project_id: Optional[int] = None
-    team_id: Optional[int] = None
-    is_root: Optional[bool] = False
-    contributors: Optional[List[FolderUserEntity]] = Field(
+    id: int | None = None
+    name: str | None = None
+    status: FolderStatus | None = None
+    project_id: int | None = None
+    team_id: int | None = None
+    is_root: bool | None = False
+    contributors: list[FolderUserEntity] | None = Field(
         default_factory=list, alias="folderUsers"
     )
-    completedCount: Optional[int] = None
+    completedCount: int | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -42,7 +41,7 @@ class FolderEntity(TimedBaseModel):
         if not folder_users:
             return values
 
-        normalized: List[dict] = []
+        normalized: list[dict] = []
         for fu in folder_users:
             pu = fu.get("projectUser") or {}
 

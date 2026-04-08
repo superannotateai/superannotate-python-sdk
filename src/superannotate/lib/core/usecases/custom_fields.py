@@ -1,5 +1,4 @@
-from typing import Dict
-from typing import List
+from __future__ import annotations
 
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
@@ -62,7 +61,7 @@ class DeleteCustomSchemaUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
-        fields: List[str],
+        fields: list[str],
         service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
@@ -100,7 +99,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: List[Dict[str, str]],
+        items: list[dict[str, str]],
         service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
@@ -149,7 +148,7 @@ class DeleteCustomValuesUseCase(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: List[Dict[str, List[str]]],
+        items: list[dict[str, list[str]]],
         service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import concurrent.futures
 import logging
 import platform
@@ -6,9 +8,7 @@ import time
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
 from typing import Literal
-from typing import Union
 
 import boto3
 import lib.core as constances
@@ -38,11 +38,11 @@ class PrepareExportUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        folder_names: List[str],
+        folder_names: list[str],
         service_provider: BaseServiceProvider,
         include_fuse: bool,
         only_pinned: bool,
-        annotation_statuses: List[str] = None,
+        annotation_statuses: list[str] = None,
         integration_id: int = None,
         export_type: int = None,
     ):
@@ -270,7 +270,7 @@ class DeleteExportsUseCase(BaseUseCase):
         self,
         service_provider: BaseServiceProvider,
         project: ProjectEntity,
-        exports: Union[List[int], List[str], Literal["*"]],
+        exports: list[int] | list[str] | Literal["*"],
     ):
         super().__init__()
         self._service_provider = service_provider

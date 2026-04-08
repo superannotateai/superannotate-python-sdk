@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 from lib.core import entities
 from lib.core.conditions import Condition
@@ -86,7 +86,7 @@ class ProjectService(BaseProjectService):
         )
 
     def set_settings(
-        self, project: entities.ProjectEntity, data: List[entities.SettingEntity]
+        self, project: entities.ProjectEntity, data: list[entities.SettingEntity]
     ):
         return self.client.request(
             self.URL_SETTINGS.format(project.id),
@@ -157,7 +157,7 @@ class ProjectService(BaseProjectService):
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
         user: str,
-        item_names: List[str],
+        item_names: list[str],
     ) -> ServiceResponse:
         return self.client.request(
             self.URL_ASSIGN_ITEMS,
@@ -175,7 +175,7 @@ class ProjectService(BaseProjectService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
     ) -> ServiceResponse:
         return self.client.request(
             self.URL_ASSIGN_ITEMS,

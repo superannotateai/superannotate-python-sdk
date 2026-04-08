@@ -1,8 +1,6 @@
+from __future__ import annotations
+
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
 
 from lib.core import entities
 from lib.core.entities.work_managament import TelemetryScoreEntity
@@ -19,14 +17,14 @@ from pydantic import Field
 class Limit(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    max_image_count: Optional[int] = None
+    max_image_count: int | None = None
     remaining_image_count: int
 
 
 class UserLimits(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    user_limit: Optional[Limit] = None
+    user_limit: Limit | None = None
     project_limit: Limit
     folder_limit: Limit
 
@@ -39,7 +37,7 @@ class UploadAnnotationAuthData(BaseModel):
     session_token: str = Field(..., alias="sessionToken")
     region: str
     bucket: str
-    images: Dict[int, dict]
+    images: dict[int, dict]
 
     def __init__(self, **data):
         credentials = data["creds"]
@@ -52,35 +50,35 @@ class UploadAnnotations(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     class Resource(BaseModel):
-        classes: List[str] = Field(default_factory=list, alias="class")
-        templates: List[str] = Field(default_factory=list, alias="template")
-        attributes: List[str] = Field(default_factory=list, alias="attribute")
-        attribute_groups: Optional[List[str]] = Field(
+        classes: list[str] = Field(default_factory=list, alias="class")
+        templates: list[str] = Field(default_factory=list, alias="template")
+        attributes: list[str] = Field(default_factory=list, alias="attribute")
+        attribute_groups: list[str] | None = Field(
             default_factory=list, alias="attributeGroup"
         )
 
-    failed_items: List[str] = Field(default_factory=list, alias="failedItems")
-    missing_resources: Optional[Resource] = Field(None, alias="missingResources")
+    failed_items: list[str] = Field(default_factory=list, alias="failedItems")
+    missing_resources: Resource | None = Field(None, alias="missingResources")
 
 
 class UploadCustomFieldValues(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    succeeded_items: Optional[List[Any]] = None
-    failed_items: Optional[List[str]] = None
-    error: Optional[Any] = None
+    succeeded_items: list[Any] | None = None
+    failed_items: list[str] | None = None
+    error: Any | None = None
 
 
 class ServiceResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    status: Optional[int] = None
-    reason: Optional[str] = None
-    content: Optional[Union[bytes, str]] = None
-    res_data: Optional[Any] = None  # response data
-    res_error: Optional[Union[str, list, dict]] = None
-    count: Optional[int] = 0
-    total: Optional[int] = 0
+    status: int | None = None
+    reason: str | None = None
+    content: bytes | str | None = None
+    res_data: Any | None = None  # response data
+    res_error: str | list | dict | None = None
+    count: int | None = 0
+    total: int | None = 0
 
     @property
     def total_count(self):
@@ -119,7 +117,7 @@ class ServiceResponse(BaseModel):
         if not self.ok:
             return self.res_data
 
-    def set_error(self, value: Union[dict, str]):
+    def set_error(self, value: dict | str):
         if isinstance(value, dict) and "error" in value:
             self.res_error = value["error"]
         self.res_error = value
@@ -169,15 +167,15 @@ class UserResponse(ServiceResponse):
 
 
 class ModelListResponse(ServiceResponse):
-    res_data: List[entities.AnnotationClassEntity] = None
+    res_data: list[entities.AnnotationClassEntity] = None
 
 
 class _IntegrationResponse(ServiceResponse):
-    integrations: List[entities.IntegrationEntity] = Field(default_factory=list)
+    integrations: list[entities.IntegrationEntity] = Field(default_factory=list)
 
 
 class IntegrationListResponse(ServiceResponse):
-    res_data: Optional[_IntegrationResponse] = None
+    res_data: _IntegrationResponse | None = None
 
 
 class AnnotationClassResponse(ServiceResponse):
@@ -185,11 +183,11 @@ class AnnotationClassResponse(ServiceResponse):
 
 
 class AnnotationClassListResponse(ServiceResponse):
-    res_data: List[entities.AnnotationClassEntity] = None
+    res_data: list[entities.AnnotationClassEntity] = None
 
 
 class SubsetListResponse(ServiceResponse):
-    res_data: List[entities.SubSetEntity] = None
+    res_data: list[entities.SubSetEntity] = None
 
 
 class SubsetResponse(ServiceResponse):
@@ -197,7 +195,7 @@ class SubsetResponse(ServiceResponse):
 
 
 class UploadAnnotationsResponse(ServiceResponse):
-    res_data: Optional[UploadAnnotations] = None
+    res_data: UploadAnnotations | None = None
 
 
 class UploadAnnotationAuthDataResponse(ServiceResponse):
@@ -213,7 +211,7 @@ class UserLimitsResponse(ServiceResponse):
 
 
 class ItemListResponse(ServiceResponse):
-    res_data: List[entities.BaseItemEntity] = None
+    res_data: list[entities.BaseItemEntity] = None
 
 
 class FolderResponse(ServiceResponse):
@@ -221,7 +219,7 @@ class FolderResponse(ServiceResponse):
 
 
 class FolderListResponse(ServiceResponse):
-    res_data: List[entities.FolderEntity] = None
+    res_data: list[entities.FolderEntity] = None
 
 
 class ProjectResponse(ServiceResponse):
@@ -229,11 +227,11 @@ class ProjectResponse(ServiceResponse):
 
 
 class ListCategoryResponse(ServiceResponse):
-    res_data: List[entities.CategoryEntity] = None
+    res_data: list[entities.CategoryEntity] = None
 
 
 class ListProjectCategoryResponse(ServiceResponse):
-    res_data: List[entities.items.ProjectCategoryEntity] = None
+    res_data: list[entities.items.ProjectCategoryEntity] = None
 
 
 class WorkflowResponse(ServiceResponse):
@@ -241,35 +239,35 @@ class WorkflowResponse(ServiceResponse):
 
 
 class WorkflowListResponse(ServiceResponse):
-    res_data: List[entities.WorkflowEntity] = None
+    res_data: list[entities.WorkflowEntity] = None
 
 
 class ProjectListResponse(ServiceResponse):
-    res_data: List[entities.ProjectEntity] = None
+    res_data: list[entities.ProjectEntity] = None
 
 
 class WMProjectListResponse(ServiceResponse):
-    res_data: List[WMProjectEntity] = None
+    res_data: list[WMProjectEntity] = None
 
 
 class WMUserListResponse(ServiceResponse):
-    res_data: List[WMUserEntity] = None
+    res_data: list[WMUserEntity] = None
 
 
 class WMCustomFieldResponse(ServiceResponse):
-    res_data: List[entities.CustomFieldEntity] = None
+    res_data: list[entities.CustomFieldEntity] = None
 
 
 class SettingsListResponse(ServiceResponse):
-    res_data: List[entities.SettingEntity] = None
+    res_data: list[entities.SettingEntity] = None
 
 
 class WMScoreListResponse(ServiceResponse):
-    res_data: List[WMScoreEntity] = None
+    res_data: list[WMScoreEntity] = None
 
 
 class TelemetryScoreListResponse(ServiceResponse):
-    res_data: List[TelemetryScoreEntity] = None
+    res_data: list[TelemetryScoreEntity] = None
 
 
 PROJECT_TYPE_RESPONSE_MAP = {
