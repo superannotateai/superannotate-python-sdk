@@ -1367,7 +1367,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         # attach form to a multimodal project
         if project.type == constants.ProjectType.MULTIMODAL:
             form = self.controller.projects.get_editor_template(project.id)
-            self.controller.projects.attach_form(new_project, form)
+            if form:
+                self.controller.projects.attach_form(new_project, form)
+                if not copy_settings:
+                    from_settings = self.controller.projects.list_settings(project).data
+                    template_state = next(
+                        (s for s in from_settings if s.attribute == "TemplateState"),
+                        None,
+                    )
+                    self.controller.projects.set_settings(
+                        new_project, settings=[template_state.dict()]
+                    )
+            else:
+                logger.info("Source project has no form - skipping form creation")
         response = self.controller.projects.get_metadata(
             new_project,
             include_settings=copy_settings,

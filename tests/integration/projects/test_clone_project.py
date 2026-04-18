@@ -275,3 +275,25 @@ class TestCloneMultimodalProject(BaseMultimodalProjectCreate):
         )
 
         self.assertEqual(from_project_template, cloned_project_template)
+
+        for s in cloned_project["settings"]:
+            if s["attribute"] == "TemplateState":
+                assert s["value"] == 1
+
+    def test_clone_multimodal_project_copy_settings_false(self):
+        sa.clone_project(
+            project_name=self.PROJECT_NAME_CLONE,
+            from_project=self.PROJECT_NAME,
+            copy_annotation_classes=True,  # not affected
+            copy_settings=False,
+            copy_contributors=True,
+            copy_workflow=True,
+        )
+        cloned_project = sa.get_project_metadata(
+            self.PROJECT_NAME_CLONE, include_settings=True
+        )
+        assert cloned_project
+        assert cloned_project["type"] == "Multimodal"
+        for s in cloned_project["settings"]:
+            if s["attribute"] == "TemplateState":
+                assert s["value"] == 1
