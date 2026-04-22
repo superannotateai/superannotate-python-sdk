@@ -121,7 +121,9 @@ class Filter(Query):
         filter_value: list[dict] = []
         if self._value is None and self._operator == OperatorEnum.EQ:
             filter_value.append({self._key: {"$isnull": True}})
-        elif self._operator == OperatorEnum.NOTIN:
+        elif self._operator == OperatorEnum.NOTIN or (
+            self._operator == OperatorEnum.NE and self._value is not None
+        ):
             filter_value.append(
                 {
                     "$or": [

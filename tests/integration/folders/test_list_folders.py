@@ -131,7 +131,8 @@ class TestListFolders(BaseTestCase):
 
         # Status not equal
         folders = sa.list_folders(self.PROJECT_NAME, status__ne="NotStarted")
-        assert len(folders) == 2
+        assert len(folders) == 3
+        assert any(folder["name"] == "root" for folder in folders)
 
         # Status not in list
         folders = sa.list_folders(
