@@ -6,6 +6,17 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.5.4 - April 23, 2026
+______________________
+
+**Added**
+
+    - ``SAClient.list_folders()`` Lists folders in a project.
+
+**Updated**
+
+    - ``SAClient.clone_project()`` Now supports multimodal projects.
+
 4.5.3 - March 26, 2026
 ________________________
 
