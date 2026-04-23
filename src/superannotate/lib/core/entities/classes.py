@@ -1,7 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any
-from typing import List
-from typing import Optional
 
 from lib.core.entities.base import HexColor
 from lib.core.entities.base import TimedBaseModel
@@ -28,10 +28,10 @@ class GroupTypeEnum(str, Enum):
 class Attribute(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: Optional[StrictInt] = None
-    group_id: Optional[StrictInt] = None
-    project_id: Optional[StrictInt] = None
-    name: Optional[StrictStr] = None
+    id: StrictInt | None = None
+    group_id: StrictInt | None = None
+    project_id: StrictInt | None = None
+    name: StrictStr | None = None
     default: Any = None
 
     def __hash__(self):
@@ -41,12 +41,12 @@ class Attribute(TimedBaseModel):
 class AttributeGroup(TimedBaseModel):
     model_config = ConfigDict(extra="ignore", use_enum_values=True)
 
-    id: Optional[StrictInt] = None
-    group_type: Optional[GroupTypeEnum] = None
-    class_id: Optional[StrictInt] = None
-    name: Optional[StrictStr] = None
+    id: StrictInt | None = None
+    group_type: GroupTypeEnum | None = None
+    class_id: StrictInt | None = None
+    name: StrictStr | None = None
     isRequired: bool = Field(default=False)
-    attributes: Optional[List[Attribute]] = None
+    attributes: list[Attribute] | None = None
     default_value: Any = None
 
     def __hash__(self):
@@ -60,12 +60,12 @@ class AnnotationClassEntity(TimedBaseModel):
         json_encoders={HexColor: lambda v: v.__root__, Enum: lambda v: v.value},
     )
 
-    id: Optional[StrictInt] = None
-    project_id: Optional[StrictInt] = None
+    id: StrictInt | None = None
+    project_id: StrictInt | None = None
     type: ClassTypeEnum = ClassTypeEnum.OBJECT
     name: StrictStr
     color: HexColor
-    attribute_groups: List[AttributeGroup] = Field(default_factory=list)
+    attribute_groups: list[AttributeGroup] = Field(default_factory=list)
 
     def __hash__(self):
         return hash(f"{self.id}{self.type}{self.name}")

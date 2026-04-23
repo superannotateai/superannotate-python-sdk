@@ -1,17 +1,16 @@
+from __future__ import annotations
+
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import Iterable
 from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
+from lib.core.enums import FolderStatus
 from lib.core.enums import ProjectStatus
 from lib.core.enums import UserRole
 from lib.core.enums import WMUserStateEnum
@@ -24,7 +23,7 @@ from lib.core.jsx_conditions import Query
 from lib.core.serviceproviders import BaseServiceProvider
 
 
-def determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
+def determine_condition_and_key(keys: list[str]) -> tuple[OperatorEnum, str]:
     """
     Determine the condition and key from the filters.
     """
@@ -42,11 +41,11 @@ class QueryHandler(ABC):
     """Abstract base class for query handlers."""
 
     @abstractmethod
-    def set_next(self, handler: "QueryHandler") -> "QueryHandler":
+    def set_next(self, handler: QueryHandler) -> QueryHandler:
         pass
 
     @abstractmethod
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
         """Handle filters and modify the query."""
         pass
 
@@ -64,7 +63,7 @@ class AbstractQueryHandler(QueryHandler):
         return handler
 
     @abstractmethod
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
         if self._next_handler:
             return self._next_handler.handle(filters, query)
         return query
@@ -74,7 +73,7 @@ class FieldValidationHandler(AbstractQueryHandler):
     def __init__(self, valid_fields: Iterable[str]):
         self._valid_fields = valid_fields
 
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
         for param in filters.keys():
             if param not in self._valid_fields:
                 raise AppException("Invalid filter param provided.")
@@ -84,12 +83,12 @@ class FieldValidationHandler(AbstractQueryHandler):
 class IncludeHandler(AbstractQueryHandler):
     """Handles include fields in the query."""
 
-    def __init__(self, include: List[str], next_handler: QueryHandler = None):
+    def __init__(self, include: list[str], next_handler: QueryHandler = None):
         if include is None:
             include = []
         self.include = include
 
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
         assert query is not None, "Query build fail"
         for field in self.include:
             query &= Join(field)
@@ -107,7 +106,7 @@ class ItemFilterHandler(AbstractQueryHandler):
         self._entity = entity
         self._project = project
 
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
         if query is None:
             query = EmptyQuery()
         for key, val in filters.items():
@@ -125,7 +124,7 @@ class ItemFilterHandler(AbstractQueryHandler):
             return [extractor(i) for i in data]
         return extractor(data)
 
-    def _handle_special_fields(self, keys: List[str], val):
+    def _handle_special_fields(self, keys: list[str], val):
         """
         Handle special fields like 'approval_status', 'assignments',  'user_role' and 'annotation_status'.
         """
@@ -167,7 +166,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
         service_provider: BaseServiceProvider,
         entity: CustomFieldEntityEnum,
         parent: CustomFieldEntityEnum,
-        project: Optional[ProjectEntity] = None,
+        project: ProjectEntity | None = None,
     ):
         self._service_provider = service_provider
         self._entity = entity
@@ -179,7 +178,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
             "project_id": project.id if project else None,
         }
 
-    def _handle_custom_field_key(self, key) -> Tuple[str, str, Optional[str]]:
+    def _handle_custom_field_key(self, key) -> tuple[str, str, str | None]:
         for custom_field in sorted(
             self._service_provider.list_custom_field_names(
                 self._context, self._entity, parent=self._parent
@@ -211,12 +210,12 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
         raise AppException("Invalid custom field name provided.")
 
     @staticmethod
-    def _determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
+    def _determine_condition_and_key(keys: list[str]) -> tuple[OperatorEnum, str]:
         """
         Determine the condition and key from the filters.
         """
-        condition: Optional[OperatorEnum] = None
-        key: Optional[str] = None
+        condition: OperatorEnum | None = None
+        key: str | None = None
 
         if len(keys) == 1 and "custom_field" not in keys:
             condition, key = OperatorEnum.EQ, keys[0]
@@ -236,7 +235,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
             key = ".".join(keys)
         return condition, key
 
-    def _handle_special_fields(self, keys: List[str], val):
+    def _handle_special_fields(self, keys: list[str], val):
         if keys[0] == "custom_field":
             component_id = self._service_provider.get_custom_field_component_id(
                 self._context,
@@ -251,7 +250,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
                     raise AppException("Invalid custom field value provided.")
         return val
 
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
         if query is None:
             query = EmptyQuery()
         for key, val in filters.items():
@@ -265,7 +264,7 @@ class BaseCustomFieldHandler(AbstractQueryHandler):
 
 
 class TeamUserFilterHandler(BaseCustomFieldHandler):
-    def _handle_special_fields(self, keys: List[str], val):
+    def _handle_special_fields(self, keys: list[str], val):
         """
         Handle special fields like 'custom_fields__'.
         """
@@ -291,7 +290,7 @@ class TeamUserFilterHandler(BaseCustomFieldHandler):
 
 
 class ProjectUserRoleFilterHandler(BaseCustomFieldHandler):
-    def _handle_special_fields(self, keys: List[str], val):
+    def _handle_special_fields(self, keys: list[str], val):
         """
         Handle special fields like 'custom_fields__'.
         """
@@ -312,7 +311,7 @@ class ProjectUserRoleFilterHandler(BaseCustomFieldHandler):
 
 
 class ProjectFilterHandler(BaseCustomFieldHandler):
-    def _handle_special_fields(self, keys: List[str], val):
+    def _handle_special_fields(self, keys: list[str], val):
         """
         Handle special fields like 'status' and 'custom_fields__'.
         """
@@ -325,8 +324,30 @@ class ProjectFilterHandler(BaseCustomFieldHandler):
         return super()._handle_special_fields(keys, val)
 
 
+class FolderFilterHandler(AbstractQueryHandler):
+    def _handle_special_fields(self, keys: list[str], val):
+        """Handle special fields like 'status'."""
+        if keys[0] == "status":
+            val = (
+                [FolderStatus(i).value for i in val]
+                if isinstance(val, (list, tuple, set))
+                else FolderStatus(val).value
+            )
+        return val
+
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
+        if query is None:
+            query = EmptyQuery()
+        for key, val in filters.items():
+            _keys = key.split("__")
+            val = self._handle_special_fields(_keys, val)
+            condition, _key = determine_condition_and_key(_keys)
+            query &= Filter(_key, val, condition)
+        return super().handle(filters, query)
+
+
 class QueryBuilderChain:
-    def __init__(self, handlers: List[QueryHandler]):
+    def __init__(self, handlers: list[QueryHandler]):
         if not handlers:
             raise ValueError("Handlers list cannot be empty.")
 
@@ -336,5 +357,5 @@ class QueryBuilderChain:
         for next_handler in handlers[1:]:
             current_handler = current_handler.set_next(next_handler)
 
-    def handle(self, filters: Dict[str, Any], query: Query = None) -> Query:
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
         return self._head_handler.handle(filters, query)

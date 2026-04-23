@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import logging
-from typing import List
 
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
@@ -98,7 +99,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
     def __init__(
         self,
         service_provider: BaseServiceProvider,
-        annotation_classes: List[AnnotationClassEntity],
+        annotation_classes: list[AnnotationClassEntity],
         project: ProjectEntity,
     ):
         super().__init__()

@@ -1,14 +1,13 @@
+from __future__ import annotations
+
 import logging
 import re
 import traceback
 from collections import defaultdict
+from collections.abc import Generator
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Literal
 
 import lib.core as constants
 from lib.core.conditions import Condition
@@ -38,13 +37,12 @@ from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.folders import SearchFoldersUseCase
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
-from typing_extensions import Literal
 
 logger = logging.getLogger("sa")
 
 
 def serialize_item_entity(
-    entity: Union[BaseItemEntity, dict], project: ProjectEntity, map_fields: bool = True
+    entity: BaseItemEntity | dict, project: ProjectEntity, map_fields: bool = True
 ) -> BaseItemEntity:
     if isinstance(entity, BaseItemEntity):
         entity = entity.model_dump()
@@ -298,7 +296,7 @@ class AttachItems(BaseReportableUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
-        attachments: List[AttachmentEntity],
+        attachments: list[AttachmentEntity],
         service_provider: BaseServiceProvider,
         annotation_status_value: int = None,
         upload_state_code: int = constants.UploadState.EXTERNAL.value,
@@ -361,8 +359,8 @@ class AttachItems(BaseReportableUseCase):
                 )
 
                 duplications.extend([image.name for image in data])
-                to_upload: List[Attachment] = []
-                to_upload_meta: Dict[str, AttachmentMeta] = {}
+                to_upload: list[Attachment] = []
+                to_upload_meta: dict[str, AttachmentMeta] = {}
                 for attachment in attachments:
                     if attachment.name not in duplications:
                         to_upload.append(
@@ -442,7 +440,7 @@ class GenerateItems(BaseReportableUseCase):
     @staticmethod
     def generate_attachments(
         name: str, start: int, end: int, chunk_size: int
-    ) -> Generator[List[Attachment], None, None]:
+    ) -> Generator[list[Attachment]]:
         chunk = []
         for i in range(start, end + 1):
             chunk.append(Attachment(name=f"{name}_{i:05d}", path="custom_llm"))
@@ -486,7 +484,7 @@ class CopyItems(BaseReportableUseCase):
         project: ProjectEntity,
         from_folder: FolderEntity,
         to_folder: FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         service_provider: BaseServiceProvider,
         include_annotations: bool,
     ):
@@ -599,7 +597,7 @@ class MoveItems(BaseReportableUseCase):
         project: ProjectEntity,
         from_folder: FolderEntity,
         to_folder: FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         service_provider: BaseServiceProvider,
     ):
         super().__init__(reporter)
@@ -676,7 +674,7 @@ class CopyMoveItems(BaseReportableUseCase):
         project: ProjectEntity,
         from_folder: FolderEntity,
         to_folder: FolderEntity,
-        item_names: List[str],
+        item_names: list[str],
         service_provider: BaseServiceProvider,
         include_annotations: bool,
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
@@ -821,7 +819,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
         folder: FolderEntity,
         annotation_status: int,
         service_provider: BaseServiceProvider,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -881,7 +879,7 @@ class SetApprovalStatues(BaseReportableUseCase):
         folder: FolderEntity,
         approval_status: str,
         service_provider: BaseServiceProvider,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -958,7 +956,7 @@ class DeleteItemsUseCase(BaseUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         service_provider: BaseServiceProvider,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         super().__init__()
         self._project = project
@@ -1003,7 +1001,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
         reporter: Reporter,
         project: ProjectEntity,
         subset_name: str,
-        items: List[dict],
+        items: list[dict],
         service_provider: BaseServiceProvider,
         root_folder: FolderEntity,
     ):
@@ -1283,10 +1281,10 @@ class AttacheDetachItemsCategoryUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: List[MultiModalItemEntity],
+        items: list[MultiModalItemEntity],
         service_provider: BaseServiceProvider,
         operation: Literal["attach", "detach"],
-        category: Optional[ProjectCategoryEntity] = None,
+        category: ProjectCategoryEntity | None = None,
     ):
         super().__init__()
         self._project = project
@@ -1300,7 +1298,7 @@ class AttacheDetachItemsCategoryUseCase(BaseUseCase):
         if self._operation == "attach":
             success_count = 0
             for chunk in divide_to_chunks(self._items, self.CHUNK_SIZE):
-                item_id_category_id_map: Dict[int, int] = {
+                item_id_category_id_map: dict[int, int] = {
                     i.id: self._category.id for i in chunk
                 }
                 response = self._service_provider.items.bulk_attach_categories(

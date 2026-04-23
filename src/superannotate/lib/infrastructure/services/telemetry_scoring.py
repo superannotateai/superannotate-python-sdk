@@ -1,4 +1,5 @@
-from typing import List
+from __future__ import annotations
+
 from urllib.parse import urljoin
 
 import lib.core as constants
@@ -40,7 +41,7 @@ class TelemetryScoringService(BaseTelemetryScoringService):
     def set_score_values(
         self,
         project_id: int,
-        data: List[dict],
+        data: list[dict],
     ) -> ServiceResponse:
         params = {
             "project_id": project_id,

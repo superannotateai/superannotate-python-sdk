@@ -1,4 +1,5 @@
-import typing
+from __future__ import annotations
+
 from enum import Enum
 from types import DynamicClassAttribute
 
@@ -79,7 +80,7 @@ class BaseTitledEnum(int, Enum):
         raise PydanticCustomError("enum", f"Input should be: {available}")
 
     @classmethod
-    def choices(cls) -> typing.Tuple[str]:
+    def choices(cls) -> tuple[str]:
         """Return all titles as choices."""
         return tuple(cls._value2member_map_.keys())
 
@@ -88,12 +89,12 @@ class BaseTitledEnum(int, Enum):
         return self._name_
 
     @classmethod
-    def values(cls) -> typing.List[str]:
+    def values(cls) -> list[str]:
         """Return all values (names/titles) in lowercase."""
         return [enum.__doc__.lower() for enum in cls if enum.__doc__]
 
     @classmethod
-    def titles(cls) -> typing.Tuple[str]:
+    def titles(cls) -> tuple[str]:
         """Return all titles in the enum."""
         return tuple(enum.__doc__ for enum in cls)
 
@@ -133,7 +134,7 @@ class ApprovalStatus(BaseTitledEnum):
     APPROVED = "Approved", 2
 
     @classmethod
-    def get_mapping(cls) -> typing.Dict[str, int]:
+    def get_mapping(cls) -> dict[str, int]:
         return {i.__repr__(): i.value for i in list(cls)}
 
 

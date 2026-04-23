@@ -1,8 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Union
 
 import boto3
 from lib.core.conditions import Condition
@@ -11,10 +10,10 @@ from pydantic import BaseModel
 
 
 class BaseReadOnlyRepository(ABC):
-    def get_one(self, uuid: Union[Condition, int]) -> Optional[Union[BaseModel]]:
+    def get_one(self, uuid: Condition | int) -> BaseModel | None:
         raise NotImplementedError
 
-    def get_all(self, condition: Optional[Condition] = None) -> List[Union[BaseModel]]:
+    def get_all(self, condition: Condition | None = None) -> list[BaseModel]:
         raise NotImplementedError
 
 

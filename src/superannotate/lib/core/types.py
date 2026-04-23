@@ -1,9 +1,8 @@
-from typing import Optional
+from typing import Annotated
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import StringConstraints
-from typing_extensions import Annotated
 
 NotEmptyStr = Annotated[str, StringConstraints(strict=True, min_length=1)]
 
@@ -22,10 +21,10 @@ class PriorityScoreEntity(BaseModel):
 class Attachment(BaseModel):
     name: str
     path: str
-    integration_id: Optional[int] = None
+    integration_id: int | None = None
 
 
 class AttachmentMeta(BaseModel):
-    width: Optional[float] = None
-    height: Optional[float] = None
-    integration_id: Optional[int] = None
+    width: float | None = None
+    height: float | None = None
+    integration_id: int | None = None

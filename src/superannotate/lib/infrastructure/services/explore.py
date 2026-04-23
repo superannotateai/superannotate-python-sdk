@@ -1,6 +1,6 @@
+from __future__ import annotations
+
 from collections import ChainMap
-from typing import Dict
-from typing import List
 from urllib.parse import urljoin
 
 import lib.core as constants
@@ -51,7 +51,7 @@ class ExploreService(BaseExploreService):
             params={"project_id": project.id},
         )
 
-    def delete_fields(self, project: entities.ProjectEntity, fields: List[str]):
+    def delete_fields(self, project: entities.ProjectEntity, fields: list[str]):
         return self.client.request(
             url=urljoin(self.explore_service_url, self.URL_CUSTOM_SCHEMA),
             method="delete",
@@ -63,7 +63,7 @@ class ExploreService(BaseExploreService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items: List[dict],
+        items: list[dict],
     ):
         return self.client.request(
             url=urljoin(self.explore_service_url, self.URL_UPLOAD_CUSTOM_VALUE),
@@ -77,7 +77,7 @@ class ExploreService(BaseExploreService):
         self,
         project: entities.ProjectEntity,
         folder: entities.FolderEntity,
-        items: List[Dict[str, List[str]]],
+        items: list[dict[str, list[str]]],
     ):
         return self.client.request(
             url=urljoin(self.explore_service_url, self.URL_UPLOAD_CUSTOM_VALUE),
@@ -86,7 +86,7 @@ class ExploreService(BaseExploreService):
             data=dict(data=dict(ChainMap(*items))),
         )
 
-    def list_fields(self, project: entities.ProjectEntity, item_ids: List[int]):
+    def list_fields(self, project: entities.ProjectEntity, item_ids: list[int]):
         assert len(item_ids) <= self.CHUNK_SIZE
         return self.client.request(
             url=urljoin(self.explore_service_url, self.URL_LIST_CUSTOM_FIELDS),
@@ -107,7 +107,7 @@ class ExploreService(BaseExploreService):
             item_type=entities.SubSetEntity,
         )
 
-    def create_multiple_subsets(self, project: entities.ProjectEntity, name: List[str]):
+    def create_multiple_subsets(self, project: entities.ProjectEntity, name: list[str]):
         res = self.client.request(
             method="POST",
             url=urljoin(self.explore_service_url, self.URL_SUBSET),
@@ -121,7 +121,7 @@ class ExploreService(BaseExploreService):
         self,
         project: entities.ProjectEntity,
         subset: entities.SubSetEntity,
-        item_ids: List[int],
+        item_ids: list[int],
     ):
         data = {"action": "ATTACH", "item_ids": item_ids}
         response = self.client.request(
@@ -165,43 +165,33 @@ class ExploreService(BaseExploreService):
         query: str = None,
         subset_id: int = None,
     ) -> ServiceResponse:
-
-        params = {
-            "project_id": project.id,
-            "includeFolderNames": True,
-        }
+        params = {"project_id": project.id, "includeFolderNames": True}
         if folder:
             params["folder_id"] = folder.id
         if subset_id:
             params["subset_id"] = subset_id
+
         data = {"image_index": 0}
         if query:
             data["query"] = query
+
         items = []
-        response = None
+        url = urljoin(self.explore_service_url, self.URL_SAQUL_QUERY)
+
         for _ in range(0, self.MAX_ITEMS_COUNT, self.SAQUL_CHUNK_SIZE):
-            response = self.client.request(
-                urljoin(self.explore_service_url, self.URL_SAQUL_QUERY),
-                "post",
-                params=params,
-                data=data,
-            )
+            response = self.client.request(url, "post", params=params, data=data)
             if not response.ok:
-                break
-            response_items = response.data
-            items.extend(response_items)
-            if len(response_items) < self.SAQUL_CHUNK_SIZE:
+                return ServiceResponse(
+                    status=response.status_code,
+                    res_data=items,
+                    res_error=response.error,
+                )
+            items.extend(response.data)
+            if len(response.data) < self.SAQUL_CHUNK_SIZE:
                 break
             data["image_index"] += self.SAQUL_CHUNK_SIZE
 
-        if response:
-            response = ServiceResponse(status=response.status_code, res_data=items)
-            if not response.ok:
-                response.set_error(response.error)
-                response = ServiceResponse(status=response.status_code, res_data=items)
-        else:
-            response = ServiceResponse(status=200, res_data=[])
-        return response
+        return ServiceResponse(status=200, res_data=items)
 
     def query_item_count(
         self,

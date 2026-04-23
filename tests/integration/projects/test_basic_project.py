@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from unittest import TestCase
 
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
@@ -8,14 +9,17 @@ from tests.integration.base import BaseTestCase
 sa = SAClient()
 
 
-class TestMultimodalProjectBasic(BaseTestCase):
-    PROJECT_NAME = "TestMultimodalCreate"
+class BaseMultimodalProjectCreate(TestCase):
+    """
+    Base class for multimodal project creation.
+    If FORM_PATH is provided, it will be used instead of MULTIMODAL_DEFAULT_FORM.
+    """
+
+    PROJECT_NAME = "BaseTestMultimodalProject"
     PROJECT_TYPE = "Multimodal"
     PROJECT_DESCRIPTION = "DESCRIPTION"
-    ANNOTATION_PATH = (
-        "data_set/sample_project_vector/example_image_1.jpg___objects.json"
-    )
-    MULTIMODAL_FORM = {
+    FORM_PATH = None
+    MULTIMODAL_DEFAULT_FORM = {
         "components": [
             {
                 "id": "r_qx07c6",
@@ -29,9 +33,17 @@ class TestMultimodalProjectBasic(BaseTestCase):
         ],
         "readme": "",
     }
+    MULTIMODAL_FORM = None
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
+
+        if self.FORM_PATH:
+            with open(self.FORM_PATH) as f:
+                self.MULTIMODAL_FORM = json.load(f)
+        else:
+            self.MULTIMODAL_FORM = self.MULTIMODAL_DEFAULT_FORM
+
         self._project = sa.create_project(
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
@@ -44,6 +56,13 @@ class TestMultimodalProjectBasic(BaseTestCase):
             sa.delete_project(self.PROJECT_NAME)
         except Exception as e:
             print(str(e))
+
+
+class TestMultimodalProject(BaseMultimodalProjectCreate):
+    PROJECT_NAME = "TestMultimodalCreate"
+    ANNOTATION_PATH = (
+        "data_set/sample_project_vector/example_image_1.jpg___objects.json"
+    )
 
     @property
     def annotation_path(self):
@@ -152,7 +171,7 @@ class TestProjectBasic(BaseTestCase):
         assert metadata["completed_items_count"] == 4
 
 
-class TestProjectCreateSpecialCahrachters(BaseTestCase):
+class TestProjectCreateSpecialCharacters(BaseTestCase):
     PROJECT_NAME = "TestWorkflowGet,TestWorkflowGet"
     PROJECT_TYPE = "Vector"
     PROJECT_DESCRIPTION = "DESCRIPTION"

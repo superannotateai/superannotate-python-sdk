@@ -3,14 +3,12 @@ import json
 import os
 import platform
 import sys
-import typing
+from collections.abc import Iterable
+from collections.abc import Sized
 from functools import lru_cache
 from inspect import signature
 from pathlib import Path
 from types import FunctionType
-from typing import Iterable
-from typing import Optional
-from typing import Sized
 
 import lib.core as constants
 from lib.app.interface.types import validate_arguments
@@ -30,9 +28,7 @@ class BaseInterfaceFacade:
     REGISTRY = []
 
     @validate_arguments
-    def __init__(
-        self, token: Optional[TokenStr] = None, config_path: Optional[str] = None
-    ):
+    def __init__(self, token: TokenStr | None = None, config_path: str | None = None):
         try:
             if token:
                 config = ConfigEntity(SA_TOKEN=token)
@@ -75,7 +71,7 @@ class BaseInterfaceFacade:
         BaseInterfaceFacade.REGISTRY.append(self)
 
     @staticmethod
-    def _retrieve_configs_from_json(path: Path) -> typing.Union[ConfigEntity]:
+    def _retrieve_configs_from_json(path: Path) -> ConfigEntity:
         with open(path) as json_file:
             json_data = json.load(json_file)
         token = json_data["token"]
@@ -92,7 +88,7 @@ class BaseInterfaceFacade:
         return config
 
     @staticmethod
-    def _retrieve_configs_from_ini(path: Path) -> typing.Union[ConfigEntity]:
+    def _retrieve_configs_from_ini(path: Path) -> ConfigEntity:
         import configparser
 
         config_parser = configparser.ConfigParser()
@@ -104,7 +100,7 @@ class BaseInterfaceFacade:
         return ConfigEntity(**config_data)
 
     @staticmethod
-    def _retrieve_configs_from_env() -> typing.Union[ConfigEntity, None]:
+    def _retrieve_configs_from_env() -> ConfigEntity | None:
         token = os.environ.get("SA_TOKEN")
         if not token:
             return None

@@ -1,19 +1,16 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import time
 import typing
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import Callable
 from functools import wraps
 from itertools import islice
 from pathlib import Path
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Optional
-from typing import Tuple
-from typing import Type
-from typing import Union
 
 from lib.core.entities import ProjectEntity
 from lib.core.enums import CustomFieldEntityEnum
@@ -26,7 +23,7 @@ logger = logging.getLogger("sa")
 
 class EntityContext(typing.TypedDict, total=False):
     team_id: int
-    project_id: Optional[int]
+    project_id: int | None
 
 
 def divide_to_chunks(it, size):
@@ -34,7 +31,7 @@ def divide_to_chunks(it, size):
     return iter(lambda: tuple(islice(it, size)), ())
 
 
-def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:
+def split_project_path(project_path: str) -> tuple[str, str | None]:
     path = Path(project_path)
     if len(path.parts) > 3:
         raise PathError("There can be no sub folders in the project")
@@ -46,7 +43,7 @@ def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:
     return project_name, folder_name
 
 
-def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[str]]:
+def extract_project_folder(user_input: str | dict) -> tuple[str, str | None]:
     if isinstance(user_input, str):
         return split_project_path(user_input)
     if isinstance(user_input, dict):
@@ -57,7 +54,7 @@ def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[
     raise PathError("Invalid project path")
 
 
-def extract_project_folder_inputs(user_input: Union[str, dict, tuple, int]) -> dict:
+def extract_project_folder_inputs(user_input: str | dict | tuple | int) -> dict:
     if isinstance(user_input, int):
         return {"project_name": user_input, "project_value_type": "id"}
     if isinstance(user_input, tuple):
@@ -94,7 +91,7 @@ def extract_project_folder_inputs(user_input: Union[str, dict, tuple, int]) -> d
 
 
 def async_retry_on_generator(
-    exceptions: Tuple[Type[Exception]],
+    exceptions: tuple[type[Exception]],
     retries: int = 3,
     delay: float = 0.3,
     backoff: float = 0.3,
@@ -158,7 +155,7 @@ class BaseCachedWorkManagementRepository(ABC):
         self.ttl_seconds = ttl_seconds
         self.work_management = work_management
         self._K_V_map = {}
-        self._cache_timestamps: Dict[Any, float] = {}
+        self._cache_timestamps: dict[Any, float] = {}
 
     def _update_cache_timestamp(self, key):
         self._cache_timestamps[key] = time.time()

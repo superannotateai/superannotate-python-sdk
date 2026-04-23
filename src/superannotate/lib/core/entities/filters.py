@@ -1,62 +1,66 @@
-from typing import List
+from __future__ import annotations
+
 from typing import Literal
-from typing import Optional
 
 from typing_extensions import TypedDict
 
 
 class BaseFilters(TypedDict, total=False):
-    id: Optional[int]
-    id__in: Optional[List[int]]
-    name: Optional[str]
-    name__in: Optional[List[str]]
-    name__contains: Optional[str]
-    name__starts: Optional[str]
-    name__ends: Optional[str]
+    id: int | None
+    id__in: list[int] | None
+    name: str | None
+    name__in: list[str] | None
+    name__contains: str | None
+    name__starts: str | None
+    name__ends: str | None
 
 
 class ItemFilters(BaseFilters):
-    annotation_status: Optional[str]
-    annotation_status__in: Optional[List[str]]
-    annotation_status__ne: Optional[List[str]]
-    approval_status: Optional[str]
-    approval_status__in: Optional[List[str]]
-    approval_status__ne: Optional[str]
-    assignments__user_id: Optional[str]
-    assignments__user_id__in: Optional[List[str]]
-    assignments__user_id__ne: Optional[str]
-    assignments__user_role: Optional[str]
-    assignments__user_role__in: Optional[List[str]]
-    assignments__user_role__ne: Optional[str]
-    assignments__user_role__notin: Optional[List[str]]
-    categories__value: Optional[str]
-    categories__value__in: Optional[List[str]]
+    annotation_status: str | None
+    annotation_status__in: list[str] | None
+    annotation_status__ne: list[str] | None
+    approval_status: str | None
+    approval_status__in: list[str] | None
+    approval_status__ne: str | None
+    assignments__user_id: str | None
+    assignments__user_id__in: list[str] | None
+    assignments__user_id__ne: str | None
+    assignments__user_role: str | None
+    assignments__user_role__in: list[str] | None
+    assignments__user_role__ne: str | None
+    assignments__user_role__notin: list[str] | None
+    categories__value: str | None
+    categories__value__in: list[str] | None
 
 
 class ProjectFilters(BaseFilters):
     status: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
     status__ne: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
-    status__in: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
-    status__notin: List[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
+    status__in: list[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
+    status__notin: list[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
+
+
+class FolderFilters(ProjectFilters):
+    pass
 
 
 class BaseUserFilters(TypedDict, total=False):
-    id: Optional[int]
-    id__in: Optional[List[int]]
-    email: Optional[str]
-    email__in: Optional[List[str]]
-    email__contains: Optional[str]
-    email__starts: Optional[str]
-    email__ends: Optional[str]
+    id: int | None
+    id__in: list[int] | None
+    email: str | None
+    email__in: list[str] | None
+    email__contains: str | None
+    email__starts: str | None
+    email__ends: str | None
 
 
 class ProjectUserFilters(BaseUserFilters, total=False):
-    role: Optional[str]
-    role__in: Optional[List[str]]
+    role: str | None
+    role__in: list[str] | None
 
 
 class TeamUserFilters(BaseUserFilters, total=False):
-    state: Optional[str]
-    state__in: Optional[List[str]]
-    role: Optional[str]
-    role__in: Optional[List[str]]
+    state: str | None
+    state__in: list[str] | None
+    role: str | None
+    role__in: list[str] | None

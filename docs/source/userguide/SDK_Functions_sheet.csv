@@ -1,7 +1,7 @@
 Topic,Function,MM(GenAI/LLM),CSV,JSON,JSONL,INTEGRATION
 Projects,create_project,No,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,search_projects,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
-,clone_project,No,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,clone_project,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,rename_project,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,delete_project,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_project_by_id,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant

@@ -1,12 +1,12 @@
 import re
 from functools import wraps
+from typing import Annotated
 
 from lib.core.exceptions import AppException
 from lib.infrastructure.validators import wrap_error
 from pydantic import AfterValidator
 from pydantic import validate_call as pydantic_validate_arguments
 from pydantic import ValidationError
-from typing_extensions import Annotated
 
 EMAIL_PATTERN = re.compile(
     r"^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+"

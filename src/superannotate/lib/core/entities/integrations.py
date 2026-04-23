@@ -6,7 +6,7 @@ from pydantic import Field
 
 class IntegrationEntity(TimedBaseModel):
     id: int = None
-    creator_id: str = None
+    creator_id: str | None = None
     name: str
     type: IntegrationTypeEnum = Field(None, alias="source")
     root: str = Field(None, alias="bucket_name")

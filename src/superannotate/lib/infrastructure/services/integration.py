@@ -1,4 +1,4 @@
-from typing import Dict
+from __future__ import annotations
 
 from lib.core import entities
 from lib.core.service_types import IntegrationListResponse
@@ -25,7 +25,7 @@ class IntegrationService(BaseIntegrationService):
         folder: entities.FolderEntity,
         integration: entities.IntegrationEntity,
         folder_name: str = None,
-        options: Dict[str, str] = None,
+        options: dict[str, str] = None,
     ):
         data = {
             "team_id": project.team_id,

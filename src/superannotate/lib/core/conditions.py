@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from typing import Any
-from typing import List
 
 CONDITION_OR = "|"
 CONDITION_AND = "&"
@@ -18,7 +19,7 @@ class Condition:
         self._key = key
         self._value = value
         self._type = condition_type
-        self._condition_set: List[QueryCondition] = [
+        self._condition_set: list[QueryCondition] = [
             QueryCondition(CONDITION_AND, {key: value}, self)
         ]
 

@@ -1,17 +1,14 @@
+from __future__ import annotations
+
 import copy
 import io
 import logging
 import os
 from abc import ABCMeta
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 import lib.core as constances
 from lib.core import ApprovalStatus
@@ -81,12 +78,12 @@ def build_condition(**kwargs) -> Condition:
 
 def serialize_custom_fields(
     team_id: int,
-    project_id: Optional[int],
+    project_id: int | None,
     service_provider: ServiceProvider,
-    data: List[dict],
+    data: list[dict],
     entity: CustomFieldEntityEnum,
     parent_entity: CustomFieldEntityEnum,
-) -> List[dict]:
+) -> list[dict]:
     context = {"team_id": team_id, "project_id": project_id}
 
     existing_custom_fields = service_provider.list_custom_field_names(
@@ -136,7 +133,7 @@ class WorkManagementManager(BaseManager):
         response.raise_for_status()
         for folder in response.data:
             for user in folder.contributors:
-                user.role = self.service_provider.get_role_name(project, user.role)
+                user.role = self.service_provider.get_role_name(project, user.role)  # type: ignore
                 user.state = user.state.name
 
         return response
@@ -145,7 +142,7 @@ class WorkManagementManager(BaseManager):
         return self.service_provider.work_management.list_scores()
 
     def get_user_metadata(
-        self, pk: Union[str, int], include: List[Literal["custom_fields"]] = None
+        self, pk: str | int, include: list[Literal["custom_fields"]] = None
     ):
         if isinstance(pk, int):
             filters = {"id": pk}
@@ -189,17 +186,17 @@ class WorkManagementManager(BaseManager):
             context=_context,
         )
 
-    def remove_users(self, user_emails: List[str]):
+    def remove_users(self, user_emails: list[str]):
         data = self.service_provider.remove_users(user_emails)
         return data.get("success", 0), data.get("error", 0)
 
-    def remove_users_from_project(self, project: ProjectEntity, user_emails: List[str]):
+    def remove_users_from_project(self, project: ProjectEntity, user_emails: list[str]):
         data = self.service_provider.remove_users_from_project(project.id, user_emails)
         return len(data.get("succeeded", [])), len(data.get("failed", []))
 
     def list_users(
         self,
-        include: List[Literal["custom_fields", "categories"]] = None,
+        include: list[Literal["custom_fields", "categories"]] = None,
         project=None,
         **filters,
     ):
@@ -279,7 +276,7 @@ class WorkManagementManager(BaseManager):
     def update_user_activity(
         self,
         user_email: str,
-        provided_projects: Union[List[int], List[str], Literal["*"]],
+        provided_projects: list[int] | list[str] | Literal["*"],
         action: Literal["resume", "pause"],
     ):
         if isinstance(provided_projects, list):
@@ -319,7 +316,7 @@ class WorkManagementManager(BaseManager):
         project: ProjectEntity,
         item: BaseItemEntity,
         scored_user: str,
-        provided_score_names: Optional[List[str]] = None,
+        provided_score_names: list[str] | None = None,
     ):
         score_fields_res = self.service_provider.work_management.list_scores()
 
@@ -355,8 +352,8 @@ class WorkManagementManager(BaseManager):
         return scores
 
     @staticmethod
-    def _validate_scores(scores: List[dict]) -> List[ScorePayloadEntity]:
-        score_objects: List[ScorePayloadEntity] = []
+    def _validate_scores(scores: list[dict]) -> list[ScorePayloadEntity]:
+        score_objects: list[ScorePayloadEntity] = []
 
         for s in scores:
             if "value" not in s:
@@ -375,14 +372,14 @@ class WorkManagementManager(BaseManager):
 
     @staticmethod
     def retrieve_scores(
-        components: List[dict], score_component_ids: List[str]
-    ) -> Dict[str, Dict]:
+        components: list[dict], score_component_ids: list[str]
+    ) -> dict[str, dict]:
         score_component_ids = copy.copy(score_component_ids)
         found_scores = {}
         try:
 
             def _retrieve_score_recursive(
-                all_components: List[dict], component_ids: List[str]
+                all_components: list[dict], component_ids: list[str]
             ):
                 for component in all_components:
                     if "children" in component:
@@ -405,8 +402,8 @@ class WorkManagementManager(BaseManager):
         project: ProjectEntity,
         item: BaseItemEntity,
         scored_user: str,
-        scores: List[Dict[str, Any]],
-        components: List[dict],
+        scores: list[dict[str, Any]],
+        components: list[dict],
     ):
         users = self.list_users(email=scored_user)
         if not users:
@@ -414,7 +411,7 @@ class WorkManagementManager(BaseManager):
         user = users[0]
 
         # get validate scores
-        scores: List[ScorePayloadEntity] = self._validate_scores(scores)
+        scores: list[ScorePayloadEntity] = self._validate_scores(scores)
 
         provided_score_component_ids = [s.component_id for s in scores]
         component_id_score_data_map = self.retrieve_scores(
@@ -424,7 +421,7 @@ class WorkManagementManager(BaseManager):
         if len(component_id_score_data_map) != len(scores):
             raise AppException("Invalid component_id provided")
 
-        scores_to_set: List[dict] = []
+        scores_to_set: list[dict] = []
         for s in scores:
             score_data = {
                 "item_id": item.id,
@@ -449,8 +446,8 @@ class WorkManagementManager(BaseManager):
     def set_remove_contributor_categories(
         self,
         project: ProjectEntity,
-        contributors: List[Union[int, str]],
-        categories: Union[List[str], Literal["*"]],
+        contributors: list[int | str],
+        categories: list[str] | Literal["*"],
         operation: Literal["set", "remove"],
     ):
         if categories and contributors:
@@ -594,7 +591,7 @@ class ProjectManager(BaseManager):
         )
         return use_case.execute()
 
-    def set_settings(self, project: ProjectEntity, settings: List[SettingEntity]):
+    def set_settings(self, project: ProjectEntity, settings: list[SettingEntity]):
         use_case = usecases.UpdateSettingsUseCase(
             to_update=settings,
             service_provider=self.service_provider,
@@ -615,7 +612,7 @@ class ProjectManager(BaseManager):
         return use_case.execute()
 
     def set_steps(
-        self, project: ProjectEntity, steps: List, connections: List[List[int]] = None
+        self, project: ProjectEntity, steps: list, connections: list[list[int]] = None
     ):
         use_case = usecases.SetStepsUseCase(
             service_provider=self.service_provider,
@@ -629,7 +626,7 @@ class ProjectManager(BaseManager):
         self,
         team: TeamEntity,
         project: ProjectEntity,
-        contributors: List[WMProjectUserEntity],
+        contributors: list[WMProjectUserEntity],
     ):
         project = self.get_metadata(project, include_contributors=True).data
         use_case = usecases.AddContributorsToProject(
@@ -694,9 +691,9 @@ class ProjectManager(BaseManager):
 
     def list_projects(
         self,
-        include: List[str] = None,
+        include: list[str] = None,
         **filters: Unpack[ProjectFilters],
-    ) -> List[ProjectEntity]:
+    ) -> list[ProjectEntity]:
         valid_fields = generate_schema(
             ProjectFilters.__annotations__,
             self.service_provider.get_custom_fields_templates(
@@ -774,7 +771,7 @@ class AnnotationClassManager(BaseManager):
         return use_case.execute()
 
     def create_multiple(
-        self, project: ProjectEntity, annotation_classes: List[AnnotationClassEntity]
+        self, project: ProjectEntity, annotation_classes: list[AnnotationClassEntity]
     ):
         use_case = usecases.CreateAnnotationClassesUseCase(
             service_provider=self.service_provider,
@@ -863,7 +860,7 @@ class FolderManager(BaseManager):
         )
         return use_case.execute()
 
-    def delete_multiple(self, project: ProjectEntity, folders: List[FolderEntity]):
+    def delete_multiple(self, project: ProjectEntity, folders: list[FolderEntity]):
         use_case = usecases.DeleteFolderUseCase(
             project=project,
             folders=folders,
@@ -881,7 +878,7 @@ class FolderManager(BaseManager):
         return use_case.execute()
 
     def assign_users(
-        self, project: ProjectEntity, folder: FolderEntity, users: List[str]
+        self, project: ProjectEntity, folder: FolderEntity, users: list[str]
     ):
         use_case = usecases.AssignFolderUseCase(
             service_provider=self.service_provider,
@@ -912,7 +909,7 @@ class ItemManager(BaseManager):
             return [extractor(i) for i in data]
         return extractor(data)
 
-    def _handle_special_fields(self, project: ProjectEntity, keys: List[str], val):
+    def _handle_special_fields(self, project: ProjectEntity, keys: list[str], val):
         """
         Handle special fields like 'approval_status', 'assignments',  'user_role' and 'annotation_status'.
         """
@@ -935,7 +932,7 @@ class ItemManager(BaseManager):
         return val
 
     @staticmethod
-    def _determine_condition_and_key(keys: List[str]) -> Tuple[OperatorEnum, str]:
+    def _determine_condition_and_key(keys: list[str]) -> tuple[OperatorEnum, str]:
         """Determine the condition and key from the filters."""
         if len(keys) == 1:
             return OperatorEnum.EQ, keys[0]
@@ -947,7 +944,7 @@ class ItemManager(BaseManager):
             return condition, ".".join(keys)
 
     def _build_query(
-        self, project: ProjectEntity, filters: dict, include: List[str]
+        self, project: ProjectEntity, filters: dict, include: list[str]
     ) -> Query:
         """Build the query object based on filters and include fields."""
         filter_annotations = ItemFilters.__annotations__.keys()
@@ -969,11 +966,11 @@ class ItemManager(BaseManager):
     @staticmethod
     def process_response(
         service_provider,
-        items: List[BaseItemEntity],
+        items: list[BaseItemEntity],
         project: ProjectEntity,
-        folder: Optional[FolderEntity] = None,
+        folder: FolderEntity | None = None,
         map_fields: bool = True,
-    ) -> List[BaseItemEntity]:
+    ) -> list[BaseItemEntity]:
         """Process the response data and return a list of serialized items."""
         data = []
         for item in items:
@@ -1005,9 +1002,9 @@ class ItemManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         /,
-        include: List[str] = None,
-        **filters: Optional[Unpack[ItemFilters]],
-    ) -> List[BaseItemEntity]:
+        include: list[str] = None,
+        **filters: Unpack[ItemFilters] | None,
+    ) -> list[BaseItemEntity]:
 
         entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
         chain = QueryBuilderChain(
@@ -1029,7 +1026,7 @@ class ItemManager(BaseManager):
         self,
         item_id: int,
         project: ProjectEntity,
-        include: List[Literal["categories", "assignments"]] = None,
+        include: list[Literal["categories", "assignments"]] = None,
     ) -> BaseItemEntity:
         query = EmptyQuery()
 
@@ -1053,7 +1050,7 @@ class ItemManager(BaseManager):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        attachments: List[AttachmentEntity],
+        attachments: list[AttachmentEntity],
         annotation_status: str = None,
     ):
         annotation_status_value = (
@@ -1094,7 +1091,7 @@ class ItemManager(BaseManager):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         use_case = usecases.DeleteItemsUseCase(
             project=project,
@@ -1110,7 +1107,7 @@ class ItemManager(BaseManager):
         from_folder: FolderEntity,
         to_folder: FolderEntity,
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
-        item_names: List[str] = None,
+        item_names: list[str] = None,
         include_annotations: bool = True,
     ):
         use_case = usecases.CopyMoveItems(
@@ -1133,7 +1130,7 @@ class ItemManager(BaseManager):
         from_folder: FolderEntity,
         to_folder: FolderEntity,
         duplicate_strategy: Literal["skip", "replace", "replace_annotations_only"],
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         use_case = usecases.CopyMoveItems(
             reporter=Reporter(),
@@ -1154,7 +1151,7 @@ class ItemManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         annotation_status: str,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         use_case = usecases.SetAnnotationStatues(
             Reporter(),
@@ -1173,7 +1170,7 @@ class ItemManager(BaseManager):
         project: ProjectEntity,
         folder: FolderEntity,
         approval_status: str,
-        item_names: List[str] = None,
+        item_names: list[str] = None,
     ):
         use_case = usecases.SetApprovalStatues(
             Reporter(),
@@ -1198,9 +1195,9 @@ class ItemManager(BaseManager):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        items: List[Union[int, str]],
+        items: list[int | str],
         operation: Literal["attach", "detach"],
-        category: Optional[str] = None,
+        category: str | None = None,
     ):
         if items and isinstance(items[0], str):
             items = self.list_items(project, folder, name__in=items)
@@ -1283,7 +1280,7 @@ class AnnotationManager(BaseManager):
         self,
         project: ProjectEntity,
         folder: FolderEntity = None,
-        items: Union[List[str], List[int]] = None,
+        items: list[str] | list[int] = None,
         verbose=True,
         transform_version: str = None,
     ):
@@ -1304,8 +1301,8 @@ class AnnotationManager(BaseManager):
         folder: FolderEntity,
         destination: str,
         recursive: bool,
-        item_names: Optional[List[str]],
-        callback: Optional[Callable],
+        item_names: list[str] | None,
+        callback: Callable | None,
         transform_version: str,
     ):
         use_case = usecases.DownloadAnnotations(
@@ -1342,7 +1339,7 @@ class AnnotationManager(BaseManager):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        item_names: Optional[List[str]] = None,
+        item_names: list[str] | None = None,
     ):
         use_case = usecases.DeleteAnnotations(
             project=project,
@@ -1356,7 +1353,7 @@ class AnnotationManager(BaseManager):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        annotations: List[dict],
+        annotations: list[dict],
         keep_status: bool,
         user: UserEntity,
         output_format: str = None,
@@ -1389,7 +1386,7 @@ class AnnotationManager(BaseManager):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        annotation_paths: List[str],
+        annotation_paths: list[str],
         user: UserEntity,
         keep_status: bool = False,
         client_s3_bucket=None,
@@ -1452,7 +1449,7 @@ class CustomFieldManager(BaseManager):
         )
         return use_case.execute()
 
-    def delete_schema(self, project: ProjectEntity, fields: List[str]):
+    def delete_schema(self, project: ProjectEntity, fields: list[str]):
         use_case = usecases.DeleteCustomSchemaUseCase(
             reporter=Reporter(),
             project=project,
@@ -1462,7 +1459,7 @@ class CustomFieldManager(BaseManager):
         return use_case.execute()
 
     def upload_values(
-        self, project: ProjectEntity, folder: FolderEntity, items: List[dict]
+        self, project: ProjectEntity, folder: FolderEntity, items: list[dict]
     ):
         use_case = usecases.UploadCustomValuesUseCase(
             reporter=Reporter(),
@@ -1474,7 +1471,7 @@ class CustomFieldManager(BaseManager):
         return use_case.execute()
 
     def delete_values(
-        self, project: ProjectEntity, folder: FolderEntity, items: List[dict]
+        self, project: ProjectEntity, folder: FolderEntity, items: list[dict]
     ):
         use_case = usecases.DeleteCustomValuesUseCase(
             reporter=Reporter(),
@@ -1486,9 +1483,9 @@ class CustomFieldManager(BaseManager):
         return use_case.execute()
 
     def list_fields(
-        self, project: ProjectEntity, item_ids: List[int]
-    ) -> Dict[int, dict]:
-        _data: Dict[int, dict] = dict()
+        self, project: ProjectEntity, item_ids: list[int]
+    ) -> dict[int, dict]:
+        _data: dict[int, dict] = dict()
         for chunk in divide_to_chunks(
             item_ids, self.service_provider.explore.CHUNK_SIZE
         ):
@@ -1513,10 +1510,10 @@ class IntegrationManager(BaseManager):
         folder: FolderEntity,
         integration: IntegrationEntity,
         folder_path: str = None,
-        query: Optional[str] = None,
-        item_name_column: Optional[str] = None,
-        custom_item_name: Optional[str] = None,
-        component_mapping: Optional[Dict[str, str]] = None,
+        query: str | None = None,
+        item_name_column: str | None = None,
+        custom_item_name: str | None = None,
+        component_mapping: dict[str, str] | None = None,
     ):
         use_case = usecases.AttachIntegrations(
             reporter=Reporter(),
@@ -1541,7 +1538,7 @@ class SubsetManager(BaseManager):
         )
         return use_case.execute()
 
-    def add_items(self, project: ProjectEntity, subset: str, items: List[dict]):
+    def add_items(self, project: ProjectEntity, subset: str, items: list[dict]):
         root_folder = FolderEntity(id=project.id, name="root")
         use_case = usecases.AddItemsToSubsetUseCase(
             reporter=Reporter(),
@@ -1673,12 +1670,12 @@ class Controller(BaseController):
         return response
 
     def get_project_folder_by_path(
-        self, path: Union[str, Path]
-    ) -> Tuple[ProjectEntity, FolderEntity]:
+        self, path: str | Path
+    ) -> tuple[ProjectEntity, FolderEntity]:
         project_name, folder_name = extract_project_folder(path)
         return self.get_project_folder((project_name, folder_name))
 
-    def get_project(self, name_or_id: Union[int, str]) -> ProjectEntity:
+    def get_project(self, name_or_id: int | str) -> ProjectEntity:
         if isinstance(name_or_id, int):
             return self.get_project_by_id(name_or_id).data
         project = self.projects.get_by_name(name_or_id).data
@@ -1703,7 +1700,7 @@ class Controller(BaseController):
         project_name: str,
         folder_name: str,
         image_name: str,
-        image: Union[str, io.BytesIO] = None,
+        image: str | io.BytesIO = None,
         annotation_status: str = None,
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
@@ -1740,7 +1737,7 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_name: str,
-        paths: List[str],
+        paths: list[str],
         annotation_status: str = None,
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
@@ -1766,10 +1763,10 @@ class Controller(BaseController):
         project: ProjectEntity,
         folder_name: str,
         folder_path: str,
-        extensions: Optional[List[str]] = None,
+        extensions: list[str] | None = None,
         annotation_status: str = None,
-        exclude_file_patterns: Optional[List[str]] = None,
-        recursive_sub_folders: Optional[bool] = None,
+        exclude_file_patterns: list[str] | None = None,
+        recursive_sub_folders: bool | None = None,
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
@@ -1798,10 +1795,10 @@ class Controller(BaseController):
     def prepare_export(
         self,
         project_name: str,
-        folder_names: List[str],
+        folder_names: list[str],
         include_fuse: bool,
         only_pinned: bool,
-        annotation_statuses: List[str] = None,
+        annotation_statuses: list[str] = None,
         integration_id: int = None,
         export_type: int = None,
     ):
@@ -1819,7 +1816,7 @@ class Controller(BaseController):
         return use_case.execute()
 
     def delete_exports(
-        self, project: ProjectEntity, exports: Union[List[int], List[str], Literal["*"]]
+        self, project: ProjectEntity, exports: list[int] | list[str] | Literal["*"]
     ):
         use_case = usecases.DeleteExportsUseCase(
             service_provider=self.service_provider,
@@ -1969,14 +1966,14 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_name: str,
-        paths: List[str],
+        paths: list[str],
         start_time: float,
-        extensions: List[str] = None,
-        exclude_file_patterns: List[str] = None,
-        end_time: Optional[float] = None,
-        target_fps: Optional[int] = None,
-        annotation_status: Optional[str] = None,
-        image_quality_in_editor: Optional[str] = None,
+        extensions: list[str] = None,
+        exclude_file_patterns: list[str] = None,
+        end_time: float | None = None,
+        target_fps: int | None = None,
+        annotation_status: str | None = None,
+        image_quality_in_editor: str | None = None,
     ):
         project = self.get_project(project_name)
         folder = self.get_folder(project, folder_name)
@@ -2024,7 +2021,7 @@ class Controller(BaseController):
         folder: FolderEntity,
         query: str = None,
         subset: str = None,
-    ) -> List[BaseItemEntity]:
+    ) -> list[BaseItemEntity]:
 
         use_case = usecases.QueryEntitiesUseCase(
             reporter=self.get_default_reporter(),
@@ -2057,8 +2054,8 @@ class Controller(BaseController):
         return response.data["count"]
 
     def get_project_folder(
-        self, path: Union[str, int, Tuple[int, int], Tuple[str, str]]
-    ) -> Tuple[ProjectEntity, Optional[FolderEntity]]:
+        self, path: str | int | tuple[int, int] | tuple[str, str]
+    ) -> tuple[ProjectEntity, FolderEntity | None]:
         if isinstance(path, int):
             project = self.get_project_by_id(path).data
             return project, self.get_folder(project, None)
@@ -2080,7 +2077,7 @@ class Controller(BaseController):
         raise AppException("Provided project param is not valid.")
 
     def get_item(
-        self, project: ProjectEntity, folder: FolderEntity, item: Union[int, str]
+        self, project: ProjectEntity, folder: FolderEntity, item: int | str
     ) -> BaseItemEntity:
         if isinstance(item, int):
             return self.items.get_item_by_id(item_id=item, project=project)
