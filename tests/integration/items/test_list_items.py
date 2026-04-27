@@ -40,6 +40,25 @@ class TestListItems(BaseTestCase):
         )
         assert len(items) == 100
 
+        assert (
+            len(sa.list_items(self.PROJECT_NAME, annotation_status="NotStarted")) == 100
+        )
+        assert (
+            len(
+                sa.list_items(self.PROJECT_NAME, annotation_status__notin=["Completed"])
+            )
+            == 100
+        )
+        assert (
+            len(
+                sa.list_items(
+                    self.PROJECT_NAME,
+                    annotation_status__notin=["Completed", "NotStarted"],
+                )
+            )
+            == 0
+        )
+
     def test_invalid_filter(self):
         with self.assertRaisesRegex(AppException, "Invalid assignments role provided."):
             sa.list_items(self.PROJECT_NAME, assignments__user_role__in=["Approved"])

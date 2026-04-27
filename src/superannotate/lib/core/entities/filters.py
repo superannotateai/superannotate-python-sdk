@@ -18,7 +18,8 @@ class BaseFilters(TypedDict, total=False):
 class ItemFilters(BaseFilters):
     annotation_status: str | None
     annotation_status__in: list[str] | None
-    annotation_status__ne: list[str] | None
+    annotation_status__ne: str | None
+    annotation_status__notin: list[str] | None
     approval_status: str | None
     approval_status__in: list[str] | None
     approval_status__ne: str | None
