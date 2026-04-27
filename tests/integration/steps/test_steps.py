@@ -224,7 +224,7 @@ class TestProjectSteps(BaseTestCase):
             ],
         )
         with self.assertRaisesRegex(
-                AppException, "Invalid connections: duplicates in a connection group."
+            AppException, "Invalid connections: duplicates in a connection group."
         ):
             sa.set_project_steps(
                 *args,
@@ -234,6 +234,6 @@ class TestProjectSteps(BaseTestCase):
                 ]
             )
         with self.assertRaisesRegex(
-                AppException, "Invalid connections: index out of allowed range."
+            AppException, "Invalid connections: index out of allowed range."
         ):
             sa.set_project_steps(*args, connections=[[1, 3]])

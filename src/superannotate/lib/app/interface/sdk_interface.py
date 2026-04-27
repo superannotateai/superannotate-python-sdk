@@ -4532,8 +4532,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 - name__starts: str
                 - name__ends: str
                 - annotation_status: str
+                - annotation_status__ne: str
                 - annotation_status__in: list[str]
-                - annotation_status__ne: list[str]
+                - annotation_status__notin: list[str]
                 - approval_status: Literal["Approved", "Disapproved", None]
                 - assignments__user_id: str
                 - assignments__user_id__ne: str
