@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
+from collections.abc import Iterator
 from typing import Generic
-from typing import Iterator
-from typing import TypeVar
 from typing import overload
+from typing import TypeVar
 
 T = TypeVar("T")
 
