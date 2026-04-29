@@ -66,6 +66,80 @@ class TestEntitiesSearchVector(BaseTestCase):
             == 100
         )
 
+    def test_query_result_list_like_behavior(self):
+        """Test that QueryResult behaves like a list for backward compatibility."""
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        result = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+
+        # Test len()
+        self.assertEqual(len(result), 100)
+
+        # Test indexing
+        first_item = result[0]
+        self.assertIsInstance(first_item, dict)
+        self.assertIn("name", first_item)
+
+        # Test negative indexing
+        last_item = result[-1]
+        self.assertIsInstance(last_item, dict)
+
+        # Test slicing
+        sliced = result[0:5]
+        self.assertEqual(len(sliced), 5)
+
+        # Test iteration
+        count = 0
+        for item in result:
+            self.assertIsInstance(item, dict)
+            count += 1
+        self.assertEqual(count, 100)
+
+        # Test list conversion
+        as_list = list(result)
+        self.assertEqual(len(as_list), 100)
+        self.assertIsInstance(as_list, list)
+
+    def test_query_result_count_method(self):
+        """Test that QueryResult.count() returns the count from server."""
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        result = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+
+        # Test .count() method
+        count = result.count()
+        self.assertEqual(count, 100)
+        self.assertIsInstance(count, int)
+
+        # Verify count matches len
+        self.assertEqual(count, len(result))
+
+    def test_query_result_lazy_loading(self):
+        """Test that QueryResult.count() does not trigger data fetching."""
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        result = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+
+        # Data should not be loaded yet
+        self.assertIsNone(result._data)
+
+        # Calling count() should not load data
+        count = result.count()
+        self.assertEqual(count, 100)
+        self.assertIsNone(result._data)
+
+        # Accessing data should trigger loading
+        first_item = result[0]
+        self.assertIsNotNone(result._data)
+        self.assertIsInstance(first_item, dict)
+
+    def test_query_result_repr(self):
+        """Test that QueryResult repr shows the underlying list."""
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        result = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+
+        # Test __repr__
+        repr_str = repr(result)
+        self.assertIsInstance(repr_str, str)
+        self.assertTrue(repr_str.startswith("["))
+
     def test_validate_saqul_query(self):
         try:
             self.assertRaises(

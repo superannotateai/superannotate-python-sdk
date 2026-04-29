@@ -11,6 +11,7 @@ import typing
 import warnings
 from collections.abc import Callable
 from collections.abc import Iterable
+from functools import partial
 from pathlib import Path
 from typing import Annotated
 from typing import Any
@@ -79,6 +80,8 @@ from lib.infrastructure.query_builder import FolderFilterHandler
 from lib.core.entities.filters import FolderFilters
 from lib.infrastructure.query_builder import QueryBuilderChain
 from lib.infrastructure.query_builder import FieldValidationHandler
+
+from lib.app.interface.responses import QueryResult
 
 logger = logging.getLogger("sa")
 
@@ -4267,9 +4270,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         query: NotEmptyStr | None = None,
         subset: NotEmptyStr | None = None,
-    ):
+    ) -> QueryResult:
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/explore-overview).
+
+        The returned object behaves like a list of dicts (supports iteration,
+        indexing, and ``len()``) and additionally exposes a ``.count()`` method
+        that returns the total number of matching items without fetching them.
 
         :param project: Accepts a project as a string ("project" or "project/folder") or as a tuple (project_id, folder_id), where the folder is optional.”
         :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
@@ -4283,13 +4290,39 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :return: queried items' metadata list
         :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            client = SAClient()
+
+            # Iterate over queried items (fetches data)
+            queried_items = client.query(
+                project="Image Project",
+                query="instance(error = true)"
+            )
+            for item in queried_items:
+                print(item["name"])
+
+            # Get only the count without fetching all items
+            total = client.query(
+                project="Image Project",
+                query="instance(error = true)"
+            ).count()
+            print(f"Total matching items: {total}")
         """
-        project, folder = self.controller.get_project_folder(project)
-        items = self.controller.query_entities(project, folder, query, subset)
-        exclude = {
-            "meta",
-        }
-        return BaseSerializer.serialize_iterable(items, exclude=exclude)
+        project_entity, folder = self.controller.get_project_folder(project)
+        fetch_entities = partial(
+            self.controller.query_entities, project_entity, folder, query, subset
+        )
+        return QueryResult(
+            data_fetcher=lambda: BaseSerializer.serialize_iterable(
+                fetch_entities(), exclude={"meta"}
+            ),
+            count_fetcher=partial(
+                self.controller.query_items_count, project_entity.name, query
+            ),
+        )
 
     def get_item_metadata(
         self,
