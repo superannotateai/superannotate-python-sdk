@@ -27,6 +27,9 @@ class BaseResult(Generic[T]):
             self._data = self._data_fetcher()
         return self._data
 
+    def data(self) -> list[T]:
+        return self._ensure_data()
+
     def __iter__(self) -> Iterator[T]:
         return iter(self._ensure_data())
 

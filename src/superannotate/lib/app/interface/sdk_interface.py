@@ -4274,9 +4274,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/explore-overview).
 
-        The returned object behaves like a list of dicts (supports iteration,
-        indexing, and ``len()``) and additionally exposes a ``.count()`` method
-        that returns the total number of matching items without fetching them.
+        The returned :class:`QueryResult` behaves like a list of dicts (supports
+        iteration, indexing, and ``len()``) and additionally exposes a
+        ``.count()`` method.
 
         :param project: Accepts a project as a string ("project" or "project/folder") or as a tuple (project_id, folder_id), where the folder is optional.”
         :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
@@ -4288,15 +4288,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             To return all the items in the specified subset, set the value of query param to None.
         :type subset: str
 
-        :return: queried items' metadata list
-        :rtype: list of dicts
+        :return: queried items' metadata list with a ``.count()`` method
+        :rtype: QueryResult (list of dicts with .count() method)
 
         Request Example:
         ::
 
             client = SAClient()
 
-            # Iterate over queried items (fetches data)
             queried_items = client.query(
                 project="Image Project",
                 query="instance(error = true)"
@@ -4304,12 +4303,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             for item in queried_items:
                 print(item["name"])
 
-            # Get only the count without fetching all items
-            total = client.query(
-                project="Image Project",
-                query="instance(error = true)"
-            ).count()
-            print(f"Total matching items: {total}")
+        .. py:method:: query.count() -> int
+
+            Returns the total number of items matching the query without
+            fetching them. This is a lightweight call that does not trigger
+            pagination.
+
+            :return: total number of matching items
+            :rtype: int
+
+            Request Example:
+            ::
+
+                client = SAClient()
+
+                total = client.query(
+                    project="Image Project",
+                    query="instance(error = true)"
+                ).count()
+                print(f"Total matching items: {total}")
         """
         project_entity, folder = self.controller.get_project_folder(project)
         fetch_entities = partial(
