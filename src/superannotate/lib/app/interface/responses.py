@@ -9,32 +9,36 @@ from typing import TypeVar
 T = TypeVar("T")
 
 
-class BaseResult(Generic[T]):
+class BaseResult(list, Generic[T]):
     """A generic list-like wrapper for results with lazy loading support.
 
-    This class wraps a list of results while maintaining full backward
-    compatibility with list-like operations (iteration, indexing, len()).
+    Inherits from ``list`` for full backward compatibility with code that
+    expects a real list (``isinstance(x, list)``, JSON serializers, etc.).
     Data is fetched lazily on first access.
     """
 
     def __init__(self, data_fetcher: Callable[[], list[T]]) -> None:
-        self._data: list[T] | None = None
+        super().__init__()
         self._data_fetcher = data_fetcher
+        self._loaded = False
 
-    def _ensure_data(self) -> list[T]:
+    def _ensure_data(self) -> None:
         """Lazily fetch data if not already loaded."""
-        if self._data is None:
-            self._data = self._data_fetcher()
-        return self._data
+        if not self._loaded:
+            list.extend(self, self._data_fetcher())
+            self._loaded = True
 
     def data(self) -> list[T]:
-        return self._ensure_data()
+        self._ensure_data()
+        return list(self)
 
     def __iter__(self) -> Iterator[T]:
-        return iter(self._ensure_data())
+        self._ensure_data()
+        return list.__iter__(self)
 
     def __len__(self) -> int:
-        return len(self._ensure_data())
+        self._ensure_data()
+        return list.__len__(self)
 
     @overload
     def __getitem__(self, index: int) -> T: ...
@@ -43,16 +47,26 @@ class BaseResult(Generic[T]):
     def __getitem__(self, index: slice) -> list[T]: ...
 
     def __getitem__(self, index: int | slice) -> T | list[T]:
-        return self._ensure_data()[index]
+        self._ensure_data()
+        return list.__getitem__(self, index)
 
     def __repr__(self) -> str:
-        return repr(self._ensure_data())
+        self._ensure_data()
+        return list.__repr__(self)
 
     def __bool__(self) -> bool:
-        return bool(self._ensure_data())
+        self._ensure_data()
+        return list.__len__(self) > 0
 
-    def __contains__(self, item: T) -> bool:
-        return item in self._ensure_data()
+    def __contains__(self, item: object) -> bool:
+        self._ensure_data()
+        return list.__contains__(self, item)
+
+    def __eq__(self, other: object) -> bool:
+        self._ensure_data()
+        return list.__eq__(self, other)
+
+    __hash__ = None  # type: ignore[assignment]
 
 
 class QueryResult(BaseResult[dict]):

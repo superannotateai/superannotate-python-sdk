@@ -79,12 +79,12 @@ class TestEntitiesSearchVector(BaseTestCase):
         sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
         result = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
 
-        self.assertIsNone(result._data)
+        self.assertFalse(result._loaded)
         self.assertEqual(result.count(), 100)
-        self.assertIsNone(result._data)
+        self.assertFalse(result._loaded)
 
         _ = result[0]
-        self.assertIsNotNone(result._data)
+        self.assertTrue(result._loaded)
 
     def test_validate_saqul_query(self):
         try:

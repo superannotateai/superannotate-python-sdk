@@ -4274,9 +4274,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/explore-overview).
 
-        The returned :class:`QueryResult` behaves like a list of dicts (supports
-        iteration, indexing, and ``len()``) and additionally exposes a
-        ``.count()`` method.
+        The returned QueryResult behaves like a list of dicts, and additionally exposes a .count() method.
 
         :param project: Accepts a project as a string ("project" or "project/folder") or as a tuple (project_id, folder_id), where the folder is optional.”
         :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
@@ -4288,26 +4286,24 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             To return all the items in the specified subset, set the value of query param to None.
         :type subset: str
 
-        :return: queried items' metadata list with a ``.count()`` method
+        :return: queried items' metadata list
         :rtype: QueryResult (list of dicts with .count() method)
 
         Request Example:
         ::
 
-            client = SAClient()
+            sa_client = SAClient()
 
-            queried_items = client.query(
+            queried_items = sa_client.query(
                 project="Image Project",
-                query="instance(error = true)"
+                query="metadata(lastAction.email = test@superannotate.com)"
             )
             for item in queried_items:
                 print(item["name"])
 
         .. py:method:: query.count() -> int
 
-            Returns the total number of items matching the query without
-            fetching them. This is a lightweight call that does not trigger
-            pagination.
+            Returns the total number of items matching the query.
 
             :return: total number of matching items
             :rtype: int
@@ -4315,11 +4311,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Request Example:
             ::
 
-                client = SAClient()
+                sa_client = SAClient()
 
-                total = client.query(
+                total = sa_client.query(
                     project="Image Project",
-                    query="instance(error = true)"
+                    query="metadata(lastAction.email = test@superannotate.com)"
                 ).count()
                 print(f"Total matching items: {total}")
         """
