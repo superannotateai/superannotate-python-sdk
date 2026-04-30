@@ -94,16 +94,6 @@ def _passes_type_sanity(params_info):
             )
 
 
-def _passes_list_members_type_sanity(lists_info):
-    for _list in lists_info:
-        for _list_member in _list[0]:
-            if not isinstance(_list_member, _list[2]):
-                raise AppException(
-                    "'%s' should be list of '%s', but contains '%s'"
-                    % (_list[1], _list[2], type(_list_member))
-                )
-
-
 def _passes_value_sanity(values_info):
     for value in values_info:
         if value[0] not in value[2]:
