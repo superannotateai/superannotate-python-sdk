@@ -104,8 +104,6 @@ IMAGE_QUALITY = Literal["compressed", "original"]
 
 ANNOTATION_TYPE = Literal["bbox", "polygon", "point", "tag"]
 
-ANNOTATOR_ROLE = Literal["Admin", "Annotator", "QA"]
-
 FOLDER_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 

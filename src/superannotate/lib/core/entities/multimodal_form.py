@@ -253,13 +253,6 @@ class FormModel(BaseModel):
     code: str | list | None = ""
     environments: list[Any] = []
 
-    @property
-    def code_as_string(self) -> str:
-        """Convert code to string if it's a list"""
-        if isinstance(self.code, list):
-            return "\n".join(str(item) for item in self.code)
-        return self.code or ""
-
     def _extract_all_components(
         self, components: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:

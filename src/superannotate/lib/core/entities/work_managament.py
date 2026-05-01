@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 from enum import auto
 from enum import Enum
 from typing import Any
@@ -49,13 +48,6 @@ class ProjectStatus(str, Enum):
 
     def __repr__(self):
         return self._name_
-
-
-def _validate_string_date_wm(v: datetime.datetime) -> str:
-    """Convert datetime to string format for WM entities."""
-    if isinstance(v, str):
-        return v
-    return v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
 class WMProjectEntity(TimedBaseModel):

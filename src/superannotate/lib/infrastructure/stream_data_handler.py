@@ -42,13 +42,6 @@ class StreamedAnnotations:
         self._items_downloaded = 0
         self._active_sessions = set()
 
-    def get_json(self, data: bytes):
-        try:
-            return json.loads(data)
-        except json.decoder.JSONDecodeError as e:
-            self._reporter.log_error(f"Invalud chunk: {str(e)}")
-            return None
-
     @async_retry_on_generator((BackendError,))
     async def fetch(
         self,

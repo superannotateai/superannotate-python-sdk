@@ -37,7 +37,6 @@ class ServiceProvider(BaseServiceProvider):
     URL_USER = "user/ME"
     URL_USERS = "users"
     URL_GET_EXPORT = "export/{}"
-    URL_PREDICTION = "images/prediction"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_INVITE_CONTRIBUTORS = "api/v1/team/{}/inviteUsers"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"

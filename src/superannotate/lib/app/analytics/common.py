@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-import plotly.express as px
 from lib.core.exceptions import AppException
 
 logger = logging.getLogger("sa")
@@ -558,50 +557,3 @@ def consensus(df, item_name, annot_type):
             instance_id += 1
 
     return image_data
-
-
-def consensus_plot(consensus_df, *_, **__):
-    plot_data = consensus_df.copy()
-
-    # annotator-wise boxplot
-    annot_box_fig = px.box(
-        plot_data,
-        x="creatorEmail",
-        y="score",
-        points="all",
-        color="creatorEmail",
-        color_discrete_sequence=px.colors.qualitative.Dark24,
-    )
-    annot_box_fig.show()
-
-    # project-wise boxplot
-    project_box_fig = px.box(
-        plot_data,
-        x="folderName",
-        y="score",
-        points="all",
-        color="folderName",
-        color_discrete_sequence=px.colors.qualitative.Dark24,
-    )
-    project_box_fig.show()
-
-    # scatter plot of score vs area
-    fig = px.scatter(
-        plot_data,
-        x="area",
-        y="score",
-        color="className",
-        symbol="creatorEmail",
-        facet_col="folderName",
-        color_discrete_sequence=px.colors.qualitative.Dark24,
-        hover_data={
-            "className": False,
-            "itemName": True,
-            "folderName": False,
-            "area": False,
-            "score": False,
-        },
-    )
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-    fig.for_each_trace(lambda t: t.update(name=t.name.split("=")[-1]))
-    fig.show()
