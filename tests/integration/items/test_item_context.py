@@ -1,8 +1,12 @@
 import json
 import os
 from pathlib import Path
+from unittest import TestCase
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from src.superannotate import FileChangedError
+from src.superannotate import ItemContext
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
 
@@ -135,3 +139,63 @@ class TestEditorContext(BaseTestCase):
             sa.delete_project(self.PROJECT_NAME)
         except Exception:
             ...
+
+
+class TestItemContextSetComponentCalledFlag(TestCase):
+    def _make_context(self):
+        ic = ItemContext(
+            controller=MagicMock(),
+            project=MagicMock(),
+            folder=MagicMock(),
+            item=MagicMock(),
+            overwrite=True,
+        )
+        ic._annotation_adapter = MagicMock()
+        ic._annotation_adapter.annotation = {"metadata": {}, "data": {}}
+        return ic
+
+    def test_dirty_flag_initial_state(self):
+        ic = self._make_context()
+        self.assertFalse(ic._set_component_called)
+
+    def test_set_component_value_marks_dirty(self):
+        ic = self._make_context()
+        ic.set_component_value("component_id", "value")
+        self.assertTrue(ic._set_component_called)
+
+    def test_save_called_on_exit_after_set_component_value(self):
+        ic = self._make_context()
+        with patch.object(ItemContext, "save", autospec=True) as save_mock:
+            with ic:
+                ic.set_component_value("component_id", "value")
+            save_mock.assert_called_once_with(ic)
+
+    def test_dirty_flag_reset_after_save(self):
+        ic = self._make_context()
+        with patch.object(ic, "_set_small_annotation_adapter"), patch.object(
+            ic, "_set_large_annotation_adapter"
+        ):
+            ic.set_component_value("component_id", "value")
+            self.assertTrue(ic._set_component_called)
+            ic.save()
+            self.assertFalse(ic._set_component_called)
+
+    def test_no_double_save_on_exit_after_manual_save(self):
+        ic = self._make_context()
+        with patch.object(ic, "_set_small_annotation_adapter"), patch.object(
+            ic, "_set_large_annotation_adapter"
+        ):
+            with ic:
+                ic.set_component_value("component_id", "value")
+                ic.save()
+                self.assertEqual(ic._annotation_adapter.save.call_count, 1)
+            self.assertEqual(ic._annotation_adapter.save.call_count, 1)
+
+    def test_save_not_called_when_exception_raised(self):
+        ic = self._make_context()
+        with patch.object(ItemContext, "save", autospec=True) as save_mock:
+            with self.assertRaises(RuntimeError):
+                with ic:
+                    ic.set_component_value("component_id", "value")
+                    raise RuntimeError("boom")
+            save_mock.assert_not_called()

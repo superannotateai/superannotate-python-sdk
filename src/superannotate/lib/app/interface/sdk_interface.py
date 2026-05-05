@@ -155,6 +155,7 @@ class ItemContext:
         self._annotation_adapter: BaseMultimodalAnnotationAdapter | None = None
         self._overwrite = overwrite
         self._annotation: dict | None = None
+        self._set_component_called = False
 
     def _set_small_annotation_adapter(self, annotation: dict | None = None):
         self._annotation_adapter = MultimodalSmallAnnotationAdapter(
@@ -224,7 +225,9 @@ class ItemContext:
             self._set_large_annotation_adapter(self.annotation)
         else:
             self._set_small_annotation_adapter(self.annotation)
-        self._annotation_adapter.save()
+        if self._set_component_called:
+            self._annotation_adapter.save()
+        self._set_component_called = False
 
     def get_metadata(self):
         """
@@ -284,6 +287,7 @@ class ItemContext:
 
         """
         self.annotation_adapter.set_component_value(component_id, value)
+        self._set_component_called = True
         return self
 
 
