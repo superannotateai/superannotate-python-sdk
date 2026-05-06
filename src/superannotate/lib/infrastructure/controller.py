@@ -2039,13 +2039,20 @@ class Controller(BaseController):
             self.service_provider, items, project, folder, map_fields=False
         )
 
-    def query_items_count(self, project_name: str, query: str = None) -> int:
-        project = self.get_project(project_name)
+    def query_items_count(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        query: str = None,
+        subset: str = None,
+    ) -> int:
 
         use_case = usecases.QueryEntitiesCountUseCase(
             reporter=self.get_default_reporter(),
             project=project,
+            folder=folder,
             query=query,
+            subset=subset,
             service_provider=self.service_provider,
         )
         response = use_case.execute()

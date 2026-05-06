@@ -170,13 +170,17 @@ class QueryEntitiesCountUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
+        folder: FolderEntity,
         service_provider: BaseServiceProvider,
         query: str,
+        subset: str = None,
     ):
         super().__init__(reporter)
         self._project = project
+        self._folder = folder
         self._service_provider = service_provider
         self._query = query
+        self._subset = subset
 
     def validate_arguments(self):
         if self._query:
@@ -197,9 +201,40 @@ class QueryEntitiesCountUseCase(BaseReportableUseCase):
             if not response.ok:
                 raise AppException(response.error)
 
+        if not any([self._query, self._subset]):
+            raise AppException(
+                "The query and subset params cannot have the value None at the same time."
+            )
+        if self._subset and not self._folder.is_root:
+            raise AppException(
+                "The folder name should be specified in the query string."
+            )
+
     def execute(self) -> Response:
         if self.is_valid():
-            query_kwargs = {"query": self._query}
+            query_kwargs = {}
+            if self._subset:
+                response = self._service_provider.explore.list_subsets(self._project)
+                if response.ok:
+                    subset = next(
+                        (_sub for _sub in response.data if _sub.name == self._subset),
+                        None,
+                    )
+                else:
+                    self._response.errors = response.error
+                    return self._response
+                if not subset:
+                    self._response.errors = AppException(
+                        "Subset not found. Use the superannotate."
+                        "get_subsets() function to get a list of the available subsets."
+                    )
+                    return self._response
+                query_kwargs["subset_id"] = subset.id
+            if self._query:
+                query_kwargs["query"] = self._query
+            query_kwargs["folder"] = (
+                None if self._folder.name == "root" else self._folder
+            )
             service_response = self._service_provider.explore.query_item_count(
                 self._project,
                 **query_kwargs,

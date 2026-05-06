@@ -86,6 +86,24 @@ class TestEntitiesSearchVector(BaseTestCase):
         _ = result[0]
         self.assertTrue(result._loaded)
 
+    def test_query_result_count_respects_subset(self):
+        subset_name = "subset_a"
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        all_items = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+        subset_items = [
+            {"name": item["name"], "path": self.PROJECT_NAME} for item in all_items[:30]
+        ]
+        sa.add_items_to_subset(self.PROJECT_NAME, subset_name, subset_items)
+
+        result = sa.query(
+            self.PROJECT_NAME,
+            "metadata(status = NotStarted)",
+            subset=subset_name,
+        )
+
+        self.assertEqual(result.count(), len(subset_items))
+        self.assertEqual(result.count(), len(list(result)))
+
     def test_validate_saqul_query(self):
         try:
             self.assertRaises(

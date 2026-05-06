@@ -4319,16 +4319,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 ).count()
                 print(f"Total matching items: {total}")
         """
-        project_entity, folder = self.controller.get_project_folder(project)
+        project, folder = self.controller.get_project_folder(project)
         fetch_entities = partial(
-            self.controller.query_entities, project_entity, folder, query, subset
+            self.controller.query_entities, project, folder, query, subset
         )
         return QueryResult(
             data_fetcher=lambda: BaseSerializer.serialize_iterable(
                 fetch_entities(), exclude={"meta"}
             ),
             count_fetcher=partial(
-                self.controller.query_items_count, project_entity.name, query
+                self.controller.query_items_count,
+                project=project,
+                folder=folder,
+                query=query,
+                subset=subset,
             ),
         )
 

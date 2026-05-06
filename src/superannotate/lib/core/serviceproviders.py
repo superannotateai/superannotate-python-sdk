@@ -750,7 +750,9 @@ class BaseExploreService(SuperannotateServiceProvider):
     def query_item_count(
         self,
         project: entities.ProjectEntity,
+        folder: entities.FolderEntity = None,
         query: str = None,
+        subset_id: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
