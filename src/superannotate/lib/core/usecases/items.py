@@ -897,7 +897,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203,
                     annotation_status=self._annotation_status_code,
                 )
-                if not status_changed:
+                if not status_changed.ok:
                     self._response.errors = AppException(self.ERROR_MESSAGE)
                     break
         return self._response
