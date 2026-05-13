@@ -24,11 +24,11 @@ class SuperviselyStrategy(baseStrategy):
             == "supervisely_keypoint_detection_to_sa_vector"
         ):
             meta_json = json.load(open(self.export_root / "meta.json"))
-            sa_jsons = self.conversion_algorithm(
+            self.conversion_algorithm(
                 json_files, classes_id_map, meta_json, self.output_dir
             )
         else:
-            sa_jsons = self.conversion_algorithm(
+            self.conversion_algorithm(
                 json_files, classes_id_map, self.task, self.output_dir
             )
         (self.output_dir / "classes").mkdir(exist_ok=True)

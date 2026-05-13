@@ -62,7 +62,9 @@ repos:
 #        args:
 #          - '--disable=R0903,C0111,C0301,W0703,R0914,R0801,R0913,E0401,W0511,C0413,R0902,C0103,W0201,C0209,W1203,W0707,C0415,W0611'
 #  - repo: 'https://github.com/asottile/dead'
-#    rev: v1.3.0
+#    rev: v2.1.0
 #    hooks:
 #      - id: dead
+#        args: [--exclude, docs/source/conf.py|src/superannotate/lib/app/interface/sdk_interface.py|src/superannotate/lib/app/interface/cli_interface.py]
+
 exclude: src/lib/app/analytics | src/lib/app/input_converters

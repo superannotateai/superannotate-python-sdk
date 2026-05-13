@@ -11,11 +11,6 @@ from pydantic import Field
 from pydantic import StrictInt
 from pydantic import StrictStr
 
-DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
-DATE_TIME_FORMAT_ERROR_MESSAGE = (
-    "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
-)
-
 
 class GroupTypeEnum(str, Enum):
     RADIO = "radio"

@@ -28,7 +28,6 @@ logger = logging.getLogger("sa")
 
 class AnnotationService(BaseAnnotationService):
     ASSETS_PROVIDER_VERSION = "v4"
-    DEFAULT_CHUNK_SIZE = 5000
 
     URL_GET_ANNOTATIONS = "items/annotations/download"
     URL_UPLOAD_ANNOTATIONS = "items/annotations/upload"
@@ -85,7 +84,7 @@ class AnnotationService(BaseAnnotationService):
             headers=self.client.default_headers,
             raise_for_status=True,
         ) as session:
-            _response = await session.request("post", sync_url, params=sync_params)
+            await session.request("post", sync_url, params=sync_params)
             sync_params.pop("current_source")
             sync_params.pop("desired_source")
 

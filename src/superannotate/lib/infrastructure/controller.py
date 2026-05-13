@@ -943,26 +943,6 @@ class ItemManager(BaseManager):
                 condition = OperatorEnum.EQ
             return condition, ".".join(keys)
 
-    def _build_query(
-        self, project: ProjectEntity, filters: dict, include: list[str]
-    ) -> Query:
-        """Build the query object based on filters and include fields."""
-        filter_annotations = ItemFilters.__annotations__.keys()
-        query = EmptyQuery()
-        _include = set(include if include else [])
-        for key, val in filters.items():
-            if key in filter_annotations:
-                _keys = key.split("__")
-                entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
-                if _keys[0] not in entity.__fields__:
-                    _include.add(_keys[0])
-                val = self._handle_special_fields(project, _keys, val)
-                condition, _key = self._determine_condition_and_key(_keys)
-                query &= Filter(_key, val, condition)
-        for i in _include:
-            query &= Join(i)
-        return query
-
     @staticmethod
     def process_response(
         service_provider,
@@ -1651,11 +1631,6 @@ class BaseController(metaclass=ABCMeta):
 
 class Controller(BaseController):
     DEFAULT = None
-
-    @classmethod
-    def set_default(cls, obj):
-        cls.DEFAULT = obj
-        return cls.DEFAULT
 
     def get_folder_by_id(self, folder_id: int, project_id: int):
         response = self.folders.get_by_id(

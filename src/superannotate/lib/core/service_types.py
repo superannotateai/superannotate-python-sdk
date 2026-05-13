@@ -7,7 +7,6 @@ from lib.core.entities.work_managament import TelemetryScoreEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
-from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -166,10 +165,6 @@ class UserResponse(ServiceResponse):
     res_data: entities.UserEntity = None
 
 
-class ModelListResponse(ServiceResponse):
-    res_data: list[entities.AnnotationClassEntity] = None
-
-
 class _IntegrationResponse(ServiceResponse):
     integrations: list[entities.IntegrationEntity] = Field(default_factory=list)
 
@@ -190,10 +185,6 @@ class SubsetListResponse(ServiceResponse):
     res_data: list[entities.SubSetEntity] = None
 
 
-class SubsetResponse(ServiceResponse):
-    res_data: entities.SubSetEntity = None
-
-
 class UploadAnnotationsResponse(ServiceResponse):
     res_data: UploadAnnotations | None = None
 
@@ -208,10 +199,6 @@ class UploadCustomFieldValuesResponse(ServiceResponse):
 
 class UserLimitsResponse(ServiceResponse):
     res_data: UserLimits = None
-
-
-class ItemListResponse(ServiceResponse):
-    res_data: list[entities.BaseItemEntity] = None
 
 
 class FolderResponse(ServiceResponse):
@@ -268,15 +255,3 @@ class WMScoreListResponse(ServiceResponse):
 
 class TelemetryScoreListResponse(ServiceResponse):
     res_data: list[TelemetryScoreEntity] = None
-
-
-PROJECT_TYPE_RESPONSE_MAP = {
-    ProjectType.VECTOR: ImageResponse,
-    ProjectType.OTHER: ClassificationResponse,
-    ProjectType.VIDEO: VideoResponse,
-    ProjectType.TILED: TiledResponse,
-    ProjectType.PIXEL: ImageResponse,
-    ProjectType.DOCUMENT: DocumentResponse,
-    ProjectType.POINT_CLOUD: PointCloudResponse,
-    ProjectType.MULTIMODAL: ImageResponse,
-}

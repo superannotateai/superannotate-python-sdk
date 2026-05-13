@@ -38,17 +38,6 @@ def _iou(bbox1, bbox2):
     )
 
 
-def _get_image_shape_from_xml(file_path):
-    with open(os.path.splitext(file_path)[0] + ".xml") as f:
-        tree = ET.parse(f)
-
-    size = tree.find("size")
-    width = int(size.find("width").text)
-    height = int(size.find("height").text)
-
-    return height, width
-
-
 def _get_image_metadata(file_path):
     with open(os.path.splitext(file_path)[0] + ".xml") as f:
         tree = ET.parse(f)

@@ -28,8 +28,6 @@ CONFIG_INI_FILE_LOCATION = CONFIG_INI_PATH
 LOG_FILE_LOCATION = f"{HOME_PATH}/logs"
 DEFAULT_LOGGING_LEVEL = "INFO"
 
-_loggers = {}
-
 
 def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):
     logger = logging.getLogger("sa")
@@ -84,10 +82,6 @@ MAX_PIXEL_RESOLUTION = 4_000_000
 MAX_VECTOR_RESOLUTION = 100_000_000
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 TOKEN_UUID = "token"
-
-ALREADY_EXISTING_FILES_WARNING = (
-    "{} already existing file(s) found that won't be uploaded."
-)
 
 ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project {}."
 

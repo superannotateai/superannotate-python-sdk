@@ -9,7 +9,6 @@ from superannotate import AppException
 
 
 class ItemService(SuperannotateServiceProvider):
-    MAX_URI_LENGTH = 15_000
     URL_LIST = "items/search"
     URL_GET = "items/{item_id}"
 
