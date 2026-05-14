@@ -215,7 +215,8 @@ class ItemContext:
         if exc_type:
             return False
 
-        self.save()
+        if self._set_component_called:
+            self.save()
         return True
 
     def save(self):
@@ -223,8 +224,7 @@ class ItemContext:
             self._set_large_annotation_adapter(self.annotation)
         else:
             self._set_small_annotation_adapter(self.annotation)
-        if self._set_component_called:
-            self._annotation_adapter.save()
+        self._annotation_adapter.save()
         self._set_component_called = False
 
     def get_metadata(self):
