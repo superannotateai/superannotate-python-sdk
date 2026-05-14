@@ -41,3 +41,12 @@ class TestDeleteFolders(BaseTestCase):
         sa.delete_folders(self.PROJECT_NAME, folder_names)
         folders = sa.search_folders(self.PROJECT_NAME)
         assert len(folders) == 0
+
+    def test_delete_folders_by_project_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        sa.delete_folders(project_id, folder_names=[self.TEST_FOLDER_NAME_1])
+        folders = sa.search_folders(self.PROJECT_NAME)
+        assert self.TEST_FOLDER_NAME_1 not in folders
+        assert self.TEST_FOLDER_NAME_2 in folders

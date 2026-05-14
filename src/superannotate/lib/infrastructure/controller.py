@@ -1658,8 +1658,15 @@ class Controller(BaseController):
             raise AppException("Project not found.")
         return project
 
-    def get_folder(self, project: ProjectEntity, name: str = None) -> FolderEntity:
-        folder = self.folders.get_by_name(project, name).data
+    def get_folder(
+        self, project: ProjectEntity, name: str | int = None
+    ) -> FolderEntity:
+        if isinstance(name, int):
+            folder = self.folders.get_by_id(
+                folder_id=name, project_id=project.id, team_id=project.team_id
+            ).data
+        else:
+            folder = self.folders.get_by_name(project, name).data
         if not folder:
             raise AppException("Folder not found.")
         return folder
@@ -1672,16 +1679,14 @@ class Controller(BaseController):
 
     def upload_image_to_project(
         self,
-        project_name: str,
-        folder_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
         image_name: str,
         image: str | io.BytesIO = None,
         annotation_status: str = None,
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
         image_bytes = None
         image_path = None
         if isinstance(image, (str, Path)):
@@ -1710,15 +1715,13 @@ class Controller(BaseController):
 
     def upload_images_to_project(
         self,
-        project_name: str,
-        folder_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
         paths: list[str],
         annotation_status: str = None,
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
 
         return usecases.UploadImagesToProject(
             project=project,
@@ -1736,7 +1739,7 @@ class Controller(BaseController):
     def upload_images_from_folder_to_project(
         self,
         project: ProjectEntity,
-        folder_name: str,
+        folder: FolderEntity,
         folder_path: str,
         extensions: list[str] | None = None,
         annotation_status: str = None,
@@ -1745,7 +1748,6 @@ class Controller(BaseController):
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        folder = self.get_folder(project, folder_name)
         annotation_status_value = (
             self.service_provider.get_annotation_status_value(
                 project, annotation_status
@@ -1769,7 +1771,7 @@ class Controller(BaseController):
 
     def prepare_export(
         self,
-        project_name: str,
+        project: ProjectEntity,
         folder_names: list[str],
         include_fuse: bool,
         only_pinned: bool,
@@ -1777,7 +1779,6 @@ class Controller(BaseController):
         integration_id: int = None,
         export_type: int = None,
     ):
-        project = self.get_project(project_name)
         use_case = usecases.PrepareExportUseCase(
             project=project,
             folder_names=folder_names,
@@ -1841,9 +1842,7 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def get_exports(self, project_name: str, return_metadata: bool):
-        project = self.get_project(project_name)
-
+    def get_exports(self, project: ProjectEntity, return_metadata: bool):
         use_case = usecases.GetExportsUseCase(
             service_provider=self.service_provider,
             project=project,
@@ -1880,13 +1879,12 @@ class Controller(BaseController):
 
     def download_export(
         self,
-        project_name: str,
+        project: ProjectEntity,
         export_name: str,
         folder_path: str,
         extract_zip_contents: bool,
         to_s3_bucket: bool,
     ):
-        project = self.get_project(project_name)
         use_case = usecases.DownloadExportUseCase(
             service_provider=self.service_provider,
             project=project,
@@ -1939,8 +1937,8 @@ class Controller(BaseController):
 
     def upload_videos(
         self,
-        project_name: str,
-        folder_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
         paths: list[str],
         start_time: float,
         extensions: list[str] = None,
@@ -1950,8 +1948,6 @@ class Controller(BaseController):
         annotation_status: str | None = None,
         image_quality_in_editor: str | None = None,
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
         annotation_status_value = (
             self.service_provider.get_annotation_status_value(
                 project, annotation_status

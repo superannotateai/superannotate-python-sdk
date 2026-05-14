@@ -73,6 +73,17 @@ class TestCustomSchema(BaseTestCase):
         assert response == payload
         self.assertEqual(sa.get_custom_fields(self.PROJECT_NAME), payload)
 
+    def test_create_get_delete_schema_by_project_id(self):
+        payload = copy.copy(self.PAYLOAD)
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        sa.create_custom_fields(project_id, payload)
+        self.assertEqual(sa.get_custom_fields(project_id), payload)
+        to_delete_field = list(payload.keys())[0]
+        response = sa.delete_custom_fields(project_id, [to_delete_field])
+        del payload[to_delete_field]
+        assert response == payload
+        self.assertEqual(sa.get_custom_fields(project_id), payload)
+
     def test_upload_delete_custom_values_query(self):
         sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
         item_name = "test"

@@ -47,3 +47,10 @@ class TestProjectRename(BaseTestCase):
         metadata = sa.get_project_metadata(self.NAME_TO_RENAME)
         self.assertEqual(self.NAME_TO_RENAME, metadata["name"])
         sa.delete_project(self.NAME_TO_RENAME)
+
+    def test_rename_project_by_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        sa.rename_project(project_id, self.NEW_PROJECT_NAME)
+        meta = sa.get_project_metadata(self.NEW_PROJECT_NAME)
+        self.assertEqual(meta["name"], self.NEW_PROJECT_NAME)
+        self.assertEqual(meta["id"], project_id)

@@ -29,3 +29,9 @@ class TestCreateFolder(BaseTestCase):
         self.assertIsNotNone(folder)
         assert "completedCount" not in folder.keys()
         assert "is_root" not in folder.keys()
+
+    def test_create_folder_by_project_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        sa.create_folder(project_id, self.TEST_FOLDER_NAME)
+        folder = sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+        self.assertEqual(folder["name"], self.TEST_FOLDER_NAME)

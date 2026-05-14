@@ -1,3 +1,5 @@
+import warnings
+
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
@@ -57,3 +59,11 @@ class TestSearchFolders(BaseTestCase):
         )
         with self.assertRaisesRegex(AppException, pattern):
             folders = sa.search_folders(self.PROJECT_NAME, status="dummy")  # noqa
+
+    def test_search_folders_deprecation_warning(self):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            sa.search_folders(self.PROJECT_NAME)
+        deprecations = [w for w in caught if issubclass(w.category, DeprecationWarning)]
+        assert any("search_folders" in str(w.message) for w in deprecations)
+        assert any("list_folders" in str(w.message) for w in deprecations)
