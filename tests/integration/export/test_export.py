@@ -125,6 +125,23 @@ class TestExportImport(TestCase):
             assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).left_only
             assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).right_only
 
+    def test_export_by_project_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            export = sa.prepare_export(project_id, include_fuse=True)
+            sa.download_export(project_id, export, tmpdir_name)
+            assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).left_only
+            assert not filecmp.dircmp(tmpdir_name, self.TEST_FOLDER_PATH).right_only
+
+    def test_get_exports_by_project_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        sa.prepare_export(self.PROJECT_NAME)
+        exports_by_name = sa.get_exports(self.PROJECT_NAME, return_metadata=True)
+        exports_by_id = sa.get_exports(project_id, return_metadata=True)
+        assert {e["name"] for e in exports_by_id} == {
+            e["name"] for e in exports_by_name
+        }
+
 
 class TestDeleteExports(BaseTestCase):
     PROJECT_NAME = "TestDeleteExports"

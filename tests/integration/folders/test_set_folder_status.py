@@ -86,3 +86,14 @@ class TestSetFolderStatus(TestCase):
             sa.set_folder_status(
                 project=self.PROJECT_NAME, folder="Invalid Name", status="Completed"
             )
+
+    def test_set_folder_status_by_project_and_folder_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        folder_id = sa.get_folder_metadata(
+            project=self.PROJECT_NAME, folder_name=self.FOLDER_NAME
+        )["id"]
+        sa.set_folder_status(project=project_id, folder=folder_id, status="Completed")
+        folder = sa.get_folder_metadata(
+            project=self.PROJECT_NAME, folder_name=self.FOLDER_NAME
+        )
+        self.assertEqual(folder["status"], "Completed")

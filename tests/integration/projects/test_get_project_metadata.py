@@ -86,3 +86,10 @@ class TestGetProjectMetadata(BaseTestCase):
         project_metadata = sa.get_project_metadata(self.PROJECT_NAME)
         project_by_id = sa.get_project_by_id(project_metadata["id"])
         assert project_by_id["name"] == self.PROJECT_NAME
+
+    def test_get_project_metadata_by_id(self):
+        by_name = sa.get_project_metadata(self.PROJECT_NAME)
+        by_id = sa.get_project_metadata(by_name["id"])
+        assert by_id["name"] == self.PROJECT_NAME
+        assert by_id["id"] == by_name["id"]
+        assert by_id["type"] == self.PROJECT_TYPE

@@ -35,3 +35,10 @@ class TestGetFolderMetadata(BaseTestCase):
         with self.assertRaises(AppException) as cm:
             sa.get_folder_metadata(self.PROJECT_NAME, "dummy folder")
         assert str(cm.exception) == "Folder not found."
+
+    def test_get_folder_metadata_by_project_id(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        folder_metadata = sa.get_folder_metadata(project_id, self.TEST_FOLDER_NAME)
+        assert folder_metadata["name"] == self.TEST_FOLDER_NAME
+        assert "is_root" not in folder_metadata
