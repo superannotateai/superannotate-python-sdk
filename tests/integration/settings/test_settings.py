@@ -155,3 +155,41 @@ class TestVideoSettings(BaseTestCase):
                 break
         else:
             raise Exception("Test failed")
+
+
+class TestMMSettings(BaseTestCase):
+    """
+    Require telemetry access
+    """
+
+    PROJECT_NAME = "TestMMSettings"
+    SECOND_PROJECT_NAME = "TestMMSettings"
+    PROJECT_TYPE = "Multimodal"
+    MULTIMODAL_FORM = {
+        "components": [
+            {
+                "id": "r_qx07c6",
+                "type": "audio",
+                "permissions": [],
+                "hasTooltip": False,
+                "exclude": False,
+                "label": "",
+                "value": "",
+            }
+        ],
+        "readme": "",
+    }
+
+    def test_frame_rate(self):
+        sa.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
+            settings=[{"attribute": "MaxIdleDuration", "value": 612}],
+            form=self.MULTIMODAL_FORM,
+        )
+        settings = sa.get_project_settings(self.PROJECT_NAME)
+        for setting in settings:
+            if setting["attribute"] == "MaxIdleDuration":
+                assert setting["value"] == 612
+                break
