@@ -183,6 +183,7 @@ PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "ImageAutoAssignEnable",
     "TemplateState",
     "CategorizeItems",
+    "MaxIdleDuration",
 ]
 
 __alL__ = (
