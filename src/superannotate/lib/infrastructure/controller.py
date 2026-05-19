@@ -536,21 +536,7 @@ class WorkManagementManager(BaseManager):
         if not project_users:
             raise AppException("User not found.")
 
-        all_permission_groups = (
-            self.service_provider.work_management.list_permission_groups().data or []
-        )
-        project_user_permissions = [
-            perm
-            for group in all_permission_groups
-            if group.label == "projectUser"
-            for perm in (group.permissions or [])
-        ]
-        name_by_id = {
-            p.id: p.name for p in project_user_permissions if p.id is not None
-        }
-        id_by_name_lower = {
-            p.name.lower(): p.id for p in project_user_permissions if p.name
-        }
+        name_by_id = self.service_provider.get_project_user_permission_id_name_map()
 
         if permissions == "*":
             resolved_ids = list(name_by_id.keys())
@@ -560,7 +546,7 @@ class WorkManagementManager(BaseManager):
             seen_ids: set = set()
             unresolved_names = []
             for name in permissions:
-                pid = id_by_name_lower.get(name.lower())
+                pid = self.service_provider.get_project_user_permission_id(name)
                 if pid is None:
                     unresolved_names.append(name)
                 elif pid not in seen_ids:

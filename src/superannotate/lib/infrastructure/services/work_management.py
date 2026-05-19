@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import base64
 import json
-import time
-from functools import lru_cache
 from typing import Literal
 
 from lib.core.entities import CategoryEntity
@@ -545,11 +543,7 @@ class WorkManagementService(BaseWorkManagementService):
 
         return success_contributors
 
-    @lru_cache(maxsize=1)
-    def _list_permission_groups_cached(
-        self, ttl: int  # noqa: ARG002 - bucket key to invalidate cache
-    ) -> WMPermissionGroupListResponse:
-        del ttl
+    def list_permission_groups(self) -> WMPermissionGroupListResponse:
         return self.client.paginate(
             url=self.URL_PERMISSION_GROUPS,
             headers={
@@ -559,13 +553,6 @@ class WorkManagementService(BaseWorkManagementService):
             },
             item_type=PermissionGroupEntity,
         )
-
-    def list_permission_groups(self) -> WMPermissionGroupListResponse:
-        ttl_bucket = int(time.time() // 600)  # 10min cache
-        response = self._list_permission_groups_cached(ttl=ttl_bucket)
-        if not response.ok:
-            self._list_permission_groups_cached.cache_clear()
-        return response
 
     def edit_project_user_permissions(
         self,

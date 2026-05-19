@@ -156,6 +156,16 @@ class ServiceProvider(BaseServiceProvider):
             project, status_value
         )
 
+    def get_project_user_permission_id(self, name: str) -> int | None:
+        return self._cached_work_management_repository.get_project_user_permission_id(
+            self.client.team_id, name
+        )
+
+    def get_project_user_permission_id_name_map(self) -> dict[int, str]:
+        return self._cached_work_management_repository.get_project_user_permission_id_name_map(
+            self.client.team_id
+        )
+
     @staticmethod
     def _get_work_management_url(client: HttpClient):
         if client.api_url != constants.BACKEND_URL:
