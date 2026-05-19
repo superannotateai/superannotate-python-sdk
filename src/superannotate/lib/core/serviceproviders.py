@@ -32,6 +32,7 @@ from lib.core.service_types import UserLimitsResponse
 from lib.core.service_types import UserResponse
 from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
+from lib.core.service_types import WMPermissionGroupListResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
 from lib.core.service_types import WMUserListResponse
@@ -241,6 +242,21 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         operation: Literal["set", "remove"],
         chunk_size=100,
     ) -> list[dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_permission_groups(self) -> WMPermissionGroupListResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def edit_project_user_permissions(
+        self,
+        project_id: int,
+        contributor_ids: list[int],
+        permission_ids: list[int],
+        operation: Literal["grant", "revoke"],
+        chunk_size=100,
+    ) -> dict:
         raise NotImplementedError
 
     @abstractmethod
