@@ -103,7 +103,7 @@ class GetProjectByNameUseCase(BaseUseCase):
                         None,
                     )
                     if not project:
-                        self._response.errors = AppException("Project not found")
+                        self._response.errors = AppException("Project not found.")
                     self._response.data = project
 
         return self._response
