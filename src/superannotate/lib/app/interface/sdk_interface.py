@@ -1571,7 +1571,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         try:
             project = self.controller.get_project(project)
         except AppException as e:
-            if str(e) == "Project not found.":
+            if str(e) == "Project not found":
                 return
             raise
         self.controller.projects.delete(name=project.name)

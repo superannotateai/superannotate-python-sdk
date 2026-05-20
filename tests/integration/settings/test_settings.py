@@ -193,3 +193,7 @@ class TestMMSettings(BaseTestCase):
             if setting["attribute"] == "MaxIdleDuration":
                 assert setting["value"] == 612
                 break
+
+
+def test():
+        sa.delete_project("1111")
