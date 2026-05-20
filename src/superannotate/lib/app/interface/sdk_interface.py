@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Annotated
 from typing import Any
 from typing import Literal
+from xml.sax import SAXException
 
 from pydantic import Field
 from pydantic import StringConstraints
@@ -1567,7 +1568,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or ID
         :type project: str
         """
-        project = self.controller.get_project(project)
+        try:
+            project = self.controller.get_project(project)
+        except AppException as e:
+            if str(e) == "Project not found":
+                return
+            raise
         self.controller.projects.delete(name=project.name)
 
     def rename_project(self, project: NotEmptyStr | int, new_name: NotEmptyStr):
