@@ -26,7 +26,7 @@ class BaseTestCase(TestCase):
             projects = sa.list_projects(name=self.PROJECT_NAME)
             for project in projects:
                 try:
-                    sa.delete_project(project)
+                    sa.delete_project(project['id'])
                 except Exception as e:
                     print(str(e))
         except Exception as e:
