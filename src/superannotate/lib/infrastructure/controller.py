@@ -196,9 +196,7 @@ class WorkManagementManager(BaseManager):
 
     def list_users(
         self,
-        include: list[
-            Literal["custom_fields", "categories", "project_permissions"]
-        ] = None,
+        include: list[Literal["custom_fields", "categories"]] = None,
         project=None,
         **filters,
     ):
@@ -246,11 +244,8 @@ class WorkManagementManager(BaseManager):
             )
         query = chain.handle(filters, EmptyQuery())
 
-        if project and include:
-            if "categories" in include:
-                query &= Join("categories")
-            if "project_permissions" in include:
-                query &= Join("userPermissions")
+        if project and include and "categories" in include:
+            query &= Join("categories")
 
         if include and "custom_fields" in include:
             response = self.service_provider.work_management.list_users(

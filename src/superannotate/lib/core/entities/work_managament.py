@@ -90,6 +90,9 @@ class WMUserEntity(TimedBaseModel):
     email: str | None = None
     state: WMUserStateEnum | None = None
     custom_fields: dict | None = Field(default_factory=dict, alias="customField")
+    user_permissions: list[PermissionEntity] | None = Field(
+        default=None, alias="userPermissions"
+    )
 
     @field_validator("custom_fields", mode="before")
     @classmethod
@@ -115,7 +118,7 @@ class WMProjectUserEntity(TimedBaseModel):
     custom_fields: dict | None = Field(default_factory=dict, alias="customField")
     permissions: dict | None = None
     categories: list[dict] | None = None
-    project_permissions: list[PermissionEntity] | None = Field(
+    user_permissions: list[PermissionEntity] | None = Field(
         default=None, alias="userPermissions"
     )
 
