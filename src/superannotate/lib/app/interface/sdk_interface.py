@@ -241,7 +241,7 @@ class ItemContext:
         Request Example:
         ::
 
-            with client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
                 metadata = context.get_metadata()
                 print(metadata)
         """
@@ -260,7 +260,7 @@ class ItemContext:
         Request Example:
         ::
 
-            with client.item_context((101, 202), "item_name") as context: # (101, 202) project and folder IDs
+            with sa_client.item_context((101, 202), "item_name") as context: # (101, 202) project and folder IDs
                 value = context.get_component_value("component_id")
                 print(value)
         """
@@ -282,7 +282,7 @@ class ItemContext:
         Request Example:
         ::
 
-            with client.item_context("project_name/folder_name", "item_name") as item_context:
+            with sa_client.item_context("project_name/folder_name", "item_name") as item_context:
                 metadata = item_context.get_metadata()
                 value = item_context.get_component_value("component_id")
                 item_context.set_component_value("component_id", value)
@@ -455,7 +455,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_user_metadata(
+            sa_client.get_user_metadata(
                 "example@email.com",
                 include=["custom_fields"]
             )
@@ -502,7 +502,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_user_custom_field(
+            sa_client.set_user_custom_field(
                 "example@email.com",
                 custom_field_name="due_date",
                 value=1738671238.7
@@ -525,9 +525,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         *,
         project: NotEmptyStr | int | None = None,
-        include: (
-            list[Literal["custom_fields", "categories", "project_permissions"]] | None
-        ) = None,
+        include: list[Literal["custom_fields", "categories"]] | None = None,
         **filters,
     ):
         """
@@ -544,7 +542,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - "custom_fields": Includes custom fields and scores assigned to each user.
             - "categories": Includes a list of categories assigned to each project contributor.
               Note: 'project' parameter must be specified when including 'categories'.
-            - "project_permissions": Includes a list of project permissions granted to the user.
         :type include: list of str, optional
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
@@ -603,7 +600,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ::
 
                 user_filters = {"custom_field__accuracy score 30D__lt": 90}
-                client.list_users(include=["custom_fields"], **user_filters)
+                sa_client.list_users(include=["custom_fields"], **user_filters)
 
 
         :type filters: UserFilters, optional
@@ -614,7 +611,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_users(
+            sa_client.list_users(
                 email__contains="@superannotate.com",
                 include=["custom_fields"],
                 state__in=["Confirmed"]
@@ -637,6 +634,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "role": "TeamOwner",
                     "state": "Confirmed",
                     "team_id": 44311,
+                    "user_permissions": [],
                 }
             ]
 
@@ -645,7 +643,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             # Project level scores
 
-            scores = client.list_users(
+            scores = sa_client.list_users(
                 include=["custom_fields"],
                 project="my_multimodal",
                 email__contains="@superannotate.com",
@@ -665,9 +663,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "custom_fields": {"speed": 92, "weight": 0.8},
                     "email": "example@superannotate.com",
                     "id": 715121,
+                    'permissions': {
+                        'allow_orchestrate': 0,
+                        'allow_run_explore': 0,
+                        'allow_view_sdk_token': 0,
+                        'paused': 0
+                    },
                     "role": "Annotator",
                     "state": "Confirmed",
                     "team_id": 1234,
+                    "categories": None,
+                    "user_permissions": [],
                 }
             ]
 
@@ -681,7 +687,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "custom_field__speed score 7D__lt": 15
             }
 
-            scores = client.list_users(
+            scores = sa_client.list_users(
                 include=["custom_fields"],
                 email__contains="@superannotate.com",
                 role="Contributor",
@@ -712,18 +718,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "role": "Contributor",
                     "state": "Confirmed",
                     "team_id": 1234,
+                    "user_permissions": [],
                 }
             ]
+
+
+        ``User Permissions``
+            Every returned user includes a ``user_permissions`` list.
+
+            The contents depend on whether the ``project`` parameter is provided:
+
+            - If ``project`` is specified, ``user_permissions`` contains the
+              permissions granted to the user within that project
+              (e.g. ``Download``).
+
+            - If ``project`` is omitted, ``user_permissions`` contains the
+              team-level permissions granted to the user
+              (e.g. ``Remove Contributors from team``).
 
         Request Example:
         ::
 
-            # include project_permissions
-
-            project_user = client.list_users(
+            project_user = sa_client.list_users(
                 project="my_multimodal",
                 email="test@superannotate.com",
-                include=["project_permissions"]
             )
 
         Response Example:
@@ -731,7 +749,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             [
                 {
-                  'categories': None,
                   'createdAt': '2026-05-19T08:28:55.000Z',
                   'custom_fields': {},
                   'email': 'test@superannotate.com',
@@ -742,7 +759,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     'allow_view_sdk_token': 0,
                     'paused': 0
                   },
-                  'project_permissions': [
+                  'role': 'ProjectAdmin',
+                  'state': 'Confirmed',
+                  'team_id': 32022,
+                  'updatedAt': '2026-05-19T08:28:55.000Z',
+                  'categories': None,
+                  'user_permissions': [
                     {
                       'id': 28,
                       'name': 'Download',
@@ -750,10 +772,44 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                       'updatedAt': '2026-05-12T12:47:41.000Z'
                     }
                   ],
-                  'role': 'ProjectAdmin',
+                }
+            ]
+
+
+        Request Example:
+        ::
+
+            project_user = sa_client.list_users(
+                email="test@superannotate.com",
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                  'createdAt': '2026-05-19T08:28:55.000Z',
+                  'custom_fields': {},
+                  'email': 'test@superannotate.com',
+                  'id': 1622408,
+                  'role': 'Contributor',
                   'state': 'Confirmed',
                   'team_id': 32022,
-                  'updatedAt': '2026-05-19T08:28:55.000Z'
+                  'updatedAt': '2026-05-19T08:28:55.000Z',
+                  'user_permissions': [
+                    {
+                      'id': 21,
+                      'name': 'Remove Contributors from team',
+                      'createdAt': '2026-05-12T12:47:41.000Z',
+                      'updatedAt': '2026-05-12T12:47:41.000Z'
+                    },
+                    {
+                      'id': 22,
+                      'name': 'View Contributors’ scores',
+                      'createdAt': '2026-05-12T12:45:41.000Z',
+                      'updatedAt': '2026-05-12T12:46:41.000Z'
+                    },
+                  ],
                 }
             ]
         """
@@ -849,7 +905,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_user_scores(
+            sa_client.get_user_scores(
                 project=("my_multimodal", "folder1"),
                 item="item1",
                 scored_user="example@superannotate.com",
@@ -934,7 +990,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_user_scores(
+            sa_client.set_user_scores(
                 project=("my_multimodal", "folder1"),
                 item_=12345,
                 scored_user="example@superannotate.com",
@@ -987,13 +1043,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_contributor_categories(
+            sa_client.set_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"],
                 categories=["Shoes", "T-Shirt"]
             )
 
-            client.set_contributor_categories(
+            sa_client.set_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"]
                 categories="*"
@@ -1037,13 +1093,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.remove_contributor_categories(
+            sa_client.remove_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"],
                 categories=["Shoes", "T-Shirt", "Jeans"]
             )
 
-            client.remove_contributor_categories(
+            sa_client.remove_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"]
                 categories="*"
@@ -1581,7 +1637,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.create_categories(
+            sa_client.create_categories(
                 project="product-review-mm",
                 categories=["Shoes", "T-Shirt"]
             )
@@ -1618,7 +1674,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_categories(
+            sa_client.list_categories(
                 project="product-review-mm"
             )
 
@@ -1675,13 +1731,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.remove_categories(
+            sa_client.remove_categories(
                 project="product-review-mm",
                 categories=["Shoes", "T-Shirt"]
             )
 
             # To remove all categories
-            client.remove_categories(
+            sa_client.remove_categories(
                 project="product-review-mm",
                 categories="*"
             )
@@ -1997,7 +2053,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_folders(
+            sa_client.list_folders(
                 project="test_project",
                 status="NotStarted"
             )
@@ -2096,7 +2152,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_project_metadata(
+            sa_client.get_project_metadata(
                 project="Medical Annotations",
                 include_workflow=True,
                 include_custom_fields=True
@@ -2294,7 +2350,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            classes = client.get_annotation_class(
+            classes = sa_client.get_annotation_class(
                           project="classes",
                           annotation_class="Example_class"
                      )
@@ -2564,7 +2620,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_project_custom_field(
+            sa_client.set_project_custom_field(
                 project="Medical Annotations",
                 custom_field_name="due_date",
                 value=1738671238.759,
@@ -3017,16 +3073,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
+            sa_client = SAClient()
 
-            export = client.prepare_export(
+            export = sa_client.prepare_export(
                 project = "Project Name",
                 folder_names = ["Folder 1", "Folder 2"],
                 annotation_statuses = ["Completed","QualityCheck"],
                 format = "CSV"
             )
 
-            client.download_export("Project Name", export, "path_to_download")
+            sa_client.download_export("Project Name", export, "path_to_download")
         """
         project, folder = self.controller.get_project_folder(project)
         if folder_names is None:
@@ -3082,13 +3138,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             # To delete a specific export
-            client.delete_exports(
+            sa_client.delete_exports(
                 project="my_project",
                 exports=["TestProject_Jan_30_2026_12_09"]
             )
 
             # To delete all exports in the project
-            client.delete_exports(
+            sa_client.delete_exports(
                 project="my_project",
                 exports="*"
             )
@@ -3362,7 +3418,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                    "name": "Description"
                }
             ]
-            client.create_annotation_class(
+            sa_client.create_annotation_class(
                project="Image Project",
                name="Example Class",
                color="#F9E0FA",
@@ -4338,7 +4394,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_integrations()
+            sa_client.get_integrations()
 
 
         Response Example:
@@ -4408,7 +4464,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.attach_items_from_integrated_storage(
+            sa_client.attach_items_from_integrated_storage(
                 project="project_name",
                 integration="databricks_integration",
                 query="SELECT * FROM integration_data LIMIT 10",
@@ -4539,7 +4595,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_item_metadata(
+            sa_client.get_item_metadata(
                project="Medical Annotations",
                item_name = "image_1.png",
                include_custom_metadata=True
@@ -4629,7 +4685,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.search_items(
+            sa_client.search_items(
                project="Medical Annotations",
                name_contains="image_1",
                include_custom_metadata=True
@@ -4776,7 +4832,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_items(
+            sa_client.list_items(
                 project="Medical Annotations",
                 folder="folder1",
                 include=["custom_metadata"],
@@ -4806,7 +4862,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example with include categories:
         ::
 
-            client.list_items(
+            sa_client.list_items(
                 project="My Multimodal",
                 folder="folder1",
                 include=["categories"]
@@ -4840,7 +4896,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Additional Filter Examples:
         ::
 
-            client.list_items(
+            sa_client.list_items(
                 project="Medical Annotations",
                 folder="folder2",
                 annotation_status="Completed",
@@ -4848,7 +4904,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
 
             # Filter items assigned to a specific QA
-            client.list_items(
+            sa_client.list_items(
                 project="Medical Annotations",
                 assignee__user_id="qa@example.com"
             )
@@ -4963,7 +5019,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project_filters = {
                     "custom_field__new single select custom field__contains": "text"
                 }
-                client.list_projects(include=["custom_fields"], **project_filters)
+                sa_client.list_projects(include=["custom_fields"], **project_filters)
 
         :type filters: ProjectFilters, optional
 
@@ -4973,7 +5029,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_projects(
+            sa_client.list_projects(
                 include=["custom_fields"],
                 status__in=["InProgress", "Completed"],
                 name__contains="Medical",
@@ -5049,8 +5105,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Example:
         ::
 
-            client = SAClient()
-            client.attach_items(
+            sa_client = SAClient()
+            sa_client.attach_items(
                 project="Medical Annotations",
                 attachments=[{"name": "item", "url": "https://..."}]
              )
@@ -5058,8 +5114,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Example of attaching items from custom integration:
         ::
 
-            client = SAClient()
-            client.attach_items(
+            sa_client = SAClient()
+            sa_client.attach_items(
                 project="Medical Annotations",
                 attachments=[
                     {
@@ -5315,7 +5371,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_items_category(
+            sa_client.set_items_category(
                 project=("product-review-mm", "folder1"),
                 items=[112233, 112344],
                 category="Shoes"
@@ -5349,7 +5405,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.remove_items_category(
+            sa_client.remove_items_category(
                 project=("product-review-mm", "folder1"),
                 items=[112233, 112344]
             )
@@ -5552,8 +5608,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             }
 
-            client = SAClient()
-            client.create_custom_fields(
+            sa_client = SAClient()
+            sa_client.create_custom_fields(
                project="Medical Annotations",
                fields=custom_fields
             )
@@ -5631,8 +5687,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
-            client.delete_custom_fields(
+            sa_client = SAClient()
+            sa_client.delete_custom_fields(
                project = "Medical Annotations",
                fields = ["duration", patient_age]
             )
@@ -5693,7 +5749,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
+            sa_client = SAClient()
 
             items_values = [
                {
@@ -5722,7 +5778,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             ]
 
-            client.upload_custom_values(
+            sa_client.upload_custom_values(
                project = "Medical Annotations",
                items = items_values
             )
@@ -5767,7 +5823,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.delete_custom_values(
+            sa_client.delete_custom_values(
                 project = "Medical Annotations",
                 items = [
                    {"image_1.png": ["study_date", "patient_sex"]},
@@ -5805,15 +5861,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
+            sa_client = SAClient()
 
             # option 1
-            queried_items = client.query(
+            queried_items = sa_client.query(
                 project="Image Project",
                 query="instance(error = true)"
              )
 
-            client.add_items_to_subset(
+            sa_client.add_items_to_subset(
                 project="Medical Annotations",
                 subset="Brain Study - Disapproved",
                 items=queried_items
@@ -5830,7 +5886,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
 
-            client.add_items_to_subset(
+            sa_client.add_items_to_subset(
                 project="Image Project",
                 subset="Subset Name",
                 items=items_list
@@ -5936,7 +5992,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context("project_name/folder_name", "item_name") as item_context:
+            with sa_client.item_context("project_name/folder_name", "item_name") as item_context:
                 metadata = item_context.get_metadata()
                 value = item_context.get_component_value("prompts")
                 item_context.set_component_value("prompts", value)
@@ -5945,7 +6001,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
                 metadata = context.get_metadata()
                 print(metadata)
 
@@ -5953,7 +6009,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context((101, 202), "item_name") as context:
+            with sa_client.item_context((101, 202), "item_name") as context:
                 value = context.get_component_value("component_id")
                 print(value)
 
@@ -5961,7 +6017,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
+            with sa_client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
                 context.set_component_value("component_id", "new_value")
             # No need to call .save(), changes are saved automatically on context exit.
 
@@ -5972,7 +6028,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             from superannotate import FileChangedError
 
             try:
-                with client.item_context((101, 202), "item_name") as context:
+                with sa_client.item_context((101, 202), "item_name") as context:
                     context.set_component_value("component_id", "new_value")
             except FileChangedError as e:
                 print(f"An error occurred: {e}")
@@ -6021,7 +6077,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_workflows()
+            sa_client.list_workflows()
 
 
         Response Example:
