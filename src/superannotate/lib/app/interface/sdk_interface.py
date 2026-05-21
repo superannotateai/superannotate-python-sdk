@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Annotated
 from typing import Any
 from typing import Literal
-from xml.sax import SAXException
 
 from pydantic import Field
 from pydantic import StringConstraints
@@ -2141,7 +2140,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Return value example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
 
-        :param project: project name or metadata
+        :param project: project name or ID
         :type project: str or ID
 
         :return: project settings
@@ -2160,7 +2159,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Return value example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, ...},...]
 
-        :param project: project name or metadata
+        :param project: project name or ID
         :type project: str or ID
 
         :return: A list of step dictionaries,
@@ -2591,7 +2590,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Sets project's default image quality in editor setting.
 
-        :param project: project name or metadata
+        :param project: project name or ID
         :type project: str or ID
         :param image_quality_in_editor: new setting value, should be "original" or "compressed"
         :type image_quality_in_editor: str
@@ -2727,7 +2726,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Assigns folder to users. With SDK, the user can be
         assigned to a role in the project with the share_project function.
 
-        :param project_name: project name or metadata of the project
+        :param project_name: project name of the project
         :type project_name: str or dict
         :param folder_name: folder name to assign
         :type folder_name: str
@@ -3523,7 +3522,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Sets project's steps.
 
-        :param project: project name or metadata
+        :param project: project name or ID
         :type project: str or int
 
         :param steps: new workflow list of dicts
