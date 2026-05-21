@@ -31,3 +31,5 @@ Projects
 .. automethod:: superannotate.SAClient.list_categories
 .. automethod:: superannotate.SAClient.remove_categories
 .. automethod:: superannotate.SAClient.remove_users_from_project
+.. automethod:: superannotate.SAClient.grant_project_user_permissions
+.. automethod:: superannotate.SAClient.revoke_project_user_permissions

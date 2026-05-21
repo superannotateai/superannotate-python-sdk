@@ -525,7 +525,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         *,
         project: NotEmptyStr | int | None = None,
-        include: list[Literal["custom_fields", "categories"]] | None = None,
+        include: (
+            list[Literal["custom_fields", "categories", "project_permissions"]] | None
+        ) = None,
         **filters,
     ):
         """
@@ -542,6 +544,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - "custom_fields": Includes custom fields and scores assigned to each user.
             - "categories": Includes a list of categories assigned to each project contributor.
               Note: 'project' parameter must be specified when including 'categories'.
+            - "project_permissions": Includes a list of project permissions granted to the user.
         :type include: list of str, optional
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
@@ -712,6 +715,47 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
 
+        Request Example:
+        ::
+
+            # include project_permissions
+
+            project_user = client.list_users(
+                project="my_multimodal",
+                email="test@superannotate.com",
+                include=["project_permissions"]
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                  'categories': None,
+                  'createdAt': '2026-05-19T08:28:55.000Z',
+                  'custom_fields': {},
+                  'email': 'test@superannotate.com',
+                  'id': 1622408,
+                  'permissions': {
+                    'allow_orchestrate': 0,
+                    'allow_run_explore': 0,
+                    'allow_view_sdk_token': 0,
+                    'paused': 0
+                  },
+                  'project_permissions': [
+                    {
+                      'id': 28,
+                      'name': 'Download',
+                      'createdAt': '2026-05-12T12:47:41.000Z',
+                      'updatedAt': '2026-05-12T12:47:41.000Z'
+                    }
+                  ],
+                  'role': 'ProjectAdmin',
+                  'state': 'Confirmed',
+                  'team_id': 32022,
+                  'updatedAt': '2026-05-19T08:28:55.000Z'
+                }
+            ]
         """
         if project is not None:
             project = self.controller.get_project(project)
@@ -1009,6 +1053,122 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             contributors=contributors,
             categories=categories,
             operation="remove",
+        )
+
+    def grant_project_user_permissions(
+        self,
+        project: NotEmptyStr | int,
+        permissions: list[NotEmptyStr] | Literal["*"],
+        user: int | str,
+    ) -> None:
+        """
+        Grants permissions for a project contributor in the specified project.
+        Accepts "*" to indicate all available permissions in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param permissions: Specifies which permissions to grant.
+         Accepts "*" to indicate all available permissions in the project.
+
+            Possible values are
+
+            - "Download": Only available for Project Admins.
+              Allows project admins to export project data.
+        :type permissions: Union[List[str], Literal["*"]]
+
+        :param user: Project user ID or email to grant permissions to.
+        :type user: Union[int, str]
+
+        :rtype: None
+
+        Request Example:
+        ::
+
+            # To grant Download permission by email:
+            sa_client.grant_project_user_permissions(
+                project="my_project",
+                permissions=["Download"],
+                user="admin1@superannotate.com"
+            )
+
+            # To grant all permissions by project user ID:
+            sa_client.grant_project_user_permissions(
+                project=12345,
+                permissions="*",
+                user=101
+            )
+        """
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.work_management.edit_project_user_permissions(
+            project=project,
+            user=user,
+            permissions=permissions,
+            operation="grant",
+        )
+
+    def revoke_project_user_permissions(
+        self,
+        project: NotEmptyStr | int,
+        permissions: list[NotEmptyStr] | Literal["*"],
+        user: int | str,
+    ) -> None:
+        """
+        Revokes permissions for a project contributor in the specified project.
+        Accepts "*" to indicate all available permissions in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param permissions: Specifies which permissions to revoke.
+         Accepts "*" to indicate all available permissions in the project.
+
+            Possible values are
+
+            - "Download": Only available for Project Admins.
+              Allows project admins to export project data.
+        :type permissions: Union[List[str], Literal["*"]]
+
+        :param user: Project user ID or email to revoke permissions from.
+        :type user: Union[int, str]
+
+        :rtype: None
+
+        Request Example:
+        ::
+
+            # To revoke Download permission by email:
+            sa_client.revoke_project_user_permissions(
+                project="my_project",
+                permissions=["Download"],
+                user="admin1@superannotate.com"
+            )
+
+            # To revoke all permissions by project user ID:
+            sa_client.revoke_project_user_permissions(
+                project=12345,
+                permissions="*",
+                user=101
+            )
+        """
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.work_management.edit_project_user_permissions(
+            project=project,
+            user=user,
+            permissions=permissions,
+            operation="revoke",
         )
 
     def get_component_config(self, project: NotEmptyStr | int, component_id: str):

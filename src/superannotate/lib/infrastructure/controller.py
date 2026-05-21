@@ -196,7 +196,9 @@ class WorkManagementManager(BaseManager):
 
     def list_users(
         self,
-        include: list[Literal["custom_fields", "categories"]] = None,
+        include: list[
+            Literal["custom_fields", "categories", "project_permissions"]
+        ] = None,
         project=None,
         **filters,
     ):
@@ -244,8 +246,11 @@ class WorkManagementManager(BaseManager):
             )
         query = chain.handle(filters, EmptyQuery())
 
-        if project and include and "categories" in include:
-            query &= Join("categories")
+        if project and include:
+            if "categories" in include:
+                query &= Join("categories")
+            if "project_permissions" in include:
+                query &= Join("userPermissions")
 
         if include and "custom_fields" in include:
             response = self.service_provider.work_management.list_users(
@@ -512,6 +517,101 @@ class WorkManagementManager(BaseManager):
                         f"{len(category_ids)} categories successfully {action_for_log} "
                         f"{len(contributor_ids)} contributors."
                     )
+
+    def edit_project_user_permissions(
+        self,
+        project: ProjectEntity,
+        user: int | str,
+        permissions: list[str] | Literal["*"],
+        operation: Literal["grant", "revoke"],
+    ):
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+
+        if isinstance(user, int):
+            project_users = self.list_users(project=project, id__in=[user])
+        else:
+            project_users = self.list_users(project=project, email__in=[user])
+
+        if not project_users:
+            raise AppException("User not found.")
+
+        name_by_id = self.service_provider.get_project_user_permission_id_name_map()
+
+        if permissions == "*":
+            resolved_ids = list(name_by_id.keys())
+            unresolved_names: list[str] = []
+        else:
+            resolved_ids = []
+            seen_ids: set = set()
+            unresolved_names = []
+            for name in permissions:
+                pid = self.service_provider.get_project_user_permission_id(name)
+                if pid is None:
+                    unresolved_names.append(name)
+                elif pid not in seen_ids:
+                    resolved_ids.append(pid)
+                    seen_ids.add(pid)
+
+        project_user = project_users[0]
+        user_email = project_user.email
+
+        affected_ids: set[int] = set()
+        if resolved_ids:
+            response = (
+                self.service_provider.work_management.edit_project_user_permissions(
+                    project_id=project.id,
+                    contributor_ids=[project_user.id],
+                    permission_ids=resolved_ids,
+                    operation=operation,
+                )
+            )
+            section_key = "add" if operation == "grant" else "remove"
+            contributor_entry = next(
+                (
+                    c
+                    for c in (response.get(section_key) or [])
+                    if c.get("id") == project_user.id
+                ),
+                None,
+            )
+            if contributor_entry:
+                affected_ids = {
+                    p["id"] for p in (contributor_entry.get("userPermissions") or [])
+                }
+
+        succeeded_names = [
+            name_by_id[pid] for pid in resolved_ids if pid in affected_ids
+        ]
+        failed_names = [
+            name_by_id[pid] for pid in resolved_ids if pid not in affected_ids
+        ] + unresolved_names
+
+        verb_inf = "grant" if operation == "grant" else "revoke"
+        verb_past = "granted" if operation == "grant" else "revoked"
+
+        if succeeded_names:
+            logger.info(
+                f"Successfully {verb_past} [{', '.join(succeeded_names)}] "
+                f"permission(s) for user: {user_email}."
+            )
+        if failed_names:
+            failed_str = f"[{', '.join(failed_names)}]"
+            if operation == "grant":
+                reasons = (
+                    f"- User already has {failed_str} permission(s) granted.\n"
+                    f"- User role does not allow {failed_str} permission(s).\n"
+                    f"- Provided permission(s) were invalid."
+                )
+            else:
+                reasons = (
+                    f"- {failed_str} permission(s) were already revoked for the user.\n"
+                    f"- Provided permission(s) were invalid."
+                )
+            logger.info(
+                f"Could not {verb_inf} {failed_str} permission(s) "
+                f"for user: {user_email}.\nPossible reasons:\n{reasons}"
+            )
 
 
 class ProjectManager(BaseManager):

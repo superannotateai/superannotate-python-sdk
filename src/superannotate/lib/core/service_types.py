@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from lib.core import entities
+from lib.core.entities.work_managament import PermissionGroupEntity
 from lib.core.entities.work_managament import TelemetryScoreEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMScoreEntity
@@ -255,3 +256,7 @@ class WMScoreListResponse(ServiceResponse):
 
 class TelemetryScoreListResponse(ServiceResponse):
     res_data: list[TelemetryScoreEntity] = None
+
+
+class WMPermissionGroupListResponse(ServiceResponse):
+    res_data: list[PermissionGroupEntity] = None
