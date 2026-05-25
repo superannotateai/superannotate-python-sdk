@@ -371,13 +371,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: item metadata
         :rtype: dict
         """
-        project_response = self.controller.get_project(project_id)
-        project_response.raise_for_status()
+        project = self.controller.get_project(project_id)
 
         if (
             include
             and "categories" in include
-            and project_response.data.type != ProjectType.MULTIMODAL.value
+            and project.type != ProjectType.MULTIMODAL.value
         ):
             raise AppException(
                 "The 'categories' option in the 'include' field is only supported for Multimodal projects."
@@ -394,12 +393,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include.remove("custom_metadata")
 
         item = self.controller.items.get_item_by_id(
-            item_id=item_id, project=project_response.data, include=include
+            item_id=item_id, project=project, include=include
         )
 
         if include_custom_metadata:
             item_custom_fields = self.controller.custom_fields.list_fields(
-                project=project_response.data, item_ids=[item.id]
+                project=project, item_ids=[item.id]
             )
             item.custom_metadata = item_custom_fields[item.id]
 
