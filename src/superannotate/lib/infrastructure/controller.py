@@ -2109,8 +2109,8 @@ class Controller(BaseController):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        query: str = None,
-        subset: str = None,
+        query: str | None = None,
+        subset: str | None = None,
     ) -> int:
 
         use_case = usecases.QueryEntitiesCountUseCase(

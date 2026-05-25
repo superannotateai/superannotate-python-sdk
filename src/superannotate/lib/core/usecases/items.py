@@ -172,8 +172,8 @@ class QueryEntitiesCountUseCase(BaseReportableUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         service_provider: BaseServiceProvider,
-        query: str,
-        subset: str = None,
+        query: str | None,
+        subset: str | None = None,
     ):
         super().__init__(reporter)
         self._project = project

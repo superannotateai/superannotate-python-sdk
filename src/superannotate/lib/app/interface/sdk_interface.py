@@ -4077,9 +4077,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
         images_to_upload, existing_items = use_case.images_to_upload
-        logger.info(
-            f"Uploading {len(images_to_upload)} images to project {project.name}."
-        )
+        path = project.name + ("" if folder.is_root else f"/{folder.name}")
+        logger.info(f"Uploading {len(images_to_upload)} images to project {path}.")
         uploaded, failed_images = [], []
         if not images_to_upload:
             return uploaded, failed_images, existing_items
