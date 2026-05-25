@@ -321,9 +321,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project metadata
         :rtype: dict
         """
-        response = self.controller.get_project(project_id)
+        project = self.controller.get_project(project_id)
 
-        return ProjectSerializer(response.data).serialize()
+        return ProjectSerializer(project).serialize()
 
     def get_folder_by_id(self, project_id: int, folder_id: int):
         """Returns the folder metadata
@@ -1260,7 +1260,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         context = component.get("context")
                         if context is None or context == "":
                             return False, None
-                        return True, json.loads(component.get("context"))
+                        return True, json.loads(component.get("context"))  # noqa
 
             except KeyError as e:
                 logger.debug("Got key error:", component_data)
