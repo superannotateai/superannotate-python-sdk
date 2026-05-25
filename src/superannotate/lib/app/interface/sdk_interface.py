@@ -321,7 +321,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project metadata
         :rtype: dict
         """
-        response = self.controller.get_project(project_id=project_id)
+        response = self.controller.get_project(project_id)
 
         return ProjectSerializer(response.data).serialize()
 
@@ -371,7 +371,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: item metadata
         :rtype: dict
         """
-        project_response = self.controller.get_project(project_id=project_id)
+        project_response = self.controller.get_project(project_id)
         project_response.raise_for_status()
 
         if (
@@ -5987,16 +5987,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             except FileChangedError as e:
                 print(f"An error occurred: {e}")
         """
-        if isinstance(path, str):
-            project, folder = self.controller.get_project_folder_by_path(path)
-        elif len(path) == 2 and all([isinstance(i, str) for i in path]):
-            project = self.controller.get_project(path[0])
-            folder = self.controller.get_folder(project, path[1])
-        elif len(path) == 2 and all([isinstance(i, int) for i in path]):
-            project = self.controller.get_project(path[0]).data
-            folder = self.controller.get_folder_by_id(path[1], project.id).data
-        else:
-            raise AppException("Invalid path provided.")
+        project, folder = self.controller.get_project_folder(path)
         if project.type != ProjectType.MULTIMODAL:
             raise AppException(
                 "This function is only supported for Multimodal projects."
