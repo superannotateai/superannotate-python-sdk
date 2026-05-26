@@ -6,6 +6,21 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.5.5 - May 31, 2026
+______________________
+
+**Added**
+
+    - ``SAClient.query.count()`` Returns the number of items that match a query.
+    - ``SAClient.grant_project_user_permissions()`` Grants project-level user permissions.
+    - ``SAClient.revoke_project_user_permissions()`` Revokes project-level user permissions.
+
+**Updated**
+
+    - ``SAClient.list_users()`` Now returns user permissions.
+    - ``SAClient.create_project()`` Now supports the `MaxIdleDuration` setting.
+
+
 4.5.4 - April 23, 2026
 ______________________
 
