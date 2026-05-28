@@ -40,13 +40,12 @@ class TestDeprecatedFunctionsDocument(TestCase):
         )
 
     def tearDown(self) -> None:
-        projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
+        projects = sa.list_projects(name__in=[self.PROJECT_NAME, self.PROJECT_NAME_2])
         for project in projects:
-            sa.delete_project(project)
-
-        projects = sa.search_projects(self.PROJECT_NAME_2, return_metadata=True)
-        for project in projects:
-            sa.delete_project(project)
+            try:
+                sa.delete_project(project=project["id"])
+            except Exception as _:
+                pass
 
     @property
     def video_export_path(self):

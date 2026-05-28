@@ -91,11 +91,11 @@ class TestUserScoring(TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         # cleanup test scores and project
-        projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
+        projects = sa.list_projects(name__in=[cls.PROJECT_NAME])
         for project in projects:
             try:
-                sa.delete_project(project)
-            except Exception:
+                sa.delete_project(project=project["id"])
+            except Exception as _:
                 pass
 
         score_templates_name_id_map = {

@@ -20,16 +20,17 @@ class TestProjectRename(BaseTestCase):
         )
 
     def tearDown(self) -> None:
-        projects = []
-        projects.extend(sa.search_projects(self.PROJECT_NAME, return_metadata=True))
-        projects.extend(sa.search_projects(self.NEW_PROJECT_NAME, return_metadata=True))
-        projects.extend(
-            sa.search_projects(self.REPLACED_PROJECT_NAME, return_metadata=True)
+        projects = sa.list_projects(
+            name__in=[
+                self.PROJECT_NAME,
+                self.NEW_PROJECT_NAME,
+                self.REPLACED_PROJECT_NAME,
+                self.NAME_TO_RENAME,
+            ]
         )
-        projects.extend(sa.search_projects(self.NAME_TO_RENAME, return_metadata=True))
         for project in projects:
             try:
-                sa.delete_project(project)
+                sa.delete_project(project=project["id"])
             except Exception as _:
                 pass
 

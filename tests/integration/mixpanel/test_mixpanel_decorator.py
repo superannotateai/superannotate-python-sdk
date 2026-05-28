@@ -44,10 +44,10 @@ class TestMixpanel(TestCase):
 
     @classmethod
     def _safe_delete_project(cls, project_name):
-        projects = sa.search_projects(project_name, return_metadata=True)
+        projects = sa.list_projects(name=project_name)
         for project in projects:
             try:
-                sa.delete_project(project)
+                sa.delete_project(project=project["id"])
             except Exception:
                 raise
 

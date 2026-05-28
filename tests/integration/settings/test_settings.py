@@ -15,18 +15,14 @@ class BaseTestCase(TestCase):
         self.tearDown()
 
     def tearDown(self) -> None:
-        try:
-            projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
-            projects.extend(
-                sa.search_projects(self.SECOND_PROJECT_NAME, return_metadata=True)
-            )
-            for project in projects:
-                try:
-                    sa.delete_project(project)
-                except Exception:
-                    pass
-        except Exception as e:
-            print(str(e))
+        projects = sa.list_projects(
+            name__in=[self.PROJECT_NAME, self.SECOND_PROJECT_NAME]
+        )
+        for project in projects:
+            try:
+                sa.delete_project(project=project["id"])
+            except Exception as _:
+                pass
 
 
 class TestSettings(BaseTestCase):
