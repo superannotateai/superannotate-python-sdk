@@ -41,7 +41,6 @@ from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import BaseServiceProvider
-from lib.core.serviceproviders import ServiceResponse
 from lib.core.serviceproviders import UploadAnnotationsResponse
 from lib.core.types import PriorityScoreEntity
 from lib.core.usecases.base import BaseReportableUseCase
@@ -69,13 +68,6 @@ class Report:
     missing_classes: list
     missing_attr_groups: list
     missing_attrs: list
-
-
-def get_or_raise(response: ServiceResponse):
-    if response.ok:
-        return response.data
-    else:
-        raise AppException(response.error)
 
 
 def log_report(
@@ -245,7 +237,6 @@ async def upload_big_annotations(
 
 class UploadAnnotationsUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 500
-    CHUNK_SIZE_MB = 10 * 1024 * 1024
     URI_THRESHOLD = 4 * 1024 - 120
 
     def __init__(
@@ -452,10 +443,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
     MAX_WORKERS = 16
     CHUNK_SIZE = 100
     CHUNK_SIZE_PATHS = 500
-    CHUNK_SIZE_MB = 10 * 1024 * 1024
-    STATUS_CHANGE_CHUNK_SIZE = 100
-    AUTH_DATA_CHUNK_SIZE = 500
-    THREADS_COUNT = 4
     URI_THRESHOLD = 4 * 1024 - 120
 
     def __init__(
@@ -568,13 +555,6 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             self._user.email, annotation, self._project.type
         )
         return annotation
-
-    @staticmethod
-    def get_mask_path(path: str) -> str:
-
-        replacement = ".json"
-        parts = path.rsplit(replacement, 1)
-        return constants.ANNOTATION_MASK_POSTFIX.join(parts)
 
     async def get_annotation(
         self, path: str
@@ -1756,7 +1736,6 @@ class DownloadAnnotations(BaseReportableUseCase):
 
 class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 500
-    CHUNK_SIZE_MB = 10 * 1024 * 1024
     URI_THRESHOLD = 4 * 1024 - 120
 
     def __init__(

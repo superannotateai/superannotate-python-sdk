@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath("../../src"))
 # -- Project information -----------------------------------------------------
 
 project = "SuperAnnotate Python SDK"
-copyright = "2021, SuperAnnotate AI"
+copyright = "2026, SuperAnnotate AI"
 author = "SuperAnnotate AI"
 
 # The full version, including alpha/beta/rc tags

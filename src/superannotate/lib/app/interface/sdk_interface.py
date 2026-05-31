@@ -11,6 +11,7 @@ import typing
 import warnings
 from collections.abc import Callable
 from collections.abc import Iterable
+from functools import partial
 from pathlib import Path
 from typing import Annotated
 from typing import Any
@@ -50,7 +51,12 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
 from lib.core.jsx_conditions import Filter, OperatorEnum
 from lib.core.conditions import EmptyCondition
-from lib.core.entities import AttachmentEntity, FolderEntity, BaseItemEntity
+from lib.core.entities import (
+    AttachmentEntity,
+    FolderEntity,
+    BaseItemEntity,
+    ProjectEntity,
+)
 from lib.core.entities import SettingEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
@@ -62,11 +68,9 @@ from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
 from lib.core.types import PriorityScoreEntity
-from lib.core.types import Project
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
-from lib.infrastructure.utils import extract_project_folder
 from lib.infrastructure.validators import wrap_error
 from lib.app.serializers import WMProjectSerializer
 from lib.core.entities.work_managament import WMUserTypeEnum
@@ -79,6 +83,8 @@ from lib.infrastructure.query_builder import FolderFilterHandler
 from lib.core.entities.filters import FolderFilters
 from lib.infrastructure.query_builder import QueryBuilderChain
 from lib.infrastructure.query_builder import FieldValidationHandler
+
+from lib.app.interface.responses import QueryResult
 
 logger = logging.getLogger("sa")
 
@@ -100,8 +106,6 @@ APPROVAL_STATUS = Literal["Approved", "Disapproved", None]
 IMAGE_QUALITY = Literal["compressed", "original"]
 
 ANNOTATION_TYPE = Literal["bbox", "polygon", "point", "tag"]
-
-ANNOTATOR_ROLE = Literal["Admin", "Annotator", "QA"]
 
 FOLDER_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
@@ -140,7 +144,7 @@ class ItemContext:
     def __init__(
         self,
         controller: Controller,
-        project: Project,
+        project: ProjectEntity,
         folder: FolderEntity,
         item: BaseItemEntity,
         overwrite: bool = True,
@@ -152,6 +156,7 @@ class ItemContext:
         self._annotation_adapter: BaseMultimodalAnnotationAdapter | None = None
         self._overwrite = overwrite
         self._annotation: dict | None = None
+        self._set_component_called = False
 
     def _set_small_annotation_adapter(self, annotation: dict | None = None):
         self._annotation_adapter = MultimodalSmallAnnotationAdapter(
@@ -173,7 +178,7 @@ class ItemContext:
         )
 
     @property
-    def annotation_adapter(self) -> BaseMultimodalAnnotationAdapter:
+    def annotation_adapter(self) -> BaseMultimodalAnnotationAdapter | None:
         if self._annotation_adapter is None:
             res = self.controller.service_provider.annotations.get_upload_chunks(
                 project=self.project, item_ids=[self.item.id]
@@ -213,7 +218,8 @@ class ItemContext:
         if exc_type:
             return False
 
-        self.save()
+        if self._set_component_called:
+            self.save()
         return True
 
     def save(self):
@@ -222,6 +228,7 @@ class ItemContext:
         else:
             self._set_small_annotation_adapter(self.annotation)
         self._annotation_adapter.save()
+        self._set_component_called = False
 
     def get_metadata(self):
         """
@@ -233,7 +240,7 @@ class ItemContext:
         Request Example:
         ::
 
-            with client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
                 metadata = context.get_metadata()
                 print(metadata)
         """
@@ -252,7 +259,7 @@ class ItemContext:
         Request Example:
         ::
 
-            with client.item_context((101, 202), "item_name") as context: # (101, 202) project and folder IDs
+            with sa_client.item_context((101, 202), "item_name") as context: # (101, 202) project and folder IDs
                 value = context.get_component_value("component_id")
                 print(value)
         """
@@ -274,13 +281,14 @@ class ItemContext:
         Request Example:
         ::
 
-            with client.item_context("project_name/folder_name", "item_name") as item_context:
+            with sa_client.item_context("project_name/folder_name", "item_name") as item_context:
                 metadata = item_context.get_metadata()
                 value = item_context.get_component_value("component_id")
                 item_context.set_component_value("component_id", value)
 
         """
         self.annotation_adapter.set_component_value(component_id, value)
+        self._set_component_called = True
         return self
 
 
@@ -313,17 +321,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: project metadata
         :rtype: dict
         """
-        response = self.controller.get_project_by_id(project_id=project_id)
+        project = self.controller.get_project(project_id)
 
-        return ProjectSerializer(response.data).serialize()
+        return ProjectSerializer(project).serialize()
 
     def get_folder_by_id(self, project_id: int, folder_id: int):
         """Returns the folder metadata
 
-        :param project_id: the id of the project
+        :param project_id: the ID of the project
         :type project_id: int
 
-        :param folder_id: the id of the folder
+        :param folder_id: the ID  of the folder
         :type folder_id: int
 
         :return: folder metadata
@@ -363,13 +371,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: item metadata
         :rtype: dict
         """
-        project_response = self.controller.get_project_by_id(project_id=project_id)
-        project_response.raise_for_status()
+        project = self.controller.get_project(project_id)
 
         if (
             include
             and "categories" in include
-            and project_response.data.type != ProjectType.MULTIMODAL.value
+            and project.type != ProjectType.MULTIMODAL.value
         ):
             raise AppException(
                 "The 'categories' option in the 'include' field is only supported for Multimodal projects."
@@ -386,12 +393,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             include.remove("custom_metadata")
 
         item = self.controller.items.get_item_by_id(
-            item_id=item_id, project=project_response.data, include=include
+            item_id=item_id, project=project, include=include
         )
 
         if include_custom_metadata:
             item_custom_fields = self.controller.custom_fields.list_fields(
-                project=project_response.data, item_ids=[item.id]
+                project=project, item_ids=[item.id]
             )
             item.custom_metadata = item_custom_fields[item.id]
 
@@ -446,7 +453,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_user_metadata(
+            sa_client.get_user_metadata(
                 "example@email.com",
                 include=["custom_fields"]
             )
@@ -493,7 +500,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_user_custom_field(
+            sa_client.set_user_custom_field(
                 "example@email.com",
                 custom_field_name="due_date",
                 value=1738671238.7
@@ -591,7 +598,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ::
 
                 user_filters = {"custom_field__accuracy score 30D__lt": 90}
-                client.list_users(include=["custom_fields"], **user_filters)
+                sa_client.list_users(include=["custom_fields"], **user_filters)
 
 
         :type filters: UserFilters, optional
@@ -602,7 +609,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_users(
+            sa_client.list_users(
                 email__contains="@superannotate.com",
                 include=["custom_fields"],
                 state__in=["Confirmed"]
@@ -625,6 +632,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "role": "TeamOwner",
                     "state": "Confirmed",
                     "team_id": 44311,
+                    "user_permissions": [],
                 }
             ]
 
@@ -633,12 +641,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             # Project level scores
 
-            scores = client.list_users(
+            scores = sa_client.list_users(
                 include=["custom_fields"],
                 project="my_multimodal",
                 email__contains="@superannotate.com",
                 custom_field__speed__gte=90,
-                custom_field__weight__lte=1,
+                custom_field__weight__lte=1
             )
 
         Response Example:
@@ -653,9 +661,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "custom_fields": {"speed": 92, "weight": 0.8},
                     "email": "example@superannotate.com",
                     "id": 715121,
+                    'permissions': {
+                        'allow_orchestrate': 0,
+                        'allow_run_explore': 0,
+                        'allow_view_sdk_token': 0,
+                        'paused': 0
+                    },
                     "role": "Annotator",
                     "state": "Confirmed",
                     "team_id": 1234,
+                    "categories": None,
+                    "user_permissions": [],
                 }
             ]
 
@@ -669,7 +685,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "custom_field__speed score 7D__lt": 15
             }
 
-            scores = client.list_users(
+            scores = sa_client.list_users(
                 include=["custom_fields"],
                 email__contains="@superannotate.com",
                 role="Contributor",
@@ -700,15 +716,103 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "role": "Contributor",
                     "state": "Confirmed",
                     "team_id": 1234,
+                    "user_permissions": [],
                 }
             ]
 
+
+        ``User Permissions``
+            Every returned user includes a ``user_permissions`` list.
+
+            The contents depend on whether the ``project`` parameter is provided:
+
+            - If ``project`` is specified, ``user_permissions`` contains the
+              permissions granted to the user within that project
+              (e.g. ``Download``).
+
+            - If ``project`` is omitted, ``user_permissions`` contains the
+              team-level permissions granted to the user
+              (e.g. ``Remove Contributors from team``).
+
+        Request Example:
+        ::
+
+            project_user = sa_client.list_users(
+                project="my_multimodal",
+                email="test@superannotate.com",
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                  'createdAt': '2026-05-19T08:28:55.000Z',
+                  'custom_fields': {},
+                  'email': 'test@superannotate.com',
+                  'id': 1622408,
+                  'permissions': {
+                    'allow_orchestrate': 0,
+                    'allow_run_explore': 0,
+                    'allow_view_sdk_token': 0,
+                    'paused': 0
+                  },
+                  'role': 'ProjectAdmin',
+                  'state': 'Confirmed',
+                  'team_id': 32022,
+                  'updatedAt': '2026-05-19T08:28:55.000Z',
+                  'categories': None,
+                  'user_permissions': [
+                    {
+                      'id': 28,
+                      'name': 'Download',
+                      'createdAt': '2026-05-12T12:47:41.000Z',
+                      'updatedAt': '2026-05-12T12:47:41.000Z'
+                    }
+                  ],
+                }
+            ]
+
+
+        Request Example:
+        ::
+
+            project_user = sa_client.list_users(
+                email="test@superannotate.com",
+            )
+
+        Response Example:
+        ::
+
+            [
+                {
+                  'createdAt': '2026-05-19T08:28:55.000Z',
+                  'custom_fields': {},
+                  'email': 'test@superannotate.com',
+                  'id': 1622408,
+                  'role': 'Contributor',
+                  'state': 'Confirmed',
+                  'team_id': 32022,
+                  'updatedAt': '2026-05-19T08:28:55.000Z',
+                  'user_permissions': [
+                    {
+                      'id': 21,
+                      'name': 'Remove Contributors from team',
+                      'createdAt': '2026-05-12T12:47:41.000Z',
+                      'updatedAt': '2026-05-12T12:47:41.000Z'
+                    },
+                    {
+                      'id': 22,
+                      'name': 'View Contributors’ scores',
+                      'createdAt': '2026-05-12T12:45:41.000Z',
+                      'updatedAt': '2026-05-12T12:46:41.000Z'
+                    },
+                  ],
+                }
+            ]
         """
         if project is not None:
-            if isinstance(project, int):
-                project = self.controller.get_project_by_id(project).data
-            else:
-                project = self.controller.get_project(project)
+            project = self.controller.get_project(project)
         response = BaseSerializer.serialize_iterable(
             self.controller.work_management.list_users(
                 project=project, include=include, **filters
@@ -796,7 +900,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_user_scores(
+            sa_client.get_user_scores(
                 project=("my_multimodal", "folder1"),
                 item="item1",
                 scored_user="example@superannotate.com",
@@ -881,7 +985,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_user_scores(
+            sa_client.set_user_scores(
                 project=("my_multimodal", "folder1"),
                 item_=12345,
                 scored_user="example@superannotate.com",
@@ -934,13 +1038,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_contributor_categories(
+            sa_client.set_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"],
                 categories=["Shoes", "T-Shirt"]
             )
 
-            client.set_contributor_categories(
+            sa_client.set_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"]
                 categories="*"
@@ -949,11 +1053,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if not categories:
             AppException("Categories should be a list of strings or '*'.")
 
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         self.controller.check_multimodal_project_categorization(project)
 
         self.controller.work_management.set_remove_contributor_categories(
@@ -984,13 +1084,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.remove_contributor_categories(
+            sa_client.remove_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"],
                 categories=["Shoes", "T-Shirt", "Jeans"]
             )
 
-            client.remove_contributor_categories(
+            sa_client.remove_contributor_categories(
                 project="product-review-mm",
                 contributors=["test@superannotate.com","contributor@superannotate.com"]
                 categories="*"
@@ -999,11 +1099,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if not categories:
             AppException("Categories should be a list of strings or '*'.")
 
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         self.controller.check_multimodal_project_categorization(project)
 
         self.controller.work_management.set_remove_contributor_categories(
@@ -1011,6 +1107,122 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             contributors=contributors,
             categories=categories,
             operation="remove",
+        )
+
+    def grant_project_user_permissions(
+        self,
+        project: NotEmptyStr | int,
+        permissions: list[NotEmptyStr] | Literal["*"],
+        user: int | str,
+    ) -> None:
+        """
+        Grants permissions for a project contributor in the specified project.
+        Accepts "*" to indicate all available permissions in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param permissions: Specifies which permissions to grant.
+         Accepts "*" to indicate all available permissions in the project.
+
+            Possible values are
+
+            - "Download": Only available for Project Admins.
+              Allows project admins to export project data.
+        :type permissions: Union[List[str], Literal["*"]]
+
+        :param user: Project user ID or email to grant permissions to.
+        :type user: Union[int, str]
+
+        :rtype: None
+
+        Request Example:
+        ::
+
+            # To grant Download permission by email:
+            sa_client.grant_project_user_permissions(
+                project="my_project",
+                permissions=["Download"],
+                user="admin1@superannotate.com"
+            )
+
+            # To grant all permissions by project user ID:
+            sa_client.grant_project_user_permissions(
+                project=12345,
+                permissions="*",
+                user=101
+            )
+        """
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.work_management.edit_project_user_permissions(
+            project=project,
+            user=user,
+            permissions=permissions,
+            operation="grant",
+        )
+
+    def revoke_project_user_permissions(
+        self,
+        project: NotEmptyStr | int,
+        permissions: list[NotEmptyStr] | Literal["*"],
+        user: int | str,
+    ) -> None:
+        """
+        Revokes permissions for a project contributor in the specified project.
+        Accepts "*" to indicate all available permissions in the project.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param permissions: Specifies which permissions to revoke.
+         Accepts "*" to indicate all available permissions in the project.
+
+            Possible values are
+
+            - "Download": Only available for Project Admins.
+              Allows project admins to export project data.
+        :type permissions: Union[List[str], Literal["*"]]
+
+        :param user: Project user ID or email to revoke permissions from.
+        :type user: Union[int, str]
+
+        :rtype: None
+
+        Request Example:
+        ::
+
+            # To revoke Download permission by email:
+            sa_client.revoke_project_user_permissions(
+                project="my_project",
+                permissions=["Download"],
+                user="admin1@superannotate.com"
+            )
+
+            # To revoke all permissions by project user ID:
+            sa_client.revoke_project_user_permissions(
+                project=12345,
+                permissions="*",
+                user=101
+            )
+        """
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+        project = (
+            self.controller.get_project_by_id(project).data
+            if isinstance(project, int)
+            else self.controller.get_project(project)
+        )
+        self.controller.work_management.edit_project_user_permissions(
+            project=project,
+            user=user,
+            permissions=permissions,
+            operation="revoke",
         )
 
     def get_component_config(self, project: NotEmptyStr | int, component_id: str):
@@ -1048,18 +1260,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         context = component.get("context")
                         if context is None or context == "":
                             return False, None
-                        return True, json.loads(component.get("context"))
+                        return True, json.loads(component.get("context"))  # noqa
 
             except KeyError as e:
                 logger.debug("Got key error:", component_data)
                 raise e
             return False, None
 
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         if project.type != ProjectType.MULTIMODAL:
             raise AppException(
                 "This function is only supported for Multimodal projects."
@@ -1285,8 +1493,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def clone_project(
         self,
-        project_name: NotEmptyStr | dict,
-        from_project: NotEmptyStr | dict,
+        project_name: NotEmptyStr,
+        from_project: NotEmptyStr | int,
         project_description: NotEmptyStr | None = None,
         copy_annotation_classes: bool | None = True,
         copy_settings: bool | None = True,
@@ -1300,7 +1508,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_name: new project's name
         :type project_name: str
 
-        :param from_project: the name of the project being used for duplication
+        :param from_project: the name or ID of the project being used for duplication
         :type from_project: str
 
         :param project_description: the new project's description. If None, from_project's
@@ -1412,7 +1620,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.create_categories(
+            sa_client.create_categories(
                 project="product-review-mm",
                 categories=["Shoes", "T-Shirt"]
             )
@@ -1420,11 +1628,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if not categories:
             raise AppException("Categories should be a list of strings.")
 
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         self.controller.check_multimodal_project_categorization(project)
 
         response = (
@@ -1449,7 +1653,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_categories(
+            sa_client.list_categories(
                 project="product-review-mm"
             )
 
@@ -1474,11 +1678,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ]
 
         """
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         self.controller.check_multimodal_project_categorization(project)
 
         response = (
@@ -1506,13 +1706,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.remove_categories(
+            sa_client.remove_categories(
                 project="product-review-mm",
                 categories=["Shoes", "T-Shirt"]
             )
 
             # To remove all categories
-            client.remove_categories(
+            sa_client.remove_categories(
                 project="product-review-mm",
                 categories="*"
             )
@@ -1520,11 +1720,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if not categories:
             AppException("Categories should be a list of strings or '*'.")
 
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         self.controller.check_multimodal_project_categorization(project)
 
         query = EmptyQuery()
@@ -1554,11 +1750,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     f"{len(response.data)} categories successfully removed from the project."
                 )
 
-    def create_folder(self, project: NotEmptyStr, folder_name: NotEmptyStr):
+    def create_folder(self, project: NotEmptyStr | int, folder_name: NotEmptyStr):
         """
         Create a new folder in the project.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param folder_name: the new folder's name
@@ -1580,28 +1776,32 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if res.errors:
             raise AppException(res.errors)
 
-    def delete_project(self, project: NotEmptyStr | dict):
+    def delete_project(self, project: NotEmptyStr | int):
         """Deletes the project
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
         """
-        name = project
-        if isinstance(project, dict):
-            name = project["name"]
-        self.controller.projects.delete(name=name)
+        try:
+            project = self.controller.get_project(project)
+        except AppException as e:
+            if str(e) == "Project not found.":
+                return
+            raise
+        self.controller.projects.delete(name=project.name)
 
-    def rename_project(self, project: NotEmptyStr, new_name: NotEmptyStr):
+    def rename_project(self, project: NotEmptyStr | int, new_name: NotEmptyStr):
         """Renames the project
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param new_name: project's new name
         :type new_name: str
         """
-        old_name = project
-        project = self.controller.get_project(old_name)  # noqa
+
+        project = self.controller.get_project(project)
+        old_name = project.name
         project.name = new_name
         response = self.controller.projects.update(project)
         if response.errors:
@@ -1613,7 +1813,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_folder_metadata(
         self,
-        project: NotEmptyStr,
+        project: NotEmptyStr | int,
         folder_name: NotEmptyStr,
         include_contributors: bool = False,
     ):
@@ -1622,7 +1822,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Returns folder metadata. Optionally includes a list of contributors that are currently
         assigned to the folder.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param folder_name: folder's name
@@ -1697,10 +1897,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             exclude={"completedCount", "is_root"}, by_alias=False
         )
 
-    def delete_folders(self, project: NotEmptyStr, folder_names: list[NotEmptyStr]):
+    def delete_folders(
+        self, project: NotEmptyStr | int, folder_names: list[NotEmptyStr]
+    ):
         """Delete folder in project.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param folder_names: to be deleted folders' names
@@ -1749,7 +1951,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of strs or dicts
 
         """
-
+        warnings.warn(
+            DeprecationWarning(
+                "This function search_folders() will be deprecated and removed in version 4.6.0 \n"
+                "Recommended replacement:list_folders()"
+            )
+        )
         project = self.controller.get_project(project)
         condition = EmptyCondition()
         if folder_name:
@@ -1820,7 +2027,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_folders(
+            sa_client.list_folders(
                 project="test_project",
                 status="NotStarted"
             )
@@ -1851,11 +2058,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
         """
-        project_entity = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project_entity = self.controller.get_project(project)
 
         valid_fields = FolderFilters.__annotations__
         chain = QueryBuilderChain(
@@ -1877,7 +2080,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_project_metadata(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int,
         include_annotation_classes: bool | None = False,
         include_settings: bool | None = False,
         include_workflow: bool | None = False,
@@ -1887,7 +2090,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Returns project metadata
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param include_annotation_classes: enables project annotation classes output under
@@ -1919,7 +2122,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_project_metadata(
+            sa_client.get_project_metadata(
                 project="Medical Annotations",
                 include_workflow=True,
                 include_custom_fields=True
@@ -1968,8 +2171,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             }
         """
-        project_name, _ = extract_project_folder(project)
-        project_entity = self.controller.get_project(project_name)
+        project_entity = self.controller.get_project(project)
         response = self.controller.projects.get_metadata(
             project_entity,
             include_annotation_classes,
@@ -1988,19 +2190,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
         return project
 
-    def get_project_settings(self, project: NotEmptyStr | dict):
+    def get_project_settings(self, project: NotEmptyStr | int):
         """Gets project's settings.
 
         Return value example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
 
-        :param project: project name or metadata
-        :type project: str or dict
+        :param project: project name or ID
+        :type project: str or ID
 
         :return: project settings
         :rtype: list of dicts
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project)
         settings = self.controller.projects.list_settings(project).data
         settings = [
             SettingsSerializer(attribute.model_dump()).serialize()
@@ -2008,13 +2209,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ]
         return settings
 
-    def get_project_steps(self, project: str | dict):
+    def get_project_steps(self, project: NotEmptyStr | int):
         """Gets project's steps.
 
         Return value example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, ...},...]
 
-        :param project: project name or metadata
-        :type project: str or dict
+        :param project: project name or ID
+        :type project: str or ID
 
         :return: A list of step dictionaries,
             or a dictionary containing both steps and their connections (for Keypoint workflows).
@@ -2068,19 +2269,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
               ]
             }
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.get_project(project_name)
+        project = self.controller.get_project(project)
         steps = self.controller.projects.list_steps(project)
         if steps.errors:
             raise AppException(steps.errors)
         return steps.data
 
     def search_annotation_classes(
-        self, project: NotEmptyStr | dict, name_contains: str | None = None
+        self, project: NotEmptyStr | int, name_contains: str | None = None
     ):
         """Searches annotation classes by name_prefix (case-insensitive)
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param name_contains:  search string. Returns those classes,
@@ -2090,8 +2290,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: annotation classes of the project
         :rtype: list of dicts
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.get_project(project_name)
+        project = self.controller.get_project(project)
         condition = Condition("project_id", project.id, EQ)
         if name_contains:
             condition &= Condition("name", name_contains, EQ) & Condition(
@@ -2121,7 +2320,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            classes = client.get_annotation_class(
+            classes = sa_client.get_annotation_class(
                           project="classes",
                           annotation_class="Example_class"
                      )
@@ -2345,10 +2544,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             by_alias=False, use_enum_names=False
         )
 
-    def set_project_status(self, project: NotEmptyStr, status: PROJECT_STATUS):
+    def set_project_status(self, project: NotEmptyStr | int, status: PROJECT_STATUS):
         """Set project status
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param status: status to set.
@@ -2391,17 +2590,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_project_custom_field(
+            sa_client.set_project_custom_field(
                 project="Medical Annotations",
                 custom_field_name="due_date",
                 value=1738671238.759,
             )
         """
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         self.controller.work_management.set_custom_field_value(
             entity_id=project.id,
             field_name=custom_field_name,
@@ -2411,14 +2606,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
     def set_folder_status(
-        self, project: NotEmptyStr, folder: NotEmptyStr, status: FOLDER_STATUS
+        self,
+        project: NotEmptyStr | int,
+        folder: NotEmptyStr | int,
+        status: FOLDER_STATUS,
     ):
         """Set folder status
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
-        :param folder: folder name
+        :param folder: folder name or ID
         :type folder: str
 
         :param status: status to set. \n
@@ -2430,7 +2628,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                      * OnHold
         :type status: str
         """
-        project, folder = self.controller.get_project_folder((project, folder))
+        project = self.controller.get_project(project)
+        folder = self.controller.get_folder(project, folder)
         folder.status = constants.FolderStatus(status).value
         response = self.controller.update(project, folder)
         if response.errors:
@@ -2441,19 +2640,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def set_project_default_image_quality_in_editor(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int,
         image_quality_in_editor: str | None,
     ):
         """Sets project's default image quality in editor setting.
 
-        :param project: project name or metadata
-        :type project: str or dict
+        :param project: project name or ID
+        :type project: str or ID
         :param image_quality_in_editor: new setting value, should be "original" or "compressed"
         :type image_quality_in_editor: str
         """
-        project_name, _ = extract_project_folder(project)
         image_quality_in_editor = ImageQuality(image_quality_in_editor).value
-        project = self.controller.get_project(project_name)
+        project = self.controller.get_project(project)
         response = self.controller.projects.set_settings(
             project=project,
             settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
@@ -2583,7 +2781,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Assigns folder to users. With SDK, the user can be
         assigned to a role in the project with the share_project function.
 
-        :param project_name: project name or metadata of the project
+        :param project_name: project name of the project
         :type project_name: str or dict
         :param folder_name: folder name to assign
         :type folder_name: str
@@ -2623,7 +2821,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def upload_images_from_folder_to_project(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         folder_path: NotEmptyStr | Path,
         extensions: None | (
             list[NotEmptyStr] | tuple[NotEmptyStr]
@@ -2644,7 +2842,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         function.
 
         :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str or dict
+        :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param folder_path: from which folder to upload the images
         :type folder_path: Path-like (str or Path)
@@ -2675,7 +2873,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: tuple (3 members) of list of strs
         """
 
-        project_name, folder_name = extract_project_folder(project)
+        project, folder = self.controller.get_project_folder(project)
         if annotation_status is not None:
             warnings.warn(
                 DeprecationWarning(
@@ -2702,7 +2900,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
             exclude_file_patterns = list(set(exclude_file_patterns))
 
-        project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
+        project_folder_name = project.name + (
+            f"/{folder.name}" if not folder.is_root else ""
+        )
 
         logger.info(
             "Uploading all images with extensions %s from %s to project %s. Excluded file patterns are: %s.",
@@ -2711,10 +2911,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_folder_name,
             exclude_file_patterns,
         )
-        project = self.controller.get_project(project_name)
+
         use_case = self.controller.upload_images_from_folder_to_project(
             project=project,
-            folder_name=folder_name,
+            folder=folder,
             folder_path=folder_path,
             extensions=extensions,
             annotation_status=annotation_status,
@@ -2778,10 +2978,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(res.errors)
         return res.data
 
-    def get_exports(self, project: NotEmptyStr, return_metadata: bool | None = False):
+    def get_exports(
+        self, project: NotEmptyStr | int, return_metadata: bool | None = False
+    ):
         """Get all prepared exports of the project.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param return_metadata: return metadata of images instead of names
@@ -2790,14 +2992,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: names or metadata objects of the all prepared exports of the project
         :rtype: list of strs or dicts
         """
+        project = self.controller.get_project(project)
         response = self.controller.get_exports(
-            project_name=project, return_metadata=return_metadata
+            project=project, return_metadata=return_metadata
         )
         return response.data
 
     def prepare_export(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int,
         folder_names: list[NotEmptyStr] | None = None,
         annotation_statuses: list[str] | None = None,
         include_fuse: bool | None = False,
@@ -2807,7 +3010,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Prepare annotations and classes.json for export. Original and fused images for images with
         annotations can be included with include_fuse flag.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param folder_names: names of folders to include in the export. If None, whole project will be exported
@@ -2836,20 +3039,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
+            sa_client = SAClient()
 
-            export = client.prepare_export(
+            export = sa_client.prepare_export(
                 project = "Project Name",
                 folder_names = ["Folder 1", "Folder 2"],
                 annotation_statuses = ["Completed","QualityCheck"],
                 format = "CSV"
             )
 
-            client.download_export("Project Name", export, "path_to_download")
+            sa_client.download_export("Project Name", export, "path_to_download")
         """
-        project_name, folder_name = extract_project_folder(project)
+        project = self.controller.get_project(project)
         if folder_names is None:
-            folders = [folder_name] if folder_name else []
+            folders = []
         else:
             folders = folder_names
         integration_name = kwargs.get("integration_name")
@@ -2870,7 +3073,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             elif export_type == "jsonl":
                 _export_type = 4
         response = self.controller.prepare_export(
-            project_name=project_name,
+            project=project,
             folder_names=folders,
             include_fuse=include_fuse,
             only_pinned=only_pinned,
@@ -2901,22 +3104,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             # To delete a specific export
-            client.delete_exports(
+            sa_client.delete_exports(
                 project="my_project",
                 exports=["TestProject_Jan_30_2026_12_09"]
             )
 
             # To delete all exports in the project
-            client.delete_exports(
+            sa_client.delete_exports(
                 project="my_project",
                 exports="*"
             )
         """
-        project_entity = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project_entity = self.controller.get_project(project)
         response = self.controller.delete_exports(
             project=project_entity, exports=exports
         )
@@ -2926,12 +3125,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def upload_videos_from_folder_to_project(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         folder_path: NotEmptyStr | Path,
         extensions: None | (
             tuple[NotEmptyStr] | list[NotEmptyStr]
         ) = constants.DEFAULT_VIDEO_EXTENSIONS,
-        exclude_file_patterns: list[NotEmptyStr] | None = (),
+        exclude_file_patterns: list[NotEmptyStr] | None = None,
         recursive_subfolders: bool | None = False,
         target_fps: int | None = None,
         start_time: float | None = 0.0,
@@ -2946,7 +3145,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Only works on Image projects.
 
         :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
+        :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param folder_path: from which folder to upload the videos
         :type folder_path: Path-like (str or Path)
@@ -2983,7 +3182,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: tuple of list of strs
         """
 
-        project_name, folder_name = extract_project_folder(project)
+        project, folder = self.controller.get_project_folder(project)
         if annotation_status is not None:
             warnings.warn(
                 DeprecationWarning(
@@ -3012,8 +3211,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         video_paths = [str(path) for path in video_paths]
         response = self.controller.upload_videos(
-            project_name=project_name,
-            folder_name=folder_name,
+            project=project,
+            folder=folder,
             paths=video_paths,
             target_fps=target_fps,
             start_time=start_time,
@@ -3028,7 +3227,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def upload_video_to_project(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         video_path: NotEmptyStr | Path,
         target_fps: int | None = None,
         start_time: float | None = 0.0,
@@ -3043,7 +3242,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Only works on Image projects.
 
         :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
+        :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param video_path: video to upload
         :type video_path: Path-like (str or Path)
@@ -3071,7 +3270,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of strs
         """
 
-        project_name, folder_name = extract_project_folder(project)
+        project, folder = self.controller.get_project_folder(project)
         if annotation_status is not None:
             warnings.warn(
                 DeprecationWarning(
@@ -3080,8 +3279,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             )
         response = self.controller.upload_videos(
-            project_name=project_name,
-            folder_name=folder_name,
+            project=project,
+            folder=folder,
             paths=[video_path],
             target_fps=target_fps,
             start_time=start_time,
@@ -3181,7 +3380,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                    "name": "Description"
                }
             ]
-            client.create_annotation_class(
+            sa_client.create_annotation_class(
                project="Image Project",
                name="Example Class",
                color="#F9E0FA",
@@ -3226,11 +3425,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
     def delete_annotation_class(
-        self, project: NotEmptyStr, annotation_class: dict | NotEmptyStr
+        self, project: NotEmptyStr | int, annotation_class: dict | NotEmptyStr
     ):
         """Deletes annotation class from project
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param annotation_class: annotation class name or  metadata
@@ -3247,18 +3446,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 raise AppException(wrap_error(e))
         else:
             annotation_class = AnnotationClassEntity(**annotation_class)
-        project = self.controller.projects.get_by_name(project).data
+        project = self.controller.get_project(project)
 
         self.controller.annotation_classes.delete(
             project=project, annotation_class=annotation_class
         )
 
     def download_annotation_classes_json(
-        self, project: NotEmptyStr, folder: str | Path
+        self, project: NotEmptyStr | int, folder: str | Path
     ):
         """Downloads project classes.json to folder
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param folder: folder to download to
@@ -3268,7 +3467,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: str
         """
 
-        project = self.controller.projects.get_by_name(project).data
+        project = self.controller.get_project(project)
         logger.info(
             f"Downloading classes.json from project {project.name} to folder {str(folder)}."
         )
@@ -3285,14 +3484,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def create_annotation_classes_from_classes_json(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int,
         classes_json: list[AnnotationClassEntity] | str | Path,
         from_s3_bucket=False,
     ):
         """Creates annotation classes in project from a SuperAnnotate format
         annotation classes.json.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param classes_json: JSON itself or path to the JSON file
@@ -3322,7 +3521,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ).validate_python(classes_json)
         except ValidationError as _:
             raise AppException("Couldn't validate annotation classes.")
-        project = self.controller.projects.get_by_name(project).data
+        project = self.controller.get_project(project)
         response = self.controller.annotation_classes.create_multiple(
             project=project,
             annotation_classes=annotation_classes,
@@ -3333,7 +3532,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def download_export(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int,
         export: NotEmptyStr | dict,
         folder_path: str | Path,
         extract_zip_contents: bool | None = True,
@@ -3341,7 +3540,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """Download prepared export.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param export: export name
@@ -3357,11 +3556,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
         :type to_s3_bucket: Bucket object
         """
-        project_name, _ = extract_project_folder(project)
+        project = self.controller.get_project(project)
         export_name = export["name"] if isinstance(export, dict) else export
 
         response = self.controller.download_export(
-            project_name=project_name,
+            project=project,
             export_name=export_name,
             folder_path=folder_path,
             extract_zip_contents=extract_zip_contents,
@@ -3372,14 +3571,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def set_project_steps(
         self,
-        project: NotEmptyStr | dict,
+        project: NotEmptyStr | int,
         steps: list[dict],
         connections: list[list[int]] | None = None,
     ):
         """Sets project's steps.
 
-        :param project: project name or metadata
-        :type project: str or dict
+        :param project: project name or ID
+        :type project: str or int
 
         :param steps: new workflow list of dicts
         :type steps: list of dicts
@@ -3438,8 +3637,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 ]
             )
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.get_project(project_name)
+        project = self.controller.get_project(project)
         response = self.controller.projects.set_steps(
             project, steps=steps, connections=connections
         )
@@ -3621,7 +3819,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: tuple of list of strs
         """
 
-        project_name, folder_name = extract_project_folder(project)
+        project, folder = self.controller.get_project_folder(project)
         if keep_status is not None:
             warnings.warn(
                 DeprecationWarning(
@@ -3629,7 +3827,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "Please use the “set_annotation_statuses” function instead."
                 )
             )
-        project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
+        project_folder_name = project.name + (
+            f"/{folder.name}" if not folder.is_root else ""
+        )
 
         if recursive_subfolders:
             logger.info(
@@ -3648,7 +3848,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
         )
-        project, folder = self.controller.get_project_folder(project)
         response = self.controller.annotations.upload_from_folder(
             project=project,
             folder=folder,
@@ -3695,7 +3894,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         """
 
-        _, folder_name = extract_project_folder(project)
         if keep_status is not None:
             warnings.warn(
                 DeprecationWarning(
@@ -3712,9 +3910,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 logger.info("Uploading annotations from %s.", annotation_json)
             with open(annotation_json, "rb") as f:
                 annotation_json = json.load(f)
-        folder = self.controller.get_folder(project, folder_name)
-        if not folder:
-            raise AppException("Folder not found.")
 
         items = self.controller.items.list_items(project, folder, name=image_name)
         image = next(iter(items), None)
@@ -3774,7 +3969,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def upload_image_to_project(
         self,
-        project: NotEmptyStr,
+        project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         img,
         image_name: NotEmptyStr | None = None,
         annotation_status: str | None = None,
@@ -3785,7 +3980,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Sets status of the uploaded image to set_status if it is not None.
 
         :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
+        :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param img: image to upload
         :type img: io.BytesIO() or Path-like (str or Path)
@@ -3806,7 +4001,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 If None then the default value in project settings will be used.
         :type image_quality_in_editor: str
         """
-        project_name, folder_name = extract_project_folder(project)
+        project, folder = self.controller.get_project_folder(project)
         if annotation_status is not None:
             warnings.warn(
                 DeprecationWarning(
@@ -3815,8 +4010,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             )
         response = self.controller.upload_image_to_project(
-            project_name=project_name,
-            folder_name=folder_name,
+            project=project,
+            folder=folder,
             image_name=image_name,
             image=img,
             annotation_status=annotation_status,
@@ -3828,7 +4023,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def upload_images_to_project(
         self,
-        project: NotEmptyStr,
+        project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         img_paths: list[NotEmptyStr],
         annotation_status: str = "NotStarted",
         from_s3_bucket=None,
@@ -3842,7 +4037,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         function.
 
         :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
+        :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param img_paths: list of Path-like (str or Path) objects to upload
         :type img_paths: list
@@ -3869,11 +4064,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: uploaded, could-not-upload, existing-images filepaths
         :rtype: tuple (3 members) of list of strs
         """
-        project_name, folder_name = extract_project_folder(project)
+        project, folder = self.controller.get_project_folder(project)
 
         use_case = self.controller.upload_images_to_project(
-            project_name=project_name,
-            folder_name=folder_name,
+            project=project,
+            folder=folder,
             paths=img_paths,
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor,
@@ -3881,7 +4076,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
         images_to_upload, existing_items = use_case.images_to_upload
-        logger.info(f"Uploading {len(images_to_upload)} images to project {project}.")
+        path = project.name + ("" if folder.is_root else f"/{folder.name}")
+        logger.info(f"Uploading {len(images_to_upload)} images to project {path}.")
         uploaded, failed_images = [], []
         if not images_to_upload:
             return uploaded, failed_images, existing_items
@@ -3967,6 +4163,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if isinstance(annotations_json, dict):
             annotation_data = annotations_json
         else:
+            annotation_data = None
             with open(annotations_json, "rb") as f:
                 annotation_data = json.load(f)
         response = self.controller.validate_annotations(project_type, annotation_data)
@@ -3980,13 +4177,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def add_contributors_to_project(
         self,
-        project: NotEmptyStr,
+        project: NotEmptyStr | int,
         emails: Annotated[list[EmailStr], Field(min_length=1)],
         role: str,
     ) -> tuple[list[str], list[str]]:
         """Add contributors to project.
 
-        :param project: project name
+        :param project: project name or ID
         :type project: str
 
         :param emails: users email
@@ -3998,7 +4195,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: lists of added,  skipped contributors of the project
         :rtype: tuple (2 members) of lists of strs
         """
-        project = self.controller.projects.get_by_name(project).data
+        project = self.controller.get_project(project)
         contributors = [
             entities.WMProjectUserEntity(
                 email=email,
@@ -4138,7 +4335,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         scores = TypeAdapter(list[PriorityScoreEntity]).validate_python(scores)
         project, folder = self.controller.get_project_folder(project)
-        project_folder_name = project.name + "" if folder.is_root else f"/{folder.name}"
+        project_folder_name = project.name + (
+            "" if folder.is_root else f"/{folder.name}"
+        )
         response = self.controller.projects.upload_priority_scores(
             project, folder, scores, project_folder_name
         )
@@ -4155,7 +4354,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_integrations()
+            sa_client.get_integrations()
 
 
         Response Example:
@@ -4181,7 +4380,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def attach_items_from_integrated_storage(
         self,
-        project: NotEmptyStr,
+        project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         integration: NotEmptyStr | IntegrationEntity,
         folder_path: NotEmptyStr | None = None,
         *,
@@ -4193,7 +4392,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Link images from integrated external storage to SuperAnnotate from AWS, GCP, Azure, Databricks.
 
         :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
-        :type project: str
+        :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param integration: The existing integration name or metadata dict to pull items from.
             Mandatory keys in integration metadata’s dict is “name”.
@@ -4225,7 +4424,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.attach_items_from_integrated_storage(
+            sa_client.attach_items_from_integrated_storage(
                 project="project_name",
                 integration="databricks_integration",
                 query="SELECT * FROM integration_data LIMIT 10",
@@ -4238,7 +4437,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
 
         """
-        project, folder = self.controller.get_project_folder_by_path(project)
+        project, folder = self.controller.get_project_folder(project)
         _integration = None
         if isinstance(integration, str):
             integration = IntegrationEntity(name=integration)
@@ -4267,9 +4466,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         query: NotEmptyStr | None = None,
         subset: NotEmptyStr | None = None,
-    ):
+    ) -> QueryResult:
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/explore-overview).
+
+        The returned QueryResult behaves like a list of dicts, and additionally exposes a .count() method.
 
         :param project: Accepts a project as a string ("project" or "project/folder") or as a tuple (project_id, folder_id), where the folder is optional.”
         :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
@@ -4282,14 +4483,54 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type subset: str
 
         :return: queried items' metadata list
-        :rtype: list of dicts
+        :rtype: QueryResult (list of dicts with .count() method)
+
+        Request Example:
+        ::
+
+            sa_client = SAClient()
+
+            queried_items = sa_client.query(
+                project="Image Project",
+                query="metadata(lastAction.email = test@superannotate.com)"
+            )
+            for item in queried_items:
+                print(item["name"])
+
+        .. py:method:: query.count() -> int
+
+            Returns the total number of items matching the query.
+
+            :return: total number of matching items
+            :rtype: int
+
+            Request Example:
+            ::
+
+                sa_client = SAClient()
+
+                total = sa_client.query(
+                    project="Image Project",
+                    query="metadata(lastAction.email = test@superannotate.com)"
+                ).count()
+                print(f"Total matching items: {total}")
         """
         project, folder = self.controller.get_project_folder(project)
-        items = self.controller.query_entities(project, folder, query, subset)
-        exclude = {
-            "meta",
-        }
-        return BaseSerializer.serialize_iterable(items, exclude=exclude)
+        fetch_entities = partial(
+            self.controller.query_entities, project, folder, query, subset
+        )
+        return QueryResult(
+            data_fetcher=lambda: BaseSerializer.serialize_iterable(
+                fetch_entities(), exclude={"meta"}
+            ),
+            count_fetcher=partial(
+                self.controller.query_items_count,
+                project=project,
+                folder=folder,
+                query=query,
+                subset=subset,
+            ),
+        )
 
     def get_item_metadata(
         self,
@@ -4314,7 +4555,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.get_item_metadata(
+            sa_client.get_item_metadata(
                project="Medical Annotations",
                item_name = "image_1.png",
                include_custom_metadata=True
@@ -4404,7 +4645,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.search_items(
+            sa_client.search_items(
                project="Medical Annotations",
                name_contains="image_1",
                include_custom_metadata=True
@@ -4551,7 +4792,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_items(
+            sa_client.list_items(
                 project="Medical Annotations",
                 folder="folder1",
                 include=["custom_metadata"],
@@ -4581,7 +4822,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example with include categories:
         ::
 
-            client.list_items(
+            sa_client.list_items(
                 project="My Multimodal",
                 folder="folder1",
                 include=["categories"]
@@ -4615,7 +4856,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Additional Filter Examples:
         ::
 
-            client.list_items(
+            sa_client.list_items(
                 project="Medical Annotations",
                 folder="folder2",
                 annotation_status="Completed",
@@ -4623,16 +4864,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             )
 
             # Filter items assigned to a specific QA
-            client.list_items(
+            sa_client.list_items(
                 project="Medical Annotations",
                 assignee__user_id="qa@example.com"
             )
         """
-        project = (
-            self.controller.get_project_by_id(project).data
-            if isinstance(project, int)
-            else self.controller.get_project(project)
-        )
+        project = self.controller.get_project(project)
         if (
             include
             and "categories" in include
@@ -4738,7 +4975,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 project_filters = {
                     "custom_field__new single select custom field__contains": "text"
                 }
-                client.list_projects(include=["custom_fields"], **project_filters)
+                sa_client.list_projects(include=["custom_fields"], **project_filters)
 
         :type filters: ProjectFilters, optional
 
@@ -4748,7 +4985,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_projects(
+            sa_client.list_projects(
                 include=["custom_fields"],
                 status__in=["InProgress", "Completed"],
                 name__contains="Medical",
@@ -4824,8 +5061,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Example:
         ::
 
-            client = SAClient()
-            client.attach_items(
+            sa_client = SAClient()
+            sa_client.attach_items(
                 project="Medical Annotations",
                 attachments=[{"name": "item", "url": "https://..."}]
              )
@@ -4833,8 +5070,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Example of attaching items from custom integration:
         ::
 
-            client = SAClient()
-            client.attach_items(
+            sa_client = SAClient()
+            sa_client.attach_items(
                 project="Medical Annotations",
                 attachments=[
                     {
@@ -4955,8 +5192,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def copy_items(
         self,
-        source: NotEmptyStr | dict,
-        destination: NotEmptyStr | dict,
+        source: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
+        destination: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         items: list[NotEmptyStr] | None = None,
         include_annotations: bool = True,
         duplicate_strategy: Literal[
@@ -4966,10 +5203,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Copy items in bulk between folders in a project
 
         :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
-        :type source: str
+        :type source: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param destination: project name (root) or folder path to place copied items (e.g., “project1/folder2”).
-        :type destination: str
+        :type destination: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param items: names of items to copy. If None, all items from the source directory will be copied.
         :type items: list of str
@@ -4998,17 +5235,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "Copy operation continuing without annotations and metadata due to include_annotations=False."
             )
 
-        project_name, source_folder = extract_project_folder(source)
-        to_project_name, destination_folder = extract_project_folder(destination)
-        if project_name != to_project_name:
+        project, source_folder = self.controller.get_project_folder(source)
+        destination_project, destination_folder = self.controller.get_project_folder(
+            destination
+        )
+        if project.name != destination_project.name:
             raise AppException("Source and destination projects should be the same")
-        project = self.controller.get_project(project_name)
-        from_folder = self.controller.get_folder(project, source_folder)
-        to_folder = self.controller.get_folder(project, destination_folder)
         response = self.controller.items.copy_multiple(
             project=project,
-            from_folder=from_folder,
-            to_folder=to_folder,
+            from_folder=source_folder,
+            to_folder=destination_folder,
             item_names=items,
             include_annotations=include_annotations,
             duplicate_strategy=duplicate_strategy,
@@ -5020,8 +5256,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def move_items(
         self,
-        source: NotEmptyStr | dict,
-        destination: NotEmptyStr | dict,
+        source: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
+        destination: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
         items: list[NotEmptyStr] | None = None,
         duplicate_strategy: Literal[
             "skip", "replace", "replace_annotations_only"
@@ -5030,10 +5266,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """Move items in bulk between folders in a project
 
         :param source: project name (root) or folder path to pick items from (e.g., “project1/folder1”).
-        :type source: str
+        :type source: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param destination: project name (root) or folder path to move items to (e.g., “project1/folder2”).
-        :type destination: str
+        :type destination: Union[str, int, Tuple[int, int], Tuple[str, str]]
 
         :param items: names of items to move. If None, all items from the source directory will be moved.
         :type items: list of str
@@ -5052,17 +5288,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of strs
         """
 
-        project_name, source_folder = extract_project_folder(source)
-        to_project_name, destination_folder = extract_project_folder(destination)
-        if project_name != to_project_name:
+        project, folder = self.controller.get_project_folder(source)
+        destination_project, destination_folder = self.controller.get_project_folder(
+            destination
+        )
+        if project.name != destination_project.name:
             raise AppException("Source and destination projects should be the same")
 
-        project = self.controller.get_project(project_name)
-        source_folder = self.controller.get_folder(project, source_folder)
-        destination_folder = self.controller.get_folder(project, destination_folder)
         response = self.controller.items.move_multiple(
             project=project,
-            from_folder=source_folder,
+            from_folder=folder,
             to_folder=destination_folder,
             item_names=items,
             duplicate_strategy=duplicate_strategy,
@@ -5092,7 +5327,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.set_items_category(
+            sa_client.set_items_category(
                 project=("product-review-mm", "folder1"),
                 items=[112233, 112344],
                 category="Shoes"
@@ -5126,7 +5361,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.remove_items_category(
+            sa_client.remove_items_category(
                 project=("product-review-mm", "folder1"),
                 items=[112233, 112344]
             )
@@ -5231,10 +5466,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
 
         """
-        project_name, folder_name = extract_project_folder(project)
-        project, folder = self.controller.get_project_folder(
-            (project_name, folder_name)
-        )
+        project, folder = self.controller.get_project_folder(project)
         response = self.controller.annotations.download(
             project=project,
             folder=folder,
@@ -5248,28 +5480,27 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return response.data
 
-    def get_subsets(self, project: NotEmptyStr | dict):
+    def get_subsets(self, project: NotEmptyStr | int):
         """Get Subsets
 
-        :param project: project name (e.g., “project1”)
+        :param project: project name (e.g., “project1”) or ID
         :type project: str
 
         :return: subsets’ metadata
         :rtype: list of dicts
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project)
         response = self.controller.subsets.list(project)
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data, ["name"])
 
-    def create_custom_fields(self, project: NotEmptyStr, fields: dict):
+    def create_custom_fields(self, project: NotEmptyStr | int, fields: dict):
         """Create custom fields for items in a project in addition to built-in metadata.
         Using this function again with a different schema won't override the existing fields, but add new ones.
         Use the upload_custom_values() function to fill them with values for each item.
 
-        :param project: project name  (e.g., “project1”)
+        :param project: project name  (e.g., “project1”) or ID
         :type project: str
 
         :param fields:  dictionary describing the fields and their specifications added to the project.
@@ -5330,15 +5561,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             }
 
-            client = SAClient()
-            client.create_custom_fields(
+            sa_client = SAClient()
+            sa_client.create_custom_fields(
                project="Medical Annotations",
                fields=custom_fields
             )
 
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project)
         response = self.controller.custom_fields.create_schema(
             project=project, schema=fields
         )
@@ -5346,10 +5576,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return response.data
 
-    def get_custom_fields(self, project: NotEmptyStr):
+    def get_custom_fields(self, project: NotEmptyStr | int):
         """Get the schema of the custom fields defined for the project
 
-        :param project: project name  (e.g., “project1”)
+        :param project: project name  (e.g., “project1”) or ID
         :type project: str
 
         :return: custom fields actual schema of the project
@@ -5385,19 +5615,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             }
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project)
         response = self.controller.custom_fields.get_schema(project=project)
         if response.errors:
             raise AppException(response.errors)
         return response.data
 
     def delete_custom_fields(
-        self, project: NotEmptyStr, fields: Annotated[list[str], Field(min_length=1)]
+        self,
+        project: NotEmptyStr | int,
+        fields: Annotated[list[str], Field(min_length=1)],
     ):
         """Remove custom fields from a project’s custom metadata schema.
 
-        :param project: project name  (e.g., “project1”)
+        :param project: project name  (e.g., “project1”) or ID
         :type project: str
 
         :param fields: list of field names to remove
@@ -5409,8 +5640,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
-            client.delete_custom_fields(
+            sa_client = SAClient()
+            sa_client.delete_custom_fields(
                project = "Medical Annotations",
                fields = ["duration", patient_age]
             )
@@ -5439,8 +5670,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
 
         """
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project)
         response = self.controller.custom_fields.delete_schema(
             project=project, fields=fields
         )
@@ -5472,7 +5702,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
+            sa_client = SAClient()
 
             items_values = [
                {
@@ -5501,7 +5731,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                }
             ]
 
-            client.upload_custom_values(
+            sa_client.upload_custom_values(
                project = "Medical Annotations",
                items = items_values
             )
@@ -5546,7 +5776,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.delete_custom_values(
+            sa_client.delete_custom_values(
                 project = "Medical Annotations",
                 items = [
                    {"image_1.png": ["study_date", "patient_sex"]},
@@ -5562,13 +5792,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def add_items_to_subset(
-        self, project: NotEmptyStr, subset: NotEmptyStr, items: list[dict]
+        self, project: NotEmptyStr | int, subset: NotEmptyStr, items: list[dict]
     ):
         """
-
         Associates selected items with a given subset. Non-existing subset will be automatically created.
 
-        :param project:  project name (e.g., “project1”)
+        :param project:  project name (e.g., “project1”) or ID
         :type project: str
 
         :param subset: a name of an existing/new subset to associate items with.
@@ -5585,15 +5814,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client = SAClient()
+            sa_client = SAClient()
 
             # option 1
-            queried_items = client.query(
+            queried_items = sa_client.query(
                 project="Image Project",
                 query="instance(error = true)"
              )
 
-            client.add_items_to_subset(
+            sa_client.add_items_to_subset(
                 project="Medical Annotations",
                 subset="Brain Study - Disapproved",
                 items=queried_items
@@ -5610,7 +5839,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 }
             ]
 
-            client.add_items_to_subset(
+            sa_client.add_items_to_subset(
                 project="Image Project",
                 subset="Subset Name",
                 items=items_list
@@ -5636,8 +5865,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
 
-        project_name, _ = extract_project_folder(project)
-        project = self.controller.projects.get_by_name(project_name).data
+        project = self.controller.get_project(project)
         response = self.controller.subsets.add_items(project, subset, items)
         if response.errors:
             raise AppException(response.errors)
@@ -5717,7 +5945,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context("project_name/folder_name", "item_name") as item_context:
+            with sa_client.item_context("project_name/folder_name", "item_name") as item_context:
                 metadata = item_context.get_metadata()
                 value = item_context.get_component_value("prompts")
                 item_context.set_component_value("prompts", value)
@@ -5726,7 +5954,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
                 metadata = context.get_metadata()
                 print(metadata)
 
@@ -5734,7 +5962,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context((101, 202), "item_name") as context:
+            with sa_client.item_context((101, 202), "item_name") as context:
                 value = context.get_component_value("component_id")
                 print(value)
 
@@ -5742,7 +5970,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
+            with sa_client.item_context("project_name/folder_name", "item_name", overwrite=True) as context:
                 context.set_component_value("component_id", "new_value")
             # No need to call .save(), changes are saved automatically on context exit.
 
@@ -5753,21 +5981,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             from superannotate import FileChangedError
 
             try:
-                with client.item_context((101, 202), "item_name") as context:
+                with sa_client.item_context((101, 202), "item_name") as context:
                     context.set_component_value("component_id", "new_value")
             except FileChangedError as e:
                 print(f"An error occurred: {e}")
         """
-        if isinstance(path, str):
-            project, folder = self.controller.get_project_folder_by_path(path)
-        elif len(path) == 2 and all([isinstance(i, str) for i in path]):
-            project = self.controller.get_project(path[0])
-            folder = self.controller.get_folder(project, path[1])
-        elif len(path) == 2 and all([isinstance(i, int) for i in path]):
-            project = self.controller.get_project_by_id(path[0]).data
-            folder = self.controller.get_folder_by_id(path[1], project.id).data
-        else:
-            raise AppException("Invalid path provided.")
+        project, folder = self.controller.get_project_folder(path)
         if project.type != ProjectType.MULTIMODAL:
             raise AppException(
                 "This function is only supported for Multimodal projects."
@@ -5802,7 +6021,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            client.list_workflows()
+            sa_client.list_workflows()
 
 
         Response Example:

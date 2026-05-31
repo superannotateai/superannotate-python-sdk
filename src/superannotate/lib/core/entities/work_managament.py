@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 from enum import auto
 from enum import Enum
 from typing import Any
@@ -51,13 +50,6 @@ class ProjectStatus(str, Enum):
         return self._name_
 
 
-def _validate_string_date_wm(v: datetime.datetime) -> str:
-    """Convert datetime to string format for WM entities."""
-    if isinstance(v, str):
-        return v
-    return v.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-
-
 class WMProjectEntity(TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -98,6 +90,9 @@ class WMUserEntity(TimedBaseModel):
     email: str | None = None
     state: WMUserStateEnum | None = None
     custom_fields: dict | None = Field(default_factory=dict, alias="customField")
+    user_permissions: list[PermissionEntity] | None = Field(
+        default=None, alias="userPermissions"
+    )
 
     @field_validator("custom_fields", mode="before")
     @classmethod
@@ -123,6 +118,9 @@ class WMProjectUserEntity(TimedBaseModel):
     custom_fields: dict | None = Field(default_factory=dict, alias="customField")
     permissions: dict | None = None
     categories: list[dict] | None = None
+    user_permissions: list[PermissionEntity] | None = Field(
+        default=None, alias="userPermissions"
+    )
 
     @field_validator("custom_fields", mode="before")
     @classmethod
@@ -135,6 +133,22 @@ class WMProjectUserEntity(TimedBaseModel):
         if "exclude" not in kwargs:
             kwargs["exclude"] = {"custom_fields"}
         return super().model_dump_json(**kwargs)
+
+
+class PermissionEntity(TimedBaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int | None = None
+    name: str | None = None
+
+
+class PermissionGroupEntity(TimedBaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int | None = None
+    name: str | None = None
+    label: str | None = None
+    permissions: list[PermissionEntity] | None = Field(default_factory=list)
 
 
 class WMScoreEntity(TimedBaseModel):

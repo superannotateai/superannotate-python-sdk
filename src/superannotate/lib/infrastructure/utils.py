@@ -274,6 +274,44 @@ class CustomFieldCache(BaseCachedWorkManagementRepository):
         return self._K_V_map[key]
 
 
+class ProjectUserPermissionCache(BaseCachedWorkManagementRepository):
+    DEFAULT_TTL_SECONDS = 600
+
+    def __init__(self, work_management: WorkManagementService):
+        super().__init__(self.DEFAULT_TTL_SECONDS, work_management)
+
+    def sync(self, team_id):
+        response = self.work_management.list_permission_groups()
+        if not response.ok:
+            raise AppException(response.error)
+        project_user_permissions = [
+            perm
+            for group in (response.data or [])
+            if group.label == "projectUser"
+            for perm in (group.permissions or [])
+        ]
+        id_name_map = {
+            p.id: p.name
+            for p in project_user_permissions
+            if p.id is not None and p.name
+        }
+        name_id_lower_map = {
+            p.name.lower(): p.id
+            for p in project_user_permissions
+            if p.id is not None and p.name
+        }
+        self._K_V_map[team_id] = {
+            "id_name_map": id_name_map,
+            "name_id_lower_map": name_id_lower_map,
+        }
+        self._update_cache_timestamp(team_id)
+
+    def get(self, key, **kwargs):
+        if not self._is_cache_valid(key):
+            self.sync(team_id=key)
+        return self._K_V_map[key]
+
+
 class ProjectUserCustomFieldCache(CustomFieldCache):
     def sync(self, project_id):
         response = self.work_management.list_custom_field_templates(
@@ -329,6 +367,17 @@ class CachedWorkManagementRepository:
             CustomFieldEntityEnum.CONTRIBUTOR,
             CustomFieldEntityEnum.PROJECT,
         )
+        self._project_user_permission_cache = ProjectUserPermissionCache(
+            work_management
+        )
+
+    def get_project_user_permission_id(self, team_id: int, name: str) -> int | None:
+        data = self._project_user_permission_cache.get(team_id)
+        return data["name_id_lower_map"].get(name.lower())
+
+    def get_project_user_permission_id_name_map(self, team_id: int) -> dict[int, str]:
+        data = self._project_user_permission_cache.get(team_id)
+        return dict(data["id_name_map"])
 
     def get_category_id(self, project, category_name: str) -> int:
         data = self._category_cache.get(project.id, project=project)

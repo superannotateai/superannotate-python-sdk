@@ -40,26 +40,6 @@ def all_literal_values(type_: typing.Any) -> tuple[typing.Any, ...]:
     return ()
 
 
-def make_literal_validator(
-    type_: typing.Any,
-) -> typing.Callable[[typing.Any], typing.Any]:
-    """
-    Adding ability to input literal in the lower case.
-    """
-    permitted_choices = all_literal_values(type_)
-    allowed_choices = {
-        v.lower() if isinstance(v, str) and v else v: v for v in permitted_choices
-    }
-
-    def literal_validator(v: typing.Any) -> typing.Any:
-        try:
-            return allowed_choices[v.lower() if isinstance(v, str) else v]
-        except (KeyError, AttributeError):
-            raise WrongConstantError(given=v, permitted=permitted_choices)
-
-    return literal_validator
-
-
 def get_tabulation() -> int:
     try:
         return int(os.get_terminal_size().columns / 2)

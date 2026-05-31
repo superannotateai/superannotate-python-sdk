@@ -384,9 +384,7 @@ class DataAggregator:
             annotation_json = None
             with open(annotation_path) as fp:
                 annotation_json = json.load(fp)
-            parts = Path(annotation_path).name.split(self._annotation_suffix)
             row_data = self.__fill_image_metadata(row_data, annotation_json["metadata"])
-            annotation_instance_id = 0
 
             # include comments
             for annotation in annotation_json["comments"]:
@@ -433,10 +431,8 @@ class DataAggregator:
                 if Path(annotation_path).parent != Path(self.project_root):
                     folder_name = Path(annotation_path).parent.name
                 instance_row.folderName = folder_name
-                num_added = 0
                 if not attributes:
                     rows.append(instance_row)
-                    num_added = 1
                 else:
                     for attribute in attributes:
                         attribute_row = copy.copy(instance_row)
@@ -469,10 +465,6 @@ class DataAggregator:
                             attribute_row.attributeName = attribute_name
 
                         rows.append(attribute_row)
-                        num_added += 1
-
-                if num_added > 0:
-                    annotation_instance_id += 1
 
         df = pd.DataFrame([row.__dict__ for row in rows], dtype=object)
         df = df.astype({"probability": float})

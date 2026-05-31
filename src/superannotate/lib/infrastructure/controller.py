@@ -513,6 +513,101 @@ class WorkManagementManager(BaseManager):
                         f"{len(contributor_ids)} contributors."
                     )
 
+    def edit_project_user_permissions(
+        self,
+        project: ProjectEntity,
+        user: int | str,
+        permissions: list[str] | Literal["*"],
+        operation: Literal["grant", "revoke"],
+    ):
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+
+        if isinstance(user, int):
+            project_users = self.list_users(project=project, id__in=[user])
+        else:
+            project_users = self.list_users(project=project, email__in=[user])
+
+        if not project_users:
+            raise AppException("User not found.")
+
+        name_by_id = self.service_provider.get_project_user_permission_id_name_map()
+
+        if permissions == "*":
+            resolved_ids = list(name_by_id.keys())
+            unresolved_names: list[str] = []
+        else:
+            resolved_ids = []
+            seen_ids: set = set()
+            unresolved_names = []
+            for name in permissions:
+                pid = self.service_provider.get_project_user_permission_id(name)
+                if pid is None:
+                    unresolved_names.append(name)
+                elif pid not in seen_ids:
+                    resolved_ids.append(pid)
+                    seen_ids.add(pid)
+
+        project_user = project_users[0]
+        user_email = project_user.email
+
+        affected_ids: set[int] = set()
+        if resolved_ids:
+            response = (
+                self.service_provider.work_management.edit_project_user_permissions(
+                    project_id=project.id,
+                    contributor_ids=[project_user.id],
+                    permission_ids=resolved_ids,
+                    operation=operation,
+                )
+            )
+            section_key = "add" if operation == "grant" else "remove"
+            contributor_entry = next(
+                (
+                    c
+                    for c in (response.get(section_key) or [])
+                    if c.get("id") == project_user.id
+                ),
+                None,
+            )
+            if contributor_entry:
+                affected_ids = {
+                    p["id"] for p in (contributor_entry.get("userPermissions") or [])
+                }
+
+        succeeded_names = [
+            name_by_id[pid] for pid in resolved_ids if pid in affected_ids
+        ]
+        failed_names = [
+            name_by_id[pid] for pid in resolved_ids if pid not in affected_ids
+        ] + unresolved_names
+
+        verb_inf = "grant" if operation == "grant" else "revoke"
+        verb_past = "granted" if operation == "grant" else "revoked"
+
+        if succeeded_names:
+            logger.info(
+                f"Successfully {verb_past} [{', '.join(succeeded_names)}] "
+                f"permission(s) for user: {user_email}."
+            )
+        if failed_names:
+            failed_str = f"[{', '.join(failed_names)}]"
+            if operation == "grant":
+                reasons = (
+                    f"- User already has {failed_str} permission(s) granted.\n"
+                    f"- User role does not allow {failed_str} permission(s).\n"
+                    f"- Provided permission(s) were invalid."
+                )
+            else:
+                reasons = (
+                    f"- {failed_str} permission(s) were already revoked for the user.\n"
+                    f"- Provided permission(s) were invalid."
+                )
+            logger.info(
+                f"Could not {verb_inf} {failed_str} permission(s) "
+                f"for user: {user_email}.\nPossible reasons:\n{reasons}"
+            )
+
 
 class ProjectManager(BaseManager):
     def __init__(self, service_provider: ServiceProvider, team: TeamEntity):
@@ -942,26 +1037,6 @@ class ItemManager(BaseManager):
             else:
                 condition = OperatorEnum.EQ
             return condition, ".".join(keys)
-
-    def _build_query(
-        self, project: ProjectEntity, filters: dict, include: list[str]
-    ) -> Query:
-        """Build the query object based on filters and include fields."""
-        filter_annotations = ItemFilters.__annotations__.keys()
-        query = EmptyQuery()
-        _include = set(include if include else [])
-        for key, val in filters.items():
-            if key in filter_annotations:
-                _keys = key.split("__")
-                entity = PROJECT_ITEM_ENTITY_MAP.get(project.type, BaseItemEntity)
-                if _keys[0] not in entity.__fields__:
-                    _include.add(_keys[0])
-                val = self._handle_special_fields(project, _keys, val)
-                condition, _key = self._determine_condition_and_key(_keys)
-                query &= Filter(_key, val, condition)
-        for i in _include:
-            query &= Join(i)
-        return query
 
     @staticmethod
     def process_response(
@@ -1652,11 +1727,6 @@ class BaseController(metaclass=ABCMeta):
 class Controller(BaseController):
     DEFAULT = None
 
-    @classmethod
-    def set_default(cls, obj):
-        cls.DEFAULT = obj
-        return cls.DEFAULT
-
     def get_folder_by_id(self, folder_id: int, project_id: int):
         response = self.folders.get_by_id(
             folder_id=folder_id, project_id=project_id, team_id=self.team_id
@@ -1683,8 +1753,15 @@ class Controller(BaseController):
             raise AppException("Project not found.")
         return project
 
-    def get_folder(self, project: ProjectEntity, name: str = None) -> FolderEntity:
-        folder = self.folders.get_by_name(project, name).data
+    def get_folder(
+        self, project: ProjectEntity, name: str | int = None
+    ) -> FolderEntity:
+        if isinstance(name, int):
+            folder = self.folders.get_by_id(
+                folder_id=name, project_id=project.id, team_id=project.team_id
+            ).data
+        else:
+            folder = self.folders.get_by_name(project, name).data
         if not folder:
             raise AppException("Folder not found.")
         return folder
@@ -1697,16 +1774,14 @@ class Controller(BaseController):
 
     def upload_image_to_project(
         self,
-        project_name: str,
-        folder_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
         image_name: str,
         image: str | io.BytesIO = None,
         annotation_status: str = None,
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
         image_bytes = None
         image_path = None
         if isinstance(image, (str, Path)):
@@ -1735,15 +1810,13 @@ class Controller(BaseController):
 
     def upload_images_to_project(
         self,
-        project_name: str,
-        folder_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
         paths: list[str],
         annotation_status: str = None,
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
 
         return usecases.UploadImagesToProject(
             project=project,
@@ -1761,7 +1834,7 @@ class Controller(BaseController):
     def upload_images_from_folder_to_project(
         self,
         project: ProjectEntity,
-        folder_name: str,
+        folder: FolderEntity,
         folder_path: str,
         extensions: list[str] | None = None,
         annotation_status: str = None,
@@ -1770,7 +1843,6 @@ class Controller(BaseController):
         image_quality_in_editor: str = None,
         from_s3_bucket=None,
     ):
-        folder = self.get_folder(project, folder_name)
         annotation_status_value = (
             self.service_provider.get_annotation_status_value(
                 project, annotation_status
@@ -1794,7 +1866,7 @@ class Controller(BaseController):
 
     def prepare_export(
         self,
-        project_name: str,
+        project: ProjectEntity,
         folder_names: list[str],
         include_fuse: bool,
         only_pinned: bool,
@@ -1802,7 +1874,6 @@ class Controller(BaseController):
         integration_id: int = None,
         export_type: int = None,
     ):
-        project = self.get_project(project_name)
         use_case = usecases.PrepareExportUseCase(
             project=project,
             folder_names=folder_names,
@@ -1866,9 +1937,7 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def get_exports(self, project_name: str, return_metadata: bool):
-        project = self.get_project(project_name)
-
+    def get_exports(self, project: ProjectEntity, return_metadata: bool):
         use_case = usecases.GetExportsUseCase(
             service_provider=self.service_provider,
             project=project,
@@ -1905,13 +1974,12 @@ class Controller(BaseController):
 
     def download_export(
         self,
-        project_name: str,
+        project: ProjectEntity,
         export_name: str,
         folder_path: str,
         extract_zip_contents: bool,
         to_s3_bucket: bool,
     ):
-        project = self.get_project(project_name)
         use_case = usecases.DownloadExportUseCase(
             service_provider=self.service_provider,
             project=project,
@@ -1964,8 +2032,8 @@ class Controller(BaseController):
 
     def upload_videos(
         self,
-        project_name: str,
-        folder_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
         paths: list[str],
         start_time: float,
         extensions: list[str] = None,
@@ -1975,8 +2043,6 @@ class Controller(BaseController):
         annotation_status: str | None = None,
         image_quality_in_editor: str | None = None,
     ):
-        project = self.get_project(project_name)
-        folder = self.get_folder(project, folder_name)
         annotation_status_value = (
             self.service_provider.get_annotation_status_value(
                 project, annotation_status
@@ -2039,13 +2105,20 @@ class Controller(BaseController):
             self.service_provider, items, project, folder, map_fields=False
         )
 
-    def query_items_count(self, project_name: str, query: str = None) -> int:
-        project = self.get_project(project_name)
+    def query_items_count(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        query: str | None = None,
+        subset: str | None = None,
+    ) -> int:
 
         use_case = usecases.QueryEntitiesCountUseCase(
             reporter=self.get_default_reporter(),
             project=project,
+            folder=folder,
             query=query,
+            subset=subset,
             service_provider=self.service_provider,
         )
         response = use_case.execute()

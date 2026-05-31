@@ -61,3 +61,9 @@ class TestSetProjectStatus(TestCase):
             "Project not found.",
         ):
             sa.set_project_status(project="Invalid name", status="Completed")
+
+    def test_set_project_status_by_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        sa.set_project_status(project=project_id, status="Completed")
+        project = sa.get_project_metadata(self.PROJECT_NAME)
+        self.assertEqual(project["status"], "Completed")

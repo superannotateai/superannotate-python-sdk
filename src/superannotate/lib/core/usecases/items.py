@@ -170,13 +170,17 @@ class QueryEntitiesCountUseCase(BaseReportableUseCase):
         self,
         reporter: Reporter,
         project: ProjectEntity,
+        folder: FolderEntity,
         service_provider: BaseServiceProvider,
-        query: str,
+        query: str | None,
+        subset: str | None = None,
     ):
         super().__init__(reporter)
         self._project = project
+        self._folder = folder
         self._service_provider = service_provider
         self._query = query
+        self._subset = subset
 
     def validate_arguments(self):
         if self._query:
@@ -197,9 +201,40 @@ class QueryEntitiesCountUseCase(BaseReportableUseCase):
             if not response.ok:
                 raise AppException(response.error)
 
+        if not any([self._query, self._subset]):
+            raise AppException(
+                "The query and subset params cannot have the value None at the same time."
+            )
+        if self._subset and not self._folder.is_root:
+            raise AppException(
+                "The folder name should be specified in the query string."
+            )
+
     def execute(self) -> Response:
         if self.is_valid():
-            query_kwargs = {"query": self._query}
+            query_kwargs = {}
+            if self._subset:
+                response = self._service_provider.explore.list_subsets(self._project)
+                if response.ok:
+                    subset = next(
+                        (_sub for _sub in response.data if _sub.name == self._subset),
+                        None,
+                    )
+                else:
+                    self._response.errors = response.error
+                    return self._response
+                if not subset:
+                    self._response.errors = AppException(
+                        "Subset not found. Use the superannotate."
+                        "get_subsets() function to get a list of the available subsets."
+                    )
+                    return self._response
+                query_kwargs["subset_id"] = subset.id
+            if self._query:
+                query_kwargs["query"] = self._query
+            query_kwargs["folder"] = (
+                None if self._folder.name == "root" else self._folder
+            )
             service_response = self._service_provider.explore.query_item_count(
                 self._project,
                 **query_kwargs,
@@ -470,198 +505,6 @@ class GenerateItems(BaseReportableUseCase):
         return self._response
 
 
-class CopyItems(BaseReportableUseCase):
-    """
-    Copy items in bulk between folders in a project.
-    Return skipped item names.
-    """
-
-    CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        from_folder: FolderEntity,
-        to_folder: FolderEntity,
-        item_names: list[str],
-        service_provider: BaseServiceProvider,
-        include_annotations: bool,
-    ):
-        super().__init__(reporter)
-        self._project = project
-        self._from_folder = from_folder
-        self._to_folder = to_folder
-        self._item_names = item_names
-        self._service_provider = service_provider
-        self._include_annotations = include_annotations
-
-    def _validate_limitations(self, items_count):
-        response = self._service_provider.get_limitations(
-            project=self._project,
-            folder=self._to_folder,
-        )
-        if not response.ok:
-            raise AppValidationException(response.error)
-        if items_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constants.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
-        if items_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constants.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
-
-    def validate_item_names(self):
-        if self._item_names:
-            self._item_names = list(set(self._item_names))
-
-    def execute(self):
-        if self.is_valid():
-            if self._item_names:
-                items = self._item_names
-            else:
-                data = self._service_provider.item_service.list(
-                    self._project.id, self._from_folder.id, EmptyQuery()
-                )
-                items = [i.name for i in data]
-            existing_items = []
-            for i in range(0, len(items), self.CHUNK_SIZE):
-                query = Filter(
-                    "name", items[i : i + self.CHUNK_SIZE], OperatorEnum.IN
-                )  # noqa
-                data = self._service_provider.item_service.list(
-                    self._project.id, self._to_folder.id, query
-                )
-                if not data:
-                    continue
-                existing_items += data
-            duplications = [item.name for item in existing_items]
-            items_to_copy = list(set(items) - set(duplications))
-            skipped_items = duplications
-            try:
-                self._validate_limitations(len(items_to_copy))
-            except AppValidationException as e:
-                self._response.errors = e
-                return self._response
-            if items_to_copy:
-                for i in range(0, len(items_to_copy), self.CHUNK_SIZE):
-                    chunk_to_copy = items_to_copy[i : i + self.CHUNK_SIZE]  # noqa: E203
-                    response = self._service_provider.items.copy_multiple(
-                        project=self._project,
-                        from_folder=self._from_folder,
-                        to_folder=self._to_folder,
-                        item_names=chunk_to_copy,
-                        include_annotations=self._include_annotations,
-                    )
-                    if not response.ok or not response.data.get("poll_id"):
-                        skipped_items.extend(chunk_to_copy)
-                        continue
-                    try:
-                        self._service_provider.items.await_copy(
-                            project=self._project,
-                            poll_id=response.data["poll_id"],
-                            items_count=len(chunk_to_copy),
-                        )
-                    except BackendError as e:
-                        self._response.errors = AppException(e)
-                        return self._response
-                existing_items = []
-                for i in range(0, len(items), self.CHUNK_SIZE):
-                    data = self._service_provider.item_service.list(
-                        self._project.id,
-                        self._to_folder.id,
-                        Filter(
-                            "name", items[i : i + self.CHUNK_SIZE], OperatorEnum.IN
-                        ),  # noqa
-                    )
-                    existing_items += data
-
-                existing_item_names_set = {item.name for item in existing_items}
-                items_to_copy_names_set = set(items_to_copy)
-                copied_items = existing_item_names_set.intersection(
-                    items_to_copy_names_set
-                )
-                skipped_items.extend(list(items_to_copy_names_set - copied_items))
-                self.reporter.log_info(
-                    f"Copied {len(copied_items)}/{len(items)} item(s) from "
-                    f"{self._project.name}{'' if self._from_folder.is_root else f'/{self._from_folder.name}'} to "
-                    f"{self._project.name}{'' if self._to_folder.is_root else f'/{self._to_folder.name}'}"
-                )
-            self._response.data = skipped_items
-        return self._response
-
-
-class MoveItems(BaseReportableUseCase):
-    CHUNK_SIZE = 1000
-
-    def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        from_folder: FolderEntity,
-        to_folder: FolderEntity,
-        item_names: list[str],
-        service_provider: BaseServiceProvider,
-    ):
-        super().__init__(reporter)
-        self._project = project
-        self._from_folder = from_folder
-        self._to_folder = to_folder
-        self._item_names = item_names
-        self._service_provider = service_provider
-
-    def validate_item_names(self):
-        if self._item_names:
-            self._item_names = list(set(self._item_names))
-
-    def _validate_limitations(self, items_count):
-        response = self._service_provider.get_limitations(
-            project=self._project,
-            folder=self._to_folder,
-        )
-        if not response.ok:
-            raise AppValidationException(response.error)
-        if items_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constants.MOVE_FOLDER_LIMIT_ERROR_MESSAGE)
-        if items_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constants.MOVE_PROJECT_LIMIT_ERROR_MESSAGE)
-
-    def execute(self):
-        if self.is_valid():
-            if not self._item_names:
-                items = [
-                    i.name
-                    for i in self._service_provider.item_service.list(
-                        self._project.id, self._from_folder.id, EmptyQuery()
-                    )
-                ]
-            else:
-                items = self._item_names
-            try:
-                self._validate_limitations(len(items))
-            except AppValidationException as e:
-                self._response.errors = e
-                return self._response
-            moved_images = []
-            for i in range(0, len(items), self.CHUNK_SIZE):
-                response = self._service_provider.items.move_multiple(
-                    project=self._project,
-                    from_folder=self._from_folder,
-                    to_folder=self._to_folder,
-                    item_names=items[i : i + self.CHUNK_SIZE],  # noqa: E203
-                )
-                if not response.ok:
-                    raise AppException(response.error)
-                if response.ok and response.data.get("done"):
-                    moved_images.extend(response.data["done"])
-
-            self.reporter.log_info(
-                f"Moved {len(moved_images)}/{len(items)} item(s) from "
-                f"{self._project.name}{'' if self._from_folder.is_root else f'/{self._from_folder.name}'} to "
-                f"{self._project.name}{'' if self._to_folder.is_root else f'/{self._to_folder.name}'}"
-            )
-
-            self._response.data = list(set(items) - set(moved_images))
-        return self._response
-
-
 class CopyMoveItems(BaseReportableUseCase):
     """
     Copy/Move items in bulk between folders in a project.
@@ -862,7 +705,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203,
                     annotation_status=self._annotation_status_code,
                 )
-                if not status_changed:
+                if not status_changed.ok:
                     self._response.errors = AppException(self.ERROR_MESSAGE)
                     break
         return self._response

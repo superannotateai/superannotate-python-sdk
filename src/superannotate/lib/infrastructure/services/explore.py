@@ -196,13 +196,19 @@ class ExploreService(BaseExploreService):
     def query_item_count(
         self,
         project: entities.ProjectEntity,
+        folder: entities.FolderEntity = None,
         query: str = None,
+        subset_id: int = None,
     ) -> ServiceResponse:
 
         params = {
             "project_id": project.id,
             "includeFolderNames": True,
         }
+        if folder:
+            params["folder_id"] = folder.id
+        if subset_id:
+            params["subset_id"] = subset_id
         data = {"query": query}
         response = self.client.request(
             urljoin(self.explore_service_url, self.URL_QUERY_COUNT),

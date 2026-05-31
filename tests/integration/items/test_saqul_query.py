@@ -59,12 +59,50 @@ class TestEntitiesSearchVector(BaseTestCase):
         sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
         entities = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
         assert len(entities) == 100
-        assert (
-            sa.controller.query_items_count(
-                self.PROJECT_NAME, "metadata(status = NotStarted)"
-            )
-            == 100
+        assert entities.count() == len(entities)
+
+    def test_query_result_list_like_behavior(self):
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        result = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+
+        self.assertEqual(len(result), 100)
+        self.assertIsInstance(result[0], dict)
+        self.assertIn("name", result[0])
+        self.assertIsInstance(result[-1], dict)
+        self.assertEqual(len(result[0:5]), 5)
+
+        items = [item for item in result]
+        self.assertEqual(len(items), 100)
+        self.assertIsInstance(list(result), list)
+
+    def test_query_result_lazy_count(self):
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        result = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+
+        self.assertFalse(result._loaded)
+        self.assertEqual(result.count(), 100)
+        self.assertFalse(result._loaded)
+
+        _ = result[0]
+        self.assertTrue(result._loaded)
+
+    def test_query_result_count_respects_subset(self):
+        subset_name = "subset_a"
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        all_items = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+        subset_items = [
+            {"name": item["name"], "path": self.PROJECT_NAME} for item in all_items[:30]
+        ]
+        sa.add_items_to_subset(self.PROJECT_NAME, subset_name, subset_items)
+
+        result = sa.query(
+            self.PROJECT_NAME,
+            "metadata(status = NotStarted)",
+            subset=subset_name,
         )
+
+        self.assertEqual(result.count(), len(subset_items))
+        self.assertEqual(result.count(), len(list(result)))
 
     def test_validate_saqul_query(self):
         try:

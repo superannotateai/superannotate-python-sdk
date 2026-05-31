@@ -48,6 +48,31 @@ class TestVectorCreateAnnotationClass(BaseTestCase):
         )
         self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 4)
 
+    def test_create_annotation_class_from_json_by_project_id(self):
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        sa.create_annotation_classes_from_classes_json(project_id, self.classes_json)
+        self.assertEqual(len(sa.search_annotation_classes(project_id)), 4)
+
+    def test_download_annotation_classes_json_by_project_id(self):
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.classes_json
+        )
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            path = sa.download_annotation_classes_json(project_id, tmpdir_name)
+            assert os.path.isfile(path)
+
+    def test_delete_annotation_class_by_project_id(self):
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.classes_json
+        )
+        project_id = sa.get_project_metadata(self.PROJECT_NAME)["id"]
+        classes = sa.search_annotation_classes(project_id)
+        assert classes
+        sa.delete_annotation_class(project_id, classes[0]["name"])
+        remaining = sa.search_annotation_classes(project_id)
+        assert len(remaining) == len(classes) - 1
+
     def test_invalid_json(self):
         try:
             sa.create_annotation_classes_from_classes_json(

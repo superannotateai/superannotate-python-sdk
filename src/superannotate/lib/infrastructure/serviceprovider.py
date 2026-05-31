@@ -37,7 +37,6 @@ class ServiceProvider(BaseServiceProvider):
     URL_USER = "user/ME"
     URL_USERS = "users"
     URL_GET_EXPORT = "export/{}"
-    URL_PREDICTION = "images/prediction"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_INVITE_CONTRIBUTORS = "api/v1/team/{}/inviteUsers"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
@@ -155,6 +154,16 @@ class ServiceProvider(BaseServiceProvider):
     ) -> str:
         return self._cached_work_management_repository.get_annotation_status_name(
             project, status_value
+        )
+
+    def get_project_user_permission_id(self, name: str) -> int | None:
+        return self._cached_work_management_repository.get_project_user_permission_id(
+            self.client.team_id, name
+        )
+
+    def get_project_user_permission_id_name_map(self) -> dict[int, str]:
+        return self._cached_work_management_repository.get_project_user_permission_id_name_map(
+            self.client.team_id
         )
 
     @staticmethod
