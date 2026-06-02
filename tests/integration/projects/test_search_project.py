@@ -22,19 +22,17 @@ class TestProjectSearch(BaseTestCase):
         )
 
     def tearDown(self) -> None:
-        projects = []
-        projects.extend(sa.search_projects(self.PROJECT_NAME, return_metadata=True))
-        projects.extend(
-            sa.search_projects(self.REPLACED_PROJECT_NAME, return_metadata=True)
-        )
-        projects.extend(
-            sa.search_projects(
-                self.PROJECT_NAME_CONTAIN_SPECIAL_CHARACTER, return_metadata=True
-            )
+        projects = sa.list_projects(
+            name__in=[
+                self.PROJECT_NAME,
+                self.PROJECT_NAME_2,
+                self.REPLACED_PROJECT_NAME,
+                self.PROJECT_NAME_CONTAIN_SPECIAL_CHARACTER,
+            ]
         )
         for project in projects:
             try:
-                sa.delete_project(project)
+                sa.delete_project(project=project["id"])
             except Exception as _:
                 pass
 
