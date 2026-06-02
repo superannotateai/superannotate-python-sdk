@@ -34,6 +34,7 @@ class BaseMultimodalProjectCreate(TestCase):
         "readme": "",
     }
     MULTIMODAL_FORM = None
+    SETTINGS = None
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -48,6 +49,7 @@ class BaseMultimodalProjectCreate(TestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
+            settings=self.SETTINGS,
             form=self.MULTIMODAL_FORM,
         )
 

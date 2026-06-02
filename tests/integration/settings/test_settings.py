@@ -47,16 +47,19 @@ class TestSettings(BaseTestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}],
+            settings=[
+                {"attribute": "ImageQuality", "value": "original"},
+                {"attribute": "ItemAutoAssignOrder", "value": 3},
+            ],
         )
 
         settings = sa.get_project_settings(self.PROJECT_NAME)
+        assert settings
         for setting in settings:
             if setting["attribute"] == "ImageQuality":
                 assert setting["value"] == "original"
-                break
-        else:
-            raise Exception("Test failed")
+            if setting["attribute"] == "ItemAutoAssignOrder":
+                assert setting["value"] == 3
 
     def test_frame_rate_invalid_range_value(self):
         with self.assertRaisesRegex(
@@ -176,16 +179,20 @@ class TestMMSettings(BaseTestCase):
         "readme": "",
     }
 
-    def test_frame_rate(self):
+    def test_mm_project_specific_settings(self):
         sa.create_project(
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            settings=[{"attribute": "MaxIdleDuration", "value": 612}],
+            settings=[
+                {"attribute": "MaxIdleDuration", "value": 612},
+                {"attribute": "ImageAutoAssignByCategory", "value": 1},
+            ],
             form=self.MULTIMODAL_FORM,
         )
         settings = sa.get_project_settings(self.PROJECT_NAME)
         for setting in settings:
             if setting["attribute"] == "MaxIdleDuration":
                 assert setting["value"] == 612
-                break
+            if setting["attribute"] == "ImageAutoAssignByCategory":
+                assert setting["value"] == 1
