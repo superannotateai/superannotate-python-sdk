@@ -45,14 +45,10 @@ class TestVideo(BaseTestCase):
         )
 
     def tearDown(self) -> None:
-        projects = sa.list_projects(
-            name__in=[self.PROJECT_NAME, self.SECOND_PROJECT_NAME]
-        )
-        for project in projects:
-            try:
-                sa.delete_project(project=project["id"])
-            except Exception as _:
-                pass
+        for project_name in (self.PROJECT_NAME, self.SECOND_PROJECT_NAME):
+            projects = sa.search_projects(project_name, return_metadata=True)
+            for project in projects:
+                sa.delete_project(project)
 
     def test_videos_upload_from_folder(self):
         res = sa.upload_videos_from_folder_to_project(

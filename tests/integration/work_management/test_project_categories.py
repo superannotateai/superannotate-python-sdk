@@ -67,11 +67,11 @@ class TestProjectCategories(TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         # cleanup test scores and project
-        projects = sa.list_projects(name__in=[cls.PROJECT_NAME])
+        projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
         for project in projects:
             try:
-                sa.delete_project(project=project["id"])
-            except Exception as _:
+                sa.delete_project(project)
+            except Exception:
                 pass
 
     def test_project_categories_flow(self):

@@ -96,6 +96,8 @@ PROJECT_TYPE = Literal[
     "Vector",
     "Video",
     "Document",
+    "Tiled",
+    "PointCloud",
     "Multimodal",
 ]
 
@@ -1407,7 +1409,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project_description: The new project's description.
         :type project_description: str
 
-        :param project_type: The project type. Supported types: 'Vector', 'Video', 'Document', 'Multimodal'.
+        :param project_type: The project type. Supported types: 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud', 'Multimodal'.
         :type project_type: str
 
         :param settings: list of settings objects

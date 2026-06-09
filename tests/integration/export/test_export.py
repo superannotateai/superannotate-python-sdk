@@ -65,10 +65,10 @@ class TestExportImport(TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        projects = sa.list_projects(name=cls.PROJECT_NAME)
+        projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
         for project in projects:
             try:
-                sa.delete_project(project=project["id"])
+                sa.delete_project(project)
             except AppException as e:
                 logging.error(e)
 

@@ -29,11 +29,11 @@ class TestProjectUserPermissions(TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        projects = sa.list_projects(name__in=[cls.PROJECT_NAME])
+        projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
         for project in projects:
             try:
-                sa.delete_project(project=project["id"])
-            except Exception as _:
+                sa.delete_project(project)
+            except Exception:
                 pass
 
     def tearDown(self):

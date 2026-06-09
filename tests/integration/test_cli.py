@@ -37,12 +37,9 @@ class CLITest(TestCase):
         self.tearDown()
 
     def tearDown(self) -> None:
-        projects = sa.list_projects(name__in=[self.PROJECT_NAME])
+        projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
         for project in projects:
-            try:
-                sa.delete_project(project=project["id"])
-            except Exception as _:
-                pass
+            sa.delete_project(project)
 
     @property
     def convertor_data_path(self):
