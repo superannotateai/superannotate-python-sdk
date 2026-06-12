@@ -876,10 +876,10 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         return use_case.execute().data
 
     @staticmethod
-    def set_defaults(team_id, annotation_data: dict, project_type: int):
+    def set_defaults(user_email, annotation_data: dict, project_type: int):
         default_data = {}
         annotation_data["metadata"]["lastAction"] = {
-            "email": team_id,
+            "email": user_email,
             "timestamp": int(round(time.time() * 1000)),
         }
         instances = annotation_data.get("instances", [])
@@ -1909,7 +1909,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
 
     def set_defaults(self, annotation: dict):
         annotation["metadata"]["lastAction"] = {
-            "email": self._project.team_id,
+            "email": self._user.email,
             "timestamp": int(round(time.time() * 1000)),
         }
         return annotation
