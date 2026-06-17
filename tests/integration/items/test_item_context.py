@@ -8,6 +8,9 @@ from unittest.mock import patch
 from src.superannotate import FileChangedError
 from src.superannotate import ItemContext
 from src.superannotate import SAClient
+from src.superannotate.lib.infrastructure.annotation_adapter import (
+    MultimodalSmallAnnotationAdapter,
+)
 from tests.integration.base import BaseTestCase
 
 sa = SAClient()
@@ -105,6 +108,20 @@ class TestMultimodalProjectBasic(BaseTestCase):
         item = sa.search_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
         self._base_test((self._project["id"], folder["id"]), item["id"])
 
+    def test_set_component_value_stamps_last_action(self):
+        user_email = sa.controller.current_user.email
+        self._attach_item(self.PROJECT_NAME, "audit_item")
+
+        with sa.item_context(self.PROJECT_NAME, "audit_item", overwrite=True) as ic:
+            ic.set_component_value("component_id_1", "value")
+
+        # re-fetch through the SDK to verify the metadata was persisted server-side
+        with sa.item_context(self.PROJECT_NAME, "audit_item") as ic:
+            assert ic.get_component_value("component_id_1") == "value"
+            last_action = ic.get_metadata()["lastAction"]
+            assert last_action["email"] == user_email
+            assert isinstance(last_action["timestamp"], int)
+
 
 class TestEditorContext(BaseTestCase):
     PROJECT_NAME = "TestEditorContext"
@@ -199,3 +216,38 @@ class TestItemContextSetComponentCalledFlag(TestCase):
                     ic.set_component_value("component_id", "value")
                     raise RuntimeError("boom")
             save_mock.assert_not_called()
+
+
+class TestLastActionMetadata(TestCase):
+    EMAIL = "narekm@superannotate.com"
+
+    def _make_adapter(self, annotation):
+        controller = MagicMock()
+        controller.current_user.email = self.EMAIL
+        return MultimodalSmallAnnotationAdapter(
+            project=MagicMock(),
+            folder=MagicMock(),
+            item=MagicMock(),
+            controller=controller,
+            annotation=annotation,
+        )
+
+    def test_set_component_value_does_not_add_audit_fields(self):
+        adapter = self._make_adapter({"metadata": {}, "data": {}})
+        adapter.set_component_value("component_id_1", "value")
+        element = adapter.annotation["data"]["component_id_1"][0]
+        self.assertEqual(element, {"value": "value"})
+
+    def test_save_stamps_last_action(self):
+        adapter = self._make_adapter({"metadata": {}, "data": {}})
+        adapter.save()
+        last_action = adapter.annotation["metadata"]["lastAction"]
+        self.assertEqual(last_action["email"], self.EMAIL)
+        self.assertIsInstance(last_action["timestamp"], int)
+        adapter._controller.annotations.set_item_annotations.assert_called_once()
+
+    def test_save_preserves_existing_metadata(self):
+        adapter = self._make_adapter({"metadata": {"name": "item"}, "data": {}})
+        adapter.save()
+        self.assertEqual(adapter.annotation["metadata"]["name"], "item")
+        self.assertIn("lastAction", adapter.annotation["metadata"])
