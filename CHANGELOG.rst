@@ -11,7 +11,7 @@ ______________________
 
 **Updated**
 
-    - ``SAClient.create_project()`` Now support the ImageAutoAssignCount, ItemAutoAssignOrder , ImageAutoAssignByCategory settings.
+    - ``SAClient.create_project()`` Now support the ItemAutoAssignOrder , ImageAutoAssignByCategory settings.
 
 
 4.5.5 - May 31, 2026
