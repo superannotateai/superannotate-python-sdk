@@ -1,7 +1,17 @@
 import asyncio
 import re
+import time
 import typing
 from threading import Thread
+
+
+def set_last_action(annotation: dict, email: str) -> dict:
+    """Set ``metadata.lastAction`` on an annotation JSON in place."""
+    annotation.setdefault("metadata", {})["lastAction"] = {
+        "email": email,
+        "timestamp": int(round(time.time() * 1000)),
+    }
+    return annotation
 
 
 class AsyncThread(Thread):

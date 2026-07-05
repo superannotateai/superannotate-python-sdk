@@ -9,7 +9,6 @@ import logging
 import os
 import platform
 import re
-import time
 import traceback
 from collections import defaultdict
 from collections.abc import Callable
@@ -47,6 +46,7 @@ from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.folders import CreateFolderUseCase
 from lib.core.usecases.items import AttachItems
 from lib.core.utils import run_async
+from lib.core.utils import set_last_action
 from lib.core.video_convertor import VideoFrameGenerator
 from lib.infrastructure.utils import divide_to_chunks
 from pydantic import BaseModel
@@ -876,12 +876,9 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
         return use_case.execute().data
 
     @staticmethod
-    def set_defaults(team_id, annotation_data: dict, project_type: int):
+    def set_defaults(user_email, annotation_data: dict, project_type: int):
         default_data = {}
-        annotation_data["metadata"]["lastAction"] = {
-            "email": team_id,
-            "timestamp": int(round(time.time() * 1000)),
-        }
+        set_last_action(annotation_data, user_email)
         instances = annotation_data.get("instances", [])
         if project_type in constants.ProjectType.images:
             default_data["probability"] = 100
@@ -1908,11 +1905,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         return self.list_items(folder, attached_item_names)
 
     def set_defaults(self, annotation: dict):
-        annotation["metadata"]["lastAction"] = {
-            "email": self._project.team_id,
-            "timestamp": int(round(time.time() * 1000)),
-        }
-        return annotation
+        return set_last_action(annotation, self._user.email)
 
     @staticmethod
     def serialize_folder_name(val):

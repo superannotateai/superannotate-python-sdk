@@ -30,7 +30,8 @@ class TestDF(BaseTestCase):
 
     def test_invalid_project_type(self):
         with self.assertRaisesRegex(
-            AppException, "The function is not supported for PointCloud projects."
+            AppException,
+            "Input should be 'Vector', 'Video', 'Document' or 'Multimodal'",
         ):
             sa.aggregate_annotations_as_df(self.folder_path, "PointCloud")
 

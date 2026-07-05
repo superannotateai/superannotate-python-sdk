@@ -95,7 +95,7 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
     def test_create_project_with_wrong_type(self):
         with self.assertRaisesRegex(
             AppException,
-            "Input should be 'Vector', 'Video', 'Document', 'Tiled', 'PointCloud' or 'Multimodal'",
+            "Input should be 'Vector', 'Video', 'Document' or 'Multimodal'",
         ):
             sa.create_project(self.PROJECT, "desc", "wrong_type")
 
@@ -129,6 +129,13 @@ class TestCreateVectorProject(ProjectCreateBaseTestCase):
         assert steps[0]["attribute"][1]["attribute"]["name"] == "Bus"
         assert steps[1]["attribute"][0]["attribute"]["name"] == "Track"
         assert steps[1]["attribute"][1]["attribute"]["name"] == "Bus"
+
+    def test_deprecated_project_crate(self):
+        error_msg = "Input should be 'Vector', 'Video', 'Document' or 'Multimodal'"
+        with self.assertRaisesRegex(AppException, error_msg):
+            sa.create_project(self.PROJECT, "desc", "Tiled")
+        with self.assertRaisesRegex(AppException, error_msg):
+            sa.create_project(self.PROJECT, "desc", "PointCloud")
 
 
 class TestCreateVideoProject(ProjectCreateBaseTestCase):

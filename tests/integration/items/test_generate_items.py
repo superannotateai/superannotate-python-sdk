@@ -27,6 +27,7 @@ class TestGenerateItemsMM(TestCase):
     }
 
     def setUp(self, *args, **kwargs):
+        self.tearDown()
         sa.create_project(
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
@@ -37,10 +38,10 @@ class TestGenerateItemsMM(TestCase):
 
     def tearDown(self) -> None:
         try:
-            projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
+            projects = sa.list_projects(name=self.PROJECT_NAME)
             for project in projects:
                 try:
-                    sa.delete_project(project)
+                    sa.delete_project(project=project["id"])
                 except Exception as e:
                     print(str(e))
         except Exception as e:

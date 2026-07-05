@@ -6,6 +6,14 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.5.6 - July 5, 2026
+______________________
+
+**Updated**
+
+    - ``SAClient.create_project()`` Now support the ImageAutoAssignCount, ItemAutoAssignOrder , ImageAutoAssignByCategory settings.
+
+
 4.5.5 - May 31, 2026
 ______________________
 

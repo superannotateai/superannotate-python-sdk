@@ -8,6 +8,7 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.utils import run_async
+from lib.core.utils import set_last_action
 from lib.infrastructure.controller import Controller
 
 
@@ -56,6 +57,10 @@ class BaseMultimodalAnnotationAdapter(ABC):
             if annotation is not None:
                 return annotation.get("value")
         return None
+
+    def set_last_action(self):
+        """Stamp ``metadata.lastAction`` with the current user, called on save."""
+        set_last_action(self.annotation, self._controller.current_user.email)
 
     def set_component_value(self, component_id: str, value: Any):
         data = self.annotation.setdefault("data", {})
@@ -116,6 +121,7 @@ class MultimodalSmallAnnotationAdapter(BaseMultimodalAnnotationAdapter):
         return self._annotation
 
     def save(self):
+        self.set_last_action()
         self._controller.annotations.set_item_annotations(
             project=self._project,
             folder=self._folder,
@@ -142,6 +148,7 @@ class MultimodalLargeAnnotationAdapter(BaseMultimodalAnnotationAdapter):
         return self._annotation
 
     def save(self):
+        self.set_last_action()
         run_async(
             self._controller.service_provider.annotations.upload_big_annotation(
                 project=self._project,

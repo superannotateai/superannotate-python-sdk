@@ -254,8 +254,13 @@ class TestCloneVideoProject(TestCase):
 
 class TestCloneMultimodalProject(BaseMultimodalProjectCreate):
     FORM_PATH = DATA_SET_PATH / "multimodal_form" / "form.json"
-    PROJECT_NAME = "test_clone_multimodal_project"
+    PROJECT_NAME = "test_multimodal_project"
     PROJECT_NAME_CLONE = "test_clone_multimodal_project_clone"
+    SETTINGS = [
+        {"attribute": "ImageAutoAssignByCategory", "value": 1},
+        {"attribute": "ItemAutoAssignOrder", "value": 4},
+        {"attribute": "ImageAutoAssignCount", "value": 5},
+    ]
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -294,6 +299,12 @@ class TestCloneMultimodalProject(BaseMultimodalProjectCreate):
         for s in cloned_project["settings"]:
             if s["attribute"] == "TemplateState":
                 assert s["value"] == 1
+            if s["attribute"] == "ImageAutoAssignByCategory":
+                assert s["value"] == 1
+            if s["attribute"] == "ItemAutoAssignOrder":
+                assert s["value"] == 4
+            if s["attribute"] == "ImageAutoAssignCount":
+                assert s["value"] == 5
 
     def test_clone_multimodal_project_copy_settings_false(self):
         sa.clone_project(
