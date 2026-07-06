@@ -30,6 +30,7 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
+from lib.core.entities import IntegrationEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import UserEntity
 from lib.core.exceptions import AppException
@@ -1745,6 +1746,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         user: UserEntity,
         keep_status: bool = False,
         transform_version: str = None,
+        integration: IntegrationEntity = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -1758,6 +1760,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         self._transform_version = (
             "llmJsonV2" if transform_version is None else transform_version
         )
+        self._integration = integration
         self._category_name_to_id_map = {}
 
     @property
@@ -1895,7 +1898,12 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             project=self._project,
             folder=folder,
             attachments=[
-                AttachmentEntity(name=item_name, url="") for item_name in item_names
+                AttachmentEntity(
+                    name=item_name,
+                    url="",
+                    integration_id=self._integration.id if self._integration else None,
+                )
+                for item_name in item_names
             ],
             service_provider=self._service_provider,
         ).execute()
