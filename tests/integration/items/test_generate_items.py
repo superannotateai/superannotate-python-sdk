@@ -85,6 +85,22 @@ class TestGenerateItemsMM(TestCase):
         ):
             sa.generate_items(self.PROJECT_NAME, 100, name="m<:")
 
+    def test_long_item_names(self):
+        # Max allowed prefix is 114 chars; with the "_00001" suffix the full
+        # item name is 120 chars, which is under the backend limit of 200 chars,
+        # so names must be stored in full without being truncated.
+        name = "a" * 194
+        sa.generate_items(self.PROJECT_NAME, 100, name=name)
+        items = sa.list_items(self.PROJECT_NAME)
+
+        assert len(items) == 100
+
+        expected_names = {f"{name}_{i:05d}" for i in range(1, 101)}
+        actual_names = {item["name"] for item in items}
+
+        assert actual_names == expected_names
+        assert all(len(n) == 200 for n in actual_names)
+
     def test_item_count(self):
         with self.assertRaisesRegex(
             AppException,

@@ -425,6 +425,7 @@ class AttachItems(BaseReportableUseCase):
 
 class GenerateItems(BaseReportableUseCase):
     CHUNK_SIZE = 500
+    ITEM_NAME_PREFIX_LIMIT = 194
     INVALID_CHARS_PATTERN = re.compile(r"[<>:\"'/\\|?*&$!+]")
 
     def __init__(
@@ -445,7 +446,7 @@ class GenerateItems(BaseReportableUseCase):
 
     def validate_name(self):
         if (
-            len(self._name_prefix) > 114
+            len(self._name_prefix) > self.ITEM_NAME_PREFIX_LIMIT
             or self.INVALID_CHARS_PATTERN.search(self._name_prefix) is not None
         ):
             raise AppException("Invalid item name.")
