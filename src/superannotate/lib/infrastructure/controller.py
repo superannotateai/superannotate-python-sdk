@@ -1432,7 +1432,6 @@ class AnnotationManager(BaseManager):
         keep_status: bool,
         user: UserEntity,
         output_format: str = None,
-        integration: IntegrationEntity = None,
     ):
         if project.type == ProjectType.MULTIMODAL and output_format == "multimodal":
             use_case = usecases.UploadMultiModalAnnotationsUseCase(
@@ -1444,7 +1443,6 @@ class AnnotationManager(BaseManager):
                 keep_status=keep_status,
                 user=user,
                 transform_version="llmJsonV2",
-                integration=integration,
             )
         else:
             use_case = usecases.UploadAnnotationsUseCase(
