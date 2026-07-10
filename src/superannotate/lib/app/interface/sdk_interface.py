@@ -3724,9 +3724,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                      compact and modality-specific data representation.
         :type data_spec: str, optional
 
-        :param integration: The name of an existing integration on the SuperAnnotate platform,
-            used to access external URLs in the annotations. Only supported for Multimodal projects
-            and only applies to items being newly created — it has no effect on existing items.
+        :param integration: The name of an existing integration on the SuperAnnotate platform, used to access external URLs in the annotations. Only supported for
+            Multimodal projects and data_spec="multimodal" and only applies to items being newly created — it has no effect on existing items.
+            integration: str, optional
         :type integration: str, optional
 
         :return: A dictionary containing the results of the upload, categorized into successfully uploaded,

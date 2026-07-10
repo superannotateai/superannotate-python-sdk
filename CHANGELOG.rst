@@ -6,6 +6,15 @@ History
 
 All release highlights of this project will be documented in this file.
 
+
+4.5.7 - July 12, 2026
+______________________
+
+**Updated**
+
+    - ``SAClient.upload_annotations()`` Added an integration parameter for Multimodal projects, allowing users to pass an existing SuperAnnotate integration name to sign private external URLs while creating new items.
+
+
 4.5.6 - July 5, 2026
 ______________________
 
