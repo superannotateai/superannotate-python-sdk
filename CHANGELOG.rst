@@ -6,6 +6,15 @@ History
 
 All release highlights of this project will be documented in this file.
 
+
+4.5.8 - July 12, 2026
+______________________
+
+**Updated**
+
+    - ``SAClient.generate_items()`` The name key now supports values with up to 200 characters.
+
+
 4.5.6 - July 5, 2026
 ______________________
 
