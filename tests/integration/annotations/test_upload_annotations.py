@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import tempfile
@@ -256,6 +257,71 @@ class MultiModalUploadDownloadAnnotations(BaseTestCase):
                 sa.get_annotations(
                     f"{self.PROJECT_NAME}/test_folder", data_spec="multimodal"
                 )
+
+    def test_integration_not_found(self):
+        with open(self.JSONL_ANNOTATIONS_PATH) as f:
+            data = [json.loads(line) for line in f]
+        with self.assertRaisesRegex(AppException, "Integration not found"):
+            sa.upload_annotations(
+                self.PROJECT_NAME,
+                annotations=data,
+                data_spec="multimodal",
+                integration="non-existing-integration-xyz",
+            )
+
+    def test_integration_only_supported_for_multimodal_data_spec(self):
+        with open(self.JSONL_ANNOTATIONS_PATH) as f:
+            data = [json.loads(line) for line in f]
+        with self.assertRaisesRegex(
+            AppException, "Integration is only supported for Multimodal projects"
+        ):
+            sa.upload_annotations(
+                self.PROJECT_NAME,
+                annotations=data,
+                data_spec="default",
+                integration="any-integration",
+            )
+
+    def test_upload_with_existing_integration(self):
+        integrations = sa.get_integrations()
+        if not integrations:
+            self.skipTest("No integrations available in the team.")
+        integration = integrations[0]
+        with open(self.JSONL_ANNOTATIONS_PATH) as f:
+            data = [json.loads(line) for line in f]
+        response = sa.upload_annotations(
+            self.PROJECT_NAME,
+            annotations=data,
+            data_spec="multimodal",
+            integration=integration["name"],
+        )
+        assert len(response["succeeded"]) == 3
+
+        # Newly created items must carry the integration id used to sign URLs.
+        # The item metadata's integration_id isn't exposed by the SDK entities,
+        # so query the backend directly for it.
+        from lib.core.jsx_conditions import EmptyQuery
+        from lib.core.jsx_conditions import Join
+
+        project, folder = sa.controller.get_project_folder(
+            f"{self.PROJECT_NAME}/test_folder"
+        )
+        item_service = sa.controller.service_provider.item_service
+        client = item_service.client
+        entity_context = base64.b64encode(
+            f'{{"team_id":{client.team_id},"project_id":{project.id},'
+            f'"folder_id":{folder.id}}}'.encode()
+        ).decode()
+        raw_items = client.jsx_paginate(
+            url=item_service.URL_LIST,
+            chunk_size=2000,
+            body_query=EmptyQuery() & Join("metadata", ["path", "integration_id"]),
+            method="post",
+            headers={"x-sa-entity-context": entity_context},
+        ).data
+        assert len(raw_items) == 3
+        for item in raw_items:
+            assert item["metadata"]["integration_id"] == integration["id"]
 
     def test_download_annotations(self):
         with open(self.JSONL_ANNOTATIONS_PATH) as f:

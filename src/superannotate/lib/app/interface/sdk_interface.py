@@ -3702,6 +3702,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         keep_status: bool | None = None,
         *,
         data_spec: Literal["default", "multimodal"] = "default",
+        integration: str | None = None,
     ):
         """Uploads a list of annotation dictionaries to the specified SuperAnnotate project or folder.
 
@@ -3722,6 +3723,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     - multimodal: Converts annotations for multimodal projects, optimizing for
                                      compact and modality-specific data representation.
         :type data_spec: str, optional
+
+        :param integration: The name of an existing integration on the SuperAnnotate platform, used to access external URLs in the annotations. Only supported for
+            Multimodal projects and data_spec="multimodal" and only applies to items being newly created — it has no effect on existing items.
+        :type integration: str, optional
 
         :return: A dictionary containing the results of the upload, categorized into successfully uploaded,
             failed, and skipped annotations.
@@ -3759,6 +3764,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 keep_status=True,
                 data_spec='multimodal'
             )
+
+        Example Usage with private URLs signed via an integration::
+
+            # Upload annotations with private URLs using integration
+            sa_client.upload_annotations(
+                project="project1/folder1",
+                annotations=annotations,
+                keep_status=True,
+                data_spec="multimodal",
+                integration="AWS Main Bucket"
+            )
         """
         if keep_status is not None:
             warnings.warn(
@@ -3768,6 +3784,18 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
             )
         project, folder = self.controller.get_project_folder(project)
+        integration_entity = None
+        if integration:
+            if data_spec != "multimodal" or project.type != ProjectType.MULTIMODAL:
+                raise AppException(
+                    "Integration is only supported for Multimodal projects"
+                )
+            for i in self.controller.integrations.list().data:
+                if i.name == integration:
+                    integration_entity = i
+                    break
+            else:
+                raise AppException("Integration not found")
         response = self.controller.annotations.upload_multiple(
             project=project,
             folder=folder,
@@ -3775,6 +3803,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             keep_status=keep_status,
             user=self.controller.current_user,
             output_format=data_spec,
+            integration=integration_entity,
         )
         if response.errors:
             raise AppException(response.errors)
