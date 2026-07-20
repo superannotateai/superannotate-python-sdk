@@ -20,6 +20,8 @@ from lib.infrastructure.services.work_management import WorkManagementService
 
 logger = logging.getLogger("sa")
 
+INVALID_PATH_ERROR = "Invalid project path"
+
 
 class EntityContext(typing.TypedDict, total=False):
     team_id: int
@@ -49,9 +51,9 @@ def extract_project_folder(user_input: str | dict) -> tuple[str, str | None]:
     if isinstance(user_input, dict):
         project_path = user_input.get("name")
         if not project_path:
-            raise PathError("Invalid project path")
+            raise PathError(INVALID_PATH_ERROR)
         return split_project_path(user_input["name"])
-    raise PathError("Invalid project path")
+    raise PathError(INVALID_PATH_ERROR)
 
 
 def extract_project_folder_inputs(user_input: str | dict | tuple | int) -> dict:
@@ -80,14 +82,14 @@ def extract_project_folder_inputs(user_input: str | dict | tuple | int) -> dict:
     if isinstance(user_input, dict):
         project_path = user_input.get("name")
         if not project_path:
-            raise PathError("Invalid project path")
+            raise PathError(INVALID_PATH_ERROR)
         project_name, folder_name = split_project_path(project_path)
         return {
             "project_name": project_name,
             "folder_name": folder_name,
             "project_value_type": "dict",
         }
-    raise PathError("Invalid project path")
+    raise PathError(INVALID_PATH_ERROR)
 
 
 def async_retry_on_generator(

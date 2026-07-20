@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-import lib.core as constances
+import lib.core as constants
 from lib.core import ApprovalStatus
 from lib.core import usecases
 from lib.core.conditions import Condition
@@ -1678,12 +1678,6 @@ class BaseController(metaclass=ABCMeta):
         return self._user
 
     @property
-    def user_id(self):
-        if not self._user_id:
-            self._user_id, _ = self.get_team()
-        return self._user_id
-
-    @property
     def team(self):
         return self._team
 
@@ -2016,7 +2010,7 @@ class Controller(BaseController):
     def validate_annotations(self, project_type: str, annotation: dict):
         use_case = usecases.ValidateAnnotationUseCase(
             reporter=self.get_default_reporter(),
-            project_type=constances.ProjectType(project_type).value,
+            project_type=constants.ProjectType(project_type).value,
             annotation=annotation,
             team_id=self.team_id,
             service_provider=self.service_provider,
