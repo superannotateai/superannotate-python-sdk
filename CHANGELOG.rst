@@ -10,6 +10,11 @@ All release highlights of this project will be documented in this file.
 4.5.8 - July 12, 2026
 ______________________
 
+**Added**
+
+    - ``SAClient.grant_team_user_permissions()`` Grants team-level user permissions.
+    - ``SAClient.revoke_team_user_permissions()`` Revokes team-level user permissions.
+
 **Updated**
 
     - ``SAClient.generate_items()`` The name key now supports values with up to 200 characters.

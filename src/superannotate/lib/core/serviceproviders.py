@@ -261,6 +261,25 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def edit_team_user_permissions(
+        self,
+        contributor_ids: list[int],
+        permission_ids: list[int],
+        operation: Literal["grant", "revoke"],
+        chunk_size=100,
+    ) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_team_user_permissions(
+        self,
+        contributor_ids: list[int],
+        permission_ids: list[int],
+        chunk_size=100,
+    ) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
     def update_annotation_class(
         self,
         project_id: int,
@@ -918,6 +937,18 @@ class BaseServiceProvider(metaclass=ABCMeta):
     def search_team_contributors(
         self, condition: Condition | None = None
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_team_user_permission_id(self, name: str) -> int | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_team_user_permission_id_name_map(self) -> dict[int, str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_team_user_permission_groups(self) -> dict[str, dict[int, str]]:
         raise NotImplementedError
 
     @abstractmethod

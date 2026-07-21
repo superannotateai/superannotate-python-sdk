@@ -276,35 +276,50 @@ class CustomFieldCache(BaseCachedWorkManagementRepository):
         return self._K_V_map[key]
 
 
-class ProjectUserPermissionCache(BaseCachedWorkManagementRepository):
+class UserPermissionCache(BaseCachedWorkManagementRepository):
     DEFAULT_TTL_SECONDS = 600
 
-    def __init__(self, work_management: WorkManagementService):
+    def __init__(self, work_management: WorkManagementService, label: str):
         super().__init__(self.DEFAULT_TTL_SECONDS, work_management)
+        self._label = label
+
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        # Normalize curly apostrophes (U+2018/U+2019) to straight ones so that
+        # permission names can be matched case- and apostrophe-insensitively.
+        return name.replace("\u2019", "'").replace("\u2018", "'").lower()
 
     def sync(self, team_id):
         response = self.work_management.list_permission_groups()
         if not response.ok:
             raise AppException(response.error)
-        project_user_permissions = [
+        user_permissions = [
             perm
             for group in (response.data or [])
-            if group.label == "projectUser"
+            if group.label == self._label
             for perm in (group.permissions or [])
         ]
         id_name_map = {
-            p.id: p.name
-            for p in project_user_permissions
-            if p.id is not None and p.name
+            p.id: p.name for p in user_permissions if p.id is not None and p.name
         }
         name_id_lower_map = {
-            p.name.lower(): p.id
-            for p in project_user_permissions
+            self._normalize_name(p.name): p.id
+            for p in user_permissions
             if p.id is not None and p.name
         }
+        groups: dict[str, dict[int, str]] = {}
+        for group in response.data or []:
+            if group.label != self._label or not group.name:
+                continue
+            groups[group.name] = {
+                p.id: p.name
+                for p in (group.permissions or [])
+                if p.id is not None and p.name
+            }
         self._K_V_map[team_id] = {
             "id_name_map": id_name_map,
             "name_id_lower_map": name_id_lower_map,
+            "groups": groups,
         }
         self._update_cache_timestamp(team_id)
 
@@ -312,6 +327,16 @@ class ProjectUserPermissionCache(BaseCachedWorkManagementRepository):
         if not self._is_cache_valid(key):
             self.sync(team_id=key)
         return self._K_V_map[key]
+
+
+class ProjectUserPermissionCache(UserPermissionCache):
+    def __init__(self, work_management: WorkManagementService):
+        super().__init__(work_management, label="projectUser")
+
+
+class TeamUserPermissionCache(UserPermissionCache):
+    def __init__(self, work_management: WorkManagementService):
+        super().__init__(work_management, label="teamUser")
 
 
 class ProjectUserCustomFieldCache(CustomFieldCache):
@@ -372,14 +397,29 @@ class CachedWorkManagementRepository:
         self._project_user_permission_cache = ProjectUserPermissionCache(
             work_management
         )
+        self._team_user_permission_cache = TeamUserPermissionCache(work_management)
 
     def get_project_user_permission_id(self, team_id: int, name: str) -> int | None:
         data = self._project_user_permission_cache.get(team_id)
-        return data["name_id_lower_map"].get(name.lower())
+        return data["name_id_lower_map"].get(UserPermissionCache._normalize_name(name))
 
     def get_project_user_permission_id_name_map(self, team_id: int) -> dict[int, str]:
         data = self._project_user_permission_cache.get(team_id)
         return dict(data["id_name_map"])
+
+    def get_team_user_permission_id(self, team_id: int, name: str) -> int | None:
+        data = self._team_user_permission_cache.get(team_id)
+        return data["name_id_lower_map"].get(UserPermissionCache._normalize_name(name))
+
+    def get_team_user_permission_id_name_map(self, team_id: int) -> dict[int, str]:
+        data = self._team_user_permission_cache.get(team_id)
+        return dict(data["id_name_map"])
+
+    def get_team_user_permission_groups(
+        self, team_id: int
+    ) -> dict[str, dict[int, str]]:
+        data = self._team_user_permission_cache.get(team_id)
+        return {name: dict(perms) for name, perms in data["groups"].items()}
 
     def get_category_id(self, project, category_name: str) -> int:
         data = self._category_cache.get(project.id, project=project)

@@ -18,3 +18,5 @@ Team
 .. automethod:: superannotate.SAClient.set_user_scores
 .. automethod:: superannotate.SAClient.set_contributors_categories
 .. automethod:: superannotate.SAClient.remove_contributors_categories
+.. automethod:: superannotate.SAClient.grant_team_user_permissions
+.. automethod:: superannotate.SAClient.revoke_team_user_permissions

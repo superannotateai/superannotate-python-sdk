@@ -1223,6 +1223,146 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             operation="revoke",
         )
 
+    def grant_team_user_permissions(
+        self,
+        permissions: list[NotEmptyStr] | Literal["*"],
+        user: int | str,
+    ) -> None:
+        """
+        Grants permissions for a team user. Accepts "*" to indicate all available
+        team-level permissions based on the user's role.
+
+        :param permissions: Specifies which permissions to grant.
+         Accepts "*" to indicate all available team user permissions.
+
+            Possible values are
+
+            - "Manage team API keys": Only for Team Admins. Allows Team Admins to
+              create, rotate, and revoke team API keys. Keys may grant permissions
+              beyond those assigned in the UI.
+            - "Orchestrate": Only for Team Admins. Allows Team Admins to create and
+              monitor Orchestrate pipelines, as well as access Secrets and Proxies.
+            - "Revoke other members API keys": Only for Team Admins. Allows Team
+              Admins to revoke other Team Admins' and Owner's personal API keys.
+            - "Manage Contributors' permissions": Only for Team Contributors. Grants
+              all contributor permissions and the ability to manage other
+              contributors' permissions. If this permission is set, it will
+              automatically grant access to all the other contributor permissions.
+            - "Invite Contributors to team": Only for Team Contributors. Allows
+              inviting contributors to the team.
+            - "Remove Contributors from team": Only for Team Contributors. Allows
+              removing contributors from the team.
+            - "View Contributors' scores": Only for Team Contributors. Allows viewing
+              contributors' scores.
+            - "View Contributors' custom field values": Only for Team Contributors.
+              Allows viewing contributors' custom field values.
+            - "Edit Contributors' custom field values": Only for Team Contributors.
+              Allows editing contributors' custom field values. If this permission is
+              set, it will automatically grant access to "View Contributors' custom
+              field values" permission.
+            - "Access Workload management": Only for Team Contributors. Allows
+              accessing Workload management.
+        :type permissions: Union[List[str], Literal["*"]]
+
+        :param user: Team user ID or email to grant permissions to.
+        :type user: Union[int, str]
+
+        :rtype: None
+
+        :raises AppException: If permissions are empty or the user is not found.
+
+        Request Example:
+        ::
+
+            # To grant a specific permission by email:
+            sa_client.grant_team_user_permissions(
+                permissions=["View SDK Token"],
+                user="test@superannotate.com"
+            )
+
+            # To grant all permissions by team user ID:
+            sa_client.grant_team_user_permissions(
+                permissions="*",
+                user=124341
+            )
+
+            # Example when granting "Edit Contributors' custom field values" permission
+            sa_client.grant_team_user_permissions(
+                permissions=["Edit Contributors' custom field values"],
+                user="test@superannotate.com"
+            )
+
+            # Example when granting "Manage Contributors' permissions" permission
+            sa_client.grant_team_user_permissions(
+                permissions=["Manage Contributors' permissions"],
+                user="test@superannotate.com"
+            )
+        """
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+        self.controller.work_management.edit_team_user_permissions(
+            user=user,
+            permissions=permissions,
+            operation="grant",
+        )
+
+    def revoke_team_user_permissions(
+        self,
+        permissions: list[NotEmptyStr] | Literal["*"],
+        user: int | str,
+    ) -> None:
+        """
+        Revokes permissions for a team user. Accepts "*" to indicate all available
+        team-level permissions based on the user's role.
+
+        :param permissions: Specifies which permissions to revoke.
+         Accepts "*" to indicate all available team user permissions. Possible
+         values are the same as for
+         :func:`grant_team_user_permissions`.
+        :type permissions: Union[List[str], Literal["*"]]
+
+        :param user: Team user ID or email to revoke permissions from.
+        :type user: Union[int, str]
+
+        :rtype: None
+
+        :raises AppException: If permissions are empty or the user is not found.
+
+        Request Example:
+        ::
+
+            # To revoke a specific permission by email:
+            sa_client.revoke_team_user_permissions(
+                permissions=["Remove Contributors from team"],
+                user="contributor@superannotate.com"
+            )
+
+            # To revoke all permissions by team user ID:
+            sa_client.revoke_team_user_permissions(
+                permissions="*",
+                user=124341
+            )
+
+            # Example when revoking "View Contributors' custom field values" permission
+            sa_client.revoke_team_user_permissions(
+                permissions=["View Contributors' custom field values"],
+                user="test@superannotate.com"
+            )
+
+            # Example when revoking "Manage Contributors' permissions" permission
+            sa_client.revoke_team_user_permissions(
+                permissions=["Manage Contributors' permissions"],
+                user="test@superannotate.com"
+            )
+        """
+        if not permissions:
+            raise AppException("Permission(s) cannot be empty.")
+        self.controller.work_management.edit_team_user_permissions(
+            user=user,
+            permissions=permissions,
+            operation="revoke",
+        )
+
     def get_component_config(self, project: NotEmptyStr | int, component_id: str):
         """
         Retrieves the configuration for a given project and component ID.

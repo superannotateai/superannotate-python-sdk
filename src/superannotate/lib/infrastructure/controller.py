@@ -608,6 +608,29 @@ class WorkManagementManager(BaseManager):
                 f"for user: {user_email}.\nPossible reasons:\n{reasons}"
             )
 
+    def edit_team_user_permissions(
+        self,
+        user: int | str,
+        permissions: list[str] | Literal["*"],
+        operation: Literal["grant", "revoke"],
+    ):
+        use_case = usecases.UpdateUserPermissionUseCase(
+            reporter=Reporter(),
+            user=user,
+            permissions=permissions,
+            operation=operation,
+            service_provider=self.service_provider,
+            user_resolver=self._resolve_team_user,
+        )
+        response = use_case.execute()
+        if response.errors:
+            raise AppException(response.errors)
+
+    def _resolve_team_user(self, user: int | str):
+        if isinstance(user, int):
+            return self.list_users(id__in=[user])
+        return self.list_users(email__in=[user])
+
 
 class ProjectManager(BaseManager):
     def __init__(self, service_provider: ServiceProvider, team: TeamEntity):

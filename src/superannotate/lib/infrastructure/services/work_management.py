@@ -78,7 +78,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
     URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
-    URL_EDIT_PROJECT_USER_PERMISSIONS = "customentities/edit"
+    URL_EDIT_USER_PERMISSIONS = "customentities/edit"
     URL_PERMISSION_GROUPS = "permissiongroups"
     URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
 
@@ -577,7 +577,7 @@ class WorkManagementService(BaseWorkManagementService):
             body_query = EmptyQuery()
             body_query &= Filter("id", chunk, OperatorEnum.IN)
             response = self.client.request(
-                url=self.URL_EDIT_PROJECT_USER_PERMISSIONS,
+                url=self.URL_EDIT_USER_PERMISSIONS,
                 method="post",
                 params=params,
                 data={
@@ -598,6 +598,98 @@ class WorkManagementService(BaseWorkManagementService):
             affected["remove"].extend(data.get("remove") or [])
 
         return affected
+
+    def edit_team_user_permissions(
+        self,
+        contributor_ids: list[int],
+        permission_ids: list[int],
+        operation: Literal["grant", "revoke"],
+        chunk_size=100,
+    ) -> dict:
+        from lib.infrastructure.utils import divide_to_chunks
+
+        params = {
+            "entity": CustomFieldEntityEnum.CONTRIBUTOR.value,
+            "parentEntity": CustomFieldEntityEnum.TEAM.value,
+            "action": "editpermissions",
+        }
+        op_key = "add" if operation == "grant" else "remove"
+
+        affected: dict = {"add": [], "remove": []}
+
+        for chunk in divide_to_chunks(contributor_ids, chunk_size):
+            body_query = EmptyQuery()
+            body_query &= Filter("id", chunk, OperatorEnum.IN)
+            response = self.client.request(
+                url=self.URL_EDIT_USER_PERMISSIONS,
+                method="post",
+                params=params,
+                data={
+                    **body_query.body_builder(),
+                    "body": {
+                        op_key: {"userPermissions": [{"id": i} for i in permission_ids]}
+                    },
+                },
+                headers={
+                    "x-sa-entity-context": self._generate_context(
+                        team_id=self.client.team_id,
+                    ),
+                },
+            )
+            response.raise_for_status()
+            data = response.data.get("data") or {}
+            affected["add"].extend(data.get("add") or [])
+            affected["remove"].extend(data.get("remove") or [])
+
+        return affected
+
+    def set_team_user_permissions(
+        self,
+        contributor_ids: list[int],
+        permission_ids: list[int],
+        chunk_size=100,
+    ) -> dict:
+        """Replace a team user's permissions with exactly ``permission_ids``.
+
+        Unlike :meth:`edit_team_user_permissions` (which applies grant/revoke
+        deltas and honours the backend rule that blocks revoking contributor
+        permissions while "Manage Contributors' permissions" is enabled), this
+        performs a full ``setpermissions`` replace. Passing an empty list
+        clears every permission, including that master permission, so it is the
+        only way to reset a user back to a clean state.
+        """
+        from lib.infrastructure.utils import divide_to_chunks
+
+        params = {
+            "entity": CustomFieldEntityEnum.CONTRIBUTOR.value,
+            "parentEntity": CustomFieldEntityEnum.TEAM.value,
+            "action": "setpermissions",
+        }
+
+        result: list = []
+        for chunk in divide_to_chunks(contributor_ids, chunk_size):
+            body_query = EmptyQuery()
+            body_query &= Filter("id", chunk, OperatorEnum.IN)
+            response = self.client.request(
+                url=self.URL_EDIT_USER_PERMISSIONS,
+                method="post",
+                params=params,
+                data={
+                    **body_query.body_builder(),
+                    "body": {
+                        "userPermissions": [{"id": i} for i in permission_ids]
+                    },
+                },
+                headers={
+                    "x-sa-entity-context": self._generate_context(
+                        team_id=self.client.team_id,
+                    ),
+                },
+            )
+            response.raise_for_status()
+            result.extend(response.data.get("data") or [])
+
+        return {"data": result}
 
     def update_annotation_class(
         self,

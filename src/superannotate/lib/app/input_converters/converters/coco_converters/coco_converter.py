@@ -199,7 +199,7 @@ class CocoBaseStrategy(baseStrategy):
         else:
             try:
                 img = Image.open(image_path)
-                img_width, img_height = img.size()
+                img_width, img_height = img.size
             except Exception as e:
                 raise
 

@@ -153,6 +153,27 @@ USE_VALIDATE_MESSAGE = (
 
 INVALID_JSON_MESSAGE = "Invalid json"
 
+# Team-user permission cascade rules, keyed by permission id. The
+# work-management backend does not auto-cascade through the permissions API,
+# so the SDK mirrors the documented cascades client-side.
+TEAM_USER_PERMISSION_MANAGE_CONTRIBUTORS = {
+    "id": 19,
+    "name": "Manage Contributors’ permissions",
+}
+# Granting "Manage Contributors' permissions" grants every contributor
+# permission; granting "Edit Contributors' custom field values" also grants
+# "View Contributors' custom field values".
+TEAM_USER_PERMISSION_GRANT_CASCADE = {
+    19: [20, 21, 22, 23, 24, 25],
+    24: [23],
+}
+# Revoking "View Contributors' custom field values" also revokes
+# "Edit Contributors' custom field values".
+TEAM_USER_PERMISSION_REVOKE_CASCADE = {
+    23: [24],
+}
+
+
 PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "Brightness",
     "Fill",
