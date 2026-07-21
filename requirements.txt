@@ -10,6 +10,6 @@ tqdm~=4.66
 requests~=2.33
 aiofiles~=25.1
 fire~=0.7
-mixpanel~=5.1
+mixpanel==5.1.0
 typing_extensions~=4.15
 superannotate-schemas==1.0.49

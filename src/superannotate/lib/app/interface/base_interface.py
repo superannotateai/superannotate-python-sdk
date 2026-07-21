@@ -58,12 +58,11 @@ class BaseInterfaceFacade:
                         )
                     else:
                         raise AppException(
-                            f"SuperAnnotate config file {constants.CONFIG_INI_FILE_LOCATION} not found."
-                        )
+                            "Credentials not found: SA_TOKEN environment variable is not set and "
+                            f"config file '{constants.CONFIG_INI_FILE_LOCATION}' was not found."
+                        ) from None
         except ValidationError as e:
             raise AppException(wrap_error(e))
-        except KeyError:
-            raise
         if not config:
             raise AppException("Credentials not provided.")
         setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)

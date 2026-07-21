@@ -6,9 +6,14 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.5.9 - July 21, 2026
+_____________________
+**Updated**
+
+    - ``SAClient()`` Improved credential handling during client instantiation by providing a clearer error message when authentication credentials are missing, including both the SA_TOKEN environment variable and the expected configuration file location.
 
 4.5.8 - July 12, 2026
-______________________
+_____________________
 
 **Updated**
 
@@ -16,7 +21,7 @@ ______________________
 
 
 4.5.6 - July 5, 2026
-______________________
+____________________
 
 **Updated**
 
@@ -24,7 +29,7 @@ ______________________
 
 
 4.5.5 - May 31, 2026
-______________________
+____________________
 
 **Added**
 
