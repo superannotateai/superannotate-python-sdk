@@ -271,15 +271,6 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def set_team_user_permissions(
-        self,
-        contributor_ids: list[int],
-        permission_ids: list[int],
-        chunk_size=100,
-    ) -> dict:
-        raise NotImplementedError
-
-    @abstractmethod
     def update_annotation_class(
         self,
         project_id: int,

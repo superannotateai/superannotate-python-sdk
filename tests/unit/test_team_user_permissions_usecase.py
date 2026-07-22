@@ -18,10 +18,7 @@ mirrors the real ``teamUser`` permission groups:
         26  View SDK Token
         27  Access Orchestrate
 """
-import base64
-import json
 from unittest import TestCase
-from unittest.mock import MagicMock
 
 from src.superannotate.lib.core.entities.work_managament import WMUserTypeEnum
 from src.superannotate.lib.core.reporter import Reporter
@@ -89,15 +86,6 @@ class _FakeWorkManagementService:
         }
         section = "add" if operation == "grant" else "remove"
         return {"add": [], "remove": [], section: [entry]}
-
-    def set_team_user_permissions(
-        self, contributor_ids, permission_ids, chunk_size=100
-    ):
-        # Full replace: the resulting permission set is exactly permission_ids
-        # (an empty list clears everything, including the master).
-        self.calls.append((list(contributor_ids), list(permission_ids), "set"))
-        self.granted = set(permission_ids)
-        return {"data": [{"id": pid} for pid in permission_ids]}
 
 
 class _FakeServiceProvider:
@@ -266,6 +254,55 @@ class TestUpdateUserPermissionUseCase(TestCase):
         self.assertIn("View SDK Token", success)
         self.assertIn("Access Orchestrate", success)
 
+    # ---- role mismatch (admin perm <-> contributor) ---------------------
+
+    def test_grant_admin_permission_for_contributor_logs_role_mismatch(self):
+        # An admin-only permission requested for a contributor must not be
+        # sent to the backend; the SDK reports a role-mismatch failure.
+        _, reporter, sp = self._run(["View SDK Token"], "grant")
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[View SDK Token]", failure)
+        self.assertIn(
+            "User role does not allow [View SDK Token] permission(s).",
+            failure,
+        )
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+
+    def test_grant_contributor_permission_for_admin_logs_role_mismatch(self):
+        # A contributor-only permission requested for an admin must not be
+        # sent to the backend; the SDK reports a role-mismatch failure.
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "grant", role=WMUserTypeEnum.TeamAdmin
+        )
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        self.assertIn(
+            "User role does not allow [Invite Contributors to team] permission(s).",
+            failure,
+        )
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+
+    def test_grant_mixed_valid_and_role_mismatch_grants_valid_only(self):
+        # A valid contributor permission mixed with a role-invalid admin one
+        # must grant the valid one and report the admin one as a failure
+        # (the role-invalid permission is not sent, so it cannot poison the
+        # backend's all-or-nothing batch).
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team", "View SDK Token"], "grant"
+        )
+        self.assertEqual(sp.work_management.calls, [([101], [20], "grant")])
+        self.assertIn(
+            "Invite Contributors to team",
+            self._message(reporter, "Successfully granted"),
+        )
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[View SDK Token]", failure)
+
     # ---- name resolution -----------------------------------------------
 
     def test_invalid_permission_logs_failure_and_skips_backend(self):
@@ -325,46 +362,6 @@ class TestUpdateUserPermissionUseCase(TestCase):
         self.assertEqual(response.errors, "User not found.")
         self.assertEqual(reporter.info_messages, [])
         self.assertEqual(sp.work_management.calls, [])
-
-
-class TestSetTeamUserPermissionsPayload(TestCase):
-    """The zero-point reset used by integration setup/teardown must issue a
-    full ``setpermissions`` replace (not a grant/revoke delta)."""
-
-    def _service(self):
-        from src.superannotate.lib.infrastructure.services.work_management import (
-            WorkManagementService,
-        )
-
-        client = MagicMock()
-        client.team_id = 6085
-        response = MagicMock()
-        response.data = {"data": []}
-        client.request.return_value = response
-        return WorkManagementService(client), client
-
-    def test_reset_sends_setpermissions_replace_with_empty_set(self):
-        service, client = self._service()
-        service.set_team_user_permissions(contributor_ids=[101], permission_ids=[])
-        _, kwargs = client.request.call_args
-        self.assertEqual(kwargs["params"]["action"], "setpermissions")
-        self.assertEqual(kwargs["params"]["entity"], "Contributor")
-        self.assertEqual(kwargs["params"]["parentEntity"], "Team")
-        self.assertEqual(kwargs["data"]["body"], {"userPermissions": []})
-        # context header carries the team id
-        ctx = json.loads(base64.b64decode(kwargs["headers"]["x-sa-entity-context"]))
-        self.assertEqual(ctx["team_id"], 6085)
-
-    def test_set_sends_exact_permission_ids(self):
-        service, client = self._service()
-        service.set_team_user_permissions(
-            contributor_ids=[101], permission_ids=[20, 22]
-        )
-        _, kwargs = client.request.call_args
-        self.assertEqual(
-            kwargs["data"]["body"],
-            {"userPermissions": [{"id": 20}, {"id": 22}]},
-        )
 
 
 class TestUserPermissionNameNormalization(TestCase):

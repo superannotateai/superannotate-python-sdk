@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from lib.core import TEAM_USER_PERMISSION_MANAGE_CONTRIBUTORS
 from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 
@@ -12,22 +13,19 @@ class TestTeamUserPermissions(TestCase):
     PERMISSION = "Invite Contributors to team"
     # Contributor permission whose canonical name uses a curly apostrophe.
     CURLY_PERMISSION = "View Contributors’ scores"
+    # An admin-only permission; granting it to a contributor must be rejected.
+    ADMIN_PERMISSION = "View SDK Token"
 
     @classmethod
     def setUpClass(cls, *args, **kwargs) -> None:
-        users = sa.list_users()
-        contributors = [
-            u
-            for u in users
-            if u["role"] == "Contributor" and u["state"] == "Confirmed"
-        ]
-        if not contributors:
+        # Scapegoat for the per-permission tests: a contributor without the
+        # "Manage Contributors' permissions" master, kept clean by _reset().
+        cls.scapegoat = cls._find_contributor_without_master()
+        if cls.scapegoat is None:
             raise RuntimeError(
-                "No confirmed contributor available for team-user permission tests."
+                "No contributor without 'Manage Contributors' permissions "
+                "available for team-user permission tests."
             )
-        cls.scapegoat = contributors[0]
-        # Reset to the zero-permission baseline; each test then grants only the
-        # permissions it needs.
         cls._reset(cls.scapegoat["email"])
 
     @classmethod
@@ -36,16 +34,26 @@ class TestTeamUserPermissions(TestCase):
 
     @classmethod
     def _reset(cls, email):
-        # Reset a team user to the zero-permission baseline. A plain revoke
-        # cannot remove "Manage Contributors' permissions" (the backend blocks
-        # revoking contributor permissions while the master is enabled), so use
-        # the full "setpermissions" replace with an empty set, which clears
-        # every permission including the master.
+        # Reset a team user by revoking every permission individually via the
+        # grant/revoke delta endpoint. "Manage Contributors' permissions"
+        # (id 19) cannot be revoked this way (the backend blocks revoking
+        # contributor permissions while the master is enabled), so it is
+        # skipped; the per-permission tests never grant it, and the
+        # master-granting tests run on a separate, disposable contributor.
         contributor_id = sa.list_users(email=email)[0]["id"]
-        sa.controller.service_provider.work_management.set_team_user_permissions(
-            contributor_ids=[contributor_id],
-            permission_ids=[],
-        )
+        name_by_id = sa.controller.service_provider.get_team_user_permission_id_name_map()
+        master_id = TEAM_USER_PERMISSION_MANAGE_CONTRIBUTORS["id"]
+        for pid in name_by_id:
+            if pid == master_id:
+                continue
+            try:
+                sa.controller.service_provider.work_management.edit_team_user_permissions(
+                    contributor_ids=[contributor_id],
+                    permission_ids=[pid],
+                    operation="revoke",
+                )
+            except Exception:
+                pass
 
     def tearDown(self):
         self._reset(self.scapegoat["email"])
@@ -53,6 +61,28 @@ class TestTeamUserPermissions(TestCase):
     @staticmethod
     def _has_master(perms):
         return any("Manage Contributors" in (p.get("name") or "") for p in perms)
+
+    @classmethod
+    def _find_contributor_without_master(cls, exclude_email=None):
+        for u in sa.list_users():
+            if u.get("role") != "Contributor" or u.get("state") != "Confirmed":
+                continue
+            if u.get("email") == exclude_email:
+                continue
+            full = sa.list_users(email=u["email"])[0]
+            if not cls._has_master(full.get("user_permissions") or []):
+                return u
+        return None
+
+    @classmethod
+    def _find_contributor_with_master(cls):
+        for u in sa.list_users():
+            if u.get("role") != "Contributor" or u.get("state") != "Confirmed":
+                continue
+            full = sa.list_users(email=u["email"])[0]
+            if cls._has_master(full.get("user_permissions") or []):
+                return u
+        return None
 
     def test_grant_permission_by_email(self):
         with self.assertLogs("sa", level="INFO") as cm:
@@ -79,10 +109,19 @@ class TestTeamUserPermissions(TestCase):
 
     def test_grant_all_permissions_wildcard(self):
         # "*" grants every permission available for the contributor role,
-        # including the "Manage Contributors' permissions" master. The
-        # scapegoat starts clean (setUpClass / tearDown) so no separate user
-        # is needed; tearDown resets it to the zero-permission baseline.
-        email = self.scapegoat["email"]
+        # including the "Manage Contributors' permissions" master, which is
+        # irreversible via the permissions API. Run it on a disposable
+        # contributor that does not yet have the master (never the main
+        # scapegoat); skip if none is available.
+        target = self._find_contributor_without_master(
+            exclude_email=self.scapegoat["email"]
+        )
+        if target is None:
+            self.skipTest(
+                "No contributor without 'Manage Contributors' permissions "
+                "available; wildcard grant is irreversible."
+            )
+        email = target["email"]
         with self.assertLogs("sa", level="INFO") as cm:
             sa.grant_team_user_permissions(permissions="*", user=email)
         success = [o for o in cm.output if o.startswith("INFO:sa:Successfully granted [")]
@@ -167,6 +206,38 @@ class TestTeamUserPermissions(TestCase):
             )
             assert "Provided permission(s) were invalid." in joined
 
+    def test_grant_admin_permission_for_contributor_logs_failure(self):
+        # Admin-only permissions must not be grantable to a contributor; the
+        # backend rejects the batch and the SDK reports a role-mismatch failure
+        # with the full "Possible reasons" block.
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.grant_team_user_permissions(
+                permissions=[self.ADMIN_PERMISSION],
+                user=self.scapegoat["email"],
+            )
+            joined = "\n".join(cm.output)
+            self.assertIn(
+                f"Could not grant [{self.ADMIN_PERMISSION}] permission(s) "
+                f"for user: {self.scapegoat['email']}.",
+                joined,
+            )
+            self.assertIn(
+                f"User role does not allow [{self.ADMIN_PERMISSION}] "
+                f"permission(s).",
+                joined,
+            )
+        # Sanity: the admin permission was not actually granted.
+        granted = {
+            p["name"]
+            for p in (
+                sa.list_users(email=self.scapegoat["email"])[0].get(
+                    "user_permissions"
+                )
+                or []
+            )
+        }
+        self.assertNotIn(self.ADMIN_PERMISSION, granted)
+
     def test_grant_mixed_valid_and_invalid_logs_both(self):
         with self.assertLogs("sa", level="INFO") as cm:
             sa.grant_team_user_permissions(
@@ -228,10 +299,17 @@ class TestTeamUserPermissions(TestCase):
 
     def test_grant_manage_contributors_permissions_cascade(self):
         # Granting "Manage Contributors' permissions" must cascade to all
-        # contributor permissions. The scapegoat starts clean and tearDown
-        # resets it to the zero-permission baseline, so no separate user is
-        # needed.
-        email = self.scapegoat["email"]
+        # contributor permissions. The master is irreversible, so run on a
+        # disposable contributor that does not yet have it.
+        target = self._find_contributor_without_master(
+            exclude_email=self.scapegoat["email"]
+        )
+        if target is None:
+            self.skipTest(
+                "No contributor without 'Manage Contributors' permissions "
+                "available; cascade grant is irreversible."
+            )
+        email = target["email"]
         with self.assertLogs("sa", level="INFO") as cm:
             sa.grant_team_user_permissions(
                 permissions=["Manage Contributors' permissions"],
@@ -257,15 +335,26 @@ class TestTeamUserPermissions(TestCase):
 
     def test_revoke_blocked_while_manage_enabled(self):
         # While "Manage Contributors' permissions" is enabled, other
-        # contributor permissions cannot be revoked. Establish that
-        # precondition on the clean scapegoat by granting the master (which
-        # cascades to every contributor permission); tearDown resets it to the
-        # zero-permission baseline.
-        email = self.scapegoat["email"]
-        sa.grant_team_user_permissions(
-            permissions=["Manage Contributors' permissions"],
-            user=email,
-        )
+        # contributor permissions cannot be revoked. Prefer reusing a
+        # contributor that already has the master (irreversible, so it stays
+        # enabled between runs); otherwise grant it on a disposable one.
+        target = self._find_contributor_with_master()
+        if target is None:
+            target = self._find_contributor_without_master(
+                exclude_email=self.scapegoat["email"]
+            )
+        if target is None:
+            self.skipTest(
+                "No contributor available to verify the revoke block."
+            )
+        email = target["email"]
+        if not self._has_master(
+            sa.list_users(email=email)[0].get("user_permissions") or []
+        ):
+            sa.grant_team_user_permissions(
+                permissions=["Manage Contributors' permissions"],
+                user=email,
+            )
         self.assertTrue(
             self._has_master(
                 sa.list_users(email=email)[0].get("user_permissions") or []

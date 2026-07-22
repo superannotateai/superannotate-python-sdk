@@ -62,7 +62,7 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         name_by_id = self._service_provider.get_team_user_permission_id_name_map()
         groups = self._groups()
 
-        resolved_ids, unresolved_names = self._resolve_permissions(
+        resolved_ids, unresolved_names, role_mismatch_names = self._resolve_permissions(
             team_user.role, name_by_id, groups
         )
 
@@ -73,7 +73,13 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         if ordered_ids:
             affected_ids = self._apply(team_user.id, ordered_ids)
 
-        self._log(ordered_ids, affected_ids, unresolved_names, team_user.email)
+        self._log(
+            ordered_ids,
+            affected_ids,
+            unresolved_names,
+            role_mismatch_names,
+            team_user.email,
+        )
         return self._response
 
     def _groups(self) -> dict[str, dict[int, str]] | None:
@@ -106,29 +112,41 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         role: WMUserTypeEnum,
         name_by_id: dict[int, str],
         groups: dict[str, dict[int, str]] | None,
-    ) -> tuple[list[int], list[str]]:
+    ) -> tuple[list[int], list[str], list[str]]:
+        # Permissions valid for the user's role. When the role groups cannot be
+        # fetched this falls back to the full map, deferring role enforcement
+        # to the backend.
+        role_ids = set(
+            self._role_team_user_permission_map(role, name_by_id, groups).keys()
+        )
         if self._permissions == "*":
-            return list(
-                self._role_team_user_permission_map(role, name_by_id, groups).keys()
-            ), []
+            return list(role_ids), [], []
 
         resolved_ids: list[int] = []
         seen_ids: set[int] = set()
         unresolved_names: list[str] = []
+        role_mismatch_names: list[str] = []
         for name in self._permissions:
             pid = self._service_provider.get_team_user_permission_id(name)
             if pid is None:
                 unresolved_names.append(name)
+            elif pid not in role_ids:
+                # Valid permission name, but not allowed for this user's role
+                # (e.g. an admin permission requested for a contributor, or
+                # vice versa). Don't send it to the backend; report it as a
+                # role-mismatch failure using the canonical name.
+                role_mismatch_names.append(name_by_id[pid])
             elif pid not in seen_ids:
                 resolved_ids.append(pid)
                 seen_ids.add(pid)
-        return resolved_ids, unresolved_names
+        return resolved_ids, unresolved_names, role_mismatch_names
 
     def _log(
         self,
         ordered_ids: list[int],
         affected_ids: set[int],
         unresolved_names: list[str],
+        role_mismatch_names: list[str],
         user_email: str,
     ) -> None:
         name_by_id = self._service_provider.get_team_user_permission_id_name_map()
@@ -137,7 +155,7 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         ]
         failed_names = [
             name_by_id[pid] for pid in ordered_ids if pid not in affected_ids
-        ] + unresolved_names
+        ] + role_mismatch_names + unresolved_names
 
         verb_inf = "grant" if self._operation == "grant" else "revoke"
         verb_past = "granted" if self._operation == "grant" else "revoked"
