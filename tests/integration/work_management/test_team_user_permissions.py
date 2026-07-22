@@ -62,6 +62,17 @@ class TestTeamUserPermissions(TestCase):
     def _has_master(perms):
         return any("Manage Contributors" in (p.get("name") or "") for p in perms)
 
+    @staticmethod
+    def _contributor_permission_names():
+        # The full set of contributor permissions that actually exist for this
+        # team (id 25 may be absent depending on configuration), used to assert
+        # the master/wildcard cascade without hardcoding the count.
+        groups = sa.controller.service_provider.get_team_user_permission_groups()
+        for name, perms in groups.items():
+            if "contributor" in name.lower():
+                return set(perms.values())
+        return set()
+
     @classmethod
     def _find_contributor_without_master(cls, exclude_email=None):
         for u in sa.list_users():
@@ -138,7 +149,7 @@ class TestTeamUserPermissions(TestCase):
             p["name"]
             for p in (sa.list_users(email=email)[0].get("user_permissions") or [])
         }
-        self.assertEqual(len(granted), 7)
+        self.assertEqual(granted, self._contributor_permission_names())
         self.assertTrue(self._has_master([{"name": n} for n in granted]))
 
     def test_grant_already_granted_logs_failure(self):
@@ -331,7 +342,7 @@ class TestTeamUserPermissions(TestCase):
             p["name"]
             for p in (sa.list_users(email=email)[0].get("user_permissions") or [])
         }
-        self.assertEqual(len(granted), 7)
+        self.assertEqual(granted, self._contributor_permission_names())
 
     def test_revoke_blocked_while_manage_enabled(self):
         # While "Manage Contributors' permissions" is enabled, other

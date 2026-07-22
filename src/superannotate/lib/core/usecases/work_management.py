@@ -67,8 +67,9 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         )
 
         affected_ids: set[int] = set()
+        cascade = self._build_cascade(self._operation, groups)
         ordered_ids = self._order_team_permission_ids(
-            self._cascade_team_permission_ids(resolved_ids, self._operation)
+            self._cascade_team_permission_ids(resolved_ids, cascade)
         )
         if ordered_ids:
             affected_ids = self._apply(team_user.id, ordered_ids)
@@ -200,16 +201,36 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
                 return dict(perms)
         return dict(full_map)
 
-    @staticmethod
-    def _cascade_team_permission_ids(
-        requested: list[int], operation: PermissionOperation
-    ) -> list[int]:
-        """Expand requested permission ids with cascade dependents (by id)."""
-        cascade = (
+    def _build_cascade(
+        self,
+        operation: PermissionOperation,
+        groups: dict[str, dict[int, str]] | None,
+    ) -> dict[int, list[int]]:
+        # Start from the hardcoded name-based cascades (e.g. Edit -> View
+        # custom field values), then derive the "Manage Contributors'
+        # permissions" master cascade from the live permission-groups data:
+        # granting the master grants every other permission in its group.
+        # Deriving it at runtime avoids hardcoding ids that may not exist for
+        # every team (e.g. id 25 can be absent depending on configuration).
+        base = (
             constants.TEAM_USER_PERMISSION_GRANT_CASCADE
             if operation == "grant"
             else constants.TEAM_USER_PERMISSION_REVOKE_CASCADE
         )
+        cascade = {pid: list(deps) for pid, deps in base.items()}
+        if operation == "grant" and groups:
+            master_id = MANAGE_CONTRIBUTORS_ID
+            for perms in groups.values():
+                if master_id in perms:
+                    cascade[master_id] = [pid for pid in perms if pid != master_id]
+                    break
+        return cascade
+
+    @staticmethod
+    def _cascade_team_permission_ids(
+        requested: list[int], cascade: dict[int, list[int]]
+    ) -> list[int]:
+        """Expand requested permission ids with cascade dependents (by id)."""
         expanded = list(requested)
         seen = set(requested)
         for pid in list(requested):

@@ -89,18 +89,20 @@ class _FakeWorkManagementService:
 
 
 class _FakeServiceProvider:
-    def __init__(self, granted=()):
+    def __init__(self, granted=(), groups=None, name_by_id=None):
         self.work_management = _FakeWorkManagementService(granted)
+        self._groups = groups if groups is not None else GROUPS
+        self._name_by_id = name_by_id if name_by_id is not None else ALL_PERMS
 
     def get_team_user_permission_id_name_map(self):
-        return dict(ALL_PERMS)
+        return dict(self._name_by_id)
 
     def get_team_user_permission_groups(self):
-        return {name: dict(perms) for name, perms in GROUPS.items()}
+        return {name: dict(perms) for name, perms in self._groups.items()}
 
     def get_team_user_permission_id(self, name):
         target = _normalize(name)
-        for pid, pname in ALL_PERMS.items():
+        for pid, pname in self._name_by_id.items():
             if _normalize(pname) == target:
                 return pid
         return None
@@ -116,9 +118,13 @@ class TestUpdateUserPermissionUseCase(TestCase):
         granted=(),
         role=WMUserTypeEnum.Contributor,
         user=None,
+        groups=None,
+        name_by_id=None,
     ):
         reporter = Reporter()
-        service_provider = _FakeServiceProvider(granted=granted)
+        service_provider = _FakeServiceProvider(
+            granted=granted, groups=groups, name_by_id=name_by_id
+        )
         team_user = _FakeTeamUser(id_=101, role=role, email=self.EMAIL)
         resolver = (lambda _: [team_user]) if user is not False else (lambda _: [])
         use_case = UpdateUserPermissionUseCase(
@@ -210,6 +216,35 @@ class TestUpdateUserPermissionUseCase(TestCase):
         ):
             self.assertIn(fragment, success)
         self.assertEqual(sp.work_management.granted, {19, 20, 21, 22, 23, 24, 25})
+
+    def test_grant_master_cascade_derived_from_live_group_data(self):
+        # The master cascade is derived from the permission-groups response,
+        # not hardcoded. When a contributor permission is absent for the team
+        # (here id 25 "Access Workload management"), granting the master must
+        # cascade only to the permissions that actually exist.
+        contributor_perms = {
+            19: "Manage Contributors’ permissions",
+            20: "Invite Contributors to team",
+            21: "Remove Contributors from team",
+            22: "View Contributors’ scores",
+            23: "View Contributors’ custom field values",
+            24: "Edit Contributors’ custom field values",
+        }
+        groups = {
+            "Team contributor permissions": contributor_perms,
+            "Team admin permissions": ADMIN_PERMS,
+        }
+        _, _, sp = self._run(
+            ["Manage Contributors' permissions"],
+            "grant",
+            groups=groups,
+            name_by_id={**contributor_perms, **ADMIN_PERMS},
+        )
+        self.assertEqual(
+            sp.work_management.calls,
+            [([101], [19, 20, 21, 22, 23, 24], "grant")],
+        )
+        self.assertEqual(sp.work_management.granted, {19, 20, 21, 22, 23, 24})
 
     def test_grant_edit_custom_fields_cascades_view(self):
         _, reporter, sp = self._run(

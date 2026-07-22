@@ -160,15 +160,17 @@ TEAM_USER_PERMISSION_MANAGE_CONTRIBUTORS = {
     "id": 19,
     "name": "Manage Contributors’ permissions",
 }
-# Granting "Manage Contributors' permissions" grants every contributor
-# permission; granting "Edit Contributors' custom field values" also grants
-# "View Contributors' custom field values".
+# Granting "Edit Contributors' custom field values" also grants "View
+# Contributors' custom field values". The "Manage Contributors' permissions"
+# master cascade (granting it grants every other permission in its group) is
+# NOT hardcoded here: it is derived at runtime from the live permission-groups
+# data so it only includes permissions that actually exist for the team (e.g.
+# id 25 may be absent depending on the team's configuration).
 TEAM_USER_PERMISSION_GRANT_CASCADE = {
-    19: [20, 21, 22, 23, 24, 25],
     24: [23],
 }
-# Revoking "View Contributors' custom field values" also revokes
-# "Edit Contributors' custom field values".
+# Revoking "View Contributors' custom field values" also revokes "Edit
+# Contributors' custom field values".
 TEAM_USER_PERMISSION_REVOKE_CASCADE = {
     23: [24],
 }
