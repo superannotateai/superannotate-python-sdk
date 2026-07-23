@@ -30,7 +30,8 @@ class TestTeamAdminUserPermissions(TestCase):
         admins = [
             u
             for u in users
-            if u.get("state") == "Confirmed" and u.get("role") in ("TeamAdmin", "TeamOwner")
+            if u.get("state") == "Confirmed"
+            and u.get("role") in ("TeamAdmin", "TeamOwner")
         ]
         if not clean:
             return admins[0]
@@ -99,9 +100,7 @@ class TestTeamAdminUserPermissions(TestCase):
         granted = {
             p["name"]
             for p in (
-                sa.list_users(email=self.scapegoat["email"])[0].get(
-                    "user_permissions"
-                )
+                sa.list_users(email=self.scapegoat["email"])[0].get("user_permissions")
                 or []
             )
         }
@@ -143,6 +142,31 @@ class TestTeamAdminUserPermissions(TestCase):
                 f"INFO:sa:Successfully revoked [{self.PERMISSION}] permission(s) "
                 f"for user: {self.scapegoat['email']}.",
             )
+
+    def test_revoke_all_permissions_wildcard(self):
+        # revoke "*" clears every admin permission the user currently holds.
+        # Admin permissions are fully reversible, so this is idempotent.
+        email = self.scapegoat["email"]
+        sa.grant_team_user_permissions(
+            permissions=[self.PERMISSION, self.OTHER_PERMISSION],
+            user=email,
+        )
+        granted = {
+            p["name"]
+            for p in (sa.list_users(email=email)[0].get("user_permissions") or [])
+        }
+        self.assertEqual(granted, {self.PERMISSION, self.OTHER_PERMISSION})
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.revoke_team_user_permissions(permissions="*", user=email)
+        success = [
+            o for o in cm.output if o.startswith("INFO:sa:Successfully revoked [")
+        ]
+        self.assertTrue(success, f"expected success log, got {cm.output}")
+        remaining = {
+            p["name"]
+            for p in (sa.list_users(email=email)[0].get("user_permissions") or [])
+        }
+        self.assertEqual(remaining, set())
 
     def test_revoke_already_revoked_logs_failure(self):
         with self.assertLogs("sa", level="INFO") as cm:
@@ -217,9 +241,7 @@ class TestTeamAdminUserPermissions(TestCase):
         granted = {
             p["name"]
             for p in (
-                sa.list_users(email=self.scapegoat["email"])[0].get(
-                    "user_permissions"
-                )
+                sa.list_users(email=self.scapegoat["email"])[0].get("user_permissions")
                 or []
             )
         }

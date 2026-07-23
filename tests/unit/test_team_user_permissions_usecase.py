@@ -17,7 +17,12 @@ mirrors the real ``teamUser`` permission groups:
     Team admin permissions (ids 26-27)
         26  View SDK Token
         27  Access Orchestrate
+
+The backend endpoint is declarative (``teamusers/setpermissions``): grant and
+revoke are read-modify-write over the user's current permission set, and the
+fake models that replace-with-full-set behavior.
 """
+
 from unittest import TestCase
 
 from src.superannotate.lib.core.entities.work_managament import WMUserTypeEnum
@@ -52,40 +57,34 @@ def _normalize(name: str) -> str:
 
 
 class _FakeTeamUser:
-    def __init__(self, id_: int, role: WMUserTypeEnum, email: str):
+    def __init__(
+        self,
+        id_: int,
+        role: WMUserTypeEnum,
+        email: str,
+        user_permissions: list | None = None,
+    ):
         self.id = id_
         self.role = role
         self.email = email
+        self.user_permissions = [
+            type("P", (), {"id": pid})() for pid in (user_permissions or [])
+        ]
 
 
 class _FakeWorkManagementService:
-    """Models the permissions endpoint: only permissions whose state actually
-    changes are echoed back under ``userPermissions`` (mirrors the real API,
-    which silently ignores permissions already in the requested state)."""
+    """Models the declarative ``teamusers/setpermissions`` endpoint: the user's
+    permission set is replaced wholesale with the ids we send, and the resulting
+    set is echoed back (as the real endpoint does)."""
 
     def __init__(self, granted):
         self.granted = set(granted)
         self.calls = []
 
-    def edit_team_user_permissions(
-        self, contributor_ids, permission_ids, operation, chunk_size=100
-    ):
-        self.calls.append((list(contributor_ids), list(permission_ids), operation))
-        contributor_id = contributor_ids[0]
-        affected = []
-        for pid in permission_ids:
-            if operation == "grant" and pid not in self.granted:
-                self.granted.add(pid)
-                affected.append(pid)
-            elif operation == "revoke" and pid in self.granted:
-                self.granted.discard(pid)
-                affected.append(pid)
-        entry = {
-            "id": contributor_id,
-            "userPermissions": [{"id": pid} for pid in affected],
-        }
-        section = "add" if operation == "grant" else "remove"
-        return {"add": [], "remove": [], section: [entry]}
+    def set_team_user_permissions(self, contributor_id, permission_ids):
+        self.calls.append((contributor_id, list(permission_ids)))
+        self.granted = set(permission_ids)
+        return list(permission_ids)
 
 
 class _FakeServiceProvider:
@@ -120,12 +119,22 @@ class TestUpdateUserPermissionUseCase(TestCase):
         user=None,
         groups=None,
         name_by_id=None,
+        current_perm_ids=None,
     ):
+        # The use case reads the user's *current* permissions from the resolved
+        # team-user entity. Default the starting state to ``granted`` so callers
+        # can express "user currently holds X" with a single argument.
+        current = list(granted) if current_perm_ids is None else current_perm_ids
         reporter = Reporter()
         service_provider = _FakeServiceProvider(
-            granted=granted, groups=groups, name_by_id=name_by_id
+            granted=current, groups=groups, name_by_id=name_by_id
         )
-        team_user = _FakeTeamUser(id_=101, role=role, email=self.EMAIL)
+        team_user = _FakeTeamUser(
+            id_=101,
+            role=role,
+            email=self.EMAIL,
+            user_permissions=current,
+        )
         resolver = (lambda _: [team_user]) if user is not False else (lambda _: [])
         use_case = UpdateUserPermissionUseCase(
             reporter=reporter,
@@ -148,9 +157,7 @@ class TestUpdateUserPermissionUseCase(TestCase):
     # ---- success / failure logging -------------------------------------
 
     def test_grant_single_permission_success(self):
-        response, reporter, sp = self._run(
-            ["Invite Contributors to team"], "grant"
-        )
+        response, reporter, sp = self._run(["Invite Contributors to team"], "grant")
         self.assertFalse(response.errors)
         self.assertEqual(
             self._message(reporter, "Successfully granted"),
@@ -158,10 +165,12 @@ class TestUpdateUserPermissionUseCase(TestCase):
             f"permission(s) for user: {self.EMAIL}.",
         )
         self.assertIsNone(self._message(reporter, "Could not grant"))
-        self.assertEqual(sp.work_management.calls, [([101], [20], "grant")])
+        # The full desired set is sent (empty current + the granted id).
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+        self.assertEqual(sp.work_management.granted, {20})
 
     def test_grant_already_granted_logs_failure(self):
-        _, reporter, _ = self._run(
+        _, reporter, sp = self._run(
             ["Invite Contributors to team"], "grant", granted={20}
         )
         self.assertIsNone(self._message(reporter, "Successfully granted"))
@@ -171,9 +180,11 @@ class TestUpdateUserPermissionUseCase(TestCase):
             "User already has [Invite Contributors to team] permission(s) granted.",
             failure,
         )
+        # Nothing changes -> no network round-trip.
+        self.assertEqual(sp.work_management.calls, [])
 
     def test_revoke_single_permission_success(self):
-        _, reporter, _ = self._run(
+        _, reporter, sp = self._run(
             ["Invite Contributors to team"], "revoke", granted={20}
         )
         self.assertEqual(
@@ -181,9 +192,11 @@ class TestUpdateUserPermissionUseCase(TestCase):
             f"Successfully revoked [Invite Contributors to team] "
             f"permission(s) for user: {self.EMAIL}.",
         )
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        self.assertEqual(sp.work_management.granted, set())
 
     def test_revoke_already_revoked_logs_failure(self):
-        _, reporter, _ = self._run(["Invite Contributors to team"], "revoke")
+        _, reporter, sp = self._run(["Invite Contributors to team"], "revoke")
         failure = self._message(reporter, "Could not revoke")
         self.assertIsNotNone(failure)
         self.assertIn(
@@ -191,17 +204,16 @@ class TestUpdateUserPermissionUseCase(TestCase):
             "for the user.",
             failure,
         )
+        self.assertEqual(sp.work_management.calls, [])
 
     # ---- cascades ------------------------------------------------------
 
     def test_grant_master_cascades_all_contributor_permissions(self):
-        _, reporter, sp = self._run(
-            ["Manage Contributors' permissions"], "grant"
-        )
-        # backend receives the master first, then every dependent permission
+        _, reporter, sp = self._run(["Manage Contributors' permissions"], "grant")
+        # The desired set is the whole contributor group (master implies all).
         self.assertEqual(
             sp.work_management.calls,
-            [([101], [19, 20, 21, 22, 23, 24, 25], "grant")],
+            [(101, [19, 20, 21, 22, 23, 24, 25])],
         )
         success = self._message(reporter, "Successfully granted")
         self.assertIsNotNone(success)
@@ -242,17 +254,14 @@ class TestUpdateUserPermissionUseCase(TestCase):
         )
         self.assertEqual(
             sp.work_management.calls,
-            [([101], [19, 20, 21, 22, 23, 24], "grant")],
+            [(101, [19, 20, 21, 22, 23, 24])],
         )
         self.assertEqual(sp.work_management.granted, {19, 20, 21, 22, 23, 24})
 
     def test_grant_edit_custom_fields_cascades_view(self):
-        _, reporter, sp = self._run(
-            ["Edit Contributors' custom field values"], "grant"
-        )
-        self.assertEqual(
-            sp.work_management.calls, [([101], [24, 23], "grant")]
-        )
+        _, reporter, sp = self._run(["Edit Contributors' custom field values"], "grant")
+        # Desired set includes both Edit (24) and the cascaded View (23).
+        self.assertEqual(sp.work_management.calls, [(101, [23, 24])])
         success = self._message(reporter, "Successfully granted")
         self.assertIn("Edit Contributors’ custom field values", success)
         self.assertIn("View Contributors’ custom field values", success)
@@ -263,31 +272,95 @@ class TestUpdateUserPermissionUseCase(TestCase):
             "revoke",
             granted={23, 24},
         )
-        self.assertEqual(
-            sp.work_management.calls, [([101], [23, 24], "revoke")]
-        )
+        # Revoking View also revokes Edit -> desired set drops both.
+        self.assertEqual(sp.work_management.calls, [(101, [])])
         success = self._message(reporter, "Successfully revoked")
         self.assertIn("View Contributors’ custom field values", success)
         self.assertIn("Edit Contributors’ custom field values", success)
         self.assertEqual(sp.work_management.granted, set())
 
+    # ---- master is now removable (new endpoint) ------------------------
+
+    def test_revoke_master_leaves_other_members(self):
+        # Revoking the master by name drops only the master; the other
+        # contributor permissions the user holds remain.
+        _, reporter, sp = self._run(
+            ["Manage Contributors' permissions"],
+            "revoke",
+            granted={19, 20, 21},
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [20, 21])])
+        self.assertEqual(sp.work_management.granted, {20, 21})
+        success = self._message(reporter, "Successfully revoked")
+        self.assertIn("Manage Contributors", success)
+
+    def test_revoke_member_while_master_enabled_is_blocked(self):
+        # A master holder realistically has the whole group (master implies
+        # all). Revoking a single member is forced back into the desired set by
+        # the master invariant (no change) and reported as a failure telling
+        # the user to revoke the master first.
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"],
+            "revoke",
+            granted={19, 20, 21, 22, 23, 24, 25},
+        )
+        # Desired set == current -> no network round-trip.
+        self.assertEqual(sp.work_management.calls, [])
+        self.assertEqual(sp.work_management.granted, {19, 20, 21, 22, 23, 24, 25})
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        self.assertIn(
+            "If Manage Contributors' permissions is granted, it must be "
+            "revoked before",
+            failure,
+        )
+
     # ---- "*" is scoped to the user's role ------------------------------
 
     def test_wildcard_contributor_role_grants_only_contributor_permissions(self):
         _, reporter, sp = self._run("*", "grant", role=WMUserTypeEnum.Contributor)
-        _, sent, _ = sp.work_management.calls[0]
+        _, sent = sp.work_management.calls[0]
         self.assertEqual(set(sent), set(CONTRIBUTOR_PERMS))
-        self.assertEqual(sent[0], 19, "master permission must be sent first")
         self.assertFalse(set(sent) & set(ADMIN_PERMS))
 
     def test_wildcard_admin_role_grants_only_admin_permissions(self):
         _, reporter, sp = self._run("*", "grant", role=WMUserTypeEnum.TeamAdmin)
-        _, sent, _ = sp.work_management.calls[0]
+        _, sent = sp.work_management.calls[0]
         self.assertEqual(set(sent), set(ADMIN_PERMS))
         self.assertFalse(set(sent) & set(CONTRIBUTOR_PERMS))
         success = self._message(reporter, "Successfully granted")
         self.assertIn("View SDK Token", success)
         self.assertIn("Access Orchestrate", success)
+
+    # ---- revoke "*" clears the whole set (incl. master) ----------------
+
+    def test_revoke_wildcard_contributor_clears_current_permissions(self):
+        _, reporter, sp = self._run("*", "revoke", granted={19, 20, 22})
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        success = self._message(reporter, "Successfully revoked")
+        self.assertIsNotNone(success)
+        self.assertIn("Manage Contributors", success)
+        self.assertIn("Invite Contributors to team", success)
+        self.assertIn("View Contributors’ scores", success)
+        self.assertEqual(sp.work_management.granted, set())
+
+    def test_revoke_wildcard_admin_clears_current_permissions(self):
+        _, reporter, sp = self._run(
+            "*",
+            "revoke",
+            granted={26, 27},
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        self.assertEqual(sp.work_management.granted, set())
+
+    def test_revoke_wildcard_with_no_permissions_is_noop(self):
+        # Nothing currently held -> desired set already empty, no backend call.
+        _, reporter, sp = self._run("*", "revoke", granted=set())
+        self.assertEqual(sp.work_management.calls, [])
+        self.assertIsNone(self._message(reporter, "Successfully revoked"))
+        self.assertIsNone(self._message(reporter, "Could not revoke"))
 
     # ---- role mismatch (admin perm <-> contributor) ---------------------
 
@@ -323,13 +396,13 @@ class TestUpdateUserPermissionUseCase(TestCase):
 
     def test_grant_mixed_valid_and_role_mismatch_grants_valid_only(self):
         # A valid contributor permission mixed with a role-invalid admin one
-        # must grant the valid one and report the admin one as a failure
-        # (the role-invalid permission is not sent, so it cannot poison the
-        # backend's all-or-nothing batch).
+        # must grant the valid one and report the admin one as a failure (the
+        # role-invalid permission is never sent, so it cannot cause the backend
+        # to reject the whole set).
         _, reporter, sp = self._run(
             ["Invite Contributors to team", "View SDK Token"], "grant"
         )
-        self.assertEqual(sp.work_management.calls, [([101], [20], "grant")])
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
         self.assertIn(
             "Invite Contributors to team",
             self._message(reporter, "Successfully granted"),
@@ -349,9 +422,10 @@ class TestUpdateUserPermissionUseCase(TestCase):
         self.assertIn("Provided permission(s) were invalid.", failure)
 
     def test_mixed_valid_and_invalid_logs_both(self):
-        _, reporter, _ = self._run(
+        _, reporter, sp = self._run(
             ["Invite Contributors to team", "NonExistentPermission"], "grant"
         )
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
         self.assertIn(
             "Invite Contributors to team",
             self._message(reporter, "Successfully granted"),
@@ -362,13 +436,13 @@ class TestUpdateUserPermissionUseCase(TestCase):
 
     def test_case_insensitive_permission_name(self):
         _, reporter, sp = self._run(["invite contributors to team"], "grant")
-        self.assertEqual(sp.work_management.calls, [([101], [20], "grant")])
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
         self.assertIsNotNone(self._message(reporter, "Successfully granted"))
 
     def test_straight_apostrophe_resolves_to_canonical_name(self):
         # User supplies a straight apostrophe; backend stores a curly one.
         _, reporter, sp = self._run(["View Contributors' scores"], "grant")
-        self.assertEqual(sp.work_management.calls, [([101], [22], "grant")])
+        self.assertEqual(sp.work_management.calls, [(101, [22])])
         self.assertEqual(
             self._message(reporter, "Successfully granted"),
             f"Successfully granted [View Contributors’ scores] "
@@ -380,7 +454,7 @@ class TestUpdateUserPermissionUseCase(TestCase):
             ["Invite Contributors to team", "invite contributors to team"],
             "grant",
         )
-        self.assertEqual(sp.work_management.calls, [([101], [20], "grant")])
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
 
     # ---- error paths ---------------------------------------------------
 
@@ -407,6 +481,4 @@ class TestUserPermissionNameNormalization(TestCase):
         )
 
     def test_left_and_right_single_quotes_normalized(self):
-        self.assertEqual(
-            UserPermissionCache._normalize_name("A‘b’c"), "a'b'c"
-        )
+        self.assertEqual(UserPermissionCache._normalize_name("A‘b’c"), "a'b'c")

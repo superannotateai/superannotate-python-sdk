@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 from typing import Literal
 
 import lib.core as constants
@@ -19,16 +19,22 @@ MANAGE_CONTRIBUTORS_ID = constants.TEAM_USER_PERMISSION_MANAGE_CONTRIBUTORS["id"
 class UpdateUserPermissionUseCase(BaseReportableUseCase):
     """Grant or revoke team-user permissions for a single user.
 
-    Encapsulates the business rules that the work-management permissions API
-    does not enforce on its own:
+    The backend endpoint (``teamusers/setpermissions``) is declarative: it
+    replaces the user's whole permission set with the list we send. Grant and
+    revoke are therefore implemented as read-modify-write on that set, while
+    this use case keeps the business rules the endpoint does not enforce:
 
       - "*" resolves only to the permissions allowed for the user's role
-        (the backend rejects the whole batch otherwise);
+        (a role-invalid permission makes the backend reject the whole set);
       - permission names are matched case- and apostrophe-insensitively;
       - documented cascades are mirrored client-side (see
         ``constants.TEAM_USER_PERMISSION_GRANT_CASCADE`` /
         ``TEAM_USER_PERMISSION_REVOKE_CASCADE``) because the backend does not
-        auto-cascade through the permissions API;
+        auto-cascade;
+      - the "Manage Contributors' permissions" master implies every other
+        permission in its group: whenever it stays in the desired set we add
+        the rest (this also preserves the rule that members cannot be revoked
+        while the master is enabled);
       - per-permission success / failure is reported through the reporter.
     """
 
@@ -61,22 +67,31 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         team_user = team_users[0]
         name_by_id = self._service_provider.get_team_user_permission_id_name_map()
         groups = self._groups()
+        current_ids = [
+            p.id for p in (team_user.user_permissions or []) if p.id is not None
+        ]
 
         resolved_ids, unresolved_names, role_mismatch_names = self._resolve_permissions(
-            team_user.role, name_by_id, groups
+            team_user.role, name_by_id, groups, current_ids
         )
 
-        affected_ids: set[int] = set()
+        # The permissions we attempted to change (requested + cascade), used for
+        # per-permission success / failure reporting.
         cascade = self._build_cascade(self._operation, groups)
-        ordered_ids = self._order_team_permission_ids(
-            self._cascade_team_permission_ids(resolved_ids, cascade)
-        )
-        if ordered_ids:
-            affected_ids = self._apply(team_user.id, ordered_ids)
+        attempted_ids = self._cascade_team_permission_ids(resolved_ids, cascade)
+
+        desired_ids = self._desired_permission_ids(current_ids, attempted_ids, groups)
+
+        # Skip the network round-trip when nothing would change.
+        if set(desired_ids) == set(current_ids):
+            new_state = set(current_ids)
+        else:
+            new_state = self._apply(team_user.id, desired_ids)
 
         self._log(
-            ordered_ids,
-            affected_ids,
+            current_ids,
+            new_state,
+            attempted_ids,
             unresolved_names,
             role_mismatch_names,
             team_user.email,
@@ -89,30 +104,52 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         except Exception:
             return None
 
+    def _desired_permission_ids(
+        self,
+        current_ids: list[int],
+        attempted_ids: list[int],
+        groups: dict[str, dict[int, str]] | None,
+    ) -> list[int]:
+        """Full permission set to send, derived from the current set.
+
+        Grant unions the attempted ids into the current set; revoke subtracts
+        them. The master invariant is applied last so that a set still holding
+        the master keeps its whole group (and members cannot be revoked while
+        the master is enabled).
+        """
+        current = set(current_ids)
+        if self._operation == "grant":
+            desired = current | set(attempted_ids)
+        else:
+            desired = current - set(attempted_ids)
+        desired = self._apply_master_invariant(desired, groups)
+        return sorted(desired)
+
+    @staticmethod
+    def _apply_master_invariant(
+        desired: set[int], groups: dict[str, dict[int, str]] | None
+    ) -> set[int]:
+        if MANAGE_CONTRIBUTORS_ID not in desired or not groups:
+            return desired
+        for perms in groups.values():
+            if MANAGE_CONTRIBUTORS_ID in perms:
+                return desired | set(perms.keys())
+        return desired
+
     def _apply(self, contributor_id: int, permission_ids: list[int]) -> set[int]:
-        response = self._service_provider.work_management.edit_team_user_permissions(
-            contributor_ids=[contributor_id],
-            permission_ids=permission_ids,
-            operation=self._operation,
+        return set(
+            self._service_provider.work_management.set_team_user_permissions(
+                contributor_id=contributor_id,
+                permission_ids=permission_ids,
+            )
         )
-        section_key = "add" if self._operation == "grant" else "remove"
-        entry = next(
-            (
-                c
-                for c in (response.get(section_key) or [])
-                if c.get("id") == contributor_id
-            ),
-            None,
-        )
-        if not entry:
-            return set()
-        return {p["id"] for p in (entry.get("userPermissions") or [])}
 
     def _resolve_permissions(
         self,
         role: WMUserTypeEnum,
         name_by_id: dict[int, str],
         groups: dict[str, dict[int, str]] | None,
+        current_perm_ids: list[int],
     ) -> tuple[list[int], list[str], list[str]]:
         # Permissions valid for the user's role. When the role groups cannot be
         # fetched this falls back to the full map, deferring role enforcement
@@ -121,6 +158,11 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
             self._role_team_user_permission_map(role, name_by_id, groups).keys()
         )
         if self._permissions == "*":
+            if self._operation == "revoke":
+                # revoke "*" clears the permissions the user currently holds
+                # (including the master, now that it is removable). Resolve to
+                # the held permissions so the desired set becomes empty.
+                return [pid for pid in current_perm_ids if pid in role_ids], [], []
             return list(role_ids), [], []
 
         resolved_ids: list[int] = []
@@ -144,19 +186,27 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
 
     def _log(
         self,
-        ordered_ids: list[int],
-        affected_ids: set[int],
+        current_ids: list[int],
+        new_state: set[int],
+        attempted_ids: list[int],
         unresolved_names: list[str],
         role_mismatch_names: list[str],
         user_email: str,
     ) -> None:
         name_by_id = self._service_provider.get_team_user_permission_id_name_map()
-        succeeded_names = [
-            name_by_id[pid] for pid in ordered_ids if pid in affected_ids
-        ]
-        failed_names = [
-            name_by_id[pid] for pid in ordered_ids if pid not in affected_ids
-        ] + role_mismatch_names + unresolved_names
+        current = set(current_ids)
+        # Permissions whose state actually changed in the intended direction.
+        if self._operation == "grant":
+            changed = new_state - current
+        else:
+            changed = current - new_state
+
+        succeeded_names = [name_by_id[pid] for pid in attempted_ids if pid in changed]
+        failed_names = (
+            [name_by_id[pid] for pid in attempted_ids if pid not in changed]
+            + role_mismatch_names
+            + unresolved_names
+        )
 
         verb_inf = "grant" if self._operation == "grant" else "revoke"
         verb_past = "granted" if self._operation == "grant" else "revoked"
@@ -239,13 +289,3 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
                     expanded.append(dep_id)
                     seen.add(dep_id)
         return expanded
-
-    @staticmethod
-    def _order_team_permission_ids(perm_ids: list[int]) -> list[int]:
-        # The master permission auto-grants the other contributor permissions
-        # and blocks their revocation while enabled, so process it first.
-        if MANAGE_CONTRIBUTORS_ID in perm_ids:
-            return [MANAGE_CONTRIBUTORS_ID] + [
-                pid for pid in perm_ids if pid != MANAGE_CONTRIBUTORS_ID
-            ]
-        return list(perm_ids)

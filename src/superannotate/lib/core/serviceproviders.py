@@ -261,13 +261,11 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
-    def edit_team_user_permissions(
+    def set_team_user_permissions(
         self,
-        contributor_ids: list[int],
+        contributor_id: int,
         permission_ids: list[int],
-        operation: Literal["grant", "revoke"],
-        chunk_size=100,
-    ) -> dict:
+    ) -> list[int]:
         raise NotImplementedError
 
     @abstractmethod
