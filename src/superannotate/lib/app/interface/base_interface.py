@@ -28,7 +28,12 @@ class BaseInterfaceFacade:
     REGISTRY = []
 
     @validate_arguments
-    def __init__(self, token: TokenStr | None = None, config_path: str | None = None):
+    def __init__(
+        self,
+        token: TokenStr | None = None,
+        config_path: str | None = None,
+        team_id: int | None = None,
+    ):
         try:
             if token:
                 config = ConfigEntity(SA_TOKEN=token)
@@ -65,6 +70,9 @@ class BaseInterfaceFacade:
             raise AppException(wrap_error(e))
         if not config:
             raise AppException("Credentials not provided.")
+        if team_id is not None:
+            # An explicitly passed team wins over the environment and the config file.
+            config.TEAM_ID = team_id
         setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)
         self.controller = Controller(config)
         BaseInterfaceFacade.REGISTRY.append(self)
@@ -80,10 +88,13 @@ class BaseInterfaceFacade:
             raise AppException("Invalid token.")
         host = json_data.get("main_endpoint")
         verify_ssl = json_data.get("ssl_verify")
+        team_id = json_data.get("team_id")
         if host:
             config.API_URL = host
         if verify_ssl:
             config.VERIFY_SSL = verify_ssl
+        if team_id:
+            config.TEAM_ID = team_id
         return config
 
     @staticmethod
@@ -205,7 +216,7 @@ class Tracker:
             arguments = self.extract_arguments(self.function, *args, **kwargs)
             event_name, properties = self.default_parser(function_name, arguments)
             user_email = client.controller.current_user.email
-            team_name = client.controller.team_data.name
+            team_name = client.controller.team_name
 
             properties["Success"] = success
             default = self.get_default_payload(

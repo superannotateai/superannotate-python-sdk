@@ -55,6 +55,7 @@ ______________________________________________
    superannotatecli init --token <token>
                          [--logging_level <NOTSET/INFO/DEBUG/WARNING/ERROR/CRITICAL (Default=INFO)>]
                          [--logging_path <Default=/Users/username/.superannotate/logs>]
+                         [--team_id <team_id>]
 
 
 **Arguments provided**
@@ -87,6 +88,34 @@ Custom config.ini example:
     SA_TOKEN = <token>
     LOGGING_LEVEL = INFO
     LOGGING_PATH = /Users/username/data/superannotate_logs
+
+
+Providing a team
+________________
+
+The SDK operates within a single team. Team and personal (team-user) tokens are already
+scoped to a team, so nothing else is needed. An organization token is not, and the team
+has to be provided explicitly:
+
+.. code-block:: python
+
+   from superannotate import SAClient
+
+
+   sa_client = SAClient(token="<organization_token>", team_id=<team_id>)
+
+The team can also be provided by the ``SA_TEAM_ID`` environment variable or by the config
+file, in which case ``SAClient()`` picks it up on its own:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    SA_TOKEN = <organization_token>
+    SA_TEAM_ID = <team_id>
+
+The ``team_id`` argument takes precedence over the environment variable, which takes
+precedence over the config file. Passing a ``team_id`` that contradicts the team a token
+is scoped to is an error.
 
 ----------
 

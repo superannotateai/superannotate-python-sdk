@@ -31,6 +31,7 @@ class CLIFacade:
         token: str,
         logging_level: str = "INFO",
         logging_path: str = constances.LOG_FILE_LOCATION,
+        team_id: int = None,
     ):
         """
         To initialize CLI (and SDK) with team token
@@ -44,6 +45,10 @@ class CLIFacade:
 
         :param logging_path: logging path for log file
         :type logging_path: str
+
+        :param team_id: the team to operate in, required only for tokens that are not
+            scoped to a team (e.g. an organization token)
+        :type team_id: int
 
         """
         from configparser import ConfigParser
@@ -64,6 +69,8 @@ class CLIFacade:
             "LOGGING_LEVEL": logging_level,
             "LOGGING_PATH": logging_path,
         }
+        if team_id:
+            config_parser["DEFAULT"]["SA_TEAM_ID"] = str(team_id)
         with open(constances.CONFIG_INI_FILE_LOCATION, "w") as configfile:
             config_parser.write(configfile)
         print(f"Configuration file successfully {operation}.")

@@ -43,11 +43,20 @@ from lib.core.types import AttachmentMeta
 
 
 class BaseClient(ABC):
-    def __init__(self, api_url: str, token: str):
-        self.team_id = token.split("=")[-1]
+    DEFAULT_AUTH_TYPE = "sdk"
+
+    def __init__(
+        self,
+        api_url: str,
+        token: str,
+        team_id: int,
+        auth_type: str = DEFAULT_AUTH_TYPE,
+    ):
+        self.team_id = team_id
 
         self._api_url = api_url
         self._token = token
+        self._auth_type = auth_type
 
     @property
     def api_url(self):
@@ -56,6 +65,10 @@ class BaseClient(ABC):
     @property
     def token(self):
         return self._token
+
+    @property
+    def auth_type(self):
+        return self._auth_type
 
     @property
     @abstractmethod

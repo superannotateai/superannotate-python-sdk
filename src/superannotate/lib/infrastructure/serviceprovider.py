@@ -60,6 +60,8 @@ class ServiceProvider(BaseServiceProvider):
             HttpClient(
                 api_url=self._get_work_management_url(client),
                 token=client.token,
+                team_id=client.team_id,
+                auth_type=client.auth_type,
                 verify_ssl=client.verify_ssl,
             )
         )
@@ -67,6 +69,8 @@ class ServiceProvider(BaseServiceProvider):
             HttpClient(
                 api_url=self._get_item_service_url(client),
                 token=client.token,
+                team_id=client.team_id,
+                auth_type=client.auth_type,
                 verify_ssl=client.verify_ssl,
             )
         )
