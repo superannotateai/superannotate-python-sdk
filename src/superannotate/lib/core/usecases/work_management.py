@@ -13,7 +13,13 @@ from lib.core.usecases import BaseReportableUseCase
 PermissionOperation = Literal["grant", "revoke"]
 
 # Permission ids used by the cascade rules (see constants).
-MANAGE_CONTRIBUTORS_ID = constants.TEAM_USER_PERMISSION_MANAGE_CONTRIBUTORS["id"]
+MASTER_IDS = frozenset(constants.TEAM_USER_PERMISSION_MASTERS)
+DEPRECATED_IDS = constants.TEAM_USER_PERMISSION_DEPRECATED_IDS
+CONTRIBUTOR_MASTER_ID = 19
+# Master named in the revoke failure hint when the failed permissions cannot be
+# traced back to a group (e.g. they are all unresolved names). Defaults to the
+# contributor master, which is the pre-existing wording.
+DEFAULT_MASTER_NAME = constants.TEAM_USER_PERMISSION_MASTERS[CONTRIBUTOR_MASTER_ID]
 
 
 class UpdateUserPermissionUseCase(BaseReportableUseCase):
@@ -31,10 +37,16 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         ``constants.TEAM_USER_PERMISSION_GRANT_CASCADE`` /
         ``TEAM_USER_PERMISSION_REVOKE_CASCADE``) because the backend does not
         auto-cascade;
-      - the "Manage Contributors' permissions" master implies every other
-        permission in its group: whenever it stays in the desired set we add
-        the rest (this also preserves the rule that members cannot be revoked
-        while the master is enabled);
+      - each group's master permission (see
+        ``constants.TEAM_USER_PERMISSION_MASTERS``: "Manage Contributors'
+        permissions" for contributors, "Access team API keys" for admins)
+        implies every other permission in its own group: whenever a master
+        stays in the desired set we add the rest of its group (this also
+        preserves the rule that a group's permissions cannot be revoked while
+        its master is enabled);
+      - permissions the backend no longer grants
+        (``constants.TEAM_USER_PERMISSION_DEPRECATED_IDS``) are left out of
+        ``"*"`` and of master cascades so they are not reported as failures;
       - per-permission success / failure is reported through the reporter.
     """
 
@@ -75,12 +87,23 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
             team_user.role, name_by_id, groups, current_ids
         )
 
+        # The group that applies to this user's role. The master rules are scoped
+        # to it so a permission the user holds from outside their role (stale
+        # data after a role change) can never pull in another group's ids.
+        role_group = (
+            self._role_team_user_permission_map(team_user.role, name_by_id, groups)
+            if groups
+            else None
+        )
+
         # The permissions we attempted to change (requested + cascade), used for
         # per-permission success / failure reporting.
-        cascade = self._build_cascade(self._operation, groups)
+        cascade = self._build_cascade(self._operation, groups, set(name_by_id))
         attempted_ids = self._cascade_team_permission_ids(resolved_ids, cascade)
 
-        desired_ids = self._desired_permission_ids(current_ids, attempted_ids, groups)
+        desired_ids = self._desired_permission_ids(
+            current_ids, attempted_ids, role_group
+        )
 
         # Skip the network round-trip when nothing would change.
         if set(desired_ids) == set(current_ids):
@@ -95,6 +118,7 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
             unresolved_names,
             role_mismatch_names,
             team_user.email,
+            role_group,
         )
         return self._response
 
@@ -108,7 +132,7 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         self,
         current_ids: list[int],
         attempted_ids: list[int],
-        groups: dict[str, dict[int, str]] | None,
+        role_group: dict[int, str] | None,
     ) -> list[int]:
         """Full permission set to send, derived from the current set.
 
@@ -122,18 +146,34 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
             desired = current | set(attempted_ids)
         else:
             desired = current - set(attempted_ids)
-        desired = self._apply_master_invariant(desired, groups)
+        desired = self._apply_master_invariant(desired, role_group)
         return sorted(desired)
 
     @staticmethod
+    def _group_master(perms: dict[int, str]) -> int | None:
+        """The master permission id of a group, if the group has one."""
+        return next((pid for pid in perms if pid in MASTER_IDS), None)
+
+    @classmethod
     def _apply_master_invariant(
-        desired: set[int], groups: dict[str, dict[int, str]] | None
+        cls, desired: set[int], role_group: dict[int, str] | None
     ) -> set[int]:
-        if MANAGE_CONTRIBUTORS_ID not in desired or not groups:
+        """Re-add the role's permissions whenever its master stays granted.
+
+        Applied to the desired set of every operation, this enforces both master
+        rules at once: granting a master pulls in its whole group, and a group's
+        permissions cannot be revoked while its master is still granted (the
+        subtraction is undone here, so the desired set ends up unchanged and the
+        revoke is reported as a failure).
+
+        Only the group matching the user's role is considered, so a permission
+        held from outside that role never drags in another group's ids.
+        """
+        if not role_group:
             return desired
-        for perms in groups.values():
-            if MANAGE_CONTRIBUTORS_ID in perms:
-                return desired | set(perms.keys())
+        master_id = cls._group_master(role_group)
+        if master_id is not None and master_id in desired:
+            desired = desired | (set(role_group) - DEPRECATED_IDS)
         return desired
 
     def _apply(self, contributor_id: int, permission_ids: list[int]) -> set[int]:
@@ -162,8 +202,12 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
                 # revoke "*" clears the permissions the user currently holds
                 # (including the master, now that it is removable). Resolve to
                 # the held permissions so the desired set becomes empty.
+                # Deprecated ids are not filtered here: a user who somehow holds
+                # one should still be able to clear it.
                 return [pid for pid in current_perm_ids if pid in role_ids], [], []
-            return list(role_ids), [], []
+            # grant "*" skips permissions the backend no longer grants, and is
+            # sorted so the reported order is deterministic.
+            return sorted(role_ids - DEPRECATED_IDS), [], []
 
         resolved_ids: list[int] = []
         seen_ids: set[int] = set()
@@ -184,6 +228,20 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
                 seen_ids.add(pid)
         return resolved_ids, unresolved_names, role_mismatch_names
 
+    @classmethod
+    def _master_name(cls, role_group: dict[int, str] | None) -> str:
+        """Canonical name of the master that governs this user's permissions.
+
+        Keeps the revoke hint scoped to the user's role: a contributor is never
+        told to revoke the admin master, and vice versa. Falls back to the
+        contributor master when the role's group is unavailable.
+        """
+        if role_group:
+            master_id = cls._group_master(role_group)
+            if master_id is not None:
+                return role_group[master_id]
+        return DEFAULT_MASTER_NAME
+
     def _log(
         self,
         current_ids: list[int],
@@ -192,6 +250,7 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         unresolved_names: list[str],
         role_mismatch_names: list[str],
         user_email: str,
+        role_group: dict[int, str] | None = None,
     ) -> None:
         name_by_id = self._service_provider.get_team_user_permission_id_name_map()
         current = set(current_ids)
@@ -201,9 +260,10 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         else:
             changed = current - new_state
 
+        failed_ids = [pid for pid in attempted_ids if pid not in changed]
         succeeded_names = [name_by_id[pid] for pid in attempted_ids if pid in changed]
         failed_names = (
-            [name_by_id[pid] for pid in attempted_ids if pid not in changed]
+            [name_by_id[pid] for pid in failed_ids]
             + role_mismatch_names
             + unresolved_names
         )
@@ -225,11 +285,14 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
                     f"- Provided permission(s) were invalid."
                 )
             else:
+                # Revoking a group's permissions is blocked while its master is
+                # granted, so the hint names the master governing this user.
+                master_name = self._master_name(role_group)
                 reasons = (
                     f"- {failed_str} permission(s) were already revoked for the user.\n"
                     f"- Provided permission(s) were invalid.\n"
-                    f"- If Manage Contributors' permissions is granted, it must be "
-                    f"revoked before {failed_str} can be revoked for this user."
+                    f"- If {master_name} is granted, it must be revoked before "
+                    f"{failed_str} can be revoked for this user."
                 )
             self.reporter.log_info(
                 f"Could not {verb_inf} {failed_str} permission(s) "
@@ -255,25 +318,37 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         self,
         operation: PermissionOperation,
         groups: dict[str, dict[int, str]] | None,
+        known_ids: set[int],
     ) -> dict[int, list[int]]:
         # Start from the hardcoded name-based cascades (e.g. Edit -> View
-        # custom field values), then derive the "Manage Contributors'
-        # permissions" master cascade from the live permission-groups data:
-        # granting the master grants every other permission in its group.
-        # Deriving it at runtime avoids hardcoding ids that may not exist for
-        # every team (e.g. id 25 can be absent depending on configuration).
+        # custom field values), then derive each group's master cascade from the
+        # live permission-groups data: granting a master grants every other
+        # permission in its group. Deriving it at runtime avoids hardcoding ids
+        # that may not exist for every team (e.g. id 25 can be absent depending
+        # on configuration) and keeps non-grantable ids out of the batch.
         base = (
             constants.TEAM_USER_PERMISSION_GRANT_CASCADE
             if operation == "grant"
             else constants.TEAM_USER_PERMISSION_REVOKE_CASCADE
         )
-        cascade = {pid: list(deps) for pid, deps in base.items()}
+        # The hardcoded cascades name ids by convention, but a team may not have
+        # them all. Drop anything this team does not expose, otherwise we would
+        # send unknown ids to the backend and fail to name them when reporting.
+        cascade = {
+            pid: [dep for dep in deps if dep in known_ids]
+            for pid, deps in base.items()
+            if pid in known_ids
+        }
         if operation == "grant" and groups:
-            master_id = MANAGE_CONTRIBUTORS_ID
             for perms in groups.values():
-                if master_id in perms:
-                    cascade[master_id] = [pid for pid in perms if pid != master_id]
-                    break
+                master_id = self._group_master(perms)
+                if master_id is None:
+                    continue
+                cascade[master_id] = [
+                    pid
+                    for pid in perms
+                    if pid != master_id and pid not in DEPRECATED_IDS
+                ]
         return cascade
 
     @staticmethod

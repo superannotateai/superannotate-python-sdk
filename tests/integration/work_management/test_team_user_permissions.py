@@ -13,7 +13,7 @@ class TestTeamUserPermissions(TestCase):
     # Contributor permission whose canonical name uses a curly apostrophe.
     CURLY_PERMISSION = "View Contributors’ scores"
     # An admin-only permission; granting it to a contributor must be rejected.
-    ADMIN_PERMISSION = "View SDK Token"
+    ADMIN_PERMISSION = "Access team API keys"
     # Reversible cascade pair (no master involved): granting Edit auto-grants
     # View, revoking View auto-revokes Edit. Straight apostrophes here; the SDK
     # normalizes them to match the backend's canonical (curly) names.
@@ -123,7 +123,7 @@ class TestTeamUserPermissions(TestCase):
                 f"INFO:sa:Successfully granted [{self.PERMISSION}] permission(s) "
                 f"for user: {self.scapegoat['email']}." == cm.output[0]
             )
-            self._check_permissions_granted(self.scapegoat['email'], self.PERMISSION)
+            self._check_permissions_granted(self.scapegoat["email"], self.PERMISSION)
 
     def test_grant_permission_by_user_id(self):
         team_user_id = sa.list_users(email=self.scapegoat["email"])[0]["id"]
@@ -151,12 +151,9 @@ class TestTeamUserPermissions(TestCase):
         ]
         self.assertTrue(success, f"expected success log, got {cm.output}")
         line = success[0]
-        for key in (
-            "Manage Contributors",
-            "Invite Contributors to team",
-            "Remove Contributors from team",
-            "Access Workload management",
-        ):
+        # Derived from the live group rather than a literal list: id 25
+        # ("Access Workload management") is absent on some team configurations.
+        for key in self._contributor_permission_names():
             self.assertIn(key, line)
         granted = self._permission_names(email)
         self.assertEqual(granted, self._contributor_permission_names())
@@ -356,14 +353,9 @@ class TestTeamUserPermissions(TestCase):
         ]
         self.assertTrue(success, f"expected success log, got {cm.output}")
         line = success[0]
-        for key in (
-            "Manage Contributors",
-            "Invite Contributors to team",
-            "Remove Contributors from team",
-            "View Contributors",
-            "Edit Contributors",
-            "Access Workload management",
-        ):
+        # Derived from the live group rather than a literal list: id 25
+        # ("Access Workload management") is absent on some team configurations.
+        for key in self._contributor_permission_names():
             self.assertIn(key, line)
         self.assertEqual(
             self._permission_names(email), self._contributor_permission_names()
@@ -420,11 +412,12 @@ class TestTeamUserPermissions(TestCase):
         self.assertTrue(failure, f"expected failure log, got {cm.output}")
         joined = "\n".join(failure)
         self.assertIn("Remove Contributors from team", joined)
-        self.assertIn(
-            "If Manage Contributors' permissions is granted, it must be "
-            "revoked before",
-            joined,
-        )
+        # The master name is the canonical one from the live permission groups,
+        # so it carries the backend's curly apostrophe; match around it.
+        self.assertIn("Manage Contributors", joined)
+        self.assertIn(" permissions is granted, it must be revoked before", joined)
+        # The hint stays scoped to the contributor group.
+        self.assertNotIn("Access team API keys", joined)
         # The member is still present (revoke was blocked).
         self.assertTrue(
             self._includes(

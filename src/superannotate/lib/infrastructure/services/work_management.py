@@ -77,7 +77,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
-    URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
+    URL_EDIT_CUSTOM_ENTITIES = "customentities/edit"
     URL_SET_TEAM_USER_PERMISSIONS = "teamusers/setpermissions"
     URL_PERMISSION_GROUPS = "permissiongroups"
     URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
@@ -525,7 +525,7 @@ class WorkManagementService(BaseWorkManagementService):
             body_query = EmptyQuery()
             body_query &= Filter("id", chunk, OperatorEnum.IN)
             response = self.client.request(
-                url=self.URL_CONTRIBUTORS_CATEGORIES,
+                url=self.URL_EDIT_CUSTOM_ENTITIES,
                 method="post",
                 params=params,
                 data={
@@ -577,7 +577,7 @@ class WorkManagementService(BaseWorkManagementService):
             body_query = EmptyQuery()
             body_query &= Filter("id", chunk, OperatorEnum.IN)
             response = self.client.request(
-                url=self.URL_EDIT_USER_PERMISSIONS,
+                url=self.URL_EDIT_CUSTOM_ENTITIES,
                 method="post",
                 params=params,
                 data={
