@@ -48,6 +48,11 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         (``constants.TEAM_USER_PERMISSION_DEPRECATED_IDS``) are left out of
         ``"*"`` and of master cascades so they are not reported as failures;
       - per-permission success / failure is reported through the reporter.
+        Permissions the SDK added itself (master and Edit/View cascades, and the
+        ``"*"`` expansion) are only reported as failures when they genuinely did
+        not reach the requested state: one that was already there is the normal
+        case, so it stays silent. A permission the caller named explicitly is
+        always reported, which is how "User already has ..." is surfaced.
     """
 
     def __init__(
@@ -87,6 +92,10 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
             team_user.role, name_by_id, groups, current_ids
         )
 
+        # Permissions the caller named one by one. With "*" no specific
+        # permission was named, so the whole expansion counts as implicit.
+        explicit_ids = set() if self._permissions == "*" else set(resolved_ids)
+
         # The group that applies to this user's role. The master rules are scoped
         # to it so a permission the user holds from outside their role (stale
         # data after a role change) can never pull in another group's ids.
@@ -119,6 +128,7 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
             role_mismatch_names,
             team_user.email,
             role_group,
+            explicit_ids,
         )
         return self._response
 
@@ -251,6 +261,7 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         role_mismatch_names: list[str],
         user_email: str,
         role_group: dict[int, str] | None = None,
+        explicit_ids: set[int] | None = None,
     ) -> None:
         name_by_id = self._service_provider.get_team_user_permission_id_name_map()
         current = set(current_ids)
@@ -260,7 +271,25 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
         else:
             changed = current - new_state
 
-        failed_ids = [pid for pid in attempted_ids if pid not in changed]
+        def is_reportable(pid: int) -> bool:
+            """Whether an unchanged permission is worth reporting as a failure.
+
+            A permission the caller named is always reported (that is how
+            "User already has ..." is surfaced). One the SDK added itself -
+            through a master or Edit/View cascade, or by expanding "*" - is only
+            reported when it genuinely failed to reach the requested state.
+            Already being in that state is the normal case, not a problem.
+            """
+            if explicit_ids is None or pid in explicit_ids:
+                return True
+            already_ok = (
+                pid in current if self._operation == "grant" else pid not in current
+            )
+            return not already_ok
+
+        failed_ids = [
+            pid for pid in attempted_ids if pid not in changed and is_reportable(pid)
+        ]
         succeeded_names = [name_by_id[pid] for pid in attempted_ids if pid in changed]
         failed_names = (
             [name_by_id[pid] for pid in failed_ids]
