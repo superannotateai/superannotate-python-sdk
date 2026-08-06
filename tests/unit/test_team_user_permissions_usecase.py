@@ -198,6 +198,86 @@ class TestUpdateUserPermissionUseCase(TestCase):
         # Nothing changes -> no network round-trip.
         self.assertEqual(sp.work_management.calls, [])
 
+    # ---- permissions the SDK adds itself stay silent when already fine ----
+    #
+    # Only what the caller named is reported as "already has" / "already
+    # revoked". Master and Edit/View cascades, and the "*" expansion, are the
+    # SDK's own doing: a permission that was already in the requested state is
+    # the normal case there, not something to warn about.
+
+    def test_grant_admin_master_is_silent_about_children_already_granted(self):
+        _, reporter, _ = self._run(
+            ["Access team API keys"],
+            "grant",
+            granted={27, 30},
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        self.assertEqual(
+            self._message(reporter, "Successfully granted"),
+            f"Successfully granted [Access team API keys] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_grant_contributor_master_is_silent_about_children_already_granted(self):
+        _, reporter, _ = self._run([CONTRIBUTOR_PERMS[19]], "grant", granted={20, 22})
+        self.assertIsNotNone(self._message(reporter, "Successfully granted"))
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_grant_edit_is_silent_when_view_already_granted(self):
+        _, reporter, _ = self._run([CONTRIBUTOR_PERMS[24]], "grant", granted={23})
+        self.assertEqual(
+            self._message(reporter, "Successfully granted"),
+            f"Successfully granted [{CONTRIBUTOR_PERMS[24]}] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_revoke_view_is_silent_when_edit_not_granted(self):
+        _, reporter, _ = self._run([CONTRIBUTOR_PERMS[23]], "revoke", granted={23})
+        self.assertEqual(
+            self._message(reporter, "Successfully revoked"),
+            f"Successfully revoked [{CONTRIBUTOR_PERMS[23]}] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertIsNone(self._message(reporter, "Could not revoke"))
+
+    def test_grant_wildcard_is_silent_about_permissions_already_granted(self):
+        _, reporter, _ = self._run(
+            "*", "grant", granted={27}, role=WMUserTypeEnum.TeamAdmin
+        )
+        self.assertIsNotNone(self._message(reporter, "Successfully granted"))
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_explicitly_named_permission_still_reports_already_granted(self):
+        # The silence above must not swallow the case the story requires: a
+        # permission the caller named is reported even though it is a no-op.
+        _, reporter, _ = self._run(
+            ["Access Orchestrate"],
+            "grant",
+            granted={27},
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn(
+            "User already has [Access Orchestrate] permission(s) granted.", failure
+        )
+
+    def test_cascade_permission_that_really_failed_is_still_reported(self):
+        # Revoking View cascades to Edit, but the master blocks both. Neither
+        # reached the requested state, so both belong in the failure - silence
+        # is only for permissions that were already fine.
+        _, reporter, sp = self._run(
+            [CONTRIBUTOR_PERMS[23]], "revoke", granted={19, 20, 21, 22, 23, 24, 25}
+        )
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn(CONTRIBUTOR_PERMS[23], failure)
+        self.assertIn(CONTRIBUTOR_PERMS[24], failure)
+        self.assertIn("is granted, it must be revoked before", failure)
+
     def test_revoke_single_permission_success(self):
         _, reporter, sp = self._run(
             ["Invite Contributors to team"], "revoke", granted={20}

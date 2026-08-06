@@ -451,3 +451,28 @@ class TestTeamAdminUserPermissions(TestCase):
                 permissions=[self.PERMISSION],
                 user="non_existent_admin@superannotate.com",
             )
+
+    def test_grant_master_when_others_already_granted_log(self):
+        # Only the master was asked for. Its group members already being granted
+        # is the normal case, so nothing may be reported as a failure.
+        email = self.scapegoat["email"]
+        sa.grant_team_user_permissions(
+            permissions=[self.PERMISSION, self.OTHER_PERMISSION],
+            user=email,
+        )
+        self.assertEqual(self._granted(), {self.PERMISSION, self.OTHER_PERMISSION})
+
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.grant_team_user_permissions(
+                permissions=[self.MASTER_PERMISSION],
+                user=email,
+            )
+        joined = "\n".join(cm.output)
+        self.assertIn(
+            f"INFO:sa:Successfully granted [{self.MASTER_PERMISSION}] "
+            f"permission(s) for user: {email}.",
+            joined,
+        )
+        self.assertNotIn("Could not grant", joined)
+        # The master still pulled the whole group in.
+        self.assertEqual(self._granted(), self._admin_permission_names())
