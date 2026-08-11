@@ -1682,7 +1682,6 @@ class BaseController(metaclass=ABCMeta):
             api_url=config.API_URL,
             token=config.API_TOKEN,
             verify_ssl=config.VERIFY_SSL,
-            team_id=config.TEAM_ID,
         )
         self._team_id = self._token_context.team_id
 

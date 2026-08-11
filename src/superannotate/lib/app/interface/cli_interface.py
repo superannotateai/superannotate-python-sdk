@@ -31,13 +31,12 @@ class CLIFacade:
         token: str,
         logging_level: str = "INFO",
         logging_path: str = constances.LOG_FILE_LOCATION,
-        team_id: int = None,
     ):
         """
-        To initialize CLI (and SDK) with team token
-        Input the team SDK token from https://app.superannotate.com/team
+        To initialize CLI (and SDK) with API key.
+        The API key is available on the team setup page, for more details please visit our documentation at https://doc.superannotate.com/docs/api-keys.
 
-        :param token: the team token
+        :param token: the API key
         :type token: str
 
         :param logging_level: logging level, default is "INFO"
@@ -45,10 +44,6 @@ class CLIFacade:
 
         :param logging_path: logging path for log file
         :type logging_path: str
-
-        :param team_id: the team to operate in, required only for tokens that are not
-            scoped to a team (e.g. an organization token)
-        :type team_id: int
 
         """
         from configparser import ConfigParser
@@ -69,8 +64,6 @@ class CLIFacade:
             "LOGGING_LEVEL": logging_level,
             "LOGGING_PATH": logging_path,
         }
-        if team_id:
-            config_parser["DEFAULT"]["SA_TEAM_ID"] = str(team_id)
         with open(constances.CONFIG_INI_FILE_LOCATION, "w") as configfile:
             config_parser.write(configfile)
         print(f"Configuration file successfully {operation}.")

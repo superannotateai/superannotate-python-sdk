@@ -16,17 +16,12 @@ API_KEY_AUTH_TYPE = "api_key"
 
 URL_TOKEN_CONTEXT = "users/me"
 
-#: Token scopes that carry a team, and therefore need no explicit team_id.
+#: Token scopes that carry a team: "team" is a Team key, "teamuser" a Personal key.
 TEAM_SCOPED_TYPES = ("team", "teamuser")
 
-TEAM_CONTEXT_REQUIRED_ERROR = (
-    "The provided token is not scoped to a team, and the SDK operates within a team. "
-    "Provide a team by passing team_id to SAClient(...), by setting the SA_TEAM_ID "
-    "environment variable, or by adding SA_TEAM_ID to the config file."
-)
-TEAM_ID_MISMATCH_ERROR = (
-    "The provided team_id ({provided}) does not match the team the token is scoped "
-    "to ({actual}). Omit team_id to use the token's own team."
+ORGANIZATION_API_KEY_ERROR = (
+    "SAClient does not accept an Organization API key — it requires a Team or "
+    "Personal API key."
 )
 AUTHENTICATION_ERROR = (
     "Unable to authenticate the provided token. Please verify your credentials."
@@ -50,21 +45,16 @@ def resolve_token_context(
     api_url: str,
     token: str,
     verify_ssl: bool = True,
-    team_id: int | None = None,
 ) -> TokenContext:
     """Resolve the team (and acting user) a token grants access to.
 
     Legacy team-owner tokens carry the team id, so they are resolved offline. New-style
     API keys are resolved against the work-management service, which reports the scope
-    the key was issued for.
+    the key was issued for. The SDK operates within a single team, so a key that is not
+    scoped to one is rejected.
     """
     if is_legacy_token(token):
-        token_team_id = int(token.split("=")[-1])
-        if team_id is not None and team_id != token_team_id:
-            raise AppException(
-                TEAM_ID_MISMATCH_ERROR.format(provided=team_id, actual=token_team_id)
-            )
-        return TokenContext(team_id=token_team_id, auth_type=SDK_AUTH_TYPE)
+        return TokenContext(team_id=int(token.split("=")[-1]), auth_type=SDK_AUTH_TYPE)
 
     data = _fetch_token_context(api_url, token, verify_ssl)
     token_data = data.get("token") or {}
@@ -72,22 +62,15 @@ def resolve_token_context(
     scope_type = token_data.get("scope_type")
     token_team_id = scope.get("team_id")
 
-    if token_team_id is None:
-        # Organization-scoped (or any other team-less) key: the caller has to say which
-        # team to work in.
-        if team_id is None:
-            raise AppException(TEAM_CONTEXT_REQUIRED_ERROR)
-        resolved_team_id = team_id
-    else:
-        if team_id is not None and int(team_id) != int(token_team_id):
-            raise AppException(
-                TEAM_ID_MISMATCH_ERROR.format(provided=team_id, actual=token_team_id)
-            )
-        resolved_team_id = int(token_team_id)
+    # Anything outside the allowlist (an organization key, today) has no team to operate
+    # in; the team_id check keeps a malformed response from resolving to no team at all.
+    if scope_type not in TEAM_SCOPED_TYPES or token_team_id is None:
+        logger.debug(f"Rejected a token of {scope_type} scope.")
+        raise AppException(ORGANIZATION_API_KEY_ERROR)
 
-    logger.debug(f"Token resolved to {scope_type} scope, team {resolved_team_id}.")
+    logger.debug(f"Token resolved to {scope_type} scope, team {token_team_id}.")
     return TokenContext(
-        team_id=resolved_team_id,
+        team_id=int(token_team_id),
         auth_type=API_KEY_AUTH_TYPE,
         user=_build_user(data.get("user"), token_data.get("created_by")),
     )
