@@ -5,7 +5,6 @@ import datetime
 
 import lib.core as constants
 from lib.core import entities
-from lib.core.conditions import Condition
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.service_types import TeamResponse
@@ -355,17 +354,11 @@ class ServiceProvider(BaseServiceProvider):
             params={"project_id": project.id},
         )
 
-    def search_team_contributors(self, condition: Condition = None):
-        list_users_url = self.URL_USERS
-        if condition:
-            list_users_url = f"{list_users_url}?{condition.build_query()}"
-        return self.client.paginate(list_users_url)
-
     def invite_contributors(self, team_id: int, team_role: int, emails: list[str]):
         return self.client.request(
             self.URL_INVITE_CONTRIBUTORS.format(team_id),
             "post",
-            data=dict(emails=emails, team_role=team_role),
+            data={"emails": emails, "team_role": team_role},
         )
 
     def create_custom_workflow(self, org_id: str, data: dict):

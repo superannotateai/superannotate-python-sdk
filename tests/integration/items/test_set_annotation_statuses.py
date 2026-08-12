@@ -46,7 +46,7 @@ class TestSetAnnotationStatuses(BaseTestCase):
             self.PROJECT_NAME,
             "QualityCheck",
         )
-        for image in sa.search_items(self.PROJECT_NAME):
+        for image in sa.list_items(self.PROJECT_NAME):
             self.assertEqual(image["annotation_status"], "QualityCheck")
 
     def test_image_annotation_status_via_names(self):
@@ -80,5 +80,5 @@ class TestSetAnnotationStatuses(BaseTestCase):
             annotation_status="Completed",
             items=[self.ATTACHMENT_LIST[0]["name"]],
         )
-        data = sa.search_items(self.PROJECT_NAME)[0]
+        data = sa.list_items(self.PROJECT_NAME)[0]
         assert data["annotation_status"] == "Completed"

@@ -68,7 +68,7 @@ class TestAnnotationUploadVector(BaseTestCase):
         assert len(uploaded) == 1
 
         annotation = sa.get_annotations(self.PROJECT_NAME, ["example_image_1.jpg"])[0]
-        items = sa.search_items(self.PROJECT_NAME)
+        items = sa.list_items(self.PROJECT_NAME)
         for i in items:
             if i["name"] == "example_image_1.jpg":
                 assert i["annotation_status"] == "InProgress"
@@ -92,7 +92,7 @@ class TestAnnotationUploadVector(BaseTestCase):
             ).values()
         assert len(uploaded) == 1
 
-        items = sa.search_items(self.PROJECT_NAME)
+        items = sa.list_items(self.PROJECT_NAME)
         for i in items:
             if i["name"] == "example_image_1.jpg":
                 assert i["annotation_status"] == "Completed"

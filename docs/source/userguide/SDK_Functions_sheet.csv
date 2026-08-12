@@ -31,7 +31,6 @@ Folders,search_folders(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 Items,query(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_item_by_id(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,list_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
-,search_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,attach_items(),Not Relevant,Not Relevant,No,No,Not Relevant
 ,item_context(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,copy_items(),Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
@@ -74,7 +73,6 @@ Images,download_image(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not 
 Team,get_team_metadata(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_integrations(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,invite_contributors_to_team(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
-,search_team_contributors(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_user_metadata(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,set_user_custom_field(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,list_users(),Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant

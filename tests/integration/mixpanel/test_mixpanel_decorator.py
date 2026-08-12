@@ -119,21 +119,6 @@ class TestMixpanel(TestCase):
         assert payload == result[2]
 
     @patch("lib.app.interface.base_interface.Tracker._track")
-    def test_search_team_contributors(self, track_method):
-        kwargs = {
-            "email": "user@supernnotate.com",
-            "first_name": "first_name",
-            "last_name": "last_name",
-            "return_metadata": False,
-        }
-        sa.search_team_contributors(**kwargs)
-        result = list(track_method.call_args)[0]
-        payload = self.default_payload
-        payload.update(kwargs)
-        assert result[1] == "search_team_contributors"
-        assert payload == result[2]
-
-    @patch("lib.app.interface.base_interface.Tracker._track")
     def test_search_projects(self, track_method):
         kwargs = {
             "name": self.PROJECT_NAME,
