@@ -56,7 +56,7 @@ class TestAnnotationUploadVector(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, keep_status=True
         )
         assert len(uploaded) == 1
-        items = sa.search_items(self.PROJECT_NAME)
+        items = sa.list_items(self.PROJECT_NAME)
         for i in items:
             if i["name"] == "example_image_1.jpg":
                 assert i["annotation_status"] == "Completed"

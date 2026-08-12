@@ -936,12 +936,6 @@ class BaseServiceProvider(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def search_team_contributors(
-        self, condition: Condition | None = None
-    ) -> ServiceResponse:
-        raise NotImplementedError
-
-    @abstractmethod
     def get_team_user_permission_id(self, name: str) -> int | None:
         raise NotImplementedError
 

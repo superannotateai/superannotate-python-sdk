@@ -99,7 +99,7 @@ class TestCustomSchema(BaseTestCase):
         data = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
         assert data[0]["custom_metadata"] == {}
 
-    def test_upload_delete_custom_values_search_items(self):
+    def test_upload_delete_custom_values_list_items(self):
         sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
         item_name = "test"
         payload = {"test": 12}
@@ -108,7 +108,7 @@ class TestCustomSchema(BaseTestCase):
             self.PROJECT_NAME, [{item_name: payload}] * 10000
         )
         assert response == {"failed": [], "succeeded": [item_name]}
-        data = sa.search_items(
+        data = sa.list_items(
             self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True
         )
         assert data[0]["custom_metadata"] == payload
@@ -117,25 +117,24 @@ class TestCustomSchema(BaseTestCase):
         )
         assert data[0]["custom_metadata"] == payload
         sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])
-        data = sa.search_items(
-            self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True
+        data = sa.list_items(
+            self.PROJECT_NAME, name__contains=item_name, include=["custom_metadata"]
         )
         assert data[0]["custom_metadata"] == {}
 
-    def test_search_items(self):
+    def test_list_items(self):
         sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
         item_name = "test"
         payload = {"test": 12}
         sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
         sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
-        items = sa.search_items(self.PROJECT_NAME, include_custom_metadata=True)
-        assert items[0]["custom_metadata"] == payload
         items = sa.list_items(self.PROJECT_NAME, include=["custom_metadata"])
+        assert items[0]["custom_metadata"] == payload
 
-    def test_search_items_without_custom_metadata(self):
+    def test_list_items_without_custom_metadata(self):
         item_name = "test"
         sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
-        items = sa.search_items(self.PROJECT_NAME)
+        items = sa.list_items(self.PROJECT_NAME)
         assert "custom_metadata" not in items[0]
 
     def test_get_item_metadata(self):

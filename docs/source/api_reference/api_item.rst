@@ -6,7 +6,6 @@ Items
 .. automethod:: superannotate.SAClient.query
 .. automethod:: superannotate.SAClient.get_item_by_id
 .. automethod:: superannotate.SAClient.list_items
-.. automethod:: superannotate.SAClient.search_items
 .. automethod:: superannotate.SAClient.attach_items
 .. automethod:: superannotate.SAClient.generate_items
 .. automethod:: superannotate.SAClient.item_context

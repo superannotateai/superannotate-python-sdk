@@ -124,7 +124,7 @@ class CLITest(TestCase):
             extensions="jpg",
             set_annotation_status="QualityCheck",
         )
-        self.assertEqual(1, len(sa.search_items(self.PROJECT_NAME)))
+        self.assertEqual(1, len(sa.list_items(self.PROJECT_NAME)))
 
     def test_upload_export(self):
         self._create_project()
@@ -160,7 +160,7 @@ class CLITest(TestCase):
 
         count_in = len(list(self.vector_folder_path.glob("*.json")))
         with tempfile.TemporaryDirectory() as temp_dir:
-            for image in sa.search_items(self.PROJECT_NAME):
+            for image in sa.list_items(self.PROJECT_NAME):
                 image_name = image["name"]
                 sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
             count_out = len(list(Path(temp_dir).glob("*.json")))
@@ -171,7 +171,7 @@ class CLITest(TestCase):
         self.safe_run(
             self._cli.attach_image_urls, self.PROJECT_NAME, str(self.video_csv_path)
         )
-        self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
+        self.assertEqual(3, len(sa.list_items(self.PROJECT_NAME)))
 
     def test_attach_video_urls(self):
         self._create_project("Video")

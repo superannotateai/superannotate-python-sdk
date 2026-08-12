@@ -52,7 +52,7 @@ class TestGetAnnotations(BaseTestCase):
         _, _, _ = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-        items = sa.search_items(self.PROJECT_NAME)
+        items = sa.list_items(self.PROJECT_NAME)
 
         annotations = sa.get_annotations(self._project["id"], [i["id"] for i in items])
 
@@ -72,8 +72,8 @@ class TestGetAnnotations(BaseTestCase):
         _, _, _ = sa.upload_annotations_from_folder_to_project(
             f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}", self.folder_path
         )
-        items = sa.search_items(self.PROJECT_NAME)
-        folder_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}")
+        items = sa.list_items(self.PROJECT_NAME)
+        folder_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}")
         all_items = items + folder_items
 
         annotations = sa.get_annotations(
@@ -172,7 +172,7 @@ class TestGetAnnotations(BaseTestCase):
                 for i in range(count)
             ],
         )
-        assert len(sa.search_items(self.PROJECT_NAME)) == count
+        assert len(sa.list_items(self.PROJECT_NAME)) == count
         a = sa.get_annotations(self.PROJECT_NAME)
         assert len(a) == count
 

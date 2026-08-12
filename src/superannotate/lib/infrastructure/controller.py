@@ -1950,15 +1950,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def search_team_contributors(self, **kwargs):
-        condition = build_condition(**kwargs)
-        use_case = usecases.SearchContributorsUseCase(
-            service_provider=self.service_provider,
-            team_id=self.team_id,
-            condition=condition,
-        )
-        return use_case.execute()
-
     def _get_image(
         self,
         project: ProjectEntity,

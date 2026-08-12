@@ -31,7 +31,7 @@ class TestSingleImageUpload(BaseTestCase):
             self.folder_path + "/example_image_1.jpg",
             annotation_status="InProgress",
         )
-        assert len(sa.search_items(self.PROJECT_NAME)) == 1
+        assert len(sa.list_items(self.PROJECT_NAME)) == 1
 
         with open(self.folder_path + "/example_image_1.jpg", "rb") as f:
             img = io.BytesIO(f.read())
@@ -40,7 +40,7 @@ class TestSingleImageUpload(BaseTestCase):
             self.PROJECT_NAME, img, image_name="rr.jpg", annotation_status="InProgress"
         )
 
-        assert len(sa.search_items(self.PROJECT_NAME)) == 2
+        assert len(sa.list_items(self.PROJECT_NAME)) == 2
 
 
 class TestMultipleImageUpload(BaseTestCase):
