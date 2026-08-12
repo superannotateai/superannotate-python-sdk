@@ -43,10 +43,15 @@ class PydanticEncoder(json.JSONEncoder):
 
 
 class HttpClient(BaseClient):
-    AUTH_TYPE = "sdk"
-
-    def __init__(self, api_url: str, token: str, verify_ssl: bool = True):
-        super().__init__(api_url, token)
+    def __init__(
+        self,
+        api_url: str,
+        token: str,
+        team_id: int,
+        auth_type: str = BaseClient.DEFAULT_AUTH_TYPE,
+        verify_ssl: bool = True,
+    ):
+        super().__init__(api_url, token, team_id, auth_type)
         self._verify_ssl = verify_ssl
         self._version = os.environ.get("sa_version")
         self._env = os.environ.get("SA_ENV")
@@ -76,7 +81,7 @@ class HttpClient(BaseClient):
     def default_headers(self):
         return {
             "Authorization": self._token,
-            "authtype": self.AUTH_TYPE,
+            "authtype": self._auth_type,
             "Content-Type": "application/json",
             "x-sa-entity-context": base64.b64encode(
                 json.dumps(
@@ -126,7 +131,7 @@ class HttpClient(BaseClient):
             )
         if response.status_code > 299:
             logger.debug(
-                f"Got {response.status_code} response from backend: {response.text}"
+                f"Got {response.status_code} from {url} response from backend:, {response.text}"
             )
         return response
 

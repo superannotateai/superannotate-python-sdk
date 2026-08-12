@@ -205,7 +205,7 @@ class Tracker:
             arguments = self.extract_arguments(self.function, *args, **kwargs)
             event_name, properties = self.default_parser(function_name, arguments)
             user_email = client.controller.current_user.email
-            team_name = client.controller.team_data.name
+            team_name = client.controller.team_name
 
             properties["Success"] = success
             default = self.get_default_payload(

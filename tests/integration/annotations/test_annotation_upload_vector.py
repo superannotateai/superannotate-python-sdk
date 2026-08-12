@@ -83,7 +83,7 @@ class TestAnnotationUploadVector(BaseTestCase):
         _, _, _ = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-        images = sa.search_items(self.PROJECT_NAME)
+        images = sa.list_items(self.PROJECT_NAME)
         with tempfile.TemporaryDirectory() as tmp_dir:
             for image in images:
                 image_name = image["name"]

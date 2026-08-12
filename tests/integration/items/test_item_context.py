@@ -105,7 +105,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
         self._base_test((self._project["id"], folder["id"]), "dummy")
 
         # test from folder by project and folder ids as tuple and item id
-        item = sa.search_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
+        item = sa.list_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
         self._base_test((self._project["id"], folder["id"]), item["id"])
 
     def test_set_component_value_stamps_last_action(self):

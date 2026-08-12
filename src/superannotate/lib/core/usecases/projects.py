@@ -806,24 +806,6 @@ class GetCurrentUserUseCase(BaseUseCase):
         return self._response
 
 
-class SearchContributorsUseCase(BaseUseCase):
-    def __init__(
-        self,
-        service_provider: BaseServiceProvider,
-        team_id: int,
-        condition: Condition = None,
-    ):
-        super().__init__()
-        self._service_provider = service_provider
-        self._team_id = team_id
-        self._condition = condition
-
-    def execute(self):
-        res = self._service_provider.search_team_contributors(self._condition)
-        self._response.data = res.data
-        return self._response
-
-
 class AddContributorsToProject(BaseUseCase):
     """
     Returns tuple of lists (added, skipped)

@@ -295,7 +295,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     In case of no argument has been provided, SA_TOKEN environmental variable
     will be checked or $HOME/.superannotate/config.json will be used.
 
-    :param token: team token
+    :param token: API key
     :type token: str
 
     :param config_path: path to config file
@@ -303,11 +303,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     """
 
-    def __init__(
-        self,
-        token: str | None = None,
-        config_path: str | None = None,
-    ):
+    def __init__(self, token: str | None = None, config_path: str | None = None):
         super().__init__(token, config_path)
 
     def get_project_by_id(self, project_id: int):
@@ -1434,44 +1430,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException("No component context found for project.")
         return _context
 
-    def search_team_contributors(
-        self,
-        email: EmailStr | None = None,
-        first_name: NotEmptyStr | None = None,
-        last_name: NotEmptyStr | None = None,
-        return_metadata: bool = True,
-    ):
-        """Search for contributors in the team
-
-        :param email: filter by email
-        :type email: str
-
-        :param first_name: filter by first name
-        :type first_name: str
-
-        :param last_name: filter by last name
-        :type last_name: str
-
-        :param return_metadata: return metadata of contributors instead of names
-        :type return_metadata: bool
-
-        :return: metadata of found users
-        :rtype: list of dicts
-        """
-        warnings.warn(
-            "This function search_team_contributors() will be deprecated and removed in version 4.6.0\n"
-            "Recommended replacement: get_user_metadata() or list_users()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        contributors = self.controller.search_team_contributors(
-            email=email, first_name=first_name, last_name=last_name
-        ).data
-
-        if not return_metadata:
-            return [contributor["email"] for contributor in contributors]
-        return contributors
-
     def search_projects(
         self,
         name: NotEmptyStr | None = None,
@@ -1500,7 +1458,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: list of strs or dicts
         """
         warnings.warn(
-            "This function search_projects() will be deprecated and removed in version 4.6.0\n"
+            "This function search_projects() will be deprecated and removed in version 4.7.0\n"
             "Recommended replacement: get_project_metadata() or list_projects()",
             DeprecationWarning,
             stacklevel=2,
@@ -2106,7 +2064,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         warnings.warn(
             DeprecationWarning(
-                "This function search_folders() will be deprecated and removed in version 4.6.0 \n"
+                "This function search_folders() will be deprecated and removed in version 4.7.0 \n"
                 "Recommended replacement:list_folders()"
             )
         )
@@ -4782,128 +4740,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         return BaseSerializer(item).serialize(exclude=exclude)
 
-    def search_items(
-        self,
-        project: NotEmptyStr | int | tuple[int, int] | tuple[str, str],
-        name_contains: NotEmptyStr | None = None,
-        annotation_status: str | None = None,
-        annotator_email: NotEmptyStr | None = None,
-        qa_email: NotEmptyStr | None = None,
-        recursive: bool = False,
-        include_custom_metadata: bool = False,
-    ):
-        """Search items by filtering criteria.
-
-        :param project: Accepts a project as a string ("project" or "project/folder") or as a tuple (project_id, folder_id), where the folder is optional.”
-        :type project: Union[str, int, Tuple[int, int], Tuple[str, str]]
-
-        :param name_contains:  returns those items, where the given string is found anywhere within an item’s name.
-            If None, all items returned, in accordance with the recursive=False parameter.
-        :type name_contains: str
-
-        :param annotation_status: returns items with the specified annotation status, which must match a predefined
-            status in the project workflow. If None, all items are returned.
-
-        :type annotation_status: str
-
-        :param annotator_email: returns those items’ names that are assigned to the specified annotator.
-            If None, all items are returned. Strict equal.
-        :type annotator_email: str
-
-        :param qa_email:  returns those items’ names that are assigned to the specified QA.
-            If None, all items are returned. Strict equal.
-        :type qa_email: str
-
-        :param recursive: search in the project’s root and all of its folders.
-            If False search only in the project’s root or given directory.
-        :type recursive: bool
-
-        :param include_custom_metadata: include custom metadata that has been attached to an asset.
-        :type include_custom_metadata: bool
-
-        :return: metadata of item
-        :rtype: list of dicts
-
-        Request Example:
-        ::
-
-            sa_client.search_items(
-               project="Medical Annotations",
-               name_contains="image_1",
-               include_custom_metadata=True
-            )
-
-        Response Example:
-        ::
-
-            [
-               {
-                   "name": "image_1.jpeg",
-                   "path": "Medical Annotations/Study",
-                   "url": "https://sa-public-files.s3.../image_1.png",
-                   "annotation_status": "NotStarted",
-                   "annotator_email": None,
-                   "qa_email": None,
-                   "entropy_value": None,
-                   "createdAt": "2022-02-15T20:46:44.000Z",
-                   "updatedAt": "2022-02-15T20:46:44.000Z",
-                   "custom_metadata": {
-                       "study_date": "2021-12-31",
-                       "patient_id": "62078f8a756ddb2ca9fc9660",
-                       "patient_sex": "female",
-                       "medical_specialist": "robertboxer@ms.com",
-                   }
-               }
-            ]
-        """
-        warnings.warn(
-            "This function search_items() will be deprecated and removed in version 4.6.0\n"
-            "Recommended replacement: get_item_metadata() or list_items()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        project, folder = self.controller.get_project_folder(project)
-        query_kwargs = {"include": ["assignments"]}
-        if name_contains:
-            query_kwargs["name__contains"] = name_contains
-        if annotation_status:
-            query_kwargs["annotation_status"] = annotation_status
-        if qa_email:
-            query_kwargs["assignments__user_id"] = qa_email
-            query_kwargs["assignments__user_role"] = "QA"
-        if annotator_email:
-            query_kwargs["assignments__user_id"] = annotator_email
-            query_kwargs["assignments__user_role"] = "Annotator"
-        if folder.is_root and recursive:
-            items = []
-            for folder in self.controller.folders.list(project=project).data:
-                path = (
-                    f"{project.name}{f'/{folder.name}' if not folder.is_root else ''}"
-                )
-                _items = self.controller.items.list_items(
-                    project,
-                    folder,
-                    **query_kwargs,
-                )
-                for i in _items:
-                    i.path = path
-                items.extend(_items)
-        else:
-            path = f"{project.name}{f'/{folder.name}' if not folder.is_root else ''}"
-            items = self.controller.items.list_items(project, folder, **query_kwargs)
-            for i in items:
-                i.path = path
-        exclude = {"meta"}
-        if include_custom_metadata:
-            item_custom_fields = self.controller.custom_fields.list_fields(
-                project=project, item_ids=[i.id for i in items]
-            )
-            for i in items:
-                i.custom_metadata = item_custom_fields[i.id]
-        else:
-            exclude.add("custom_metadata")
-        return BaseSerializer.serialize_iterable(items, exclude=exclude)
-
     def list_items(
         self,
         project: NotEmptyStr | int,
@@ -5867,7 +5703,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         """
         Attach custom metadata to items.
-        SAClient.get_item_metadata(), SAClient.search_items(), SAClient.query() methods
+        SAClient.get_item_metadata(), SAClient.list_items(), SAClient.query() methods
         will return the item metadata and custom metadata.
 
         :param project: Accepts a project as a string ("project" or "project/folder") or as a tuple (project_id, folder_id), where the folder is optional.”

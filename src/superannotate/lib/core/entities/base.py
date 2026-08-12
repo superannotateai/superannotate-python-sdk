@@ -101,12 +101,24 @@ class BaseItemEntity(TimedBaseModel):
         return entity
 
 
+#: Legacy team-owner token: ``<name>=<team_id>`` — the team is part of the token.
 TOKEN_PATTERN = re.compile(r"^[-.@_A-Za-z0-9]+=\d+$")
+#: New-style API key (team / team-user / organization scoped). Its scope is not in the
+#: token, it is resolved via the work-management ``users/me`` endpoint. Matched by shape
+#: rather than by the ``sa_`` prefix so future prefixes keep working; the length bound
+#: keeps malformed input ("INVALID_TOKEN") reported as an invalid token instead of
+#: being sent to the backend.
+API_KEY_PATTERN = re.compile(r"^[-_A-Za-z0-9]{32,}$")
+
+
+def is_legacy_token(value: str) -> bool:
+    """Whether the token carries its team id, as opposed to being a scoped API key."""
+    return bool(TOKEN_PATTERN.match(value))
 
 
 def _validate_token(value: str) -> str:
     """Validate token format."""
-    if not TOKEN_PATTERN.match(value):
+    if not is_legacy_token(value) and not API_KEY_PATTERN.match(value):
         raise ValueError("Invalid token.")
     return value
 

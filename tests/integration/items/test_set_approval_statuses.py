@@ -45,7 +45,7 @@ class TestSetApprovalStatuses(BaseTestCase):
             self.PROJECT_NAME,
             "Approved",
         )
-        for image in sa.search_items(self.PROJECT_NAME):
+        for image in sa.list_items(self.PROJECT_NAME):
             self.assertEqual(image["approval_status"], "Approved")
 
     def test_image_approval_status_via_names(self):
@@ -75,7 +75,7 @@ class TestSetApprovalStatuses(BaseTestCase):
             approval_status=None,
             items=[ATTACHMENT_LIST[0]["name"]],
         )
-        data = sa.search_items(self.PROJECT_NAME)[0]
+        data = sa.list_items(self.PROJECT_NAME)[0]
         assert data["approval_status"] is None
 
     def test_set_invalid_approval_statuses(self):
@@ -102,5 +102,5 @@ class TestDocumentSetApprovalStatuses(BaseTestCase):
             self.PROJECT_NAME,
             "Approved",
         )
-        for item in sa.search_items(self.PROJECT_NAME):
+        for item in sa.list_items(self.PROJECT_NAME):
             self.assertEqual(item["approval_status"], "Approved")

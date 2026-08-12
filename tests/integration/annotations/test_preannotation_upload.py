@@ -28,7 +28,7 @@ class TestVectorAnnotationImage(BaseTestCase):
         )
         assert len(uploaded) == 4
         count_in = len(list(Path(self.folder_path).glob("*.json")))
-        images = sa.search_items(self.PROJECT_NAME)
+        images = sa.list_items(self.PROJECT_NAME)
         with tempfile.TemporaryDirectory() as tmp_dir:
             for image in images:
                 image_name = image["name"]

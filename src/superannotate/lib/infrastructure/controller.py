@@ -60,6 +60,7 @@ from lib.infrastructure.query_builder import QueryBuilderChain
 from lib.infrastructure.query_builder import TeamUserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
+from lib.infrastructure.services.auth import resolve_token_context
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
@@ -633,9 +634,15 @@ class WorkManagementManager(BaseManager):
 
 
 class ProjectManager(BaseManager):
-    def __init__(self, service_provider: ServiceProvider, team: TeamEntity):
+    def __init__(
+        self, service_provider: ServiceProvider, team: Callable[[], TeamEntity]
+    ):
         super().__init__(service_provider)
-        self._team = team
+        self._get_team = team
+
+    @property
+    def _team(self) -> TeamEntity:
+        return self._get_team()
 
     def get_by_id(self, project_id):
         use_case = usecases.GetProjectByIDUseCase(
@@ -1671,15 +1678,28 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
+        self._token_context = resolve_token_context(
+            api_url=config.API_URL,
+            token=config.API_TOKEN,
+            verify_ssl=config.VERIFY_SSL,
+        )
+        self._team_id = self._token_context.team_id
+
         http_client = HttpClient(
-            api_url=config.API_URL, token=config.API_TOKEN, verify_ssl=config.VERIFY_SSL
+            api_url=config.API_URL,
+            token=config.API_TOKEN,
+            team_id=self._team_id,
+            auth_type=self._token_context.auth_type,
+            verify_ssl=config.VERIFY_SSL,
         )
 
         self.service_provider = ServiceProvider(http_client)
         self._user = self.get_current_user()
-        self._team = self.get_team().data
+        # An API key already resolved its team, so the team data is only fetched once
+        # something actually needs it (the organization id, mostly).
+        self._team = self.get_team().data if self._token_context.is_legacy else None
         self.annotation_classes = AnnotationClassManager(self.service_provider)
-        self.projects = ProjectManager(self.service_provider, team=self._team)
+        self.projects = ProjectManager(self.service_provider, team=lambda: self.team)
         self.work_management = WorkManagementManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
         self.items = ItemManager(self.service_provider)
@@ -1694,14 +1714,16 @@ class BaseController(metaclass=ABCMeta):
 
     @property
     def org_id(self):
-        return self._team.owner_id
+        return self.team.owner_id
 
     @property
     def current_user(self):
         return self._user
 
     @property
-    def team(self):
+    def team(self) -> TeamEntity:
+        if self._team is None:
+            self._team = self.get_team().data
         return self._team
 
     def get_team(self):
@@ -1710,6 +1732,10 @@ class BaseController(metaclass=ABCMeta):
         ).execute()
 
     def get_current_user(self) -> UserEntity:
+        # An API key resolves its own user (or its creator, for team-scoped keys) while the
+        # team is being resolved, so there is nothing left to look up.
+        if self._token_context.user:
+            return self._token_context.user
         response = usecases.GetCurrentUserUseCase(
             service_provider=self.service_provider, team_id=self.team_id
         ).execute()
@@ -1724,10 +1750,19 @@ class BaseController(metaclass=ABCMeta):
         return self._team_data
 
     @property
+    def team_name(self) -> str:
+        """The team name once known, the team id otherwise.
+
+        Deliberately never triggers a team lookup — it exists for telemetry, which must
+        not make the client fetch data it does not otherwise need.
+        """
+        return self._team.name if self._team else str(self.team_id)
+
+    @property
     def team_id(self) -> int:
-        if not self._token:
+        if not self._token or not self._team_id:
             raise AppException("Invalid credentials provided.")
-        return int(self._token.split("=")[-1])
+        return self._team_id
 
     @staticmethod
     def get_default_reporter(
@@ -1912,15 +1947,6 @@ class Controller(BaseController):
             service_provider=self.service_provider,
             project=project,
             exports=exports,
-        )
-        return use_case.execute()
-
-    def search_team_contributors(self, **kwargs):
-        condition = build_condition(**kwargs)
-        use_case = usecases.SearchContributorsUseCase(
-            service_provider=self.service_provider,
-            team_id=self.team_id,
-            condition=condition,
         )
         return use_case.execute()
 
