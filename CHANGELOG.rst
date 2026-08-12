@@ -6,6 +6,24 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.6.0 - Aug 16, 2026
+____________________
+
+**Added**
+
+    - ``SAClient.grant_team_user_permissions()`` Grants permissions to a team user, with support for granting specific permissions or all available permissions based on the user's role.
+    - ``SAClient.revoke_team_user_permissions()`` Revokes permissions from a team user, with support for revoking specific permissions or all available permissions based on the user's role.
+
+**Updated**
+
+    - ``SAClient.upload_annotations()`` Added the ``integration`` parameter to sign private external URLs when creating new items in Multimodal projects. The integration must already exist on SuperAnnotate and is supported only when ``data_spec="multimodal"``.
+    - ``SAClient(token=<API key>)`` Added support for authentication using both Personal API Keys and Team API Keys.
+
+**Removed**
+
+    - ``SAClient.search_team_contributors()`` Recommended replacements: ``SAClient.get_item_metadata()`` or ``SAClient.list_items()``
+    - ``SAClient.search_items()`` Recommended replacements: ``SAClient.get_user_metadata()`` or ``SAClient.list_users()``
+
 4.5.9 - July 21, 2026
 _____________________
 **Updated**
