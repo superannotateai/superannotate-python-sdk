@@ -53,8 +53,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
         )
         team = sa.controller.team
         project = sa.controller.get_project(self.PROJECT_NAME)
-        #  todo check
-        # time.sleep(10)
+
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 team, project, template=json.load(f)
@@ -87,12 +86,10 @@ class TestMultimodalProjectBasic(BaseTestCase):
     def test_overwrite_false(self):
         # test root by folder name
         self._attach_item(self.PROJECT_NAME, "dummy")
-        # time.sleep(2)
         self._base_test(self.PROJECT_NAME, "dummy")
 
         folder = sa.create_folder(self.PROJECT_NAME, folder_name="folder")
         # test from folder by project and folder names
-        # time.sleep(2)
         path = f"{self.PROJECT_NAME}/folder"
         self._attach_item(path, "dummy")
         self._base_test(path, "dummy")
@@ -105,7 +102,7 @@ class TestMultimodalProjectBasic(BaseTestCase):
         self._base_test((self._project["id"], folder["id"]), "dummy")
 
         # test from folder by project and folder ids as tuple and item id
-        item = sa.list_items(f"{self.PROJECT_NAME}/folder", "dummy")[0]
+        item = sa.list_items(self.PROJECT_NAME, "folder", name="dummy")[0]
         self._base_test((self._project["id"], folder["id"]), item["id"])
 
     def test_set_component_value_stamps_last_action(self):
@@ -143,7 +140,6 @@ class TestEditorContext(BaseTestCase):
         )
         team = sa.controller.team
         project = sa.controller.get_project(self.PROJECT_NAME)
-        # time.sleep(10)
         with open(self.EDITOR_TEMPLATE_PATH) as f:
             res = sa.controller.service_provider.projects.attach_editor_template(
                 team, project, template=json.load(f)

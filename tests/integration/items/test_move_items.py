@@ -48,7 +48,7 @@ class TestMoveItems(BaseTestCase):
             self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}"
         )
         assert len(skipped_items) == 0
-        assert len(sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 7
+        assert len(sa.list_items(self.PROJECT_NAME, self.FOLDER_1)) == 7
 
     def test_move_items_from_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
@@ -67,8 +67,8 @@ class TestMoveItems(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.FOLDER_2}",
         )
         assert len(skipped_items) == 0
-        assert len(sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")) == 2
-        assert len(sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0
+        assert len(sa.list_items(self.PROJECT_NAME, self.FOLDER_2)) == 2
+        assert len(sa.list_items(self.PROJECT_NAME, self.FOLDER_1)) == 0
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_image_annotations(
                 f"{self.PROJECT_NAME}/{self.FOLDER_2}", self.IMAGE_NAME, tmp_dir
@@ -102,7 +102,7 @@ class TestMoveItems(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.FOLDER_2}", self.ATTACHMENT
         )
         assert len(uploaded_2) == 2
-        folder_2_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert folder_2_items[0]["annotation_status"] == "NotStarted"
         assert not folder_2_items[0]["approval_status"]
 
@@ -112,12 +112,12 @@ class TestMoveItems(BaseTestCase):
             duplicate_strategy="replace",
         )
         assert len(skipped_items) == 0
-        folder_1_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
-        folder_2_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_1_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_1)
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert len(folder_1_items) == 0
         assert len(folder_2_items) == 2
 
-        folder_2_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert folder_2_items[0]["annotation_status"] == "Completed"
         assert folder_2_items[0]["approval_status"] == "Approved"
 
@@ -147,7 +147,7 @@ class TestMoveItems(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.FOLDER_2}", self.ATTACHMENT
         )
         assert len(uploaded_2) == 2
-        folder_2_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert folder_2_items[0]["annotation_status"] == "NotStarted"
         assert not folder_2_items[0]["approval_status"]
 
@@ -157,12 +157,12 @@ class TestMoveItems(BaseTestCase):
             duplicate_strategy="replace_annotations_only",
         )
         assert len(skipped_items) == 0
-        folder_1_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
-        folder_2_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_1_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_1)
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert len(folder_1_items) == 0
         assert len(folder_2_items) == 2
 
-        folder_2_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert folder_2_items[0]["annotation_status"] == "NotStarted"
         assert not folder_2_items[0]["approval_status"]
         with tempfile.TemporaryDirectory() as tmp_dir:

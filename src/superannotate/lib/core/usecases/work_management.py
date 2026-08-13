@@ -311,7 +311,8 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
                 reasons = (
                     f"- User already has {failed_str} permission(s) granted.\n"
                     f"- User role does not allow {failed_str} permission(s).\n"
-                    f"- Provided permission(s) were invalid."
+                    "- Provided permission(s) were invalid.\n"
+                    "- The API key used does not have sufficient permissions to perform this action."
                 )
             else:
                 # Revoking a group's permissions is blocked while its master is
@@ -321,7 +322,8 @@ class UpdateUserPermissionUseCase(BaseReportableUseCase):
                     f"- {failed_str} permission(s) were already revoked for the user.\n"
                     f"- Provided permission(s) were invalid.\n"
                     f"- If {master_name} is granted, it must be revoked before "
-                    f"{failed_str} can be revoked for this user."
+                    f"{failed_str} can be revoked for this user.\n"
+                    "- The API key used does not have sufficient permissions to perform this action."
                 )
             self.reporter.log_info(
                 f"Could not {verb_inf} {failed_str} permission(s) "

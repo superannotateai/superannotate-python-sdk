@@ -109,7 +109,7 @@ class TestCustomSchema(BaseTestCase):
         )
         assert response == {"failed": [], "succeeded": [item_name]}
         data = sa.list_items(
-            self.PROJECT_NAME, name_contains=item_name, include_custom_metadata=True
+            self.PROJECT_NAME, name__contains=item_name, include=["custom_metadata"]
         )
         assert data[0]["custom_metadata"] == payload
         data = sa.list_items(

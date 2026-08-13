@@ -100,9 +100,7 @@ class TestVideo(BaseTestCase):
             target_fps=1,
         )
         self.assertEqual(
-            len(
-                sa.list_items(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_BIG_VIDEO}")
-            ),
+            len(sa.list_items(self.PROJECT_NAME, self.TEST_FOLDER_NAME_BIG_VIDEO)),
             31,
         )
         sa.upload_video_to_project(

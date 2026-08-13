@@ -73,7 +73,7 @@ class TestGetAnnotations(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}", self.folder_path
         )
         items = sa.list_items(self.PROJECT_NAME)
-        folder_items = sa.list_items(f"{self.PROJECT_NAME}/{self.FOLDER_NAME_2}")
+        folder_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_NAME_2)
         all_items = items + folder_items
 
         annotations = sa.get_annotations(

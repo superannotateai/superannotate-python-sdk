@@ -1,3 +1,6 @@
+from unittest import skip
+from unittest import skipIf
+from unittest import skipUnless
 from unittest import TestCase
 
 from lib.core import TEAM_USER_PERMISSION_DEPRECATED_IDS
@@ -6,8 +9,26 @@ from src.superannotate import SAClient
 
 sa = SAClient()
 
+#: A team-scoped API key authenticates as the team itself - there is no user behind
+#: it - so the backend does not let it change a team admin's permissions: the write
+#: is accepted but nothing is applied, and the SDK reports the attempt as a failure.
+#: A personal (team-user) API key and a legacy team-owner token both authenticate as
+#: a user and may update team admin permissions, which is what the bulk of this
+#: module asserts. The suite therefore picks its expectations from the token the
+#: client was built with.
+IS_TEAM_KEY = sa.controller.token_context.is_team_key
+TEAM_KEY_ONLY = "requires a team-scoped API key"
+USER_KEY_ONLY = "requires a personal (team-user) API key or a legacy token"
+#: Reason line the SDK adds to every permission-update failure, and the only one
+#: that applies when the token itself is what blocked the update.
+INSUFFICIENT_KEY_REASON = (
+    "The API key used does not have sufficient permissions to perform this action."
+)
 
-class TestTeamAdminUserPermissions(TestCase):
+
+class TeamAdminPermissionsMixin:
+    """Permission names and read-only helpers shared by both token flavours."""
+
     # "Access Orchestrate" (id 27) is apostrophe-free, so exact log assertions on
     # it are stable regardless of the backend's curly/straight rendering. All
     # admin permissions are reversible.
@@ -19,6 +40,52 @@ class TestTeamAdminUserPermissions(TestCase):
     MASTER_PERMISSION = "Access team API keys"
     # A contributor-only permission; granting it to an admin must be rejected.
     CONTRIBUTOR_PERMISSION = "Invite Contributors to team"
+
+    scapegoat: dict
+
+    @classmethod
+    def _admin_permission_names(cls):
+        # The grantable team-admin permissions for this team, so the wildcard
+        # assertions and cleanup don't hardcode a count that changes whenever an
+        # admin permission is added or renamed. Deprecated ids come from the
+        # source constant so the test cannot drift from the implementation.
+        groups = sa.controller.service_provider.get_team_user_permission_groups()
+        for name, perms in groups.items():
+            if "admin" in name.lower():
+                return {
+                    n
+                    for pid, n in perms.items()
+                    if pid not in TEAM_USER_PERMISSION_DEPRECATED_IDS
+                }
+        return set()
+
+    @classmethod
+    def _confirmed_admins(cls):
+        return [
+            u
+            for u in sa.list_users()
+            if u.get("state") == "Confirmed"
+            and u.get("role") in ("TeamAdmin", "TeamOwner")
+        ]
+
+    @classmethod
+    def _user_permissions(cls):
+        return (
+            sa.list_users(email=cls.scapegoat["email"])[0].get("user_permissions") or []
+        )
+
+    @classmethod
+    def _granted(cls):
+        return {p["name"] for p in cls._user_permissions()}
+
+    @classmethod
+    def _granted_ids(cls):
+        return {p["id"] for p in cls._user_permissions()}
+
+
+@skipIf(IS_TEAM_KEY, USER_KEY_ONLY)
+class TestTeamAdminUserPermissions(TeamAdminPermissionsMixin, TestCase):
+    """Team admin permission updates through a token that acts as a user."""
 
     @classmethod
     def setUpClass(cls, *args, **kwargs) -> None:
@@ -45,22 +112,6 @@ class TestTeamAdminUserPermissions(TestCase):
         )
 
     @classmethod
-    def _admin_permission_names(cls):
-        # The grantable team-admin permissions for this team, so the wildcard
-        # assertions and cleanup don't hardcode a count that changes whenever an
-        # admin permission is added or renamed. Deprecated ids come from the
-        # source constant so the test cannot drift from the implementation.
-        groups = sa.controller.service_provider.get_team_user_permission_groups()
-        for name, perms in groups.items():
-            if "admin" in name.lower():
-                return {
-                    n
-                    for pid, n in perms.items()
-                    if pid not in TEAM_USER_PERMISSION_DEPRECATED_IDS
-                }
-        return set()
-
-    @classmethod
     def _find_admin(cls):
         """Pick an admin whose permission state the suite can safely restore.
 
@@ -72,11 +123,7 @@ class TestTeamAdminUserPermissions(TestCase):
         Prefer an admin with no permissions, then any whose set is restorable.
         """
         candidates = []
-        for u in sa.list_users():
-            if u.get("state") != "Confirmed":
-                continue
-            if u.get("role") not in ("TeamAdmin", "TeamOwner"):
-                continue
+        for u in cls._confirmed_admins():
             ids = {
                 p["id"]
                 for p in (
@@ -108,20 +155,6 @@ class TestTeamAdminUserPermissions(TestCase):
             )
         except Exception:
             pass
-
-    @classmethod
-    def _user_permissions(cls):
-        return (
-            sa.list_users(email=cls.scapegoat["email"])[0].get("user_permissions") or []
-        )
-
-    @classmethod
-    def _granted(cls):
-        return {p["name"] for p in cls._user_permissions()}
-
-    @classmethod
-    def _granted_ids(cls):
-        return {p["id"] for p in cls._user_permissions()}
 
     def tearDown(self):
         self._cleanup()
@@ -303,6 +336,9 @@ class TestTeamAdminUserPermissions(TestCase):
                 f"User already has [{self.PERMISSION}] permission(s) granted.",
                 joined,
             )
+            # The token is never the reason here, but it is one of the listed
+            # possibilities on any failed grant.
+            self.assertIn(INSUFFICIENT_KEY_REASON, joined)
 
     def test_revoke_permission(self):
         sa.grant_team_user_permissions(
@@ -361,6 +397,7 @@ class TestTeamAdminUserPermissions(TestCase):
                 f"[{self.PERMISSION}] permission(s) were already revoked for the user.",
                 joined,
             )
+            self.assertIn(INSUFFICIENT_KEY_REASON, joined)
 
     def test_grant_invalid_permission_logs_failure(self):
         with self.assertLogs("sa", level="INFO") as cm:
@@ -452,27 +489,168 @@ class TestTeamAdminUserPermissions(TestCase):
                 user="non_existent_admin@superannotate.com",
             )
 
-    def test_grant_master_when_others_already_granted_log(self):
-        # Only the master was asked for. Its group members already being granted
-        # is the normal case, so nothing may be reported as a failure.
-        email = self.scapegoat["email"]
-        sa.grant_team_user_permissions(
-            permissions=[self.PERMISSION, self.OTHER_PERMISSION],
-            user=email,
-        )
-        self.assertEqual(self._granted(), {self.PERMISSION, self.OTHER_PERMISSION})
 
+@skipUnless(IS_TEAM_KEY, TEAM_KEY_ONLY)
+class TestTeamAdminUserPermissionsWithTeamKey(TeamAdminPermissionsMixin, TestCase):
+    """Team admin permission updates through a key that acts as the team.
+
+    Only granting is refused: the backend accepts the write, applies nothing, and
+    the SDK reports a failure whose possible reasons include the insufficient key.
+
+    Revoking is *not* refused - a team key really does remove the permission (see
+    ``test_revoke_of_a_held_permission_is_not_blocked``). That asymmetry makes any
+    successful revoke a one-way door for this suite: the same key cannot grant the
+    permission back afterwards, so nothing here revokes a permission the account
+    actually holds. Every case below leaves the account untouched, which is what
+    lets the class run without a restore step.
+    """
+
+    @classmethod
+    def setUpClass(cls, *args, **kwargs) -> None:
+        admins = cls._confirmed_admins()
+        if not admins:
+            raise RuntimeError("No Confirmed team admin available to test against.")
+        cls.scapegoat = admins[0]
+
+    def _assert_denied(self, operation: str, permissions, expected_names):
+        """Run an update that the key is not allowed to make and check the log."""
+        email = self.scapegoat["email"]
+        before = self._granted()
+        update = (
+            sa.grant_team_user_permissions
+            if operation == "grant"
+            else sa.revoke_team_user_permissions
+        )
+        past = "granted" if operation == "grant" else "revoked"
+        with self.assertLogs("sa", level="INFO") as cm:
+            update(permissions=permissions, user=email)
+        self.assertFalse(
+            [o for o in cm.output if o.startswith(f"INFO:sa:Successfully {past} [")],
+            f"nothing should have been {past} here, got {cm.output}",
+        )
+        failure = [
+            o for o in cm.output if o.startswith(f"INFO:sa:Could not {operation} [")
+        ]
+        self.assertTrue(failure, f"expected failure log, got {cm.output}")
+        joined = "\n".join(failure)
+        self.assertIn(f"permission(s) for user: {email}.", joined)
+        for name in expected_names:
+            self.assertIn(name, joined)
+        self.assertIn(INSUFFICIENT_KEY_REASON, joined)
+        # The permission set is untouched.
+        self.assertEqual(self._granted(), before)
+
+    def _unheld_admin_permission(self):
+        """An admin permission the account does not have, so the grant is real.
+
+        Granting one it already holds would fail for a second reason ("already
+        granted"), which would not prove the key was refused. The master is
+        excluded as well: it cascades to the whole group, so the failure would be
+        reported for every admin permission rather than for the requested one.
+        """
+        missing = self._admin_permission_names() - self._granted()
+        missing -= {self.MASTER_PERMISSION}
+        if not missing:
+            self.skipTest(
+                "the borrowed admin holds every non-master admin permission, so "
+                "there is no grant left to be refused"
+            )
+        # Prefer the module's reference permission when it is available.
+        return self.PERMISSION if self.PERMISSION in missing else sorted(missing)[0]
+
+    def test_grant_permission_denied(self):
+        permission = self._unheld_admin_permission()
+        self._assert_denied("grant", [permission], [permission])
+
+    def test_grant_by_user_id_denied(self):
+        permission = self._unheld_admin_permission()
+        team_user_id = sa.list_users(email=self.scapegoat["email"])[0]["id"]
+        before = self._granted()
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.grant_team_user_permissions(permissions=[permission], user=team_user_id)
+        joined = "\n".join(cm.output)
+        self.assertIn(
+            f"Could not grant [{permission}] permission(s) "
+            f"for user: {self.scapegoat['email']}.",
+            joined,
+        )
+        self.assertIn(INSUFFICIENT_KEY_REASON, joined)
+        self.assertEqual(self._granted(), before)
+
+    def test_grant_master_denied(self):
+        # The master cascades to the whole admin group, so the failure names every
+        # grantable admin permission: nothing changed, so nothing succeeded.
+        self._assert_denied(
+            "grant", [self.MASTER_PERMISSION], self._admin_permission_names()
+        )
+
+    def test_grant_wildcard_denied(self):
+        self._assert_denied("grant", "*", self._admin_permission_names())
+
+    @skip(
+        "A team key can revoke: the backend applies it, and the same key cannot "
+        "grant the permission back, so running this strips the borrowed admin for "
+        "good. Unskip only against an account whose permissions are disposable."
+    )
+    def test_revoke_of_a_held_permission_is_not_blocked(self):
+        # Documents the asymmetry rather than asserting the denial: granting is
+        # refused for a team key, revoking is not.
+        held = self._granted() & self._admin_permission_names()
+        if not held:
+            self.skipTest("the borrowed admin holds no revocable permission")
+        permission = sorted(held)[0]
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.revoke_team_user_permissions(
+                permissions=[permission], user=self.scapegoat["email"]
+            )
+        self.assertTrue(
+            [o for o in cm.output if o.startswith("INFO:sa:Successfully revoked [")],
+            f"expected the revoke to go through, got {cm.output}",
+        )
+        self.assertNotIn(permission, self._granted())
+
+    def test_revoke_of_a_permission_not_held_reports_failure(self):
+        # Safe to run: nothing is revoked, so nothing has to be granted back. The
+        # key is one of the reasons offered for the failure.
+        missing = self._admin_permission_names() - self._granted()
+        if not missing:
+            self.skipTest("the borrowed admin holds every admin permission")
+        permission = sorted(missing)[0]
+        self._assert_denied("revoke", [permission], [permission])
+
+    def test_invalid_permission_still_reported_as_invalid(self):
+        # Name resolution happens client-side, so it is unaffected by the token.
         with self.assertLogs("sa", level="INFO") as cm:
             sa.grant_team_user_permissions(
-                permissions=[self.MASTER_PERMISSION],
-                user=email,
+                permissions=["NonExistentPermission"],
+                user=self.scapegoat["email"],
             )
         joined = "\n".join(cm.output)
         self.assertIn(
-            f"INFO:sa:Successfully granted [{self.MASTER_PERMISSION}] "
-            f"permission(s) for user: {email}.",
+            f"Could not grant [NonExistentPermission] permission(s) "
+            f"for user: {self.scapegoat['email']}.",
             joined,
         )
-        self.assertNotIn("Could not grant", joined)
-        # The master still pulled the whole group in.
-        self.assertEqual(self._granted(), self._admin_permission_names())
+        self.assertIn("Provided permission(s) were invalid.", joined)
+
+    def test_empty_permissions_raises(self):
+        # Client-side validation, so it behaves the same for every token.
+        for update in (
+            sa.grant_team_user_permissions,
+            sa.revoke_team_user_permissions,
+        ):
+            with self.assertRaisesRegex(
+                AppException, r"Permission\(s\) cannot be empty\."
+            ):
+                update(permissions=[], user=self.scapegoat["email"])
+
+    def test_unknown_user_raises(self):
+        for update in (
+            sa.grant_team_user_permissions,
+            sa.revoke_team_user_permissions,
+        ):
+            with self.assertRaisesRegex(AppException, "User not found."):
+                update(
+                    permissions=[self.PERMISSION],
+                    user="non_existent_admin@superannotate.com",
+                )
