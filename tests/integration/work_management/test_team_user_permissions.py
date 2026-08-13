@@ -361,6 +361,40 @@ class TestTeamUserPermissions(TestCase):
             self._permission_names(email), self._contributor_permission_names()
         )
 
+    def test_grant_master_when_others_already_granted_log(self):
+        # Only the master was asked for. Its group members already being granted
+        # is the normal case for the cascade, so nothing may be reported as a
+        # failure - and the already-granted ones must not be claimed as newly
+        # granted either.
+        email = self.scapegoat["email"]
+        sa.grant_team_user_permissions(
+            permissions=[self.PERMISSION, self.CURLY_PERMISSION], user=email
+        )
+        self.assertEqual(
+            self._permission_names(email), {self.PERMISSION, self.CURLY_PERMISSION}
+        )
+
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.grant_team_user_permissions(
+                permissions=["Manage Contributors' permissions"], user=email
+            )
+        joined = "\n".join(cm.output)
+        self.assertNotIn("Could not grant", joined)
+        success = [
+            o for o in cm.output if o.startswith("INFO:sa:Successfully granted [")
+        ]
+        self.assertTrue(success, f"expected success log, got {cm.output}")
+        line = success[0]
+        self.assertIn("Manage Contributors", line)
+        # Permissions the user already held did not change, so they are not
+        # listed as newly granted.
+        self.assertNotIn(self.PERMISSION, line)
+        self.assertNotIn(self.CURLY_PERMISSION, line)
+        # The master still pulled the whole contributor group in.
+        self.assertEqual(
+            self._permission_names(email), self._contributor_permission_names()
+        )
+
     def test_revoke_master_permission(self):
         # The master is now removable: revoking it drops the master while the
         # other contributor permissions it implied remain granted.
@@ -547,9 +581,13 @@ class TestTeamUserPermissions(TestCase):
             ),
             "setup failed: View was not granted",
         )
-        sa.grant_team_user_permissions(
-            permissions=[self.EDIT_CUSTOM_FIELDS], user=email
-        )
+        with self.assertLogs("sa", level="INFO") as cm:
+            sa.grant_team_user_permissions(
+                permissions=[self.EDIT_CUSTOM_FIELDS], user=email
+            )
+        # Only Edit was asked for; View being already granted is the normal
+        # case for the cascade, so it must not be reported as a failure.
+        self.assertNotIn("Could not grant", "\n".join(cm.output))
         names = self._permission_names(email)
         self.assertTrue(
             self._includes(names, "Edit Contributors", "custom field values"),

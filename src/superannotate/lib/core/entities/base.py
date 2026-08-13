@@ -132,7 +132,6 @@ class ConfigEntity(BaseModel):
 
     API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
     API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
-    TEAM_ID: int | None = Field(alias="SA_TEAM_ID", default=None)
     LOGGING_LEVEL: Literal[
         "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
     ] = "INFO"

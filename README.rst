@@ -31,7 +31,7 @@ Authentication
     # by environment variable SA_TOKEN
     sa_client = SAClient()
     # by token
-    sa_client = SAClient(token='<team token>')
+    sa_client = SAClient(token='<API key>')
     # by config file
     # default path is ~/.superannotate/config.ini
     sa_client = SAClient(config_path='~/.superannotate/dev_config.ini')
@@ -42,8 +42,9 @@ config.ini example
 .. code-block:: python
 
     [DEFAULT]
-    SA_TOKEN = <Token>
+    SA_TOKEN = <API key>
     LOGGING_LEVEL = INFO
+    LOGGING_PATH = /Users/username/data/superannotate_logs
 
 
 Using superannotate
@@ -54,7 +55,7 @@ Using superannotate
     from superannotate import SAClient
 
 
-    sa_client =SAClient()
+    sa_client = SAClient()
 
     project = 'Dogs'
 
@@ -109,34 +110,6 @@ The package officially supports Python 3.10+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`__
 ) platforms.
 
-
-Supported Features
-------------------
-
-- search/get/create/clone/update/delete projects
-- search/get/create/delete folders
-- assign folders to project contributors
-- upload items to a project from a local or AWS S3 folder
-- attach items by URL or from an integrated storage, meanwhile keeping them secure in your cloud provider
-- get integrated cloud storages
-- upload annotations (also from local or AWS S3 folder)
-- delete annotations
-- set items annotations statuses
-- get/download/export annotations from a project (also to a local or AWS S3 folder)
-- invite/search team contributors or add contributors to a specific project
-- search/get/copy/move items in a project
-- query items using SA Query Language
-- define custom metadata for items and upload custom values (query based on your custom metadata)
-- upload priority scores
-- get available subsets (sets of segregated items), query items in a subset or add items to a subset
-- assign or anassign items to project contributors
-- download an image that has been uploaded to project
-- search/create/download/delete project annotation classes
-- search/download models
-- run predictions
-- convert annotations from/to COCO format
-- convert annotation from VOC, SuperVisely, LabelBox, DataLoop, VGG, VoTT, SageMaker, GoogleCloud, YOLO formats
-- CLI commands for simple tasks
 
 Questions and Issues
 --------------------

@@ -31,8 +31,16 @@ It can be installed on Ubuntu with:
 Initialization and authorization
 ================================
 
-To use the SDK, you need to create a config file with a team-specific authentication token. The token is available
-to team admins on the team settings page at https://doc.superannotate.com/docs/token-for-python-sdk#generate-a-token-for-python-sdk.
+To use the SDK, you need to create a config file with an API key. The API key is available to team owners and team admins
+on the team setup page, for more details please visit our documentation at https://doc.superannotate.com/docs/api-keys.
+
+**API key types**
+
+- **Team API key** — scoped to one team. Works with ``SAClient``.
+- **Personal (team-user) API key** — scoped to one team, tied to your user. Works with ``SAClient``.
+- **Organization API key** — not scoped to a team. Not supported by the SDK;
+  ``SAClient`` will reject it.
+
 
 SAClient can be used with or without arguments
 ______________________________________________
@@ -52,10 +60,9 @@ ______________________________________________
 
 .. code-block:: bash
 
-   superannotatecli init --token <token>
+   superannotatecli init --token <API key>
                          [--logging_level <NOTSET/INFO/DEBUG/WARNING/ERROR/CRITICAL (Default=INFO)>]
                          [--logging_path <Default=/Users/username/.superannotate/logs>]
-                         [--team_id <team_id>]
 
 
 **Arguments provided**
@@ -67,7 +74,7 @@ ______________________________________________
    from superannotate import SAClient
 
 
-   SAClient(token="<token>")
+   sa_client = SAClient(token="<API key>")
 
 
 *Method 2:* Create a custom config file:
@@ -85,37 +92,9 @@ Custom config.ini example:
 .. code-block:: ini
 
     [DEFAULT]
-    SA_TOKEN = <token>
+    SA_TOKEN = <API key>
     LOGGING_LEVEL = INFO
     LOGGING_PATH = /Users/username/data/superannotate_logs
-
-
-Providing a team
-________________
-
-The SDK operates within a single team. Team and personal (team-user) tokens are already
-scoped to a team, so nothing else is needed. An organization token is not, and the team
-has to be provided explicitly:
-
-.. code-block:: python
-
-   from superannotate import SAClient
-
-
-   sa_client = SAClient(token="<organization_token>", team_id=<team_id>)
-
-The team can also be provided by the ``SA_TEAM_ID`` environment variable or by the config
-file, in which case ``SAClient()`` picks it up on its own:
-
-.. code-block:: ini
-
-    [DEFAULT]
-    SA_TOKEN = <organization_token>
-    SA_TEAM_ID = <team_id>
-
-The ``team_id`` argument takes precedence over the environment variable, which takes
-precedence over the config file. Passing a ``team_id`` that contradicts the team a token
-is scoped to is an error.
 
 ----------
 
