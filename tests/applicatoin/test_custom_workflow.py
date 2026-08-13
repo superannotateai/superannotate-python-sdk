@@ -132,7 +132,7 @@ class TestWorkflow(TestCase):
         attached_items_count = len(attached_item_names.get())
         assert len(uploaded) == attached_items_count
         #  assert that all items have a status of "attached_items_status"
-        items = sa.liest_items(
+        items = sa.list_items(
             self.PROJECT_NAME, annotation_status=attached_items_status.get()
         )
         assert len(items) == attached_items_count

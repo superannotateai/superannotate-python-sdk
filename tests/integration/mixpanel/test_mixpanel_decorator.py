@@ -20,6 +20,7 @@ class TestMixpanel(TestCase):
         "SDK": True,
         "Team": sa.get_team_metadata()["name"],
         "User Email": sa.controller.current_user.email,
+        "Auth Type": sa.controller.token_context.auth_type,
         "Version": __version__,
         "Success": True,
         "Python version": platform.python_version(),
@@ -60,7 +61,9 @@ class TestMixpanel(TestCase):
         SAClient()
         result = list(track_method.call_args)[0]
         payload = self.default_payload
-        payload.update({"sa_token": "False", "config_path": "False"})
+        # team_id is part of the SAClient signature, so it is tracked like every
+        # other argument (None unless the token needs an explicit team).
+        payload.update({"sa_token": "False", "config_path": "False", "team_id": None})
         assert result[1] == "__init__"
         assert payload == result[2]
 
@@ -75,6 +78,9 @@ class TestMixpanel(TestCase):
             {
                 "sa_token": "True",
                 "config_path": "False",
+                "team_id": None,
+                # A legacy "<name>=<team_id>" token, whatever the ambient one is.
+                "Auth Type": "sdk",
                 "Team": get_team_use_case().execute().data.name,
                 "User Email": get_user().data.email,
             }
@@ -101,6 +107,8 @@ class TestMixpanel(TestCase):
                     {
                         "sa_token": "False",
                         "config_path": "True",
+                        "team_id": None,
+                        "Auth Type": "sdk",
                         "Team": get_team_use_case().execute().data.name,
                         "User Email": get_user().data.email,
                     }

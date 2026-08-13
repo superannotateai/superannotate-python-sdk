@@ -233,14 +233,23 @@ class ApiKeyInitTestCase(TestCase):
         assert sa.controller.team_id == 6085
         # A team-scoped token has no user behind it, so it falls back to its creator.
         assert sa.controller.current_user.email == "vaghinak@superannotate.com"
-        # The token already carries the team, so no team lookup on init.
-        assert get_team.call_count == 0
+        # The team id comes from the token, but telemetry reports the team *name*,
+        # so init resolves the team once and caches it.
+        assert get_team.call_count == 1
 
         client = sa.controller.service_provider.client
         assert client.team_id == 6085
         assert client.auth_type == "api_key"
         assert client.default_headers["authtype"] == "api_key"
         assert client.default_headers["Authorization"] == self._token
+
+        # The scope is kept: a team key acts as the team, so it is not allowed to
+        # perform user-level operations (updating a team admin's permissions).
+        context = sa.controller.token_context
+        assert context.scope_type == "team"
+        assert context.is_team_key
+        assert not context.is_personal_key
+        assert not context.is_legacy
 
     def test_token_context_request(self, post, get_team):
         post.return_value = _mock_response(TEAM_TOKEN_RESPONSE)
@@ -254,15 +263,16 @@ class ApiKeyInitTestCase(TestCase):
         assert headers["authtype"] == "api_key"
         assert headers["Authorization"] == self._token
 
-    def test_team_is_fetched_lazily(self, post, get_team):
+    def test_team_is_fetched_once(self, post, get_team):
+        # The token carries the team id, so the team itself is fetched only when
+        # something needs its data - the telemetry team name on init, here - and
+        # every later reader is served from the cache.
         post.return_value = _mock_response(TEAM_TOKEN_RESPONSE)
         get_team.return_value.data = MagicMock(owner_id="org-1")
         sa = SAClient(token=self._token)
 
-        assert get_team.call_count == 0
-        assert sa.controller.org_id == "org-1"
         assert get_team.call_count == 1
-        # Cached afterwards.
+        assert sa.controller.org_id == "org-1"
         assert sa.controller.team.owner_id == "org-1"
         assert get_team.call_count == 1
 
@@ -273,6 +283,12 @@ class ApiKeyInitTestCase(TestCase):
         assert sa.controller.team_id == 6085
         assert sa.controller.current_user.email == "vaghinak@superannotate.com"
         assert sa.controller.current_user.first_name == "Vaghinak"
+
+        # A personal key acts as its user, so it may do what that user may do.
+        context = sa.controller.token_context
+        assert context.scope_type == "teamuser"
+        assert context.is_personal_key
+        assert not context.is_team_key
 
     def test_nested_service_clients_share_team_context(self, post, get_team):
         post.return_value = _mock_response(TEAM_TOKEN_RESPONSE)
@@ -349,6 +365,12 @@ class LegacyTokenTeamIdTestCase(TestCase):
         assert post.call_count == 0
         assert sa.controller.team_id == 123
         assert sa.controller.service_provider.client.auth_type == "sdk"
+        # No scope is reported for a legacy token, and it is not a team key: it
+        # acts as the team owner, so it may update team admin permissions.
+        context = sa.controller.token_context
+        assert context.is_legacy
+        assert context.scope_type is None
+        assert not context.is_team_key
 
     @patch("lib.infrastructure.controller.Controller.get_current_user")
     @patch("lib.infrastructure.controller.Controller.get_team")

@@ -135,11 +135,14 @@ class Tracker:
 
     @staticmethod
     @lru_cache
-    def get_default_payload(team_name, user_email):
+    def get_default_payload(team_name, user_email, auth_type):
         return {
             "SDK": True,
             "Team": team_name,
             "User Email": user_email,
+            # How the client authenticated: "sdk" for a legacy team token,
+            # "api_key" for a scoped API key.
+            "Auth Type": auth_type,
             "Version": os.environ["sa_version"],
             "Python version": platform.python_version(),
             "Python interpreter type": platform.python_implementation(),
@@ -217,10 +220,11 @@ class Tracker:
             event_name, properties = self.default_parser(function_name, arguments)
             user_email = client.controller.current_user.email
             team_name = client.controller.team_name
+            auth_type = client.controller.token_context.auth_type
 
             properties["Success"] = success
             default = self.get_default_payload(
-                team_name=team_name, user_email=user_email
+                team_name=team_name, user_email=user_email, auth_type=auth_type
             )
             self._track(
                 user_email,

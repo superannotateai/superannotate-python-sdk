@@ -90,21 +90,28 @@ class _FakeTeamUser:
 class _FakeWorkManagementService:
     """Models the declarative ``teamusers/setpermissions`` endpoint: the user's
     permission set is replaced wholesale with the ids we send, and the resulting
-    set is echoed back (as the real endpoint does)."""
+    set is echoed back (as the real endpoint does).
 
-    def __init__(self, granted):
+    With ``applies=False`` the endpoint accepts the write and changes nothing,
+    echoing the unchanged set back. That is how the backend answers a token that
+    may not update this user's permissions - a team-scoped API key, which acts as
+    the team rather than as a user."""
+
+    def __init__(self, granted, applies=True):
         self.granted = set(granted)
         self.calls = []
+        self._applies = applies
 
     def set_team_user_permissions(self, contributor_id, permission_ids):
         self.calls.append((contributor_id, list(permission_ids)))
-        self.granted = set(permission_ids)
-        return list(permission_ids)
+        if self._applies:
+            self.granted = set(permission_ids)
+        return sorted(self.granted)
 
 
 class _FakeServiceProvider:
-    def __init__(self, granted=(), groups=None, name_by_id=None):
-        self.work_management = _FakeWorkManagementService(granted)
+    def __init__(self, granted=(), groups=None, name_by_id=None, applies=True):
+        self.work_management = _FakeWorkManagementService(granted, applies=applies)
         self._groups = groups if groups is not None else GROUPS
         self._name_by_id = name_by_id if name_by_id is not None else ALL_PERMS
 
@@ -135,6 +142,7 @@ class TestUpdateUserPermissionUseCase(TestCase):
         groups=None,
         name_by_id=None,
         current_perm_ids=None,
+        applies=True,
     ):
         # The use case reads the user's *current* permissions from the resolved
         # team-user entity. Default the starting state to ``granted`` so callers
@@ -142,7 +150,7 @@ class TestUpdateUserPermissionUseCase(TestCase):
         current = list(granted) if current_perm_ids is None else current_perm_ids
         reporter = Reporter()
         service_provider = _FakeServiceProvider(
-            granted=current, groups=groups, name_by_id=name_by_id
+            granted=current, groups=groups, name_by_id=name_by_id, applies=applies
         )
         team_user = _FakeTeamUser(
             id_=101,
@@ -220,6 +228,62 @@ class TestUpdateUserPermissionUseCase(TestCase):
             failure,
         )
         self.assertEqual(sp.work_management.calls, [])
+
+    # ---- a token that is not allowed to update the user ------------------
+
+    def test_grant_not_applied_by_backend_lists_the_api_key_reason(self):
+        # A team-scoped API key acts as the team, with no user behind it, so the
+        # backend accepts the write and applies nothing. Everything attempted is
+        # reported as failed, and the key is one of the possible reasons.
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "grant", applies=False
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        self.assertIn(
+            "The API key used does not have sufficient permissions to perform "
+            "this action.",
+            failure,
+        )
+        self.assertEqual(sp.work_management.granted, set())
+
+    def test_revoke_not_applied_by_backend_lists_the_api_key_reason(self):
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "revoke", granted={20}, applies=False
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        self.assertIsNone(self._message(reporter, "Successfully revoked"))
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        self.assertIn(
+            "The API key used does not have sufficient permissions to perform "
+            "this action.",
+            failure,
+        )
+        self.assertEqual(sp.work_management.granted, {20})
+
+    def test_admin_wildcard_grant_not_applied_reports_every_permission(self):
+        _, reporter, sp = self._run(
+            "*", "grant", role=WMUserTypeEnum.TeamAdmin, applies=False
+        )
+        self.assertEqual(
+            sp.work_management.calls, [(101, sorted(GRANTABLE_ADMIN_PERMS))]
+        )
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        for name in GRANTABLE_ADMIN_PERMS.values():
+            self.assertIn(name, failure)
+        self.assertIn(
+            "The API key used does not have sufficient permissions to perform "
+            "this action.",
+            failure,
+        )
+        self.assertEqual(sp.work_management.granted, set())
 
     # ---- cascades ------------------------------------------------------
 

@@ -123,7 +123,6 @@ class HttpClient(BaseClient):
             )
             prepared = session.prepare_request(req)
             response = session.send(request=prepared, verify=self._verify_ssl)
-
         if response.status_code == 404 and retried < 3:
             time.sleep(retried * 0.1)
             return self._request(
@@ -131,7 +130,7 @@ class HttpClient(BaseClient):
             )
         if response.status_code > 299:
             logger.debug(
-                f"Got {response.status_code} from {request.url} response from backend:, {response.text}"
+                f"Got {response.status_code} from {method} {url} response from backend:, {response.text}"
             )
         return response
 

@@ -61,6 +61,7 @@ from lib.infrastructure.query_builder import TeamUserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.auth import resolve_token_context
+from lib.infrastructure.services.auth import TokenContext
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
@@ -1667,7 +1668,6 @@ class BaseController(metaclass=ABCMeta):
         self._logger = logging.getLogger("sa")
         self._testing = os.getenv("SA_TESTING", "False").lower() in ("true", "1", "t")
         self._token = config.API_TOKEN
-        self._team_data = None
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None
@@ -1722,6 +1722,11 @@ class BaseController(metaclass=ABCMeta):
         return self._user
 
     @property
+    def token_context(self) -> TokenContext:
+        """The scope the client authenticated with (team / team-user / legacy)."""
+        return self._token_context
+
+    @property
     def team(self) -> TeamEntity:
         if self._team is None:
             self._team = self.get_team().data
@@ -1745,19 +1750,13 @@ class BaseController(metaclass=ABCMeta):
         return response.data
 
     @property
-    def team_data(self):
-        if not self._team_data:
-            self._team_data = self.team
-        return self._team_data
-
-    @property
     def team_name(self) -> str:
-        """The team name once known, the team id otherwise.
+        """The name of the team the client operates in.
 
-        Deliberately never triggers a team lookup — it exists for telemetry, which must
-        not make the client fetch data it does not otherwise need.
+        Used by telemetry. An API key resolves only the team id on init, so the first
+        call fetches the team; the result is cached on the controller from then on.
         """
-        return self._team.name if self._team else str(self.team_id)
+        return self.team.name
 
     @property
     def team_id(self) -> int:

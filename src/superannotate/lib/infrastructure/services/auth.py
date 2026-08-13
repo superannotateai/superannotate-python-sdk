@@ -16,8 +16,14 @@ API_KEY_AUTH_TYPE = "api_key"
 
 URL_TOKEN_CONTEXT = "users/me"
 
+#: A key issued for the team itself, with no user behind it. It acts on the team's
+#: behalf, so the backend denies operations that only a user can perform (changing a
+#: team admin's permissions, for one).
+TEAM_SCOPE_TYPE = "team"
+#: A key issued for one user of a team; it acts as that user.
+TEAM_USER_SCOPE_TYPE = "teamuser"
 #: Token scopes that carry a team, and therefore need no explicit team_id.
-TEAM_SCOPED_TYPES = ("team", "teamuser")
+TEAM_SCOPED_TYPES = (TEAM_SCOPE_TYPE, TEAM_USER_SCOPE_TYPE)
 
 TEAM_CONTEXT_REQUIRED_ERROR = (
     "The provided token is not scoped to a team, and the SDK operates within a team. "
@@ -40,10 +46,23 @@ class TokenContext:
     team_id: int
     auth_type: str
     user: UserEntity | None = None
+    #: Scope the key was issued for ("team", "teamuser", "organization"); None for a
+    #: legacy token, whose scope is not reported by the backend.
+    scope_type: str | None = None
 
     @property
     def is_legacy(self) -> bool:
         return self.auth_type == SDK_AUTH_TYPE
+
+    @property
+    def is_team_key(self) -> bool:
+        """Whether the token acts as the team rather than as a user."""
+        return self.scope_type == TEAM_SCOPE_TYPE
+
+    @property
+    def is_personal_key(self) -> bool:
+        """Whether the token acts as one specific user of the team."""
+        return self.scope_type == TEAM_USER_SCOPE_TYPE
 
 
 def resolve_token_context(
@@ -90,6 +109,7 @@ def resolve_token_context(
         team_id=resolved_team_id,
         auth_type=API_KEY_AUTH_TYPE,
         user=_build_user(data.get("user"), token_data.get("created_by")),
+        scope_type=scope_type,
     )
 
 
