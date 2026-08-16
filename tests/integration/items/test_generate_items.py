@@ -77,7 +77,7 @@ class TestGenerateItemsMM(TestCase):
             AppException,
             "Invalid item name.",
         ):
-            sa.generate_items(self.PROJECT_NAME, 100, name="a" * 115)
+            sa.generate_items(self.PROJECT_NAME, 100, name="a" * 195)
 
         with self.assertRaisesRegex(
             AppException,

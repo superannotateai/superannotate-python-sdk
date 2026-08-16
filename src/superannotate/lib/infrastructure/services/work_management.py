@@ -77,8 +77,8 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
     URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
-    URL_CONTRIBUTORS_CATEGORIES = "customentities/edit"
-    URL_EDIT_PROJECT_USER_PERMISSIONS = "customentities/edit"
+    URL_EDIT_CUSTOM_ENTITIES = "customentities/edit"
+    URL_SET_TEAM_USER_PERMISSIONS = "teamusers/setpermissions"
     URL_PERMISSION_GROUPS = "permissiongroups"
     URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
 
@@ -483,7 +483,7 @@ class WorkManagementService(BaseWorkManagementService):
             method="post",
             headers={
                 "x-sa-entity-context": self._generate_context(
-                    team_id=int(self.client.team_id)  # TODO delete int after BED fix
+                    team_id=int(self.client.team_id)
                 ),
             },
             data=data,
@@ -525,7 +525,7 @@ class WorkManagementService(BaseWorkManagementService):
             body_query = EmptyQuery()
             body_query &= Filter("id", chunk, OperatorEnum.IN)
             response = self.client.request(
-                url=self.URL_CONTRIBUTORS_CATEGORIES,
+                url=self.URL_EDIT_CUSTOM_ENTITIES,
                 method="post",
                 params=params,
                 data={
@@ -577,7 +577,7 @@ class WorkManagementService(BaseWorkManagementService):
             body_query = EmptyQuery()
             body_query &= Filter("id", chunk, OperatorEnum.IN)
             response = self.client.request(
-                url=self.URL_EDIT_PROJECT_USER_PERMISSIONS,
+                url=self.URL_EDIT_CUSTOM_ENTITIES,
                 method="post",
                 params=params,
                 data={
@@ -598,6 +598,41 @@ class WorkManagementService(BaseWorkManagementService):
             affected["remove"].extend(data.get("remove") or [])
 
         return affected
+
+    def set_team_user_permissions(
+        self,
+        contributor_id: int,
+        permission_ids: list[int],
+    ) -> list[int]:
+        """Declaratively set a team user's permissions to exactly ``permission_ids``.
+
+        The backend replaces the user's whole ``userPermissions`` set with the
+        provided list (unlike the old add/remove delta endpoint, this can also
+        remove the otherwise-irreversible "Manage Contributors' permissions"
+        master). Returns the resulting permission ids as reported by the backend.
+        """
+        response = self.client.request(
+            url=self.URL_SET_TEAM_USER_PERMISSIONS,
+            method="post",
+            data={
+                "query": {"search": {"id": {"$eq": contributor_id}}},
+                "body": {"userPermissions": [{"id": i} for i in permission_ids]},
+            },
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id,
+                ),
+            },
+        )
+        response.raise_for_status()
+        data = response.data.get("data") or []
+        entry = next(
+            (c for c in data if c.get("id") == contributor_id),
+            data[0] if data else None,
+        )
+        if not entry:
+            return []
+        return [p["id"] for p in (entry.get("userPermissions") or [])]
 
     def update_annotation_class(
         self,

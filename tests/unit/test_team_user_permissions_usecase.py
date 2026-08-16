@@ -1,0 +1,857 @@
+"""Unit tests for :class:`UpdateUserPermissionUseCase`.
+
+These exercise the client-side business rules for
+``SAClient.grant_team_user_permissions`` / ``revoke_team_user_permissions``
+without a live backend, using a fake service provider whose permission data
+mirrors the real ``teamUser`` permission groups:
+
+    Team contributor permissions (ids 19-25)
+        19  Manage Contributors' permissions   (master)
+        20  Invite Contributors to team
+        21  Remove Contributors from team
+        22  View Contributors' scores
+        23  View Contributors' custom field values
+        24  Edit Contributors' custom field values
+        25  Access Workload management
+
+    Team admin permissions (ids 26-30)
+        26  View SDK Token                     (deprecated, not grantable)
+        27  Access Orchestrate
+        29  Access team API keys               (master)
+        30  Revoke members' personal API keys
+
+Each group has one master permission that implies every other permission in its
+own group: granting it grants the group, and no permission in the group can be
+revoked while it is still granted.
+
+The backend endpoint is declarative (``teamusers/setpermissions``): grant and
+revoke are read-modify-write over the user's current permission set, and the
+fake models that replace-with-full-set behavior.
+"""
+
+from unittest import TestCase
+
+from src.superannotate.lib.core.entities.work_managament import WMUserTypeEnum
+from src.superannotate.lib.core.reporter import Reporter
+from src.superannotate.lib.core.usecases.work_management import (
+    UpdateUserPermissionUseCase,
+)
+from src.superannotate.lib.infrastructure.utils import UserPermissionCache
+
+CONTRIBUTOR_PERMS = {
+    19: "Manage Contributors’ permissions",
+    20: "Invite Contributors to team",
+    21: "Remove Contributors from team",
+    22: "View Contributors’ scores",
+    23: "View Contributors’ custom field values",
+    24: "Edit Contributors’ custom field values",
+    25: "Access Workload management",
+}
+ADMIN_PERMS = {
+    26: "View SDK Token",
+    27: "Access Orchestrate",
+    29: "Access team API keys",
+    30: "Revoke members' personal API keys",
+}
+# Master permission of each group, and the ids the backend no longer grants.
+CONTRIBUTOR_MASTER_ID = 19
+ADMIN_MASTER_ID = 29
+DEPRECATED_IDS = {26}
+GRANTABLE_ADMIN_PERMS = {
+    pid: name for pid, name in ADMIN_PERMS.items() if pid not in DEPRECATED_IDS
+}
+ALL_PERMS = {**CONTRIBUTOR_PERMS, **ADMIN_PERMS}
+GROUPS = {
+    "Team contributor permissions": CONTRIBUTOR_PERMS,
+    "Team admin permissions": ADMIN_PERMS,
+}
+
+
+def _normalize(name: str) -> str:
+    return name.replace("’", "'").replace("‘", "'").lower()
+
+
+class _FakeTeamUser:
+    def __init__(
+        self,
+        id_: int,
+        role: WMUserTypeEnum,
+        email: str,
+        user_permissions: list | None = None,
+    ):
+        self.id = id_
+        self.role = role
+        self.email = email
+        self.user_permissions = [
+            type("P", (), {"id": pid})() for pid in (user_permissions or [])
+        ]
+
+
+class _FakeWorkManagementService:
+    """Models the declarative ``teamusers/setpermissions`` endpoint: the user's
+    permission set is replaced wholesale with the ids we send, and the resulting
+    set is echoed back (as the real endpoint does).
+
+    With ``applies=False`` the endpoint accepts the write and changes nothing,
+    echoing the unchanged set back. That is how the backend answers a token that
+    may not update this user's permissions - a team-scoped API key, which acts as
+    the team rather than as a user."""
+
+    def __init__(self, granted, applies=True):
+        self.granted = set(granted)
+        self.calls = []
+        self._applies = applies
+
+    def set_team_user_permissions(self, contributor_id, permission_ids):
+        self.calls.append((contributor_id, list(permission_ids)))
+        if self._applies:
+            self.granted = set(permission_ids)
+        return sorted(self.granted)
+
+
+class _FakeServiceProvider:
+    def __init__(self, granted=(), groups=None, name_by_id=None, applies=True):
+        self.work_management = _FakeWorkManagementService(granted, applies=applies)
+        self._groups = groups if groups is not None else GROUPS
+        self._name_by_id = name_by_id if name_by_id is not None else ALL_PERMS
+
+    def get_team_user_permission_id_name_map(self):
+        return dict(self._name_by_id)
+
+    def get_team_user_permission_groups(self):
+        return {name: dict(perms) for name, perms in self._groups.items()}
+
+    def get_team_user_permission_id(self, name):
+        target = _normalize(name)
+        for pid, pname in self._name_by_id.items():
+            if _normalize(pname) == target:
+                return pid
+        return None
+
+
+class TestUpdateUserPermissionUseCase(TestCase):
+    EMAIL = "contributor@superannotate.com"
+
+    def _run(
+        self,
+        permissions,
+        operation,
+        granted=(),
+        role=WMUserTypeEnum.Contributor,
+        user=None,
+        groups=None,
+        name_by_id=None,
+        current_perm_ids=None,
+        applies=True,
+    ):
+        # The use case reads the user's *current* permissions from the resolved
+        # team-user entity. Default the starting state to ``granted`` so callers
+        # can express "user currently holds X" with a single argument.
+        current = list(granted) if current_perm_ids is None else current_perm_ids
+        reporter = Reporter()
+        service_provider = _FakeServiceProvider(
+            granted=current, groups=groups, name_by_id=name_by_id, applies=applies
+        )
+        team_user = _FakeTeamUser(
+            id_=101,
+            role=role,
+            email=self.EMAIL,
+            user_permissions=current,
+        )
+        resolver = (lambda _: [team_user]) if user is not False else (lambda _: [])
+        use_case = UpdateUserPermissionUseCase(
+            reporter=reporter,
+            user=user if isinstance(user, (int, str)) else self.EMAIL,
+            permissions=permissions,
+            operation=operation,
+            service_provider=service_provider,
+            user_resolver=resolver,
+        )
+        response = use_case.execute()
+        return response, reporter, service_provider
+
+    @staticmethod
+    def _message(reporter, prefix):
+        for msg in reporter.info_messages:
+            if msg.startswith(prefix):
+                return msg
+        return None
+
+    # ---- success / failure logging -------------------------------------
+
+    def test_grant_single_permission_success(self):
+        response, reporter, sp = self._run(["Invite Contributors to team"], "grant")
+        self.assertFalse(response.errors)
+        self.assertEqual(
+            self._message(reporter, "Successfully granted"),
+            f"Successfully granted [Invite Contributors to team] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+        # The full desired set is sent (empty current + the granted id).
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+        self.assertEqual(sp.work_management.granted, {20})
+
+    def test_grant_already_granted_logs_failure(self):
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "grant", granted={20}
+        )
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn(
+            "User already has [Invite Contributors to team] permission(s) granted.",
+            failure,
+        )
+        # Nothing changes -> no network round-trip.
+        self.assertEqual(sp.work_management.calls, [])
+
+    # ---- permissions the SDK adds itself stay silent when already fine ----
+    #
+    # Only what the caller named is reported as "already has" / "already
+    # revoked". Master and Edit/View cascades, and the "*" expansion, are the
+    # SDK's own doing: a permission that was already in the requested state is
+    # the normal case there, not something to warn about.
+
+    def test_grant_admin_master_is_silent_about_children_already_granted(self):
+        _, reporter, _ = self._run(
+            ["Access team API keys"],
+            "grant",
+            granted={27, 30},
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        self.assertEqual(
+            self._message(reporter, "Successfully granted"),
+            f"Successfully granted [Access team API keys] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_grant_contributor_master_is_silent_about_children_already_granted(self):
+        _, reporter, _ = self._run([CONTRIBUTOR_PERMS[19]], "grant", granted={20, 22})
+        self.assertIsNotNone(self._message(reporter, "Successfully granted"))
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_grant_edit_is_silent_when_view_already_granted(self):
+        _, reporter, _ = self._run([CONTRIBUTOR_PERMS[24]], "grant", granted={23})
+        self.assertEqual(
+            self._message(reporter, "Successfully granted"),
+            f"Successfully granted [{CONTRIBUTOR_PERMS[24]}] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_revoke_view_is_silent_when_edit_not_granted(self):
+        _, reporter, _ = self._run([CONTRIBUTOR_PERMS[23]], "revoke", granted={23})
+        self.assertEqual(
+            self._message(reporter, "Successfully revoked"),
+            f"Successfully revoked [{CONTRIBUTOR_PERMS[23]}] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertIsNone(self._message(reporter, "Could not revoke"))
+
+    def test_grant_wildcard_is_silent_about_permissions_already_granted(self):
+        _, reporter, _ = self._run(
+            "*", "grant", granted={27}, role=WMUserTypeEnum.TeamAdmin
+        )
+        self.assertIsNotNone(self._message(reporter, "Successfully granted"))
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_explicitly_named_permission_still_reports_already_granted(self):
+        # The silence above must not swallow the case the story requires: a
+        # permission the caller named is reported even though it is a no-op.
+        _, reporter, _ = self._run(
+            ["Access Orchestrate"],
+            "grant",
+            granted={27},
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn(
+            "User already has [Access Orchestrate] permission(s) granted.", failure
+        )
+
+    def test_cascade_permission_that_really_failed_is_still_reported(self):
+        # Revoking View cascades to Edit, but the master blocks both. Neither
+        # reached the requested state, so both belong in the failure - silence
+        # is only for permissions that were already fine.
+        _, reporter, sp = self._run(
+            [CONTRIBUTOR_PERMS[23]], "revoke", granted={19, 20, 21, 22, 23, 24, 25}
+        )
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn(CONTRIBUTOR_PERMS[23], failure)
+        self.assertIn(CONTRIBUTOR_PERMS[24], failure)
+        self.assertIn("is granted, it must be revoked before", failure)
+
+    def test_revoke_single_permission_success(self):
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "revoke", granted={20}
+        )
+        self.assertEqual(
+            self._message(reporter, "Successfully revoked"),
+            f"Successfully revoked [Invite Contributors to team] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        self.assertEqual(sp.work_management.granted, set())
+
+    def test_revoke_already_revoked_logs_failure(self):
+        _, reporter, sp = self._run(["Invite Contributors to team"], "revoke")
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn(
+            "[Invite Contributors to team] permission(s) were already revoked "
+            "for the user.",
+            failure,
+        )
+        self.assertEqual(sp.work_management.calls, [])
+
+    # ---- a token that is not allowed to update the user ------------------
+
+    def test_grant_not_applied_by_backend_lists_the_api_key_reason(self):
+        # A team-scoped API key acts as the team, with no user behind it, so the
+        # backend accepts the write and applies nothing. Everything attempted is
+        # reported as failed, and the key is one of the possible reasons.
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "grant", applies=False
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        self.assertIn(
+            "The API key used does not have sufficient permissions to perform "
+            "this action.",
+            failure,
+        )
+        self.assertEqual(sp.work_management.granted, set())
+
+    def test_revoke_not_applied_by_backend_lists_the_api_key_reason(self):
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "revoke", granted={20}, applies=False
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        self.assertIsNone(self._message(reporter, "Successfully revoked"))
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        self.assertIn(
+            "The API key used does not have sufficient permissions to perform "
+            "this action.",
+            failure,
+        )
+        self.assertEqual(sp.work_management.granted, {20})
+
+    def test_admin_wildcard_grant_not_applied_reports_every_permission(self):
+        _, reporter, sp = self._run(
+            "*", "grant", role=WMUserTypeEnum.TeamAdmin, applies=False
+        )
+        self.assertEqual(
+            sp.work_management.calls, [(101, sorted(GRANTABLE_ADMIN_PERMS))]
+        )
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        for name in GRANTABLE_ADMIN_PERMS.values():
+            self.assertIn(name, failure)
+        self.assertIn(
+            "The API key used does not have sufficient permissions to perform "
+            "this action.",
+            failure,
+        )
+        self.assertEqual(sp.work_management.granted, set())
+
+    # ---- cascades ------------------------------------------------------
+
+    def test_grant_master_cascades_all_contributor_permissions(self):
+        _, reporter, sp = self._run(["Manage Contributors' permissions"], "grant")
+        # The desired set is the whole contributor group (master implies all).
+        self.assertEqual(
+            sp.work_management.calls,
+            [(101, [19, 20, 21, 22, 23, 24, 25])],
+        )
+        success = self._message(reporter, "Successfully granted")
+        self.assertIsNotNone(success)
+        for fragment in (
+            "Manage Contributors",
+            "Invite Contributors to team",
+            "Remove Contributors from team",
+            "View Contributors’ scores",
+            "View Contributors’ custom field values",
+            "Edit Contributors’ custom field values",
+            "Access Workload management",
+        ):
+            self.assertIn(fragment, success)
+        self.assertEqual(sp.work_management.granted, {19, 20, 21, 22, 23, 24, 25})
+
+    def test_grant_master_cascade_derived_from_live_group_data(self):
+        # The master cascade is derived from the permission-groups response,
+        # not hardcoded. When a contributor permission is absent for the team
+        # (here id 25 "Access Workload management"), granting the master must
+        # cascade only to the permissions that actually exist.
+        contributor_perms = {
+            19: "Manage Contributors’ permissions",
+            20: "Invite Contributors to team",
+            21: "Remove Contributors from team",
+            22: "View Contributors’ scores",
+            23: "View Contributors’ custom field values",
+            24: "Edit Contributors’ custom field values",
+        }
+        groups = {
+            "Team contributor permissions": contributor_perms,
+            "Team admin permissions": ADMIN_PERMS,
+        }
+        _, _, sp = self._run(
+            ["Manage Contributors' permissions"],
+            "grant",
+            groups=groups,
+            name_by_id={**contributor_perms, **ADMIN_PERMS},
+        )
+        self.assertEqual(
+            sp.work_management.calls,
+            [(101, [19, 20, 21, 22, 23, 24])],
+        )
+        self.assertEqual(sp.work_management.granted, {19, 20, 21, 22, 23, 24})
+
+    def test_grant_edit_custom_fields_cascades_view(self):
+        _, reporter, sp = self._run(["Edit Contributors' custom field values"], "grant")
+        # Desired set includes both Edit (24) and the cascaded View (23).
+        self.assertEqual(sp.work_management.calls, [(101, [23, 24])])
+        success = self._message(reporter, "Successfully granted")
+        self.assertIn("Edit Contributors’ custom field values", success)
+        self.assertIn("View Contributors’ custom field values", success)
+
+    def test_revoke_view_custom_fields_cascades_edit(self):
+        _, reporter, sp = self._run(
+            ["View Contributors' custom field values"],
+            "revoke",
+            granted={23, 24},
+        )
+        # Revoking View also revokes Edit -> desired set drops both.
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        success = self._message(reporter, "Successfully revoked")
+        self.assertIn("View Contributors’ custom field values", success)
+        self.assertIn("Edit Contributors’ custom field values", success)
+        self.assertEqual(sp.work_management.granted, set())
+
+    # ---- master is now removable (new endpoint) ------------------------
+
+    def test_revoke_master_leaves_other_members(self):
+        # Revoking the master by name drops only the master; the other
+        # contributor permissions the user holds remain.
+        _, reporter, sp = self._run(
+            ["Manage Contributors' permissions"],
+            "revoke",
+            granted={19, 20, 21},
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [20, 21])])
+        self.assertEqual(sp.work_management.granted, {20, 21})
+        success = self._message(reporter, "Successfully revoked")
+        self.assertIn("Manage Contributors", success)
+
+    def test_revoke_member_while_master_enabled_is_blocked(self):
+        # A master holder realistically has the whole group (master implies
+        # all). Revoking a single member is forced back into the desired set by
+        # the master invariant (no change) and reported as a failure telling
+        # the user to revoke the master first.
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"],
+            "revoke",
+            granted={19, 20, 21, 22, 23, 24, 25},
+        )
+        # Desired set == current -> no network round-trip.
+        self.assertEqual(sp.work_management.calls, [])
+        self.assertEqual(sp.work_management.granted, {19, 20, 21, 22, 23, 24, 25})
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        # The master name is the canonical one from the live group data, so it
+        # carries the backend's curly apostrophe; match around it.
+        self.assertIn("Manage Contributors", failure)
+        self.assertIn(" permissions is granted, it must be revoked before", failure)
+        # Only the contributor master is mentioned; the admin master is
+        # irrelevant to a contributor's failure.
+        self.assertNotIn("Access team API keys", failure)
+
+    # ---- "*" is scoped to the user's role ------------------------------
+
+    def test_wildcard_contributor_role_grants_only_contributor_permissions(self):
+        _, reporter, sp = self._run("*", "grant", role=WMUserTypeEnum.Contributor)
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(set(sent), set(CONTRIBUTOR_PERMS))
+        self.assertFalse(set(sent) & set(ADMIN_PERMS))
+
+    def test_wildcard_admin_role_grants_only_admin_permissions(self):
+        _, reporter, sp = self._run("*", "grant", role=WMUserTypeEnum.TeamAdmin)
+        _, sent = sp.work_management.calls[0]
+        # "*" covers the admin group except the ids the backend won't grant.
+        self.assertEqual(set(sent), set(GRANTABLE_ADMIN_PERMS))
+        self.assertFalse(set(sent) & set(CONTRIBUTOR_PERMS))
+        success = self._message(reporter, "Successfully granted")
+        self.assertIn("Access Orchestrate", success)
+        self.assertIn("Access team API keys", success)
+        self.assertIn("Revoke members' personal API keys", success)
+
+    def test_wildcard_admin_role_skips_deprecated_permission(self):
+        # id 26 is still in the group but is not grantable, so it must not be
+        # sent and must not be reported as a failure.
+        _, reporter, sp = self._run("*", "grant", role=WMUserTypeEnum.TeamAdmin)
+        _, sent = sp.work_management.calls[0]
+        self.assertNotIn(26, sent)
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    # ---- admin master: "Access team API keys" ---------------------------
+
+    def test_grant_admin_master_cascades_to_group(self):
+        # Granting the admin master grants every other grantable admin
+        # permission, mirroring the contributor master.
+        _, reporter, sp = self._run(
+            ["Access team API keys"], "grant", role=WMUserTypeEnum.TeamAdmin
+        )
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(set(sent), set(GRANTABLE_ADMIN_PERMS))
+        success = self._message(reporter, "Successfully granted")
+        for name in GRANTABLE_ADMIN_PERMS.values():
+            self.assertIn(name, success)
+        # The deprecated id is neither sent nor reported.
+        self.assertNotIn(26, sent)
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_grant_admin_master_is_case_insensitive(self):
+        _, _, sp = self._run(
+            ["access TEAM api KEYS"], "grant", role=WMUserTypeEnum.TeamAdmin
+        )
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(set(sent), set(GRANTABLE_ADMIN_PERMS))
+
+    def test_revoke_admin_permission_while_admin_master_enabled_is_blocked(self):
+        _, reporter, sp = self._run(
+            ["Access Orchestrate"],
+            "revoke",
+            granted=set(GRANTABLE_ADMIN_PERMS),
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        # Desired set == current -> no network round-trip, nothing revoked.
+        self.assertEqual(sp.work_management.calls, [])
+        self.assertEqual(sp.work_management.granted, set(GRANTABLE_ADMIN_PERMS))
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Access Orchestrate]", failure)
+        self.assertIn(
+            "If Access team API keys is granted, it must be revoked before "
+            "[Access Orchestrate] can be revoked for this user.",
+            failure,
+        )
+        # The hint stays scoped to the admin group.
+        self.assertNotIn("Manage Contributors", failure)
+
+    def test_revoke_admin_master_succeeds_and_leaves_group_granted(self):
+        # The master itself stays revocable; the permissions it implied remain.
+        _, reporter, sp = self._run(
+            ["Access team API keys"],
+            "revoke",
+            granted=set(GRANTABLE_ADMIN_PERMS),
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(set(sent), set(GRANTABLE_ADMIN_PERMS) - {ADMIN_MASTER_ID})
+        self.assertEqual(
+            self._message(reporter, "Successfully revoked"),
+            f"Successfully revoked [Access team API keys] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+
+    # ---- a team without "Access Workload management" (id 25) -------------
+
+    # Some teams do not expose id 25. Nothing may hardcode it: "*", the master
+    # cascade and the master invariant must all follow the live group data.
+    PERMS_NO_25 = {pid: n for pid, n in CONTRIBUTOR_PERMS.items() if pid != 25}
+
+    def _run_without_25(self, permissions, operation, **kw):
+        return self._run(
+            permissions,
+            operation,
+            groups={
+                "Team contributor permissions": self.PERMS_NO_25,
+                "Team admin permissions": ADMIN_PERMS,
+            },
+            name_by_id={**self.PERMS_NO_25, **ADMIN_PERMS},
+            **kw,
+        )
+
+    def test_wildcard_grant_without_workload_management(self):
+        _, reporter, sp = self._run_without_25("*", "grant")
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(set(sent), set(self.PERMS_NO_25))
+        self.assertNotIn(25, sent)
+        success = self._message(reporter, "Successfully granted")
+        self.assertNotIn("Access Workload management", success)
+        # A missing permission is not a failure: nothing to report.
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_master_cascade_without_workload_management(self):
+        _, reporter, sp = self._run_without_25([CONTRIBUTOR_PERMS[19]], "grant")
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(set(sent), set(self.PERMS_NO_25))
+        self.assertNotIn(25, sent)
+        self.assertIsNone(self._message(reporter, "Could not grant"))
+
+    def test_wildcard_revoke_without_workload_management(self):
+        _, _, sp = self._run_without_25("*", "revoke", granted=set(self.PERMS_NO_25))
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+
+    def test_revoke_blocked_by_master_without_workload_management(self):
+        # The invariant must restore only the ids the team actually has.
+        _, reporter, sp = self._run_without_25(
+            [CONTRIBUTOR_PERMS[20]], "revoke", granted=set(self.PERMS_NO_25)
+        )
+        self.assertEqual(sp.work_management.calls, [])
+        self.assertEqual(sp.work_management.granted, set(self.PERMS_NO_25))
+        self.assertIsNotNone(self._message(reporter, "Could not revoke"))
+
+    def test_requesting_workload_management_when_absent_is_invalid(self):
+        # The name cannot resolve at all (the flat name lookup and the groups come
+        # from the same payload), so it is reported as an invalid permission.
+        _, reporter, sp = self._run_without_25(["Access Workload management"], "grant")
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not grant")
+        self.assertIn("[Access Workload management]", failure)
+        self.assertIn("Provided permission(s) were invalid.", failure)
+
+    # ---- cascades tolerate teams that lack a cascade partner -------------
+
+    def test_grant_cascade_skips_a_partner_the_team_does_not_have(self):
+        # The Edit -> View cascade is hardcoded by id, but a team need not expose
+        # both (id 25 is already absent on some teams). The missing partner must
+        # be dropped rather than sent to the backend / looked up for reporting.
+        perms = {19: CONTRIBUTOR_PERMS[19], 24: CONTRIBUTOR_PERMS[24]}
+        _, reporter, sp = self._run(
+            [CONTRIBUTOR_PERMS[24]],
+            "grant",
+            groups={"Team contributor permissions": perms},
+            name_by_id=perms,
+        )
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(sent, [24])
+        self.assertEqual(
+            self._message(reporter, "Successfully granted"),
+            f"Successfully granted [{CONTRIBUTOR_PERMS[24]}] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+
+    def test_revoke_cascade_skips_a_partner_the_team_does_not_have(self):
+        perms = {19: CONTRIBUTOR_PERMS[19], 23: CONTRIBUTOR_PERMS[23]}
+        _, reporter, sp = self._run(
+            [CONTRIBUTOR_PERMS[23]],
+            "revoke",
+            granted={23},
+            groups={"Team contributor permissions": perms},
+            name_by_id=perms,
+        )
+        _, sent = sp.work_management.calls[0]
+        self.assertEqual(sent, [])
+        self.assertEqual(
+            self._message(reporter, "Successfully revoked"),
+            f"Successfully revoked [{CONTRIBUTOR_PERMS[23]}] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+
+    def test_master_invariant_is_scoped_to_the_users_role_group(self):
+        # A permission held from outside the user's role (stale data after a role
+        # change) must not drag its own group in. Here an admin still carries the
+        # contributor master (19): granting an admin permission must not expand
+        # into the contributor group.
+        _, _, sp = self._run(
+            ["Access Orchestrate"],
+            "grant",
+            granted={CONTRIBUTOR_MASTER_ID},
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        _, sent = sp.work_management.calls[0]
+        # The stale id is left untouched, but no other contributor id appears.
+        self.assertEqual(set(sent), {CONTRIBUTOR_MASTER_ID, 27})
+        self.assertFalse(
+            (set(sent) - {CONTRIBUTOR_MASTER_ID}) & set(CONTRIBUTOR_PERMS),
+            f"contributor group leaked into an admin's set: {sent}",
+        )
+
+    def test_revoke_hint_names_the_masters_of_the_users_role(self):
+        # With no failed id to trace (the name does not resolve), the hint must
+        # still name the master of the user's own role, not the other group's.
+        _, reporter, _ = self._run(
+            ["NoSuchPermission"], "revoke", role=WMUserTypeEnum.TeamAdmin
+        )
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIn("If Access team API keys is granted", failure)
+        self.assertNotIn("Manage Contributors", failure)
+
+        _, reporter, _ = self._run(
+            ["NoSuchPermission"], "revoke", role=WMUserTypeEnum.Contributor
+        )
+        failure = self._message(reporter, "Could not revoke")
+        self.assertIn("Manage Contributors", failure)
+        self.assertNotIn("Access team API keys", failure)
+
+    def test_revoke_wildcard_admin_clears_group_including_master(self):
+        _, reporter, sp = self._run(
+            "*",
+            "revoke",
+            granted=set(GRANTABLE_ADMIN_PERMS),
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        self.assertEqual(sp.work_management.granted, set())
+
+    # ---- revoke "*" clears the whole set (incl. master) ----------------
+
+    def test_revoke_wildcard_contributor_clears_current_permissions(self):
+        _, reporter, sp = self._run("*", "revoke", granted={19, 20, 22})
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        success = self._message(reporter, "Successfully revoked")
+        self.assertIsNotNone(success)
+        self.assertIn("Manage Contributors", success)
+        self.assertIn("Invite Contributors to team", success)
+        self.assertIn("View Contributors’ scores", success)
+        self.assertEqual(sp.work_management.granted, set())
+
+    def test_revoke_wildcard_admin_clears_current_permissions(self):
+        _, reporter, sp = self._run(
+            "*",
+            "revoke",
+            granted={26, 27},
+            role=WMUserTypeEnum.TeamAdmin,
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [])])
+        self.assertEqual(sp.work_management.granted, set())
+
+    def test_revoke_wildcard_with_no_permissions_is_noop(self):
+        # Nothing currently held -> desired set already empty, no backend call.
+        _, reporter, sp = self._run("*", "revoke", granted=set())
+        self.assertEqual(sp.work_management.calls, [])
+        self.assertIsNone(self._message(reporter, "Successfully revoked"))
+        self.assertIsNone(self._message(reporter, "Could not revoke"))
+
+    # ---- role mismatch (admin perm <-> contributor) ---------------------
+
+    def test_grant_admin_permission_for_contributor_logs_role_mismatch(self):
+        # An admin-only permission requested for a contributor must not be
+        # sent to the backend; the SDK reports a role-mismatch failure.
+        _, reporter, sp = self._run(["View SDK Token"], "grant")
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[View SDK Token]", failure)
+        self.assertIn(
+            "User role does not allow [View SDK Token] permission(s).",
+            failure,
+        )
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+
+    def test_grant_contributor_permission_for_admin_logs_role_mismatch(self):
+        # A contributor-only permission requested for an admin must not be
+        # sent to the backend; the SDK reports a role-mismatch failure.
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team"], "grant", role=WMUserTypeEnum.TeamAdmin
+        )
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[Invite Contributors to team]", failure)
+        self.assertIn(
+            "User role does not allow [Invite Contributors to team] permission(s).",
+            failure,
+        )
+        self.assertIsNone(self._message(reporter, "Successfully granted"))
+
+    def test_grant_mixed_valid_and_role_mismatch_grants_valid_only(self):
+        # A valid contributor permission mixed with a role-invalid admin one
+        # must grant the valid one and report the admin one as a failure (the
+        # role-invalid permission is never sent, so it cannot cause the backend
+        # to reject the whole set).
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team", "View SDK Token"], "grant"
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+        self.assertIn(
+            "Invite Contributors to team",
+            self._message(reporter, "Successfully granted"),
+        )
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[View SDK Token]", failure)
+
+    # ---- name resolution -----------------------------------------------
+
+    def test_invalid_permission_logs_failure_and_skips_backend(self):
+        _, reporter, sp = self._run(["NonExistentPermission"], "grant")
+        self.assertEqual(sp.work_management.calls, [])
+        failure = self._message(reporter, "Could not grant")
+        self.assertIsNotNone(failure)
+        self.assertIn("[NonExistentPermission]", failure)
+        self.assertIn("Provided permission(s) were invalid.", failure)
+
+    def test_mixed_valid_and_invalid_logs_both(self):
+        _, reporter, sp = self._run(
+            ["Invite Contributors to team", "NonExistentPermission"], "grant"
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+        self.assertIn(
+            "Invite Contributors to team",
+            self._message(reporter, "Successfully granted"),
+        )
+        self.assertIn(
+            "NonExistentPermission", self._message(reporter, "Could not grant")
+        )
+
+    def test_case_insensitive_permission_name(self):
+        _, reporter, sp = self._run(["invite contributors to team"], "grant")
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+        self.assertIsNotNone(self._message(reporter, "Successfully granted"))
+
+    def test_straight_apostrophe_resolves_to_canonical_name(self):
+        # User supplies a straight apostrophe; backend stores a curly one.
+        _, reporter, sp = self._run(["View Contributors' scores"], "grant")
+        self.assertEqual(sp.work_management.calls, [(101, [22])])
+        self.assertEqual(
+            self._message(reporter, "Successfully granted"),
+            f"Successfully granted [View Contributors’ scores] "
+            f"permission(s) for user: {self.EMAIL}.",
+        )
+
+    def test_duplicate_permission_names_deduplicated(self):
+        _, _, sp = self._run(
+            ["Invite Contributors to team", "invite contributors to team"],
+            "grant",
+        )
+        self.assertEqual(sp.work_management.calls, [(101, [20])])
+
+    # ---- error paths ---------------------------------------------------
+
+    def test_empty_permissions_returns_error(self):
+        response, reporter, sp = self._run([], "grant")
+        self.assertEqual(response.errors, "Permission(s) cannot be empty.")
+        self.assertEqual(reporter.info_messages, [])
+        self.assertEqual(sp.work_management.calls, [])
+
+    def test_unknown_user_returns_error(self):
+        response, reporter, sp = self._run(
+            ["Invite Contributors to team"], "grant", user=False
+        )
+        self.assertEqual(response.errors, "User not found.")
+        self.assertEqual(reporter.info_messages, [])
+        self.assertEqual(sp.work_management.calls, [])
+
+
+class TestUserPermissionNameNormalization(TestCase):
+    def test_normalizes_curly_apostrophe_and_case(self):
+        self.assertEqual(
+            UserPermissionCache._normalize_name("View Contributors’ SCORES"),
+            "view contributors' scores",
+        )
+
+    def test_left_and_right_single_quotes_normalized(self):
+        self.assertEqual(UserPermissionCache._normalize_name("A‘b’c"), "a'b'c")

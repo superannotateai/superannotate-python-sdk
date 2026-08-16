@@ -30,6 +30,7 @@ from lib.core.entities import BaseItemEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
+from lib.core.entities import IntegrationEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import UserEntity
 from lib.core.exceptions import AppException
@@ -130,8 +131,8 @@ async def upload_small_annotations(
     service_provider: BaseServiceProvider,
     reporter: Reporter,
     report: Report,
-    callback: Callable = None,
-    transform_version: str = None,
+    callback: Callable | None = None,
+    transform_version: str | None = None,
 ):
     async def upload(_chunk: list[ItemToUpload]):
         failed_annotations, missing_classes, missing_attr_groups, missing_attrs = (
@@ -161,8 +162,8 @@ async def upload_small_annotations(
             if callback:
                 for i in chunk:
                     callback(i)
-        except Exception:
-            logger.debug(traceback.print_exc())
+        except Exception as e:
+            logger.debug(e)
             failed_annotations.extend([i.item.name for i in chunk])
         finally:
             report.failed_annotations.extend(failed_annotations)
@@ -436,7 +437,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 "failed": failed,
                 "skipped": skipped,
             }
-            return self._response
+        return self._response
 
 
 class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
@@ -609,17 +610,17 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
     @property
     def annotation_upload_data(self) -> UploadAnnotationAuthData:
 
-        CHUNK_SIZE = UploadAnnotationsFromFolderUseCase.CHUNK_SIZE_PATHS
+        chunk_size = UploadAnnotationsFromFolderUseCase.CHUNK_SIZE_PATHS
 
         if self._annotation_upload_data:
             return self._annotation_upload_data
 
         images = {}
-        for i in range(0, len(self._item_ids), CHUNK_SIZE):
+        for i in range(0, len(self._item_ids), chunk_size):
             tmp = self._service_provider.get_annotation_upload_data(
                 project=self._project,
                 folder=self._folder,
-                item_ids=self._item_ids[i : i + CHUNK_SIZE],
+                item_ids=self._item_ids[i : i + chunk_size],
             )
             if not tmp.ok:
                 raise AppException(tmp.error)
@@ -1190,10 +1191,8 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
             else:
                 subschemas = enumerate(oneOf)
                 all_errors = []
-                for index, subschema in subschemas:
-                    errs = list(
-                        validator.descend(instance, subschema, schema_path=index)
-                    )
+                for idx, subschema in subschemas:
+                    errs = list(validator.descend(instance, subschema, schema_path=idx))
                     if not errs:
                         break
                     all_errors.extend(errs)
@@ -1253,7 +1252,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 errors = validator(self, v, instance, _schema) or ()
                 for error in errors:
                     # set details if not already set by the called fn
-                    error._set(
+                    error._set(  # noqa
                         validator=k,
                         validator_value=v,
                         instance=instance,
@@ -1745,6 +1744,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         user: UserEntity,
         keep_status: bool = False,
         transform_version: str = None,
+        integration: IntegrationEntity = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -1758,6 +1758,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
         self._transform_version = (
             "llmJsonV2" if transform_version is None else transform_version
         )
+        self._integration = integration
         self._category_name_to_id_map = {}
 
     @property
@@ -1895,7 +1896,12 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
             project=self._project,
             folder=folder,
             attachments=[
-                AttachmentEntity(name=item_name, url="") for item_name in item_names
+                AttachmentEntity(
+                    name=item_name,
+                    url="custom_llm",  # hardcoded for multimodal items
+                    integration_id=self._integration.id if self._integration else None,
+                )
+                for item_name in item_names
             ],
             service_provider=self._service_provider,
         ).execute()
@@ -2042,7 +2048,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                 "failed": failed,
                 "skipped": skipped,
             }
-            return self._response
+        return self._response
 
     def _attach_categories(self, folder_id: int, item_id_category_map: dict[int, str]):
         categories_to_create: list[str] = []

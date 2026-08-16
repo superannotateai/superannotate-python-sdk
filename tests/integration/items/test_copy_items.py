@@ -49,7 +49,7 @@ class TestCopyItems(BaseTestCase):
             self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}"
         )
         assert len(skipped_items) == 0
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 7
+        assert len(sa.list_items(self.PROJECT_NAME, self.FOLDER_1)) == 7
 
     def test_copy_items_from_root_with_annotations(self):
         uploaded, _, _ = sa.attach_items(self.PROJECT_NAME, self.ATTACHMENT)
@@ -61,7 +61,7 @@ class TestCopyItems(BaseTestCase):
             self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}"
         )
         assert len(skipped_items) == 0
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 2
+        assert len(sa.list_items(self.PROJECT_NAME, self.FOLDER_1)) == 2
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_image_annotations(
                 f"{self.PROJECT_NAME}/{self.FOLDER_1}", self.IMAGE_NAME, tmp_dir
@@ -93,7 +93,7 @@ class TestCopyItems(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.FOLDER_2}",
         )
         assert len(skipped_items) == 0
-        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")) == 7
+        assert len(sa.list_items(self.PROJECT_NAME, self.FOLDER_2)) == 7
 
     def test_skipped_count(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
@@ -121,7 +121,7 @@ class TestCopyItems(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.FOLDER_1}",
             items=["as", "asd", self.IMAGE_NAME],
         )
-        items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        items = sa.list_items(self.PROJECT_NAME, self.FOLDER_1)
         assert len(items) == 1
         assert items[0]["name"] == self.IMAGE_NAME
         assert items[0]["annotation_status"] == "Completed"
@@ -163,11 +163,11 @@ class TestCopyItems(BaseTestCase):
                 " due to include_annotations=False." == cm.output[0]
             )
         assert len(skipped_items) == 2
-        folder_1_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")
-        folder_2_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_1_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_1)
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert len(folder_1_items) == 2
         assert len(folder_2_items) == 2
 
-        folder_2_items = sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")
+        folder_2_items = sa.list_items(self.PROJECT_NAME, self.FOLDER_2)
         assert folder_2_items[0]["annotation_status"] == "NotStarted"
         assert not folder_2_items[0]["approval_status"]

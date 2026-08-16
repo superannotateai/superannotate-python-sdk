@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-import lib.core as constances
+import lib.core as constants
 from lib.core import ApprovalStatus
 from lib.core import usecases
 from lib.core.conditions import Condition
@@ -60,6 +60,8 @@ from lib.infrastructure.query_builder import QueryBuilderChain
 from lib.infrastructure.query_builder import TeamUserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
+from lib.infrastructure.services.auth import resolve_token_context
+from lib.infrastructure.services.auth import TokenContext
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
@@ -608,11 +610,40 @@ class WorkManagementManager(BaseManager):
                 f"for user: {user_email}.\nPossible reasons:\n{reasons}"
             )
 
+    def edit_team_user_permissions(
+        self,
+        user: int | str,
+        permissions: list[str] | Literal["*"],
+        operation: Literal["grant", "revoke"],
+    ):
+        use_case = usecases.UpdateUserPermissionUseCase(
+            reporter=Reporter(),
+            user=user,
+            permissions=permissions,
+            operation=operation,
+            service_provider=self.service_provider,
+            user_resolver=self._resolve_team_user,
+        )
+        response = use_case.execute()
+        if response.errors:
+            raise AppException(response.errors)
+
+    def _resolve_team_user(self, user: int | str):
+        if isinstance(user, int):
+            return self.list_users(id__in=[user])
+        return self.list_users(email__in=[user])
+
 
 class ProjectManager(BaseManager):
-    def __init__(self, service_provider: ServiceProvider, team: TeamEntity):
+    def __init__(
+        self, service_provider: ServiceProvider, team: Callable[[], TeamEntity]
+    ):
         super().__init__(service_provider)
-        self._team = team
+        self._get_team = team
+
+    @property
+    def _team(self) -> TeamEntity:
+        return self._get_team()
 
     def get_by_id(self, project_id):
         use_case = usecases.GetProjectByIDUseCase(
@@ -1432,6 +1463,7 @@ class AnnotationManager(BaseManager):
         keep_status: bool,
         user: UserEntity,
         output_format: str = None,
+        integration: IntegrationEntity = None,
     ):
         if project.type == ProjectType.MULTIMODAL and output_format == "multimodal":
             use_case = usecases.UploadMultiModalAnnotationsUseCase(
@@ -1443,6 +1475,7 @@ class AnnotationManager(BaseManager):
                 keep_status=keep_status,
                 user=user,
                 transform_version="llmJsonV2",
+                integration=integration,
             )
         else:
             use_case = usecases.UploadAnnotationsUseCase(
@@ -1635,7 +1668,6 @@ class BaseController(metaclass=ABCMeta):
         self._logger = logging.getLogger("sa")
         self._testing = os.getenv("SA_TESTING", "False").lower() in ("true", "1", "t")
         self._token = config.API_TOKEN
-        self._team_data = None
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None
@@ -1646,15 +1678,28 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
+        self._token_context = resolve_token_context(
+            api_url=config.API_URL,
+            token=config.API_TOKEN,
+            verify_ssl=config.VERIFY_SSL,
+        )
+        self._team_id = self._token_context.team_id
+
         http_client = HttpClient(
-            api_url=config.API_URL, token=config.API_TOKEN, verify_ssl=config.VERIFY_SSL
+            api_url=config.API_URL,
+            token=config.API_TOKEN,
+            team_id=self._team_id,
+            auth_type=self._token_context.auth_type,
+            verify_ssl=config.VERIFY_SSL,
         )
 
         self.service_provider = ServiceProvider(http_client)
         self._user = self.get_current_user()
-        self._team = self.get_team().data
+        # An API key already resolved its team, so the team data is only fetched once
+        # something actually needs it (the organization id, mostly).
+        self._team = self.get_team().data if self._token_context.is_legacy else None
         self.annotation_classes = AnnotationClassManager(self.service_provider)
-        self.projects = ProjectManager(self.service_provider, team=self._team)
+        self.projects = ProjectManager(self.service_provider, team=lambda: self.team)
         self.work_management = WorkManagementManager(self.service_provider)
         self.folders = FolderManager(self.service_provider)
         self.items = ItemManager(self.service_provider)
@@ -1669,20 +1714,21 @@ class BaseController(metaclass=ABCMeta):
 
     @property
     def org_id(self):
-        return self._team.owner_id
+        return self.team.owner_id
 
     @property
     def current_user(self):
         return self._user
 
     @property
-    def user_id(self):
-        if not self._user_id:
-            self._user_id, _ = self.get_team()
-        return self._user_id
+    def token_context(self) -> TokenContext:
+        """The scope the client authenticated with (team / team-user / legacy)."""
+        return self._token_context
 
     @property
-    def team(self):
+    def team(self) -> TeamEntity:
+        if self._team is None:
+            self._team = self.get_team().data
         return self._team
 
     def get_team(self):
@@ -1691,6 +1737,10 @@ class BaseController(metaclass=ABCMeta):
         ).execute()
 
     def get_current_user(self) -> UserEntity:
+        # An API key resolves its own user (or its creator, for team-scoped keys) while the
+        # team is being resolved, so there is nothing left to look up.
+        if self._token_context.user:
+            return self._token_context.user
         response = usecases.GetCurrentUserUseCase(
             service_provider=self.service_provider, team_id=self.team_id
         ).execute()
@@ -1699,16 +1749,19 @@ class BaseController(metaclass=ABCMeta):
         return response.data
 
     @property
-    def team_data(self):
-        if not self._team_data:
-            self._team_data = self.team
-        return self._team_data
+    def team_name(self) -> str:
+        """The name of the team the client operates in.
+
+        Used by telemetry. An API key resolves only the team id on init, so the first
+        call fetches the team; the result is cached on the controller from then on.
+        """
+        return self.team.name
 
     @property
     def team_id(self) -> int:
-        if not self._token:
+        if not self._token or not self._team_id:
             raise AppException("Invalid credentials provided.")
-        return int(self._token.split("=")[-1])
+        return self._team_id
 
     @staticmethod
     def get_default_reporter(
@@ -1896,15 +1949,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def search_team_contributors(self, **kwargs):
-        condition = build_condition(**kwargs)
-        use_case = usecases.SearchContributorsUseCase(
-            service_provider=self.service_provider,
-            team_id=self.team_id,
-            condition=condition,
-        )
-        return use_case.execute()
-
     def _get_image(
         self,
         project: ProjectEntity,
@@ -2014,7 +2058,7 @@ class Controller(BaseController):
     def validate_annotations(self, project_type: str, annotation: dict):
         use_case = usecases.ValidateAnnotationUseCase(
             reporter=self.get_default_reporter(),
-            project_type=constances.ProjectType(project_type).value,
+            project_type=constants.ProjectType(project_type).value,
             annotation=annotation,
             team_id=self.team_id,
             service_provider=self.service_provider,

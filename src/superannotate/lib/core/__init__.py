@@ -153,6 +153,40 @@ USE_VALIDATE_MESSAGE = (
 
 INVALID_JSON_MESSAGE = "Invalid json"
 
+# Team-user permission cascade rules, keyed by permission id. The
+# work-management backend does not auto-cascade through the permissions API,
+# so the SDK mirrors the documented cascades client-side.
+#
+# A "master" permission implies every other permission in its own group:
+# granting it grants the whole group, and while it stays granted no permission
+# in that group can be revoked. The master itself stays revocable (otherwise it
+# would lock permanently); revoking it leaves the permissions it implied
+# granted. Each team-user permission group has at most one master.
+TEAM_USER_PERMISSION_MASTERS = {
+    19: "Manage Contributors’ permissions",  # Team contributor permissions
+    29: "Access team API keys",  # Team admin permissions
+}
+# Still returned by the permission-groups API but no longer grantable
+# (superseded by "Access team API keys"): the backend silently refuses it both
+# individually and inside a batch. Excluded from "*" expansion and from master
+# cascades so it never surfaces as a spurious grant failure.
+TEAM_USER_PERMISSION_DEPRECATED_IDS = frozenset({26})  # View SDK Token
+# Granting "Edit Contributors' custom field values" also grants "View
+# Contributors' custom field values". The master cascades (granting a master
+# grants every other permission in its group) are NOT hardcoded here: they are
+# derived at runtime from the live permission-groups data so they only include
+# permissions that actually exist for the team (e.g. id 25 may be absent
+# depending on the team's configuration).
+TEAM_USER_PERMISSION_GRANT_CASCADE = {
+    24: [23],
+}
+# Revoking "View Contributors' custom field values" also revokes "Edit
+# Contributors' custom field values".
+TEAM_USER_PERMISSION_REVOKE_CASCADE = {
+    23: [24],
+}
+
+
 PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "Brightness",
     "Fill",

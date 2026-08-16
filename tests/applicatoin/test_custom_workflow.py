@@ -82,8 +82,8 @@ class TestWorkflow(TestCase):
     @lru_cache
     def get_non_admin_contributor_emails(self) -> list[str]:
         contributor_emails = []
-        for i in sa.search_team_contributors():
-            if i["user_role"] != 2:  # skipping admins etc
+        for i in sa.list_users():
+            if i["role"] != "Admin":  # skipping admins etc
                 contributor_emails.append(i["email"])
         return contributor_emails
 
@@ -115,7 +115,7 @@ class TestWorkflow(TestCase):
             self.PROJECT_NAME, items_to_attach, annotation_status="Completed"  # noqa
         )
         assert len(uploaded) == count
-        items = sa.search_items(self.PROJECT_NAME)
+        items = sa.list_items(self.PROJECT_NAME)
         assert all(i["annotation_status"] == "Completed" for i in items)
 
     def step_3_create_annotation_classes(self):
@@ -132,7 +132,7 @@ class TestWorkflow(TestCase):
         attached_items_count = len(attached_item_names.get())
         assert len(uploaded) == attached_items_count
         #  assert that all items have a status of "attached_items_status"
-        items = sa.search_items(
+        items = sa.list_items(
             self.PROJECT_NAME, annotation_status=attached_items_status.get()
         )
         assert len(items) == attached_items_count

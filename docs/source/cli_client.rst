@@ -22,11 +22,11 @@ ________________________
 Initialization and configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To initialize CLI (and SDK) with team token:
+To initialize CLI (and SDK) with an API key:
 
 .. code-block:: bash
 
-   superannotatecli init --token <token>
+   superannotatecli init --token <API key>
                          [--logging_level <NOTSET/INFO/DEBUG/WARNING/ERROR/CRITICAL (Default=INFO)>]
                          [--logging_path <Default=/Users/username/.superannotate/logs>]
 

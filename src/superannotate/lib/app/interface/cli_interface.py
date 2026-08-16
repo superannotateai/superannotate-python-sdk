@@ -33,10 +33,10 @@ class CLIFacade:
         logging_path: str = constances.LOG_FILE_LOCATION,
     ):
         """
-        To initialize CLI (and SDK) with team token
-        Input the team SDK token from https://app.superannotate.com/team
+        To initialize CLI (and SDK) with API key.
+        The API key is available on the team setup page, for more details please visit our documentation at https://doc.superannotate.com/docs/api-keys.
 
-        :param token: the team token
+        :param token: the API key
         :type token: str
 
         :param logging_level: logging level, default is "INFO"
