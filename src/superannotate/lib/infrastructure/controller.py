@@ -1678,11 +1678,7 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
-        self._token_context = resolve_token_context(
-            api_url=config.API_URL,
-            token=config.API_TOKEN,
-            verify_ssl=config.VERIFY_SSL,
-        )
+        self._token_context = resolve_token_context(config=config)
         self._team_id = self._token_context.team_id
 
         http_client = HttpClient(

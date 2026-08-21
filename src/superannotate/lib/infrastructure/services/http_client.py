@@ -130,7 +130,7 @@ class HttpClient(BaseClient):
             )
         if response.status_code > 299:
             logger.debug(
-                f"Got {response.status_code} from {url} response from backend"
+                f"Got {method} {response.status_code} from {url} response from backend {response.text}"
             )
         return response
 

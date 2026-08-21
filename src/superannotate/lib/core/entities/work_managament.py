@@ -86,7 +86,7 @@ class WMUserEntity(TimedBaseModel):
 
     id: int | None = None
     team_id: int | None = None
-    role: WMUserTypeEnum
+    role: WMUserTypeEnum | None = None
     email: str | None = None
     state: WMUserStateEnum | None = None
     custom_fields: dict | None = Field(default_factory=dict, alias="customField")
