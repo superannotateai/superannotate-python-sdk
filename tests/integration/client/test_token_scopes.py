@@ -8,7 +8,6 @@ import os
 
 import pytest
 from src.superannotate import AppException
-
 from tests import env
 
 

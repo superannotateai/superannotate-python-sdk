@@ -8,7 +8,6 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-
 from tests import conftest
 from tests import env
 

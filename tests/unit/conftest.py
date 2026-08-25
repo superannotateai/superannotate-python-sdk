@@ -7,7 +7,6 @@ neither through the environment nor through a ``load_dotenv()`` of the code unde
 """
 
 import pytest
-
 from tests import env
 
 CREDENTIAL_VARS = (

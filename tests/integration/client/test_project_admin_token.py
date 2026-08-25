@@ -15,8 +15,6 @@ the reasons on the tests.
 import contextlib
 from unittest import TestCase
 
-import pytest
-
 from tests import env
 
 
@@ -56,20 +54,26 @@ class TestProjectAdminToken(TestCase):
 
         cls._delete_projects()
         cls._project = cls.owner.create_project(
-            cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE,
+            cls.PROJECT_NAME,
+            cls.PROJECT_DESCRIPTION,
+            cls.PROJECT_TYPE,
             settings=[
                 {"attribute": "TemplateState", "value": 1},
                 {"attribute": "CategorizeItems", "value": 2},
+                {"attribute": "UploadImages", "value": 1},
+                {"attribute": "DeleteImages", "value": 1},
             ],
-            form=cls.MULTIMODAL_FORM
+            form=cls.MULTIMODAL_FORM,
         )
         cls.owner.create_project(
-            cls.FOREIGN_PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE,
+            cls.FOREIGN_PROJECT_NAME,
+            cls.PROJECT_DESCRIPTION,
+            cls.PROJECT_TYPE,
             settings=[
                 {"attribute": "TemplateState", "value": 1},
                 {"attribute": "CategorizeItems", "value": 2},
             ],
-            form=cls.MULTIMODAL_FORM
+            form=cls.MULTIMODAL_FORM,
         )
         added, skipped = cls.owner.add_contributors_to_project(
             cls.PROJECT_NAME, [cls.project_admin_email], "ProjectAdmin"
@@ -147,7 +151,34 @@ class TestProjectAdminToken(TestCase):
             f["name"] for f in self.project_admin.list_folders(self.PROJECT_NAME)
         }
 
-    def test_item_creation(self):
-        self.project_admin.generate_items(self.PROJECT_NAME, count=5, name='test')
-        items = self.project_admin.list_items(self.PROJECT_NAME)
+    def test_list_items(self):
+        self.owner.generate_items(self.PROJECT_NAME, count=5, name="test")
+        items = self.project_admin.list_items(
+            self.PROJECT_NAME, include=["categories", "custom_metadata"]
+        )
         assert len(items) == 5
+
+    def test_get_set_annotation(self):
+        self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")
+        annotations = self.project_admin.get_annotations(
+            self.PROJECT_NAME,
+        )
+        assert len(annotations) == 5
+        self.project_admin.upload_annotations(self.PROJECT_NAME, annotations)
+
+    def test_get_project_metadata(self):
+        self.project_admin.get_project_metadata(
+            project=self.PROJECT_NAME,
+            include_annotation_classes=True,
+            include_settings=True,
+            # include_workflow=True,
+            include_contributors=True,
+            include_complete_item_count=True,
+        )
+        print()
+
+    def test_delete_project(self):
+        # TODO fix project admin should not be able to delete project
+        self.project_admin.delete_project(self.PROJECT_NAME)
+        projects = self.project_admin.list_projects(name=self.PROJECT_NAME)
+        assert not projects
