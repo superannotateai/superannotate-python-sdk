@@ -43,57 +43,54 @@ class TestProjectAdminToken(TestCase):
         "readme": "",
     }
 
-    @classmethod
-    def setUpClass(cls) -> None:
+    def setUp(self) -> None:
         #: The team owner, who sets the projects up and cleans them up.
-        cls.owner = env.build_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
+        self.owner = env.build_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
         #: The client under test: a contributor's key, made project admin below.
-        cls.project_admin = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
+        self.project_admin = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
         #: The user that key acts as - the one the owner promotes.
-        cls.project_admin_email = cls.project_admin.controller.current_user.email
+        self.project_admin_email = self.project_admin.controller.current_user.email
 
-        cls._delete_projects()
-        cls._project = cls.owner.create_project(
-            cls.PROJECT_NAME,
-            cls.PROJECT_DESCRIPTION,
-            cls.PROJECT_TYPE,
+        self._delete_projects()
+        self._project = self.owner.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
             settings=[
                 {"attribute": "TemplateState", "value": 1},
                 {"attribute": "CategorizeItems", "value": 2},
                 {"attribute": "UploadImages", "value": 1},
                 {"attribute": "DeleteImages", "value": 1},
             ],
-            form=cls.MULTIMODAL_FORM,
+            form=self.MULTIMODAL_FORM,
         )
-        cls.owner.create_project(
-            cls.FOREIGN_PROJECT_NAME,
-            cls.PROJECT_DESCRIPTION,
-            cls.PROJECT_TYPE,
+        self.owner.create_project(
+            self.FOREIGN_PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
             settings=[
                 {"attribute": "TemplateState", "value": 1},
                 {"attribute": "CategorizeItems", "value": 2},
             ],
-            form=cls.MULTIMODAL_FORM,
+            form=self.MULTIMODAL_FORM,
         )
-        added, skipped = cls.owner.add_contributors_to_project(
-            cls.PROJECT_NAME, [cls.project_admin_email], "ProjectAdmin"
+        added, skipped = self.owner.add_contributors_to_project(
+            self.PROJECT_NAME, [self.project_admin_email], "ProjectAdmin"
         )
-        assert cls.project_admin_email in added + skipped, (
-            f"{cls.project_admin_email} is out of the team scope, so it cannot be made "
+        assert self.project_admin_email in added + skipped, (
+            f"{self.project_admin_email} is out of the team scope, so it cannot be made "
             f"a project admin - {env.SA_CONTRIBUTOR_TOKEN_ENV} has to belong to a member "
             f"of the team {env.OWNER_PERSONAL_TOKEN_ENV} owns"
         )
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls._delete_projects()
+    def tearDown(self) -> None:
+        self._delete_projects()
 
-    @classmethod
-    def _delete_projects(cls) -> None:
-        for name in (cls.PROJECT_NAME, cls.FOREIGN_PROJECT_NAME):
-            for project in cls.owner.list_projects(name=name):
+    def _delete_projects(self) -> None:
+        for name in (self.PROJECT_NAME, self.FOREIGN_PROJECT_NAME):
+            for project in self.owner.list_projects(name=name):
                 with contextlib.suppress(Exception):
-                    cls.owner.delete_project(project["id"])
+                    self.owner.delete_project(project["id"])
 
     def _team_contributor(self):
         """A team contributor for the project admin to add, found as the owner.
@@ -151,12 +148,34 @@ class TestProjectAdminToken(TestCase):
             f["name"] for f in self.project_admin.list_folders(self.PROJECT_NAME)
         }
 
-    def test_list_items(self):
-        self.owner.generate_items(self.PROJECT_NAME, count=5, name="test")
+    def test_get_list_delete_items(self):
+        self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")
+
         items = self.project_admin.list_items(
             self.PROJECT_NAME, include=["categories", "custom_metadata"]
         )
+        item = self.project_admin.get_item_metadata(self.PROJECT_NAME, items[0]["name"])
         assert len(items) == 5
+        assert item is not None
+        self.project_admin.delete_items(self.PROJECT_NAME)
+        items = self.project_admin.list_items(
+            self.PROJECT_NAME, include=["categories", "custom_metadata"]
+        )
+        assert len(items) == 0
+
+    def test_set_item_status(self):
+        self.project_admin.generate_items(self.PROJECT_NAME, count=1, name="test")
+
+        items = self.project_admin.list_items(
+            self.PROJECT_NAME, include=["categories", "custom_metadata"]
+        )
+        self.project_admin.set_annotation_statuses(
+            self.PROJECT_NAME, "Completed", [items[0]["name"]]
+        )
+        items = self.project_admin.list_items(
+            self.PROJECT_NAME, include=["categories", "custom_metadata"]
+        )
+        assert items[0]["annotation_status"] == "Completed"
 
     def test_get_set_annotation(self):
         self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")
@@ -164,7 +183,9 @@ class TestProjectAdminToken(TestCase):
             self.PROJECT_NAME,
         )
         assert len(annotations) == 5
-        self.project_admin.upload_annotations(self.PROJECT_NAME, annotations)
+        self.project_admin.upload_annotations(
+            self.PROJECT_NAME, annotations, data_spec="multimodal"
+        )
 
     def test_get_project_metadata(self):
         self.project_admin.get_project_metadata(
@@ -175,7 +196,6 @@ class TestProjectAdminToken(TestCase):
             include_contributors=True,
             include_complete_item_count=True,
         )
-        print()
 
     def test_delete_project(self):
         # TODO fix project admin should not be able to delete project

@@ -2026,22 +2026,26 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                             folder_id=folder.id,
                             item_id_category_map=item_id_category_map,
                         )
-                workflow = self._service_provider.work_management.get_workflow(
-                    self._project.workflow_id
-                )
-                uploaded.extend(uploaded_annotations)
-                if workflow.is_system():
-                    if uploaded_annotations and not self._keep_status:
-                        statuses_changed = set_annotation_statuses_in_progress(
-                            service_provider=self._service_provider,
-                            project=self._project,
-                            folder=folder,
-                            item_names=uploaded_annotations,
-                        )
-                        if not statuses_changed:
-                            self._response.errors = AppException(
-                                "Failed to change status."
+                try:
+                    workflow = self._service_provider.work_management.get_workflow(
+                        self._project.workflow_id
+                    )
+                    uploaded.extend(uploaded_annotations)
+                    if workflow.is_system():
+                        if uploaded_annotations and not self._keep_status:
+                            statuses_changed = set_annotation_statuses_in_progress(
+                                service_provider=self._service_provider,
+                                project=self._project,
+                                folder=folder,
+                                item_names=uploaded_annotations,
                             )
+                            if not statuses_changed:
+                                self._response.errors = AppException(
+                                    "Failed to change status."
+                                )
+                except AppException as e:
+                    if e.message != "Forbidden":
+                        raise e
 
                 self.reporter.finish_progress()
                 self._report.failed_annotations = []
