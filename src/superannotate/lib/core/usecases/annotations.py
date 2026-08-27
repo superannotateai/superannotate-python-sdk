@@ -748,19 +748,22 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             name_path_mappings.keys()
             - set(self._report.failed_annotations).union(set(missing_annotations))
         )
-        workflow = self._service_provider.work_management.get_workflow(
-            self._project.workflow_id
-        )
-        if workflow.is_system() and uploaded_annotations and not self._keep_status:
-            statuses_changed = set_annotation_statuses_in_progress(
-                service_provider=self._service_provider,
-                project=self._project,
-                folder=self._folder,
-                item_names=uploaded_annotations,
+        try:
+            workflow = self._service_provider.work_management.get_workflow(
+                self._project.workflow_id
             )
-            if not statuses_changed:
-                self._response.errors = AppException(STATUS_CHANGE_ERROR_MSG)
-
+            if workflow.is_system() and uploaded_annotations and not self._keep_status:
+                statuses_changed = set_annotation_statuses_in_progress(
+                    service_provider=self._service_provider,
+                    project=self._project,
+                    folder=self._folder,
+                    item_names=uploaded_annotations,
+                )
+                if not statuses_changed:
+                    self._response.errors = AppException(STATUS_CHANGE_ERROR_MSG)
+        except AppException as e:
+            if e.message != "Forbidden":
+                raise e
         if missing_annotations:
             logger.warning(
                 f"Couldn't find {len(missing_annotations)}/{len(name_path_mappings.keys())} "
