@@ -957,20 +957,25 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                             self.reporter.log_warning(
                                 f"Couldn't find attribute {attr}."
                             )
-                    workflow = self._service_provider.work_management.get_workflow(
-                        self._project.workflow_id
-                    )
-                    if workflow.is_system() and not self._keep_status:
-                        statuses_changed = set_annotation_statuses_in_progress(
-                            service_provider=self._service_provider,
-                            project=self._project,
-                            folder=self._folder,
-                            item_names=[self._image.name],
+                    try:
+                        workflow = self._service_provider.work_management.get_workflow(
+                            self._project.workflow_id
                         )
-                        if not statuses_changed:
-                            self._response.errors = AppException(
-                                STATUS_CHANGE_ERROR_MSG
+                        if workflow.is_system() and not self._keep_status:
+                            statuses_changed = set_annotation_statuses_in_progress(
+                                service_provider=self._service_provider,
+                                project=self._project,
+                                folder=self._folder,
+                                item_names=[self._image.name],
                             )
+                            if not statuses_changed:
+                                self._response.errors = AppException(
+                                    STATUS_CHANGE_ERROR_MSG
+                                )
+                    except AppException as e:
+                        if e.message != "Forbidden":
+                            raise e
+
                     if self._verbose:
                         self.reporter.log_info(
                             f"Uploading annotations for image {str(self._image.name)} in project {self._project.name}."
