@@ -62,6 +62,8 @@ BIG_FILE_THRESHOLD = 15 * 1024 * 1024
 ANNOTATION_CHUNK_SIZE_MB = 10 * 1024 * 1024
 URI_THRESHOLD = 4 * 1024 - 120
 
+STATUS_CHANGE_ERROR_MSG = "Failed to change status."
+
 
 @dataclass
 class Report:
@@ -432,7 +434,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                         )
                         if not statuses_changed:
                             self._response.errors = AppException(
-                                "Failed to change status."
+                                STATUS_CHANGE_ERROR_MSG
                             )
             except AppException as e:
                 if e.message != "Forbidden":
@@ -757,7 +759,7 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
                 item_names=uploaded_annotations,
             )
             if not statuses_changed:
-                self._response.errors = AppException("Failed to change status.")
+                self._response.errors = AppException(STATUS_CHANGE_ERROR_MSG)
 
         if missing_annotations:
             logger.warning(
@@ -967,7 +969,7 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                         )
                         if not statuses_changed:
                             self._response.errors = AppException(
-                                "Failed to change status."
+                                STATUS_CHANGE_ERROR_MSG
                             )
                     if self._verbose:
                         self.reporter.log_info(
@@ -1724,7 +1726,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                         )
                     )
                 except Exception as e:
-                    logger.error(e)
+                    logger.exception(e)
                     self._response.errors = AppException("Can't get annotations.")
                     return self._response
             self.reporter.stop_spinner()
@@ -2026,11 +2028,11 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                             folder_id=folder.id,
                             item_id_category_map=item_id_category_map,
                         )
+                uploaded.extend(uploaded_annotations)
                 try:
                     workflow = self._service_provider.work_management.get_workflow(
                         self._project.workflow_id
                     )
-                    uploaded.extend(uploaded_annotations)
                     if workflow.is_system():
                         if uploaded_annotations and not self._keep_status:
                             statuses_changed = set_annotation_statuses_in_progress(
@@ -2041,7 +2043,7 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                             )
                             if not statuses_changed:
                                 self._response.errors = AppException(
-                                    "Failed to change status."
+                                    STATUS_CHANGE_ERROR_MSG
                                 )
                 except AppException as e:
                     if e.message != "Forbidden":

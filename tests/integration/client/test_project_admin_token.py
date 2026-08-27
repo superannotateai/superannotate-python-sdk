@@ -15,11 +15,11 @@ the reasons on the tests.
 import contextlib
 from unittest import TestCase
 
+from src.superannotate import AppException
 from tests import env
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
-class TestProjectAdminToken(TestCase):
+class BaseProjectAdminTest(TestCase):
     #: The project the contributor administers.
     PROJECT_NAME = "TestProjectAdminToken"
     #: A project they are never added to, so it has to stay out of their reach.
@@ -27,7 +27,12 @@ class TestProjectAdminToken(TestCase):
     PROJECT_DESCRIPTION = "project-admin token suite"
     PROJECT_TYPE = "Multimodal"
     FOLDER_NAME = "created-by-project-admin"
-
+    SETTINGS = [
+        {"attribute": "TemplateState", "value": 1},
+        {"attribute": "CategorizeItems", "value": 2},
+        {"attribute": "UploadImages", "value": 1},
+        {"attribute": "DeleteImages", "value": 1},
+    ]
     MULTIMODAL_FORM = {
         "components": [
             {
@@ -56,12 +61,7 @@ class TestProjectAdminToken(TestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            settings=[
-                {"attribute": "TemplateState", "value": 1},
-                {"attribute": "CategorizeItems", "value": 2},
-                {"attribute": "UploadImages", "value": 1},
-                {"attribute": "DeleteImages", "value": 1},
-            ],
+            settings=self.SETTINGS,
             form=self.MULTIMODAL_FORM,
         )
         self.owner.create_project(
@@ -92,6 +92,32 @@ class TestProjectAdminToken(TestCase):
                 with contextlib.suppress(Exception):
                     self.owner.delete_project(project["id"])
 
+
+@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
+    #: The project the contributor administers.
+    PROJECT_NAME = "TestProjectAdminToken"
+    #: A project they are never added to, so it has to stay out of their reach.
+    FOREIGN_PROJECT_NAME = "TestProjectAdminTokenForeign"
+    PROJECT_DESCRIPTION = "project-admin token suite"
+    PROJECT_TYPE = "Multimodal"
+    FOLDER_NAME = "created-by-project-admin"
+
+    MULTIMODAL_FORM = {
+        "components": [
+            {
+                "id": "r_qx07c6",
+                "type": "audio",
+                "permissions": [],
+                "hasTooltip": False,
+                "exclude": False,
+                "label": "",
+                "value": "",
+            }
+        ],
+        "readme": "",
+    }
+
     def _team_contributor(self):
         """A team contributor for the project admin to add, found as the owner.
 
@@ -116,29 +142,53 @@ class TestProjectAdminToken(TestCase):
             p["name"] for p in self.owner.list_projects()
         }
 
-    def test_adds_a_contributor_to_its_project(self):
+    def test_add_remove_a_contributor_to_its_project(self):
+        # TODO should raise error on ProjectAdmin deletion
         scapegoat = self._team_contributor()
 
         self.project_admin.add_contributors_to_project(
-            self.PROJECT_NAME, [scapegoat["email"]], "Annotator"
+            self.PROJECT_NAME, [scapegoat["email"]], "ProjectAdmin"
         )
 
         project_roles = {
             user["email"]: user["role"]
             for user in self.project_admin.list_users(project=self.PROJECT_NAME)
         }
-        assert project_roles.get(scapegoat["email"]) == "Annotator"
+        assert project_roles.get(scapegoat["email"]) == "ProjectAdmin"
+        self.project_admin.remove_users_from_project(
+            self.PROJECT_NAME, [scapegoat["email"]]
+        )
+        project_roles = {
+            user["email"]: user["role"]
+            for user in self.project_admin.list_users(project=self.PROJECT_NAME)
+        }
+        assert scapegoat["email"] not in project_roles
 
     def test_lists_team_users(self):
         team_users = self.project_admin.list_users()
 
         assert self.project_admin_email in {user["email"] for user in team_users}
 
-    def test_lists_the_users_of_its_project(self):
+    def test_lists_the_users_of_its_project_with_categories(self):
         project_users = self.project_admin.list_users(project=self.PROJECT_NAME)
 
         project_roles = {user["email"]: user["role"] for user in project_users}
         assert project_roles[self.project_admin_email] == "ProjectAdmin"
+        scapegoat = self._team_contributor()
+
+        self.project_admin.add_contributors_to_project(
+            self.PROJECT_NAME, [scapegoat["email"]], "Annotator"
+        )
+        self.project_admin.create_categories(self.PROJECT_NAME, ["test"])
+        categories = self.project_admin.list_categories(self.PROJECT_NAME)
+        assert len(categories) == 1
+        self.project_admin.set_contributors_categories(
+            self.PROJECT_NAME, [scapegoat["email"]], categories=["test"]
+        )
+        users = self.project_admin.list_users(
+            project=self.PROJECT_NAME, email=scapegoat["email"], include=["categories"]
+        )
+        assert users[0]["categories"][0]["name"] == "test"
 
     def test_creates_a_folder_in_its_project(self):
         folder = self.project_admin.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
@@ -180,12 +230,13 @@ class TestProjectAdminToken(TestCase):
     def test_get_set_annotation(self):
         self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")
         annotations = self.project_admin.get_annotations(
-            self.PROJECT_NAME,
+            self.PROJECT_NAME, data_spec="multimodal"
         )
         assert len(annotations) == 5
-        self.project_admin.upload_annotations(
+        response = self.project_admin.upload_annotations(
             self.PROJECT_NAME, annotations, data_spec="multimodal"
         )
+        assert len(response["succeeded"]) == 5
 
     def test_get_project_metadata(self):
         self.project_admin.get_project_metadata(
@@ -202,3 +253,28 @@ class TestProjectAdminToken(TestCase):
         self.project_admin.delete_project(self.PROJECT_NAME)
         projects = self.project_admin.list_projects(name=self.PROJECT_NAME)
         assert not projects
+
+
+class TestProjectAdminSemiAccess(BaseProjectAdminTest):
+    PROJECT_NAME = "TestProjectAdminSemiAccess"
+    FOREIGN_PROJECT_NAME = "TestProjectAdminSemiAccessFOREIGN"
+    SETTINGS = [
+        {"attribute": "TemplateState", "value": 1},
+        {"attribute": "CategorizeItems", "value": 2},
+        {"attribute": "UploadImages", "value": 0},
+        {"attribute": "DeleteImages", "value": 0},
+    ]
+
+    def test_item_deletion(self):
+        self.owner.generate_items(self.PROJECT_NAME, count=5, name="test")
+        with self.assertRaisesRegex(
+            AppException, "You do not have sufficient access to delete this items."
+        ):
+            self.project_admin.delete_items(self.PROJECT_NAME)
+
+    def test_create_items(self):
+        # todo update error message
+        with self.assertRaisesRegex(
+            AppException, "You do not have sufficient access export."
+        ):
+            self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")

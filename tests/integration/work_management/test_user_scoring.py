@@ -22,7 +22,7 @@ class TestUserScoring(TestCase):
     PROJECT_DESCRIPTION = "DESCRIPTION"
     EDITOR_TEMPLATE_PATH = os.path.join(
         Path(__file__).parent.parent.parent,
-        "data_set/editor_templates/form_with_scores.json",
+        "data_set/editor_templates/`form_with_scores`.json",
     )
     CLASSES_TEMPLATE_PATH = os.path.join(
         Path(__file__).parent.parent.parent,
