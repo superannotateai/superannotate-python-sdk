@@ -69,6 +69,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_CREATE_CATEGORIES = "categories/bulk"
     URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
     URL_SCORES = "scores"
+    URL_PROJECT_SCORES = "scores/getProjectScores"
     URL_DELETE_SCORE = "scores/{score_id}"
     URL_CUSTOM_FIELD_TEMPLATE_DELETE = "customfieldtemplates/{template_id}"
     URL_SET_CUSTOM_ENTITIES = "customentities/{pk}"
@@ -76,7 +77,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_TEAM_USERS = "teamusers/search"
     URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
-    URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
+    URL_RESUME_PAUSE_USER = "projectusers/editpausestate"
     URL_EDIT_CUSTOM_ENTITIES = "customentities/edit"
     URL_SET_TEAM_USER_PERMISSIONS = "teamusers/setpermissions"
     URL_PERMISSION_GROUPS = "permissiongroups"
@@ -463,6 +464,18 @@ class WorkManagementService(BaseWorkManagementService):
                 ),
             },
             item_type=WMScoreEntity,
+        )
+
+    def list_project_scores(self, project_id: int) -> WMScoreListResponse:
+        return self.client.paginate(
+            url=self.URL_PROJECT_SCORES,
+            headers={
+                "x-sa-entity-context": self._generate_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
+            item_type=WMScoreEntity,
+            method="post",
         )
 
     def create_score(

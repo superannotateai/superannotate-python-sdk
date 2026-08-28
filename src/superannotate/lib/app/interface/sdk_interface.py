@@ -301,10 +301,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     :param config_path: path to config file
     :type config_path: path-like (str or Path)
 
+    :param team_id: the team to operate in. Required for an Organization API key, which
+        is not bound to a team; for any other key it is optional and, when given, must
+        match the team the key grants access to.
+    :type team_id: int
+
     """
 
-    def __init__(self, token: str | None = None, config_path: str | None = None):
-        super().__init__(token, config_path)
+    def __init__(
+        self,
+        token: str | None = None,
+        config_path: str | None = None,
+        team_id: int | None = None,
+    ):
+        super().__init__(token, config_path, team_id=team_id)
 
     def get_project_by_id(self, project_id: int):
         """Returns the project metadata

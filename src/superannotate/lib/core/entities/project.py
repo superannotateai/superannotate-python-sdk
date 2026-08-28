@@ -115,7 +115,7 @@ class ProjectEntity(TimedBaseModel):
 
 
 class UserEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")
 
     id: str | None = None
     first_name: str | None = None

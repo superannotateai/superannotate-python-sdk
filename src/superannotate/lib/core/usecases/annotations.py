@@ -62,6 +62,8 @@ BIG_FILE_THRESHOLD = 15 * 1024 * 1024
 ANNOTATION_CHUNK_SIZE_MB = 10 * 1024 * 1024
 URI_THRESHOLD = 4 * 1024 - 120
 
+STATUS_CHANGE_ERROR_MSG = "Failed to change status."
+
 
 @dataclass
 class Report:
@@ -418,20 +420,25 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
                 {i.item.name for i in items_to_upload}
                 - set(self._report.failed_annotations).union(set(skipped))
             )
-            workflow = self._service_provider.work_management.get_workflow(
-                self._project.workflow_id
-            )
-            if workflow.is_system():
-                if uploaded_annotations and not self._keep_status:
-                    statuses_changed = set_annotation_statuses_in_progress(
-                        service_provider=self._service_provider,
-                        project=self._project,
-                        folder=self._folder,
-                        item_names=uploaded_annotations,
-                    )
-                    if not statuses_changed:
-                        self._response.errors = AppException("Failed to change status.")
-
+            try:
+                workflow = self._service_provider.work_management.get_workflow(
+                    self._project.workflow_id
+                )
+                if workflow.is_system():
+                    if uploaded_annotations and not self._keep_status:
+                        statuses_changed = set_annotation_statuses_in_progress(
+                            service_provider=self._service_provider,
+                            project=self._project,
+                            folder=self._folder,
+                            item_names=uploaded_annotations,
+                        )
+                        if not statuses_changed:
+                            self._response.errors = AppException(
+                                STATUS_CHANGE_ERROR_MSG
+                            )
+            except AppException as e:
+                if e.message != "Forbidden":
+                    raise e
             self._response.data = {
                 "succeeded": uploaded_annotations,
                 "failed": failed,
@@ -741,19 +748,22 @@ class UploadAnnotationsFromFolderUseCase(BaseReportableUseCase):
             name_path_mappings.keys()
             - set(self._report.failed_annotations).union(set(missing_annotations))
         )
-        workflow = self._service_provider.work_management.get_workflow(
-            self._project.workflow_id
-        )
-        if workflow.is_system() and uploaded_annotations and not self._keep_status:
-            statuses_changed = set_annotation_statuses_in_progress(
-                service_provider=self._service_provider,
-                project=self._project,
-                folder=self._folder,
-                item_names=uploaded_annotations,
+        try:
+            workflow = self._service_provider.work_management.get_workflow(
+                self._project.workflow_id
             )
-            if not statuses_changed:
-                self._response.errors = AppException("Failed to change status.")
-
+            if workflow.is_system() and uploaded_annotations and not self._keep_status:
+                statuses_changed = set_annotation_statuses_in_progress(
+                    service_provider=self._service_provider,
+                    project=self._project,
+                    folder=self._folder,
+                    item_names=uploaded_annotations,
+                )
+                if not statuses_changed:
+                    self._response.errors = AppException(STATUS_CHANGE_ERROR_MSG)
+        except AppException as e:
+            if e.message != "Forbidden":
+                raise e
         if missing_annotations:
             logger.warning(
                 f"Couldn't find {len(missing_annotations)}/{len(name_path_mappings.keys())} "
@@ -950,20 +960,25 @@ class UploadAnnotationUseCase(BaseReportableUseCase):
                             self.reporter.log_warning(
                                 f"Couldn't find attribute {attr}."
                             )
-                    workflow = self._service_provider.work_management.get_workflow(
-                        self._project.workflow_id
-                    )
-                    if workflow.is_system() and not self._keep_status:
-                        statuses_changed = set_annotation_statuses_in_progress(
-                            service_provider=self._service_provider,
-                            project=self._project,
-                            folder=self._folder,
-                            item_names=[self._image.name],
+                    try:
+                        workflow = self._service_provider.work_management.get_workflow(
+                            self._project.workflow_id
                         )
-                        if not statuses_changed:
-                            self._response.errors = AppException(
-                                "Failed to change status."
+                        if workflow.is_system() and not self._keep_status:
+                            statuses_changed = set_annotation_statuses_in_progress(
+                                service_provider=self._service_provider,
+                                project=self._project,
+                                folder=self._folder,
+                                item_names=[self._image.name],
                             )
+                            if not statuses_changed:
+                                self._response.errors = AppException(
+                                    STATUS_CHANGE_ERROR_MSG
+                                )
+                    except AppException as e:
+                        if e.message != "Forbidden":
+                            raise e
+
                     if self._verbose:
                         self.reporter.log_info(
                             f"Uploading annotations for image {str(self._image.name)} in project {self._project.name}."
@@ -1719,7 +1734,7 @@ class DownloadAnnotations(BaseReportableUseCase):
                         )
                     )
                 except Exception as e:
-                    logger.error(e)
+                    logger.exception(e)
                     self._response.errors = AppException("Can't get annotations.")
                     return self._response
             self.reporter.stop_spinner()
@@ -2021,22 +2036,26 @@ class UploadMultiModalAnnotationsUseCase(BaseReportableUseCase):
                             folder_id=folder.id,
                             item_id_category_map=item_id_category_map,
                         )
-                workflow = self._service_provider.work_management.get_workflow(
-                    self._project.workflow_id
-                )
                 uploaded.extend(uploaded_annotations)
-                if workflow.is_system():
-                    if uploaded_annotations and not self._keep_status:
-                        statuses_changed = set_annotation_statuses_in_progress(
-                            service_provider=self._service_provider,
-                            project=self._project,
-                            folder=folder,
-                            item_names=uploaded_annotations,
-                        )
-                        if not statuses_changed:
-                            self._response.errors = AppException(
-                                "Failed to change status."
+                try:
+                    workflow = self._service_provider.work_management.get_workflow(
+                        self._project.workflow_id
+                    )
+                    if workflow.is_system():
+                        if uploaded_annotations and not self._keep_status:
+                            statuses_changed = set_annotation_statuses_in_progress(
+                                service_provider=self._service_provider,
+                                project=self._project,
+                                folder=folder,
+                                item_names=uploaded_annotations,
                             )
+                            if not statuses_changed:
+                                self._response.errors = AppException(
+                                    STATUS_CHANGE_ERROR_MSG
+                                )
+                except AppException as e:
+                    if e.message != "Forbidden":
+                        raise e
 
                 self.reporter.finish_progress()
                 self._report.failed_annotations = []

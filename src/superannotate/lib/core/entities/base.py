@@ -128,9 +128,12 @@ TokenStr = Annotated[str, AfterValidator(_validate_token)]
 
 
 class ConfigEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
+    #: The team to operate in. Only an organization API key needs it — its scope carries
+    #: no team; every other token resolves its own team.
+    TEAM_ID: int | None = Field(alias="SA_TEAM_ID", default=None)
     API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
     LOGGING_LEVEL: Literal[
         "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
