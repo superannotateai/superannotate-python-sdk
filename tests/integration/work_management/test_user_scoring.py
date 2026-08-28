@@ -2,11 +2,11 @@ import json
 import os
 import time
 import uuid
-from pathlib import Path
 from unittest import TestCase
 
 from lib.core.exceptions import AppException
 from src.superannotate import SAClient
+from tests import DATA_SET_PATH
 from tests.integration.work_management.data_set import SCORE_TEMPLATES
 
 sa = SAClient()
@@ -21,12 +21,10 @@ class TestUserScoring(TestCase):
     PROJECT_TYPE = "Multimodal"
     PROJECT_DESCRIPTION = "DESCRIPTION"
     EDITOR_TEMPLATE_PATH = os.path.join(
-        Path(__file__).parent.parent.parent,
-        "data_set/editor_templates/`form_with_scores`.json",
+        DATA_SET_PATH / "editor_templates" / "form_with_scores.json"
     )
     CLASSES_TEMPLATE_PATH = os.path.join(
-        Path(__file__).parent.parent.parent,
-        "data_set/editor_templates/form1_classes.json",
+        DATA_SET_PATH / "editor_templates" / "form1_classes.json"
     )
     MULTIMODAL_FORM = {
         "components": [

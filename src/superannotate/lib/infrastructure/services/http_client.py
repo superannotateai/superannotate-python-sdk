@@ -173,6 +173,7 @@ class HttpClient(BaseClient):
         chunk_size: int = 2000,
         query_params: dict[str, Any] = None,
         headers: dict = None,
+        method: Literal["get", "post"] = "get",
     ) -> ServiceResponse:
         offset = 0
         total = []
@@ -182,7 +183,7 @@ class HttpClient(BaseClient):
             _url = f"{url}{splitter}offset={offset}"
             _response = self.request(
                 _url,
-                method="get",
+                method=method,
                 params=query_params,
                 dispatcher="data",
                 headers=headers,
