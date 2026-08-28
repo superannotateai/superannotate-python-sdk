@@ -76,7 +76,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_TEAM_USERS = "teamusers/search"
     URL_SEARCH_PROJECT_USERS = "projectusers/search"
     URL_SEARCH_PROJECTS = "projects/search"
-    URL_RESUME_PAUSE_USER = "teams/editprojectsusers"
+    URL_RESUME_PAUSE_USER = "projectusers/editpausestate"
     URL_EDIT_CUSTOM_ENTITIES = "customentities/edit"
     URL_SET_TEAM_USER_PERMISSIONS = "teamusers/setpermissions"
     URL_PERMISSION_GROUPS = "permissiongroups"
