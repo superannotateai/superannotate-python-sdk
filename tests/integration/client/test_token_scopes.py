@@ -70,7 +70,7 @@ def test_personal_token_acts_as_a_user(sa_client):
 @env.requires_team_scoped_token
 def test_team_scoped_token_rejects_a_conflicting_team_id(sa_client):
     # The key names its own team, so a team_id that disagrees is a caller mistake.
-    with pytest.raises(AppException, match=r"does not match the team"):
+    with pytest.raises(AppException, match=r"Invalid team id provided\."):
         env.build_client(
             os.environ["SA_TOKEN"], team_id=sa_client.controller.team_id + 1
         )

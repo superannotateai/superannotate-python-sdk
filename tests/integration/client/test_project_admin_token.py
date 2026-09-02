@@ -99,7 +99,7 @@ class BaseProjectAdminTest(TestCase):
                     self.owner.delete_project(project["id"])
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
     #: The project the contributor administers.
     PROJECT_NAME = "TestProjectAdminToken"
@@ -261,7 +261,7 @@ class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
         assert not projects
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectAdminSemiAccess(BaseProjectAdminTest):
     PROJECT_NAME = "TestProjectAdminSemiAccess"
     FOREIGN_PROJECT_NAME = "TestProjectAdminSemiAccessFOREIGN"
@@ -287,7 +287,7 @@ class TestProjectAdminSemiAccess(BaseProjectAdminTest):
             self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectVectorProject(BaseProjectAdminTest):
     PROJECT_NAME = "TestProjectAdminSemiAccess"
     FOREIGN_PROJECT_NAME = "TestProjectAdminSemiAccessFOREIGN"
@@ -318,7 +318,7 @@ class TestProjectVectorProject(BaseProjectAdminTest):
         )
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectAdminUserScoring(TestCase):
     """
     Test using mock Multimodal form template with dynamically generated scores created during setup.

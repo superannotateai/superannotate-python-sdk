@@ -5,7 +5,7 @@ from lib.core.exceptions import AppException
 from tests import env
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestAnnotatorToken(TestCase):
     PROJECT_NAME = "TestAnnotatorToken"
     FOREIGN_PROJECT_NAME = "TestTestAnnotatorTokenForeign"

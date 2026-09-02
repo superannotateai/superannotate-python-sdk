@@ -1665,7 +1665,13 @@ class SubsetManager(BaseManager):
 class BaseController(metaclass=ABCMeta):
     SESSIONS = {}
 
-    def __init__(self, config: ConfigEntity):
+    def __init__(
+        self,
+        config: ConfigEntity,
+        *,
+        require_team: bool = True,
+        require_organization: bool = False,
+    ):
         self._config = config
         self._logger = logging.getLogger("sa")
         self._testing = os.getenv("SA_TESTING", "False").lower() in ("true", "1", "t")
@@ -1680,7 +1686,11 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
-        self._token_context = resolve_token_context(config=config)
+        self._token_context = resolve_token_context(
+            config=config,
+            require_team=require_team,
+            require_organization=require_organization,
+        )
         self._team_id = self._token_context.team_id
 
         http_client = HttpClient(
@@ -1732,6 +1742,11 @@ class BaseController(metaclass=ABCMeta):
     def get_team(self):
         return usecases.GetTeamUseCase(
             service_provider=self.service_provider, team_id=self.team_id
+        ).execute()
+
+    def list_teams(self):
+        return usecases.ListTeamsUseCase(
+            service_provider=self.service_provider
         ).execute()
 
     def get_current_user(self) -> UserEntity:

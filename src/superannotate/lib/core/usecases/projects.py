@@ -789,6 +789,24 @@ class GetTeamUseCase(BaseUseCase):
         return self._response
 
 
+class ListTeamsUseCase(BaseUseCase):
+    def __init__(self, service_provider: BaseServiceProvider):
+        super().__init__()
+        self._service_provider = service_provider
+
+    def execute(self):
+        try:
+            response = self._service_provider.list_teams()
+            if not response.ok:
+                raise AppException(response.error)
+            self._response.data = response.data
+        except Exception:
+            raise AppException(
+                "Unable to retrieve team data. Please verify your credentials."
+            ) from None
+        return self._response
+
+
 class GetCurrentUserUseCase(BaseUseCase):
     def __init__(self, service_provider: BaseServiceProvider, team_id: int):
         super().__init__()

@@ -38,9 +38,14 @@ on the team setup page, for more details please visit our documentation at https
 
 - **Team API key** — scoped to one team. Works with ``SAClient``.
 - **Personal (team-user) API key** — scoped to one team, tied to your user. Works with ``SAClient``.
-- **Organization API key** — not scoped to a team, so the team to operate in has to be
-  given along with it: ``SAClient(token="<API key>", team_id=<team id>)``, or
-  ``SA_TEAM_ID`` in the environment or the config file.
+- **Organization API key** — not scoped to a team, so the team to operate in must be supplied alongside it:
+
+  .. code-block:: python
+
+     SAClient(token="<Organization API key>", team_id=<team_id>)
+
+  Instead of passing ``team_id``, you can set ``SA_TEAM_ID`` as an environment variable or in your config file. An explicit ``team_id`` argument takes precedence. Omitting the team entirely raises ``AppException``.
+  To work across several teams, or when the team isn't known in advance, use ``SAORGClient`` instead — see below.
 
 
 SAClient can be used with or without arguments
@@ -187,3 +192,38 @@ A team contributor can be invited to the team with:
 .. code-block:: python
 
    sa_client.invite_contributors_to_team(emails=["admin@superannotate.com"], admin=False)
+
+
+----------
+
+
+SAORGClient: organization-scoped access
+========================================
+
+``SAORGClient`` authorizes the SDK at the organization level rather than within a single team. Use it when a script operates across several teams, or when the team isn't known in advance.
+
+.. code-block:: python
+
+   from superannotate import SAORGClient
+
+
+   org_client = SAORGClient(token="<Organization API key>")
+   # List the teams in the organization
+   org_client.list_teams()
+
+   # Get a team-scoped client for one of them
+   sa_client = org_client.get_team_client(team_id=12345)
+   sa_client.list_projects()
+
+``get_team_client(team_id)`` returns a standard ``SAClient`` bound to that team. It supports the full team-level SDK surface, and no Team API key is created.
+As with ``SAClient``, if no ``token`` argument is given, ``SAORGClient`` reads ``SA_TOKEN`` from the environment or from your config file.
+
+**Important notes:**
+
+- ``SAORGClient`` requires an Organization API key. Passing a Team or Personal API
+  key raises ``AppException``.
+- The team is fixed when ``get_team_client()`` is called. To work in a different
+  team, call ``get_team_client()`` again with the other ID.
+
+For the full list of organization-level methods, see the
+:ref:`full method reference <ref_org_client>`.

@@ -78,11 +78,11 @@ class LoadDotenvTestCase(TestCase):
         assert client.controller._config.API_URL == "https://sa.test"
 
 
-class RequiresTokensTestCase(TestCase):
-    """The gate in front of the suites that need an extra token from the .env."""
+class RequiresEnvVarsTestCase(TestCase):
+    """The gate in front of the suites that need extra variables from the .env."""
 
     def _decorate(self, *names):
-        @env.requires_tokens(*names)
+        @env.requires_env_vars(*names)
         class Suite(TestCase):
             pass
 
@@ -90,7 +90,7 @@ class RequiresTokensTestCase(TestCase):
 
     def test_runs_when_every_token_is_there(self):
         with env.environ(**{env.SA_CONTRIBUTOR_TOKEN_ENV: TOKEN}):
-            assert env.missing_tokens(env.SA_CONTRIBUTOR_TOKEN_ENV) == []
+            assert env.missing_env_vars(env.SA_CONTRIBUTOR_TOKEN_ENV) == []
             suite = self._decorate(env.SA_CONTRIBUTOR_TOKEN_ENV)
         assert getattr(suite, "__unittest_skip__", False) is False
 
@@ -99,7 +99,7 @@ class RequiresTokensTestCase(TestCase):
             **{env.SA_CONTRIBUTOR_TOKEN_ENV: TOKEN, env.OWNER_PERSONAL_TOKEN_ENV: None}
         ):
             names = (env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
-            assert env.missing_tokens(*names) == [env.OWNER_PERSONAL_TOKEN_ENV]
+            assert env.missing_env_vars(*names) == [env.OWNER_PERSONAL_TOKEN_ENV]
             suite = self._decorate(*names)
         assert suite.__unittest_skip__ is True
         assert env.OWNER_PERSONAL_TOKEN_ENV in suite.__unittest_skip_why__

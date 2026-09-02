@@ -22,6 +22,7 @@ from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
+from lib.core.service_types import OrgTeamsResponse
 from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
@@ -49,7 +50,7 @@ class BaseClient(ABC):
         self,
         api_url: str,
         token: str,
-        team_id: int,
+        team_id: int | None,
         auth_type: str = DEFAULT_AUTH_TYPE,
     ):
         self.team_id = team_id
@@ -853,6 +854,10 @@ class BaseServiceProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def get_team(self, team_id: int) -> TeamResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_teams(self) -> OrgTeamsResponse:
         raise NotImplementedError
 
     @abstractmethod

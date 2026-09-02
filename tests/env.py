@@ -12,6 +12,9 @@ Put the credentials in a ``.env`` file at the repository root (override the path
     SA_URL=https://api.devsuperannotate.com
     # Only an organization key needs it; any other key carries its own team.
     SA_TEAM_ID=6085
+    # For SAORGClient's own tests - a second, independent key.
+    SA_ORGANIZATION_TOKEN=<organization API key>
+    SA_ORGANIZATION_TEAM_ID=<a team that key can reach>
 
 The file is read before the integration modules build their clients, so a plain
 ``SAClient()`` picks it up. Values already set in the environment win over the file,
@@ -25,10 +28,10 @@ holds another kind::
     def test_something_org_only(): ...
 
 A suite may also need a token of its own, beyond the one the run authenticates as - a
-project-admin contributor's key, say. Those live under their own variables and gate the
-whole module::
+project-admin contributor's key, or SAORGClient's own organization key. Those live under
+their own variables and gate the whole module::
 
-    @env.requires_tokens(env.SA_CONTRIBUTOR_TOKEN_ENV)
+    @env.requires_env_vars(env.SA_CONTRIBUTOR_TOKEN_ENV)
     class TestSomething(TestCase):
         @classmethod
         def setUpClass(cls):
@@ -40,6 +43,8 @@ import os
 import unittest
 from functools import lru_cache
 from pathlib import Path
+
+import pytest
 
 #: Overrides the location of the .env file.
 ENV_FILE_ENV = "SA_TEST_ENV_FILE"
@@ -53,9 +58,13 @@ PERSONAL = "teamuser"
 LEGACY = "legacy"
 
 #: Tokens the suite can build an extra client with, beyond the ``SA_TOKEN`` it runs as.
-#: A suite that needs one declares it (``requires_tokens``) and is skipped without it.
+#: A suite that needs one declares it (``requires_env_vars``) and is skipped without it.
 OWNER_PERSONAL_TOKEN_ENV = "SA_OWNER_PERSONAL_TOKEN"
 SA_CONTRIBUTOR_TOKEN_ENV = "SA_CONTRIBUTOR_TOKEN"
+#: A key for SAORGClient's own tests, independent of SA_TOKEN's scope, plus a team it
+#: can reach.
+SA_ORGANIZATION_TOKEN_ENV = "SA_ORGANIZATION_TOKEN"
+SA_ORGANIZATION_TEAM_ID_ENV = "SA_ORGANIZATION_TEAM_ID"
 
 
 def env_file() -> Path:
@@ -137,26 +146,38 @@ def build_client(token: str, team_id: int | None = None, team_id_via_env: bool =
         return SAClient(team_id=None if team_id_via_env else team_id)
 
 
+def build_org_client(token: str):
+    """An ``SAORGClient`` for an ad-hoc token, on the backend the ``.env`` names.
+
+    Mirrors ``build_client``: routed through the environment so ``SA_URL`` still applies.
+    """
+    from src.superannotate import SAORGClient
+
+    load_dotenv()
+    with environ(SA_TOKEN=token, SA_TEAM_ID=None):
+        return SAORGClient()
+
+
 def token(name: str) -> str:
     """A token the ``.env`` provides under ``name`` (one of the ``*_TOKEN_ENV``)."""
     load_dotenv()
     return os.environ[name]
 
 
-def missing_tokens(*names: str) -> list[str]:
-    """Which of these tokens the ``.env`` does not provide."""
+def missing_env_vars(*names: str) -> list[str]:
+    """Which of these ``.env`` variables (tokens, team ids, ...) are not provided."""
     load_dotenv()
     return [name for name in names if not os.environ.get(name)]
 
 
-def requires_tokens(*names: str):
-    """Run only when the ``.env`` provides every one of these tokens.
+def requires_env_vars(*names: str):
+    """Run only when the ``.env`` provides every one of these variables.
 
-    Unlike ``requires_token_scope``, this asks nothing of the backend: the tokens are
-    either in the environment or they are not, so a whole ``TestCase`` can be skipped
-    on the spot.
+    Unlike ``requires_token_scope``, this asks nothing of the backend: a variable is
+    either in the environment or it is not, so a whole ``TestCase`` can be skipped on
+    the spot.
     """
-    missing = missing_tokens(*names)
+    missing = missing_env_vars(*names)
     return unittest.skipIf(
         bool(missing), f"needs {', '.join(missing)} in the .env (see tests/env.py)"
     )
@@ -169,8 +190,6 @@ def token_scope() -> str:
 
 
 def _requires(*scopes):
-    import pytest
-
     return pytest.mark.requires_token_scope(*scopes)
 
 

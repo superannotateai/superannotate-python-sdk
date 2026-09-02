@@ -7,6 +7,7 @@ import lib.core as constants
 from lib.core import entities
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
+from lib.core.service_types import OrgTeamsResponse
 from lib.core.service_types import TeamResponse
 from lib.core.service_types import UploadAnnotationAuthDataResponse
 from lib.core.service_types import UserLimitsResponse
@@ -29,6 +30,7 @@ from lib.infrastructure.utils import EntityContext
 
 class ServiceProvider(BaseServiceProvider):
     URL_TEAM = "api/v1/team"
+    URL_TEAMS = "api/v1/teams"
     URL_GET_LIMITS = "project/{project_id}/limitationDetails"
     URL_GET_TEMPLATES = "templates"
     URL_PREPARE_EXPORT = "export"
@@ -202,6 +204,15 @@ class ServiceProvider(BaseServiceProvider):
             "get",
             content_type=TeamResponse,
             params={"include_users": False},
+        )
+
+    def list_teams(self) -> OrgTeamsResponse:
+        # The backend wraps the array as {"count": N, "data": [...]}.
+        return self.client.request(
+            self.URL_TEAMS,
+            "get",
+            content_type=OrgTeamsResponse,
+            dispatcher="data",
         )
 
     def get_user(self, team_id: int) -> UserResponse:
