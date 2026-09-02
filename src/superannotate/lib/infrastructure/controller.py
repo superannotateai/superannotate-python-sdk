@@ -320,7 +320,9 @@ class WorkManagementManager(BaseManager):
         scored_user: str,
         provided_score_names: list[str] | None = None,
     ):
-        score_fields_res = self.service_provider.work_management.list_scores()
+        score_fields_res = self.service_provider.work_management.list_project_scores(
+            project_id=project.id
+        )
 
         # validate provided score names
         all_score_names = [s.name for s in score_fields_res.data]

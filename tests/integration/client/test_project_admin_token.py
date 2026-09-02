@@ -353,6 +353,7 @@ class TestProjectAdminUserScoring(TestCase):
     def setUp(self, *args, **kwargs) -> None:
         # setup user scores for test
         self.owner = env.build_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
+        self.tearDown()
         #: The client under test: a contributor's key, made project admin below.
         self.project_admin = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
         self.project_admin_email = self.project_admin.controller.current_user.email
@@ -463,7 +464,6 @@ class TestProjectAdminUserScoring(TestCase):
             score_names=[s["name"] for s in SCORE_TEMPLATES],
         )
         assert len(created_scores) == len(SCORE_TEMPLATES)
-
         for score in created_scores:
             score_pyload = scores_name_payload_map[score["name"]]
             assert score["value"] == score_pyload["value"]

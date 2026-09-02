@@ -88,6 +88,7 @@ class BaseClient(ABC):
         chunk_size: int = 2000,
         query_params: dict[str, Any] | None = None,
         headers: dict | None = None,
+        method: Literal["get", "post"] = "get",
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -232,6 +233,10 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def list_scores(self) -> WMScoreListResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_project_scores(self, project_id: int) -> WMScoreListResponse:
         raise NotImplementedError
 
     @abstractmethod
