@@ -316,6 +316,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ):
         super().__init__(token, config_path, team_id=team_id)
 
+    @property
+    def team_id(self) -> int:
+        """The team this client operates in."""
+        return self.controller.team_id
+
     def get_project_by_id(self, project_id: int):
         """Returns the project metadata
 
@@ -6144,4 +6149,67 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
         logger.info(
             f"Successfully removed {success} users(s) out of the {len(users)} provided from the project {project.name}."
+        )
+
+
+class SAORGClient(BaseInterfaceFacade, metaclass=TrackableMeta):
+    """Create SAORGClient instance to authorize SDK in an organization scope.
+    In case of no argument has been provided, SA_TOKEN environmental variable
+    will be checked or $HOME/.superannotate/config.ini will be used.
+
+    Requires an Organization API key.
+
+    :param token: Organization API key
+    :type token: str
+
+    :param config_path: path to config file
+    :type config_path: str
+    """
+
+    def __init__(self, token: str | None = None, config_path: str | None = None):
+        super().__init__(
+            token, config_path, require_team=False, require_organization=True
+        )
+
+    def get_team_client(self, team_id: int) -> SAClient:
+        """Returns a normal SAClient backed by the organization token, with team context returned.
+
+        :param team_id: ID of the team to operate in.
+        :type team_id: int
+
+        :return: a team-scoped client exposing the full team-level SDK surface. The
+            team is fixed at construction; team_id is available as a read-only
+            property.
+        :rtype: SAClient
+
+        Request Example:
+        ::
+
+            team_client = org_client.get_team_client(team_id=12345)
+            team_client.list_projects(name__contains="My Project")
+        """
+        config = self.controller._config.model_copy(update={"TEAM_ID": team_id})
+        client = SAClient.__new__(SAClient)
+        client.controller = Controller(config)
+        try:
+            # Forces a real team fetch: construction alone doesn't validate team access.
+            _ = client.controller.team
+        except Exception:
+            raise AppException("Team not found") from None
+        return client
+
+    def list_teams(self) -> list[dict]:
+        """Returns the teams in the given organization. Must use Organization API Key for this function.
+
+        :return: the organization's teams; an empty list if it has none.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            org_client.list_teams()
+        """
+        response = self.controller.list_teams()
+        return BaseSerializer.serialize_iterable(
+            response.data or [], by_alias=True, exclude_unset=True
         )

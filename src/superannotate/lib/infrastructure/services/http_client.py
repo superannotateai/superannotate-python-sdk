@@ -47,7 +47,7 @@ class HttpClient(BaseClient):
         self,
         api_url: str,
         token: str,
-        team_id: int,
+        team_id: int | None,
         auth_type: str = BaseClient.DEFAULT_AUTH_TYPE,
         verify_ssl: bool = True,
     ):
@@ -79,21 +79,22 @@ class HttpClient(BaseClient):
 
     @property
     def default_headers(self):
-        return {
+        headers = {
             "Authorization": self._token,
             "authtype": self._auth_type,
             "Content-Type": "application/json",
-            "x-sa-entity-context": base64.b64encode(
-                json.dumps(
-                    {
-                        "team_id": self.team_id,
-                    }
-                ).encode("utf-8")
-            ).decode("utf-8"),
             "User-Agent": f"Python-SDK-Version: {self._version}; Python: {platform.python_version()};"
-            f"OS: {platform.system()}; Team: {self.team_id}"
+            f"OS: {platform.system()}"
+            f"{f'; Team: {self.team_id}' if self.team_id is not None else ''}"
             f"{'; Env: ' + self._env if self._env else ''}",
         }
+        # None for an organization-scoped, team-less client (SAORGClient) - nothing to
+        # scope the request to, so the header is left out rather than sent as null.
+        if self.team_id is not None:
+            headers["x-sa-entity-context"] = base64.b64encode(
+                json.dumps({"team_id": self.team_id}).encode("utf-8")
+            ).decode("utf-8")
+        return headers
 
     @property
     def safe_api(self):
@@ -152,7 +153,8 @@ class HttpClient(BaseClient):
         dispatcher: str = None,
     ) -> ServiceResponse:
         _url = self._get_url(url)
-        kwargs = {"params": {"team_id": self.team_id}}
+        # None for an organization-scoped, team-less client (SAORGClient).
+        kwargs = {"params": {} if self.team_id is None else {"team_id": self.team_id}}
         if data:
             kwargs["data"] = json.dumps(data, cls=PydanticEncoder)
         if params:

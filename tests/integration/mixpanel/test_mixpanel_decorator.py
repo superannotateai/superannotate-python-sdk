@@ -20,11 +20,13 @@ class TestMixpanel(TestCase):
         "SDK": True,
         "Team": sa.get_team_metadata()["name"],
         "User Email": sa.controller.current_user.email,
-        "Auth Type": sa.controller.token_context.auth_type,
+        "Auth Type": sa.controller.token_context.auth_type_label,
         "Version": __version__,
         "Success": True,
         "Python version": platform.python_version(),
         "Python interpreter type": platform.python_implementation(),
+        "Class": "SAClient",
+        "Auth Failure": None,
     }
     PROJECT_NAME = "TEST_MIX"
     PROJECT_DESCRIPTION = "Desc"
@@ -80,7 +82,7 @@ class TestMixpanel(TestCase):
                 "config_path": "False",
                 "team_id": None,
                 # A legacy "<name>=<team_id>" token, whatever the ambient one is.
-                "Auth Type": "sdk",
+                "Auth Type": "SDK Token",
                 "Team": get_team_use_case().execute().data.name,
                 "User Email": get_user().data.email,
             }
@@ -108,7 +110,7 @@ class TestMixpanel(TestCase):
                         "sa_token": "False",
                         "config_path": "True",
                         "team_id": None,
-                        "Auth Type": "sdk",
+                        "Auth Type": "SDK Token",
                         "Team": get_team_use_case().execute().data.name,
                         "User Email": get_user().data.email,
                     }

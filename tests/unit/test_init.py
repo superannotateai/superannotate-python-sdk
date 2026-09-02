@@ -305,9 +305,7 @@ class ApiKeyInitTestCase(TestCase):
     def test_organization_api_key_without_team_id_rejected(self, post, get_team):
         # An organization key carries no team, so it cannot resolve one on its own.
         post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
-        with self.assertRaisesRegex(
-            AppException, r'Organization API key requires a "team_id"'
-        ):
+        with self.assertRaisesRegex(AppException, r"Invalid credentials provided\."):
             SAClient(token=self._token)
 
     def test_organization_api_key_with_team_id(self, post, get_team):
@@ -336,14 +334,14 @@ class ApiKeyInitTestCase(TestCase):
     def test_team_id_mismatching_the_token_rejected(self, post, get_team):
         # A team key names its own team; a conflicting team_id is a caller mistake.
         post.return_value = _mock_response(TEAM_TOKEN_RESPONSE)
-        with self.assertRaisesRegex(AppException, r"does not match the team"):
+        with self.assertRaisesRegex(AppException, r"Invalid team id provided\."):
             SAClient(token=self._token, team_id=42)
 
     def test_unknown_scope_type_rejected(self, post, get_team):
         response = deepcopy(TEAM_TOKEN_RESPONSE)
         response["token"]["scope_type"] = "something-new"
         post.return_value = _mock_response(response)
-        with self.assertRaisesRegex(AppException, r"Unable to resolve the team"):
+        with self.assertRaisesRegex(AppException, r"Invalid team id provided\."):
             SAClient(token=self._token)
 
     def test_team_scope_without_team_id_rejected(self, post, get_team):
@@ -351,12 +349,12 @@ class ApiKeyInitTestCase(TestCase):
         response = deepcopy(TEAM_TOKEN_RESPONSE)
         response["token"]["scope"] = {}
         post.return_value = _mock_response(response)
-        with self.assertRaisesRegex(AppException, r"Unable to resolve the team"):
+        with self.assertRaisesRegex(AppException, r"Invalid team id provided\."):
             SAClient(token=self._token)
 
     def test_authentication_failure(self, post, get_team):
         post.return_value = _mock_response({}, ok=False, status_code=401)
-        with self.assertRaisesRegex(AppException, r"Unable to authenticate"):
+        with self.assertRaisesRegex(AppException, r"Invalid credentials provided\."):
             SAClient(token=self._token)
 
 
@@ -406,9 +404,7 @@ class TeamIdFromConfigTestCase(TestCase):
     def test_org_token_in_config_ini_without_team_id_rejected(self, post, get_team):
         post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
         self._write_ini(SA_TOKEN=self._token)
-        with self.assertRaisesRegex(
-            AppException, r'Organization API key requires a "team_id"'
-        ):
+        with self.assertRaisesRegex(AppException, r"Invalid credentials provided\."):
             SAClient()
 
     def test_team_id_from_config_json(self, post, get_team):
@@ -449,5 +445,5 @@ class LegacyTokenTestCase(TestCase):
     @patch("lib.infrastructure.controller.Controller.get_current_user")
     @patch("lib.infrastructure.controller.Controller.get_team")
     def test_legacy_token_team_id_mismatch_raises(self, get_team, get_current_user):
-        with self.assertRaisesRegex(AppException, r"does not match the team"):
+        with self.assertRaisesRegex(AppException, r"Invalid team id provided\."):
             SAClient(token="token=123", team_id=42)

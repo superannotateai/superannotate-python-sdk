@@ -19,6 +19,7 @@ from lib.core.exceptions import FileChangedError
 from superannotate.lib.app.input_converters import export_annotation
 from superannotate.lib.app.input_converters import import_annotation
 from superannotate.lib.app.interface.sdk_interface import SAClient
+from superannotate.lib.app.interface.sdk_interface import SAORGClient
 from superannotate.lib.app.interface.sdk_interface import ItemContext
 
 SESSIONS = {}
@@ -27,6 +28,7 @@ SESSIONS = {}
 __all__ = [
     "__version__",
     "SAClient",
+    "SAORGClient",
     "ItemContext",
     # Utils
     "enums",

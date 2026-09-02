@@ -16,6 +16,7 @@ from lib.core.entities.multimodal_form import FormModel
 from lib.core.entities.multimodal_form import generate_classes_from_form
 from lib.core.entities.project import AttachmentEntity
 from lib.core.entities.project import CustomFieldEntity
+from lib.core.entities.project import OrgTeamEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
 from lib.core.entities.project import StepEntity
@@ -55,6 +56,7 @@ __all__ = [
     "S3FileEntity",
     "AnnotationClassEntity",
     "TeamEntity",
+    "OrgTeamEntity",
     "UserEntity",
     "IntegrationEntity",
     "PROJECT_ITEM_ENTITY_MAP",
