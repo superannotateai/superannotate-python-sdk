@@ -13,6 +13,18 @@ class AppException(Exception):
         return self.message
 
 
+class SAAuthError(AppException):
+    """Credentials the SDK cannot act on.
+
+    Raised when a token is missing, malformed, or does not grant what was asked for -
+    the team or the organization. Distinguishing these from every other AppException
+    lets a caller retry authentication rather than the operation, and lets telemetry
+    recognise an auth failure by type instead of by matching on the message.
+
+    Subclasses AppException, so existing ``except AppException`` still catches it.
+    """
+
+
 class BackendError(AppException):
     """
     Backend Error

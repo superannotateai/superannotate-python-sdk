@@ -39,22 +39,24 @@ What the backend allows depends on the token in the `.env`:
 | Personal (team-user) API key | the user it was issued for | owner or team admin, per key |
 | Legacy team-owner token | the team owner | carries its team in the token |
 
-To run the suite as another type, put that token in the `.env` and run it again. Tests
-that only apply to one type declare it and are skipped for the others (see
-`tests/env.py`):
+To run the suite as another type, put that token in the `.env` and run it again. The
+`sa_client` fixture is the client the run authenticates as.
+
+## Tests that bring their own token
+
+A test that describes one specific kind of key does not depend on which key the run
+uses: it builds its own client from a key named by its own `.env` variable, and is
+skipped while that variable is unset (see `tests/env.py`):
 
 ```python
 from tests import env
 
-@env.requires_organization_token
-def test_org_only(sa_client):
+@env.requires_env_vars(env.SA_ORGANIZATION_TOKEN_ENV)
+class TestOrganizationToken(TestCase):
     ...
 ```
 
-## Suites that bring their own token
-
-Some suites describe one specific kind of key rather than the run's own, so they carry
-their own variables and are skipped while those are unset:
+The variables the suites use:
 
 ```ini
 # What a project-admin contributor may do (tests/integration/client).
@@ -69,7 +71,6 @@ Two of its tests are `xfail`: a project-admin key cannot list team users, and so
 add contributors either. Both break inside the SDK, and the reasons on the tests say
 where.
 
-`requires_team_token`, `requires_user_token` (personal or legacy) and
-`requires_team_scoped_token` (anything but an organization key) work the same way. The
-`sa_client` fixture is the client the run authenticates as, and `sa_token_scope` is its
-scope.
+`test_token_scopes.py` and `test_org_client.py` work the same way: what an
+organization key grants comes from `SA_ORGANIZATION_TOKEN`, and what it is refused -
+along with what a team-bound key grants - from `SA_OWNER_PERSONAL_TOKEN`.

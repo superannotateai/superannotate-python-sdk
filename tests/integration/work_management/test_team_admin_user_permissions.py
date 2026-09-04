@@ -4,6 +4,7 @@ from unittest import skipUnless
 from unittest import TestCase
 
 from lib.core import TEAM_USER_PERMISSION_DEPRECATED_IDS
+from lib.core.entities.context import TokenScope
 from lib.core.exceptions import AppException
 from src.superannotate import SAClient
 
@@ -16,7 +17,7 @@ sa = SAClient()
 #: a user and may update team admin permissions, which is what the bulk of this
 #: module asserts. The suite therefore picks its expectations from the token the
 #: client was built with.
-IS_TEAM_KEY = sa.controller.token_context.is_team_key
+IS_TEAM_KEY = sa.controller.token_context.scope == TokenScope.TEAM
 TEAM_KEY_ONLY = "requires a team-scoped API key"
 USER_KEY_ONLY = "requires a personal (team-user) API key or a legacy token"
 #: Reason line the SDK adds to every permission-update failure, and the only one
@@ -64,8 +65,7 @@ class TeamAdminPermissionsMixin:
         return [
             u
             for u in sa.list_users()
-            if u.get("state") == "Confirmed"
-            and u.get("role") in ("TeamAdmin", "TeamOwner")
+            if u.get("state") == "Confirmed" and u.get("role") in ("TeamAdmin")
         ]
 
     @classmethod

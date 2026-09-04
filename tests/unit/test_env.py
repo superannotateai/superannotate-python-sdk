@@ -1,5 +1,6 @@
-"""The test suite's own credential plumbing (tests/env.py, tests/conftest.py)."""
+"""The test suite's own credential plumbing (tests/env.py)."""
 
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -7,9 +8,11 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-import pytest
-from tests import conftest
+import superannotate  # noqa: F401
 from tests import env
+
+# Imported for its side effect as much as its contents: importing the package puts the
+# SDK's internal `lib` package on sys.path, which the patch targets below address.
 
 TOKEN = "sa_SOZVLlnbheUITTGb_PXlk2ON5QtqNPWY9bHZJctzlx4EPTkImzncQgRmybgh"
 
@@ -70,12 +73,12 @@ class LoadDotenvTestCase(TestCase):
 
         self.env_path.write_text("SA_TOKEN=token=6085\nSA_URL=https://sa.test\n")
         env.load_dotenv(self.env_path)
-        with patch("lib.infrastructure.controller.Controller.get_team"), patch(
-            "lib.infrastructure.controller.Controller.get_current_user"
+        with patch("lib.infrastructure.controller.TeamController.get_team"), patch(
+            "lib.infrastructure.controller.TeamController.get_current_user"
         ):
             client = SAClient()
         assert client.controller.team_id == 6085
-        assert client.controller._config.API_URL == "https://sa.test"
+        assert client.controller.config["SA_URL"] == "https://sa.test"
 
 
 class RequiresEnvVarsTestCase(TestCase):
@@ -106,52 +109,154 @@ class RequiresEnvVarsTestCase(TestCase):
         assert env.SA_CONTRIBUTOR_TOKEN_ENV not in suite.__unittest_skip_why__
 
 
-def _item(*scopes):
-    """A test item carrying a requires_token_scope marker."""
-    item = MagicMock()
-    item.iter_markers.return_value = [pytest.mark.requires_token_scope(*scopes).mark]
-    return item
+class _BuilderFixture(TestCase):
+    """A .env naming a backend, plus canned token-scope responses.
 
+    Shared by the two builders' cases. The unit suite scrubs the credential variables
+    (tests/unit/conftest.py), so a builder that inherited any of them would behave
+    differently here than in an integration run - and would quietly point a client at
+    production.
+    """
 
-class TokenScopeMarkerTestCase(TestCase):
-    """The marker behind env.requires_organization_token and friends."""
+    TEAM_TOKEN = {
+        "user": None,
+        "token": {
+            "scope": {"team_id": 6085},
+            "scope_type": "team",
+            "created_by": "a@b.com",
+            "status": "ACTIVE",
+        },
+    }
+    ORG_TOKEN = {
+        "user": None,
+        "token": {
+            "scope": {"organization_id": "org-1"},
+            "scope_type": "organization",
+            "created_by": "a@b.com",
+            "status": "ACTIVE",
+        },
+    }
+    API_KEY = "sa_SOZVLlnbheUITTGb_PXlk2ON5QtqNPWY9bHZJctzlx4EPTkImzncQgRmybgh"
 
-    def test_runs_when_the_scope_matches(self):
-        with patch.object(env, "token_scope", return_value=env.ORGANIZATION):
-            conftest.pytest_runtest_setup(_item(env.ORGANIZATION))
+    def setUp(self):
+        self.env_path = Path(tempfile.mkdtemp()) / ".env"
+        self.env_path.write_text("SA_URL=https://sa.test\n")
+        patcher = patch.dict(os.environ, {env.ENV_FILE_ENV: str(self.env_path)})
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
-    def test_skips_when_another_token_type_is_configured(self):
-        with patch.object(env, "token_scope", return_value=env.TEAM):
-            with pytest.raises(pytest.skip.Exception) as exc:
-                conftest.pytest_runtest_setup(_item(env.ORGANIZATION))
-        assert "requires a token of scope organization" in str(exc.value)
-        assert "the configured one is team" in str(exc.value)
+    @staticmethod
+    def _response(payload):
+        response = MagicMock()
+        response.ok = True
+        response.status_code = 200
+        response.text = json.dumps(payload)
+        response.json.return_value = payload
+        return response
 
-    def test_a_marker_may_accept_several_scopes(self):
-        # requires_user_token covers both a personal key and a legacy token.
-        for scope in (env.PERSONAL, env.LEGACY):
-            with patch.object(env, "token_scope", return_value=scope):
-                conftest.pytest_runtest_setup(_item(env.PERSONAL, env.LEGACY))
-
-    def test_declared_markers_carry_the_expected_scopes(self):
-        assert env.requires_organization_token.mark.args == (env.ORGANIZATION,)
-        assert env.requires_team_token.mark.args == (env.TEAM,)
-        assert env.requires_user_token.mark.args == (env.PERSONAL, env.LEGACY)
-        assert env.requires_team_scoped_token.mark.args == (
-            env.TEAM,
-            env.PERSONAL,
-            env.LEGACY,
+    def _respond_with(self, payload):
+        return patch(
+            "lib.infrastructure.services.auth.requests.post",
+            return_value=self._response(payload),
         )
 
-    def test_legacy_token_reports_the_legacy_scope(self):
-        client = MagicMock()
-        client.controller.token_context.is_legacy = True
-        with patch.object(env, "get_client", return_value=client):
-            assert env.token_scope() == env.LEGACY
 
-    def test_scope_comes_from_the_token_context(self):
-        client = MagicMock()
-        client.controller.token_context.is_legacy = False
-        client.controller.token_context.scope_type = env.ORGANIZATION
-        with patch.object(env, "get_client", return_value=client):
-            assert env.token_scope() == env.ORGANIZATION
+class BuildClientTestCase(_BuilderFixture):
+    """env.build_client sets every variable the SDK reads, inheriting none."""
+
+    def test_the_backend_comes_from_the_dotenv_even_when_the_environment_is_scrubbed(
+        self,
+    ):
+        with self._respond_with(self.TEAM_TOKEN):
+            client = env.build_client(self.API_KEY)
+
+        assert client.controller.config["SA_URL"] == "https://sa.test"
+
+    def test_an_exported_url_still_wins_over_the_file(self):
+        with patch.dict(os.environ, {"SA_URL": "https://exported.test"}):
+            with self._respond_with(self.TEAM_TOKEN):
+                client = env.build_client(self.API_KEY)
+
+        assert client.controller.config["SA_URL"] == "https://exported.test"
+
+    def test_an_ambient_team_id_does_not_attach_itself_to_the_token(self):
+        # A team key names its own team; an inherited SA_TEAM_ID that disagreed would
+        # be rejected as a conflicting team id.
+        with patch.dict(os.environ, {"SA_TEAM_ID": "42"}):
+            with self._respond_with(self.TEAM_TOKEN):
+                client = env.build_client(self.API_KEY)
+
+        assert client.controller.team_id == 6085
+
+    def test_nothing_is_left_behind_in_the_environment(self):
+        # It used to call load_dotenv, which writes to os.environ for good.
+        with self._respond_with(self.TEAM_TOKEN):
+            env.build_client(self.API_KEY)
+
+        assert "SA_TOKEN" not in os.environ
+        assert "SA_URL" not in os.environ
+
+
+class BuildOrgClientTestCase(_BuilderFixture):
+    """env.build_org_client goes through a config file, not the environment.
+
+    An organization client is bound to no team, so a stray SA_TEAM_ID must not reach
+    it; and config_path makes the SDK ignore the environment altogether, so there is
+    nothing to perturb it and nothing to put back.
+    """
+
+    def test_it_is_built_with_no_team_whatever_the_environment_holds(self):
+        with patch.dict(os.environ, {"SA_TEAM_ID": "6085"}):
+            with self._respond_with(self.ORG_TOKEN):
+                client = env.build_org_client(self.API_KEY)
+
+        assert client.controller.token_context.team_id is None
+        assert client.controller.config["SA_URL"] == "https://sa.test"
+
+    def test_the_environment_is_untouched_while_it_is_built(self):
+        # The point of the config file: nothing is written to the environment, not even
+        # for the duration of the call. Observed from inside the auth request, which
+        # happens mid-construction - checking afterwards proves nothing, because a
+        # save-and-restore approach also leaves the environment as it found it.
+        seen = {}
+
+        def record(*args, **kwargs):
+            seen["SA_TOKEN"] = os.environ.get("SA_TOKEN")
+            seen["SA_TEAM_ID"] = os.environ.get("SA_TEAM_ID")
+            return self._response(self.ORG_TOKEN)
+
+        with patch.dict(os.environ, {"SA_TEAM_ID": "6085"}), patch(
+            "lib.infrastructure.services.auth.requests.post", side_effect=record
+        ):
+            client = env.build_org_client(self.API_KEY)
+
+        assert client.controller.token_context.token == self.API_KEY
+        # The token never entered the environment, and the ambient team id was left
+        # exactly as it was rather than being cleared and put back.
+        assert seen["SA_TOKEN"] is None
+        assert seen["SA_TEAM_ID"] == "6085"
+
+
+class MissingEnvVarsTestCase(TestCase):
+    """The gate reads the file directly, so it answers with the environment scrubbed."""
+
+    def setUp(self):
+        self.env_path = Path(tempfile.mkdtemp()) / ".env"
+        patcher = patch.dict(os.environ, {env.ENV_FILE_ENV: str(self.env_path)})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_a_variable_only_the_file_provides_counts_as_present(self):
+        self.env_path.write_text(f"{env.SA_CONTRIBUTOR_TOKEN_ENV}={TOKEN}\n")
+
+        assert env.missing_env_vars(env.SA_CONTRIBUTOR_TOKEN_ENV) == []
+        assert env.token(env.SA_CONTRIBUTOR_TOKEN_ENV) == TOKEN
+        # ... and reading it did not put it in the environment.
+        assert env.SA_CONTRIBUTOR_TOKEN_ENV not in os.environ
+
+    def test_a_variable_nobody_provides_is_reported_missing(self):
+        self.env_path.write_text("")
+
+        assert env.missing_env_vars(env.SA_CONTRIBUTOR_TOKEN_ENV) == [
+            env.SA_CONTRIBUTOR_TOKEN_ENV
+        ]

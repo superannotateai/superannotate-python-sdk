@@ -1,18 +1,18 @@
 import os
 import tempfile
 from configparser import ConfigParser
+from importlib.metadata import version
 from os.path import dirname
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
-import pkg_resources
 import src.superannotate.lib.core as constants
 from src.superannotate import SAClient
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 
 try:
-    CLI_VERSION = pkg_resources.get_distribution("superannotate").version
+    CLI_VERSION = version("superannotate")
 except Exception:
     CLI_VERSION = None
 

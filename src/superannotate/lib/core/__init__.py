@@ -18,15 +18,25 @@ from lib.core.enums import UserRole
 
 CONFIG = Config()
 BACKEND_URL = "https://api.superannotate.com"
-HOME_PATH = expanduser("~/.superannotate")
+#: Where the SDK keeps its config. The display form keeps the "~": a message shown to
+#: a user should name the file, not spell out their home directory.
+HOME_DISPLAY_PATH = "~/.superannotate"
+HOME_PATH = expanduser(HOME_DISPLAY_PATH)
 
-CONFIG_JSON_PATH = f"{HOME_PATH}/config.json"
-CONFIG_INI_PATH = f"{HOME_PATH}/config.ini"
-CONFIG_JSON_FILE_LOCATION = CONFIG_JSON_PATH
-CONFIG_INI_FILE_LOCATION = CONFIG_INI_PATH
+CONFIG_JSON_FILE_LOCATION = f"{HOME_PATH}/config.json"
+CONFIG_INI_FILE_LOCATION = f"{HOME_PATH}/config.ini"
+CONFIG_INI_DISPLAY_PATH = f"{HOME_DISPLAY_PATH}/config.ini"
 
 LOG_FILE_LOCATION = f"{HOME_PATH}/logs"
 DEFAULT_LOGGING_LEVEL = "INFO"
+
+INVALID_TOKEN_ERROR = "Invalid token."
+INVALID_TEAM_ID_ERROR = "Invalid team id provided."
+INVALID_CREDENTIALS_ERROR = "Invalid credentials provided."
+CREDENTIALS_NOT_FOUND_ERROR = (
+    "Credentials not found: SA_TOKEN environment variable is not set and "
+    f"config file '{CONFIG_INI_DISPLAY_PATH}' was not found."
+)
 
 
 def setup_logging(level=DEFAULT_LOGGING_LEVEL, file_path=LOG_FILE_LOCATION):

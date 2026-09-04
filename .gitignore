@@ -151,3 +151,4 @@ debug_*
 htmlcov
 htmlcov
 /CLAUDE.md
+.env.example

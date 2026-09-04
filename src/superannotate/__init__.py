@@ -15,6 +15,7 @@ from lib.core import PACKAGE_VERSION_UPGRADE
 from lib.core import PACKAGE_VERSION_INFO_MESSAGE
 from lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
 from lib.core.exceptions import AppException
+from lib.core.exceptions import SAAuthError
 from lib.core.exceptions import FileChangedError
 from superannotate.lib.app.input_converters import export_annotation
 from superannotate.lib.app.input_converters import import_annotation
@@ -33,6 +34,7 @@ __all__ = [
     # Utils
     "enums",
     "AppException",
+    "SAAuthError",
     "FileChangedError",
     "import_annotation",
     "export_annotation",
