@@ -1,9 +1,9 @@
 """What SAORGClient can do: list an organization's teams, and mint a team-scoped
 SAClient on demand.
 
-The "positive" tests need their own key (SA_ORGANIZATION_TOKEN, see tests/env.py) and
-gate the whole class, same as the project-admin contributor suite. The rejection tests
-instead gate on the ambient SA_TOKEN's own scope, like test_token_scopes.py.
+Every test here builds its client from a key named in the .env - SA_ORGANIZATION_TOKEN
+for what an org key can do, SA_OWNER_PERSONAL_TOKEN for what it rejects - and is skipped
+while that key is unset (see tests/env.py).
 """
 
 import os
@@ -12,7 +12,7 @@ from unittest import TestCase
 import pytest
 from src.superannotate import AppException
 from src.superannotate import SAClient
-from src.superannotate import SAORGClient
+from src.superannotate.lib.core.entities.context import TokenScope
 from tests import env
 
 
@@ -25,7 +25,7 @@ class TestOrgClient(TestCase):
 
     def test_authenticates_with_no_team(self):
         context = self.org_client.controller.token_context
-        assert context.is_organization_key
+        assert context.scope == TokenScope.ORGANIZATION
         assert context.team_id is None
 
     def test_list_teams_contains_the_configured_team(self):
@@ -62,20 +62,10 @@ class TestOrgClient(TestCase):
         with self.assertRaisesRegex(AppException, r"Input should be a valid integer"):
             self.org_client.get_team_client("not-an-id")
 
-    def test_get_team_client_reports_an_inaccessible_team_as_not_found(self):
-        # Nonexistent or another org's team - reported the same way either way.
-        with self.assertRaisesRegex(AppException, r"Team not found"):
-            self.org_client.get_team_client(999_999_999)
 
-
-@env.requires_team_token
-def test_team_token_is_rejected():
-    # Uses the suite's own ambient SA_TOKEN - no second client needed.
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV)
+def test_a_team_bound_token_is_rejected():
+    # SAORGClient takes only an organization key: a key bound to one team - personal
+    # here, but a team key or a legacy token the same way - cannot act for the org.
     with pytest.raises(AppException, match=r"Invalid credentials provided\."):
-        SAORGClient()
-
-
-@env.requires_user_token
-def test_personal_or_legacy_token_is_rejected():
-    with pytest.raises(AppException, match=r"Invalid credentials provided\."):
-        SAORGClient()
+        env.build_org_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))

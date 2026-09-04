@@ -1,163 +1,98 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import lib.core as constants
 import requests
-from lib.core.auth_errors import INVALID_CREDENTIALS_ERROR
-from lib.core.auth_errors import INVALID_TEAM_ID_ERROR
+from lib.core import INVALID_CREDENTIALS_ERROR
+from lib.core import INVALID_TEAM_ID_ERROR
 from lib.core.entities.base import is_legacy_token
+from lib.core.entities.context import API_KEY_AUTH_TYPE
+from lib.core.entities.context import TokenContext
+from lib.core.entities.context import TokenScope
 from lib.core.entities.project import UserEntity
-from lib.core.exceptions import AppException
+from lib.core.exceptions import SAAuthError
 
 if TYPE_CHECKING:
     from lib.core.entities.base import ConfigEntity
 
 logger = logging.getLogger("sa")
 
-SDK_AUTH_TYPE = "sdk"
-API_KEY_AUTH_TYPE = "api_key"
-
 URL_TOKEN_CONTEXT = "users/me"
 
-#: A key issued for the team itself, with no user behind it. It acts on the team's
-#: behalf, so the backend denies operations that only a user can perform (changing a
-#: team admin's permissions, for one).
-TEAM_SCOPE_TYPE = "team"
-#: A key issued for one user of a team; it acts as that user.
-TEAM_USER_SCOPE_TYPE = "teamuser"
-#: A key issued for an organization. It carries no team, so the team to operate in has
-#: to be given explicitly.
-ORGANIZATION_SCOPE_TYPE = "organization"
-#: Token scopes that carry a team, and therefore need no explicit team_id.
-TEAM_SCOPED_TYPES = (TEAM_SCOPE_TYPE, TEAM_USER_SCOPE_TYPE)
 
+def resolve_team_context(config: ConfigEntity) -> TokenContext:
+    """The team a token grants access to, plus the user acting behind it.
 
-@dataclass
-class TokenContext:
-    """The team the client operates in, plus the user acting behind the token."""
-
-    #: None for an organization-scoped client with no team bound (SAORGClient).
-    team_id: int | None
-    auth_type: str
-    user: UserEntity | None = None
-    #: Scope the key was issued for ("team", "teamuser", "organization"); None for a
-    #: legacy token, whose scope is not reported by the backend.
-    scope_type: str | None = None
-
-    @property
-    def is_legacy(self) -> bool:
-        return self.auth_type == SDK_AUTH_TYPE
-
-    @property
-    def is_team_key(self) -> bool:
-        """Whether the token acts as the team rather than as a user."""
-        return self.scope_type == TEAM_SCOPE_TYPE
-
-    @property
-    def is_personal_key(self) -> bool:
-        """Whether the token acts as one specific user of the team."""
-        return self.scope_type == TEAM_USER_SCOPE_TYPE
-
-    @property
-    def is_organization_key(self) -> bool:
-        """Whether the token was issued for an organization rather than a team."""
-        return self.scope_type == ORGANIZATION_SCOPE_TYPE
-
-    @property
-    def auth_type_label(self) -> str:
-        """Human-readable auth type, for telemetry."""
-        if self.is_legacy:
-            return "SDK Token"
-        if self.is_organization_key:
-            return "Org API Key"
-        if self.is_team_key:
-            return "Team API Key"
-        if self.is_personal_key:
-            return "Personal API Key"
-        return self.auth_type
-
-
-def resolve_token_context(
-    config: ConfigEntity,
-    *,
-    require_team: bool = True,
-    require_organization: bool = False,
-) -> TokenContext:
-    """Resolve the team (and acting user) a token grants access to.
-
-    Legacy team-owner tokens carry the team id, so they are resolved offline. New-style
-    API keys are resolved against the work-management service, which reports the scope
-    the key was issued for. The SDK operates within a single team: a team or team-user
-    key names that team itself, while an organization key names none, so the team has to
-    come from the config (``SAClient(team_id=...)``, ``SA_TEAM_ID``) unless the caller
-    opts out with ``require_team=False`` (an org-scoped, team-less client).
-
-    ``require_organization`` rejects any token that does not resolve to an organization
-    scope (used by ``SAORGClient``, which only accepts an Organization API key).
+    A legacy team-owner token carries its team id, so it resolves offline. An API key
+    resolves against the work-management service, which reports the scope it was issued
+    for: a team or team-user key names its own team, while an organization key names
+    none, so the team has to come from the config (``SAClient(team_id=...)``,
+    ``SA_TEAM_ID``).
     """
     token = config.API_TOKEN
-    requested_team_id = config.TEAM_ID
     if is_legacy_token(token):
-        return _resolve_legacy_token_context(
-            token, requested_team_id, require_organization
-        )
+        team_id = int(token.split("=")[-1])
+        _validate_requested_team(config.TEAM_ID, team_id)
+        return TokenContext(token=token, team_id=team_id, scope=TokenScope.LEGACY)
 
-    data = _fetch_token_context(config.API_URL, token, config.VERIFY_SSL)
+    scope, scope_team_id, user = _resolve_api_key(config)
+    if scope is None:
+        raise SAAuthError(INVALID_TEAM_ID_ERROR)
+    team_id = _team_for_scope(scope, config.TEAM_ID, scope_team_id)
+    logger.debug(f"Token resolved to {scope} scope, team {team_id}.")
+    return TokenContext(token=token, team_id=int(team_id), scope=scope, user=user)
+
+
+def resolve_organization_context(config: ConfigEntity) -> TokenContext:
+    """An organization-scoped session, bound to no team, for ``SAORGClient``.
+
+    Only an Organization API key is accepted: every other token acts within one team
+    and so cannot act for the organization. Any ``team_id`` in the config is ignored -
+    an organization client operates outside any single team by definition.
+    """
+    if is_legacy_token(config.API_TOKEN):
+        raise SAAuthError(INVALID_CREDENTIALS_ERROR)
+    scope, _, user = _resolve_api_key(config)
+    if scope is not TokenScope.ORGANIZATION:
+        raise SAAuthError(INVALID_CREDENTIALS_ERROR)
+    logger.debug("Token resolved to organization scope, with no team.")
+    return TokenContext(token=config.API_TOKEN, team_id=None, scope=scope, user=user)
+
+
+def _resolve_api_key(
+    config: ConfigEntity,
+) -> tuple[TokenScope | None, int | None, UserEntity | None]:
+    """What an API key reports: the scope it was issued for (None when the SDK does not
+    know it), the team that scope names, and the user behind the key.
+    """
+    data = _fetch_token_context(config.API_URL, config.API_TOKEN, config.VERIFY_SSL)
     token_data = data.get("token") or {}
-    scope = token_data.get("scope") or {}
-    scope_type = token_data.get("scope_type")
-
-    if require_organization and scope_type != ORGANIZATION_SCOPE_TYPE:
-        raise AppException(INVALID_CREDENTIALS_ERROR)
-
-    token_team_id = _resolve_scope_team_id(
-        scope_type, requested_team_id, scope.get("team_id"), require_team
-    )
-
-    logger.debug(f"Token resolved to {scope_type} scope, team {token_team_id}.")
-    return TokenContext(
-        team_id=int(token_team_id) if token_team_id is not None else None,
-        auth_type=API_KEY_AUTH_TYPE,
-        user=_build_user(data.get("user"), token_data.get("created_by")),
-        scope_type=scope_type,
+    reported_scope = token_data.get("scope_type")
+    scope = TokenScope.of_api_key(reported_scope)
+    if scope is None:
+        logger.debug(f"Got a token of unknown {reported_scope} scope.")
+    return (
+        scope,
+        (token_data.get("scope") or {}).get("team_id"),
+        _build_user(data.get("user"), token_data.get("created_by")),
     )
 
 
-def _resolve_legacy_token_context(
-    token: str, requested_team_id, require_organization: bool
-) -> TokenContext:
-    """A legacy token resolves offline; it is never organization-scoped."""
-    if require_organization:
-        raise AppException(INVALID_CREDENTIALS_ERROR)
-    team_id = int(token.split("=")[-1])
-    _validate_requested_team(requested_team_id, team_id)
-    return TokenContext(team_id=team_id, auth_type=SDK_AUTH_TYPE)
-
-
-def _resolve_scope_team_id(
-    scope_type, requested_team_id, token_team_id, require_team: bool
-):
-    """The team an API key's scope grants access to (None for a team-less org key)."""
-    if scope_type == ORGANIZATION_SCOPE_TYPE:
-        # An organization key has no team of its own unless the caller names one.
-        if requested_team_id is not None:
-            return requested_team_id
-        if require_team:
-            raise AppException(INVALID_CREDENTIALS_ERROR)
-        return token_team_id
-    if scope_type in TEAM_SCOPED_TYPES:
-        # The team_id check keeps a malformed response from resolving to no team at all.
-        if token_team_id is None:
-            logger.debug(f"Got a {scope_type} scoped token with no team.")
-            raise AppException(INVALID_TEAM_ID_ERROR)
-        _validate_requested_team(requested_team_id, token_team_id)
-        return token_team_id
-    # Anything outside the known scopes has no team to operate in.
-    logger.debug(f"Rejected a token of {scope_type} scope.")
-    raise AppException(INVALID_TEAM_ID_ERROR)
+def _team_for_scope(scope: TokenScope, requested_team_id, scope_team_id) -> int:
+    """The team a team-scoped client operates in."""
+    if not scope.carries_team:
+        # An organization key has no team of its own, so the caller has to name one.
+        if requested_team_id is None:
+            raise SAAuthError(INVALID_CREDENTIALS_ERROR)
+        return requested_team_id
+    # The team_id check keeps a malformed response from resolving to no team at all.
+    if scope_team_id is None:
+        logger.debug(f"Got a {scope} scoped token with no team.")
+        raise SAAuthError(INVALID_TEAM_ID_ERROR)
+    _validate_requested_team(requested_team_id, scope_team_id)
+    return scope_team_id
 
 
 def _validate_requested_team(requested_team_id, token_team_id) -> None:
@@ -165,7 +100,7 @@ def _validate_requested_team(requested_team_id, token_team_id) -> None:
     if requested_team_id is None:
         return
     if int(requested_team_id) != int(token_team_id):
-        raise AppException(INVALID_TEAM_ID_ERROR)
+        raise SAAuthError(INVALID_TEAM_ID_ERROR)
 
 
 def _get_work_management_url(api_url: str) -> str:
@@ -191,12 +126,12 @@ def _fetch_token_context(api_url: str, token: str, verify_ssl: bool) -> dict:
         )
         if not response.ok:
             logger.debug(
-                f"Got {response.status_code} response from backend: {response.text}"
+                f"Got {response.status_code} response from backend {url}: {response.text}"
             )
             raise ValueError("non-ok response")
         return response.json()
     except (requests.RequestException, ConnectionError, ValueError):
-        raise AppException(INVALID_CREDENTIALS_ERROR) from None
+        raise SAAuthError(INVALID_CREDENTIALS_ERROR) from None
 
 
 def _build_user(user: dict | None, created_by: str | None) -> UserEntity | None:

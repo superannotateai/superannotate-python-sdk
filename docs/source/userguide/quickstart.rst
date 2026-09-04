@@ -111,6 +111,7 @@ Custom config.ini example:
     LOGGING_LEVEL = INFO
     LOGGING_PATH = /Users/username/data/superannotate_logs
 
+
 ----------
 
 

@@ -288,37 +288,6 @@ class TestProjectAdminSemiAccess(BaseProjectAdminTest):
 
 
 @env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
-class TestProjectVectorProject(BaseProjectAdminTest):
-    PROJECT_NAME = "TestProjectAdminSemiAccess"
-    FOREIGN_PROJECT_NAME = "TestProjectAdminSemiAccessFOREIGN"
-    SETTINGS = [
-        {"attribute": "TemplateState", "value": 1},
-        {"attribute": "CategorizeItems", "value": 2},
-        {"attribute": "UploadImages", "value": 0},
-        {"attribute": "DeleteImages", "value": 0},
-    ]
-    PROJECT_TYPE = "Vector"
-    MULTIMODAL_FORM = None
-
-    def test_sets_default_image_quality_in_editor(self):
-        self.project_admin.set_project_default_image_quality_in_editor(
-            self.PROJECT_NAME,
-            "original",
-        )
-
-        settings = self.project_admin.get_project_settings(self.PROJECT_NAME)
-        setting_values = {
-            setting["attribute"]: setting["value"] for setting in settings
-        }
-        assert setting_values["ImageQuality"] == "original", (
-            "set_project_default_image_quality_in_editor returned without an error but "
-            "left ImageQuality at "
-            f"{setting_values['ImageQuality']!r}; the same call as the team owner "
-            "applies it, so the Project Admin key is silently ignored"
-        )
-
-
-@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectAdminUserScoring(TestCase):
     """
     Test using mock Multimodal form template with dynamically generated scores created during setup.

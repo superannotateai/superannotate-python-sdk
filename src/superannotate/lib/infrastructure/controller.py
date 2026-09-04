@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 import io
 import logging
-import os
 from abc import ABCMeta
+from abc import abstractmethod
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -12,6 +12,7 @@ from typing import Literal
 
 import lib.core as constants
 from lib.core import ApprovalStatus
+from lib.core import INVALID_CREDENTIALS_ERROR
 from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
@@ -25,6 +26,8 @@ from lib.core.entities import PROJECT_ITEM_ENTITY_MAP
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
+from lib.core.entities import TokenContext
+from lib.core.entities import TokenScope
 from lib.core.entities import UserEntity
 from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities import WMProjectUserEntity
@@ -42,6 +45,7 @@ from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import FileChangedError
+from lib.core.exceptions import SAAuthError
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import Join
@@ -60,8 +64,8 @@ from lib.infrastructure.query_builder import QueryBuilderChain
 from lib.infrastructure.query_builder import TeamUserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
-from lib.infrastructure.services.auth import resolve_token_context
-from lib.infrastructure.services.auth import TokenContext
+from lib.infrastructure.services.auth import resolve_organization_context
+from lib.infrastructure.services.auth import resolve_team_context
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
@@ -997,7 +1001,7 @@ class FolderManager(BaseManager):
         return use_case.execute()
 
     def get_by_name(self, project: ProjectEntity, name: str = None):
-        name = Controller.get_folder_name(name)
+        name = TeamController.get_folder_name(name)
         use_case = usecases.GetFolderUseCase(
             project=project,
             folder_name=name,
@@ -1663,49 +1667,97 @@ class SubsetManager(BaseManager):
 
 
 class BaseController(metaclass=ABCMeta):
-    SESSIONS = {}
+    """What every client needs regardless of what its token was issued for: a resolved
+    session, an HTTP client built from it, and the user it acts as.
 
-    def __init__(
-        self,
-        config: ConfigEntity,
-        *,
-        require_team: bool = True,
-        require_organization: bool = False,
-    ):
+    Each subclass resolves the session it needs and hands it here - what a token must
+    resolve to is where the two part company, so it is named at the point each one
+    constructs itself rather than configured through a flag. Anything team-scoped lives
+    on TeamController, not here: an organization-scoped client has no team to apply it
+    to.
+    """
+
+    def __init__(self, config: ConfigEntity, context: TokenContext):
         self._config = config
-        self._logger = logging.getLogger("sa")
-        self._testing = os.getenv("SA_TESTING", "False").lower() in ("true", "1", "t")
-        self._token = config.API_TOKEN
-        self._s3_upload_auth_data = None
-        self._projects = None
-        self._folders = None
-        self._teams = None
-        self._images = None
-        self._items = None
-        self._integrations = None
-        self._user_id = None
-        self._reporter = None
-
-        self._token_context = resolve_token_context(
-            config=config,
-            require_team=require_team,
-            require_organization=require_organization,
+        self._token_context = context
+        self.service_provider = ServiceProvider(
+            HttpClient(
+                api_url=config.API_URL,
+                context=context,
+                verify_ssl=config.VERIFY_SSL,
+            )
         )
-        self._team_id = self._token_context.team_id
-
-        http_client = HttpClient(
-            api_url=config.API_URL,
-            token=config.API_TOKEN,
-            team_id=self._team_id,
-            auth_type=self._token_context.auth_type,
-            verify_ssl=config.VERIFY_SSL,
-        )
-
-        self.service_provider = ServiceProvider(http_client)
         self._user = self.get_current_user()
-        # An API key already resolved its team, so the team data is only fetched once
-        # something actually needs it (the organization id, mostly).
-        self._team = self.get_team().data if self._token_context.is_legacy else None
+
+    @abstractmethod
+    def get_current_user(self) -> UserEntity:
+        """The user the token acts as."""
+        raise NotImplementedError
+
+    @property
+    def config(self) -> dict:
+        """The configuration this client was built from.
+
+        Keyed the way configuration is written - ``SA_TOKEN``, ``SA_URL``,
+        ``SA_TEAM_ID`` and the rest - rather than by ConfigEntity's field names, so it
+        is the form ``SAClient(config=...)`` takes and a client can be rebuilt from
+        another one. A fresh dict each time: mutating it changes nothing.
+        """
+        return self._config.model_dump(by_alias=True)
+
+    @property
+    def current_user(self) -> UserEntity:
+        return self._user
+
+    @property
+    def token_context(self) -> TokenContext:
+        """The session the client authenticated with: its token, team and user."""
+        return self._token_context
+
+    @property
+    def team_name(self) -> str | None:
+        """The team the client operates in, for telemetry; None when it has no team."""
+        return None
+
+
+class OrgController(BaseController):
+    """Operates on an organization rather than inside one of its teams.
+
+    It is not team-bound, so it offers none of the team-level surface: listing the
+    organization's teams is the whole of it. A team-scoped client for one of those
+    teams is a TeamController, built separately.
+    """
+
+    def __init__(self, config: ConfigEntity):
+        super().__init__(config, resolve_organization_context(config))
+
+    def get_current_user(self) -> UserEntity:
+        # Resolved with the scope: an organization key has no team to look a user up
+        # in, so the creator behind the key is the only user there is.
+        user = self._token_context.user
+        if user is None:
+            raise SAAuthError(INVALID_CREDENTIALS_ERROR)
+        return user
+
+    def list_teams(self):
+        return usecases.ListTeamsUseCase(
+            service_provider=self.service_provider
+        ).execute()
+
+
+class TeamController(BaseController):
+    """Operates inside one team, which every request is scoped to."""
+
+    def __init__(self, config: ConfigEntity):
+        super().__init__(config, resolve_team_context(config))
+        self._reporter = None
+        # An API key already resolved its team, so the team data itself is fetched only
+        # once something needs it (the organization id, and telemetry's team name).
+        self._team = (
+            self.get_team().data
+            if self._token_context.scope is TokenScope.LEGACY
+            else None
+        )
         self.annotation_classes = AnnotationClassManager(self.service_provider)
         self.projects = ProjectManager(self.service_provider, team=lambda: self.team)
         self.work_management = WorkManagementManager(self.service_provider)
@@ -1716,42 +1768,7 @@ class BaseController(metaclass=ABCMeta):
         self.subsets = SubsetManager(self.service_provider)
         self.integrations = IntegrationManager(self.service_provider)
 
-    @property
-    def reporter(self):
-        return self._reporter
-
-    @property
-    def org_id(self):
-        return self.team.owner_id
-
-    @property
-    def current_user(self):
-        return self._user
-
-    @property
-    def token_context(self) -> TokenContext:
-        """The scope the client authenticated with (team / team-user / legacy)."""
-        return self._token_context
-
-    @property
-    def team(self) -> TeamEntity:
-        if self._team is None:
-            self._team = self.get_team().data
-        return self._team
-
-    def get_team(self):
-        return usecases.GetTeamUseCase(
-            service_provider=self.service_provider, team_id=self.team_id
-        ).execute()
-
-    def list_teams(self):
-        return usecases.ListTeamsUseCase(
-            service_provider=self.service_provider
-        ).execute()
-
     def get_current_user(self) -> UserEntity:
-        # An API key resolves its own user (or its creator, for team-scoped keys) while the
-        # team is being resolved, so there is nothing left to look up.
         if self._token_context.user:
             return self._token_context.user
         response = usecases.GetCurrentUserUseCase(
@@ -1762,19 +1779,35 @@ class BaseController(metaclass=ABCMeta):
         return response.data
 
     @property
-    def team_name(self) -> str:
-        """The name of the team the client operates in.
+    def reporter(self):
+        return self._reporter
 
-        Used by telemetry. An API key resolves only the team id on init, so the first
-        call fetches the team; the result is cached on the controller from then on.
+    @property
+    def team_id(self) -> int | None:
+        """The team every request is scoped to."""
+        return self._token_context.team_id
+
+    @property
+    def team(self) -> TeamEntity | None:
+        if self._team is None:
+            self._team = self.get_team().data
+        return self._team
+
+    @property
+    def team_name(self) -> str | None:
+        """Used by telemetry. An API key resolves only the team id on init, so the
+        first call fetches the team; every later reader is served from the cache.
         """
         return self.team.name
 
     @property
-    def team_id(self) -> int:
-        if not self._token or not self._team_id:
-            raise AppException("Invalid credentials provided.")
-        return self._team_id
+    def org_id(self):
+        return self.team.owner_id
+
+    def get_team(self):
+        return usecases.GetTeamUseCase(
+            service_provider=self.service_provider, team_id=self.team_id
+        ).execute()
 
     @staticmethod
     def get_default_reporter(
@@ -1788,10 +1821,6 @@ class BaseController(metaclass=ABCMeta):
     @property
     def s3_repo(self):
         return S3Repository
-
-
-class Controller(BaseController):
-    DEFAULT = None
 
     def get_folder_by_id(self, folder_id: int, project_id: int):
         response = self.folders.get_by_id(

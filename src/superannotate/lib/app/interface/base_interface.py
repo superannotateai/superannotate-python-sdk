@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import functools
 import json
+import logging
 import os
 import platform
 import sys
 from collections.abc import Iterable
 from collections.abc import Sized
-from functools import lru_cache
 from inspect import signature
 from pathlib import Path
 from types import FunctionType
@@ -13,72 +15,126 @@ from types import FunctionType
 import lib.core as constants
 from lib.app.interface.types import validate_arguments
 from lib.core import CONFIG
+from lib.core import CREDENTIALS_NOT_FOUND_ERROR
+from lib.core import INVALID_CREDENTIALS_ERROR
+from lib.core import INVALID_TOKEN_ERROR
 from lib.core import setup_logging
-from lib.core.auth_errors import CREDENTIALS_NOT_FOUND_ERROR
-from lib.core.auth_errors import INVALID_CREDENTIALS_ERROR
-from lib.core.auth_errors import INVALID_TEAM_ID_ERROR
-from lib.core.auth_errors import INVALID_TOKEN_ERROR
 from lib.core.entities.base import ConfigEntity
-from lib.core.entities.base import TokenStr
 from lib.core.exceptions import AppException
-from lib.infrastructure.controller import Controller
+from lib.core.exceptions import SAAuthError
+from lib.infrastructure.controller import BaseController
 from lib.infrastructure.utils import extract_project_folder_inputs
 from lib.infrastructure.validators import wrap_error
 from mixpanel import Mixpanel
 from pydantic import ValidationError
 
+logger = logging.getLogger("sa")
+
 
 class BaseInterfaceFacade:
+    """Credential resolution, shared by every facade.
+
+    What a token has to resolve to is the facade's own business - named by its
+    CONTROLLER_CLASS rather than configured through this __init__: SAClient needs a
+    team, SAORGClient needs an organization key.
+    """
+
+    #: The controller class this facade drives. Named for the class, not the
+    #: instance: `self.controller` is the built one.
+    CONTROLLER_CLASS: type[BaseController]
+
     @validate_arguments
     def __init__(
         self,
-        token: TokenStr | None = None,
+        # Plain str, not TokenStr: the token's shape is checked by ConfigEntity in
+        # _resolve_config, so a malformed one is reported as the credential failure it
+        # is (SAAuthError) rather than as a generic bad argument.
+        token: str | None = None,
         config_path: str | None = None,
         team_id: int | None = None,
         *,
-        require_team: bool = True,
-        require_organization: bool = False,
+        config: dict | None = None,
     ):
-        config = self._resolve_config(token, config_path)
-        if require_organization:
-            # Organization-scoped: never team-bound, regardless of what SA_TEAM_ID/team_id
-            # the config source happens to carry.
-            config.TEAM_ID = None
-        elif team_id is not None:
+        resolved = self._resolve_config(token, config_path, config)
+        if team_id is not None:
             # An explicit team_id wins over whatever the config source provided.
-            config.TEAM_ID = team_id
-        setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)
-        self.controller = Controller(
-            config, require_team=require_team, require_organization=require_organization
-        )
+            resolved.TEAM_ID = team_id
+        setup_logging(resolved.LOGGING_LEVEL, resolved.LOGGING_PATH)
+        self.controller = self.CONTROLLER_CLASS(resolved)
 
     @classmethod
     def _resolve_config(
-        cls, token: str | None, config_path: str | None
+        cls,
+        token: str | None,
+        config_path: str | None,
+        settings: dict | None = None,
     ) -> ConfigEntity:
-        """Resolve credentials: explicit token, then config path, then env, then ini/json.
+        """Resolve credentials and settings.
+
+        Credentials come from the first source that carries them: the ``token``
+        argument, a config file, inline ``settings``, then the environment and the
+        default config files. Inline settings are applied over whatever that produced,
+        so a caller can configure a client - another backend, bigger chunks - without
+        writing a file for it.
 
         Shared by every facade's ``__init__`` (``SAClient``, ``SAORGClient``).
         """
+        settings = cls._validated_settings(settings)
         try:
             if token:
-                config = ConfigEntity(SA_TOKEN=token)
+                config = ConfigEntity(**{**settings, "SA_TOKEN": token})
             elif config_path:
-                config = cls._resolve_config_from_path(config_path)
+                config = cls._merge_settings(
+                    cls._resolve_config_from_path(config_path), settings
+                )
+            elif "SA_TOKEN" in settings:
+                config = ConfigEntity(**settings)
             else:
-                config = cls._resolve_config_from_env_or_files()
+                config = cls._merge_settings(
+                    cls._resolve_config_from_env_or_files(), settings
+                )
         except ValidationError as e:
-            raise AppException(wrap_error(e))
+            raise SAAuthError(wrap_error(e))
         if not config:
-            raise AppException(INVALID_CREDENTIALS_ERROR)
+            raise SAAuthError(INVALID_CREDENTIALS_ERROR)
         return config
+
+    @staticmethod
+    def _validated_settings(settings: dict | None) -> dict:
+        """Inline settings, with anything the SDK has no such setting for rejected.
+
+        ConfigEntity ignores what it does not recognise, so a mistyped key would
+        otherwise be dropped without a word - and a mistyped SA_TOKEN would send the
+        client off to authenticate as whatever the environment happens to hold.
+        """
+        if not settings:
+            return {}
+        known = set(ConfigEntity.model_fields) | {
+            field.alias
+            for field in ConfigEntity.model_fields.values()
+            if field.alias is not None
+        }
+        unknown = sorted(set(settings) - known)
+        if unknown:
+            raise AppException(
+                f"Unknown configuration: {', '.join(unknown)}. "
+                f"Available: {', '.join(sorted(known))}."
+            )
+        return dict(settings)
+
+    @staticmethod
+    def _merge_settings(config: ConfigEntity, settings: dict) -> ConfigEntity:
+        """``config`` with inline settings applied over it."""
+        if not settings:
+            return config
+        return ConfigEntity(**{**config.model_dump(by_alias=True), **settings})
 
     @classmethod
     def _resolve_config_from_path(cls, config_path: str) -> ConfigEntity:
         """A config file the caller named explicitly (``.ini`` or ``.json``)."""
         path = Path(config_path).expanduser()
         if not path.is_file() or not os.access(path, os.R_OK):
-            raise AppException(f"SuperAnnotate config file {path} not found.")
+            raise AppException(f"SuperAnnotate config file {config_path} not found.")
         if path.suffix == ".json":
             return cls._retrieve_configs_from_json(path)
         return cls._retrieve_configs_from_ini(path)
@@ -93,7 +149,7 @@ class BaseInterfaceFacade:
             return cls._retrieve_configs_from_ini(constants.CONFIG_INI_FILE_LOCATION)
         if Path(constants.CONFIG_JSON_FILE_LOCATION).exists():
             return cls._retrieve_configs_from_json(constants.CONFIG_JSON_FILE_LOCATION)
-        raise AppException(CREDENTIALS_NOT_FOUND_ERROR)
+        raise SAAuthError(CREDENTIALS_NOT_FOUND_ERROR)
 
     @staticmethod
     def _retrieve_configs_from_json(path: Path | str) -> ConfigEntity:
@@ -103,7 +159,7 @@ class BaseInterfaceFacade:
         try:
             config = ConfigEntity(SA_TOKEN=token)
         except ValidationError:
-            raise AppException(INVALID_TOKEN_ERROR)
+            raise SAAuthError(INVALID_TOKEN_ERROR)
         host = json_data.get("main_endpoint")
         verify_ssl = json_data.get("ssl_verify")
         team_id = json_data.get("team_id")
@@ -147,7 +203,7 @@ class Tracker:
         # client may have no .controller yet (e.g. __init__ failed before setting one).
         controller = getattr(client, "controller", None)
         if controller is not None:
-            api_url = controller._config.API_URL  # noqa
+            api_url = controller.config["SA_URL"]
         elif explicit_credentials:
             api_url = constants.BACKEND_URL
         else:
@@ -159,13 +215,14 @@ class Tracker:
         return Mixpanel(mp_token)
 
     @staticmethod
-    @lru_cache
-    def get_default_payload(team_name, user_email, auth_type):
+    def get_default_payload(team_name, user_email, auth_type) -> dict:
+        """Built fresh per event: a cached dict would be shared between callers, and
+        would freeze sa_version and SA_ENV as they were on the first tracked call.
+        """
         return {
             "SDK": True,
             "Team": team_name,
             "User Email": user_email,
-            # How the client authenticated (see TokenContext.auth_type_label).
             "Auth Type": auth_type,
             "Version": os.environ["sa_version"],
             "Python version": platform.python_version(),
@@ -175,12 +232,16 @@ class Tracker:
 
     def __init__(self, function):
         self.function = function
-        self.skip_flag = os.environ.get("SA_SKIP_METRICS", "False").lower() in (
-            "true",
-            "1",
-            "t",
-        )
         functools.update_wrapper(self, function)
+
+    @staticmethod
+    def _metrics_disabled() -> bool:
+        """Whether the caller turned telemetry off.
+
+        Read per call: a Tracker is built while its class is being created, so a value
+        captured in __init__ would ignore anything set after ``import superannotate``.
+        """
+        return os.environ.get("SA_SKIP_METRICS", "False").lower() in ("true", "1", "t")
 
     @staticmethod
     def extract_arguments(function, *args, **kwargs) -> dict:
@@ -223,7 +284,7 @@ class Tracker:
         client,
         explicit_credentials: bool = False,
     ):
-        if "pytest" in sys.modules or self.skip_flag:
+        if "pytest" in sys.modules:
             return
         self.get_mp_instance(client, explicit_credentials).track(
             user_id, event_name, data
@@ -239,18 +300,7 @@ class Tracker:
         """
         if success or function_name != "__init__" or error is None:
             return None
-        message = str(error)
-        if any(
-            marker in message
-            for marker in (
-                INVALID_CREDENTIALS_ERROR,
-                INVALID_TEAM_ID_ERROR,
-                INVALID_TOKEN_ERROR,
-                CREDENTIALS_NOT_FOUND_ERROR,
-            )
-        ):
-            return message
-        return None
+        return str(error) if isinstance(error, SAAuthError) else None
 
     def _track_method(
         self,
@@ -260,6 +310,11 @@ class Tracker:
         success: bool,
         error: BaseException | None = None,
     ):
+        # Before anything is gathered: building the payload reads controller.team_name,
+        # which fetches the team from the backend. A caller who turned metrics off
+        # should not pay for a request that is never sent.
+        if self._metrics_disabled():
+            return
         try:
             function_name = self.function.__name__ if self.function else ""
             arguments = self.extract_arguments(self.function, *args, **kwargs)
@@ -272,20 +327,17 @@ class Tracker:
             user_email = team_name = auth_type = None
             if controller is not None:
                 user_email = controller.current_user.email
-                token_context = controller.token_context
-                auth_type = token_context.auth_type_label
-                if token_context.team_id is not None:
-                    team_name = controller.team.name
+                auth_type = controller.token_context.scope.label
+                team_name = controller.team_name
             elif instance is None:
                 return
 
             properties["Success"] = success
-            properties["Class"] = (
-                instance.__class__.__name__ if instance is not None else None
-            )
-            properties["Auth Failure"] = self._failure_reason(
-                function_name, success, error
-            )
+            properties["Class"] = instance.__class__.__name__
+            if error:
+                properties["Failure Reason"] = self._failure_reason(
+                    function_name, success, error
+                )
             default = self.get_default_payload(
                 team_name=team_name, user_email=user_email, auth_type=auth_type
             )
@@ -299,7 +351,7 @@ class Tracker:
                 ),
             )
         except BaseException:
-            pass
+            logger.debug("Skipped telemetry for this call.", exc_info=True)
 
     def __get__(self, obj, owner=None):
         if obj is not None:
@@ -316,10 +368,12 @@ class Tracker:
         instance = args[0] if args else None
         try:
             result = self.function(*args, **kwargs)
-        except Exception as e:
+        except BaseException as e:
+            # BaseException, not Exception: a KeyboardInterrupt used to skip this and
+            # leave the call reported as a success.
             success = False
             error = e
-            raise e
+            raise
         else:
             return result
         finally:
@@ -335,6 +389,7 @@ class TrackableMeta(type):
                 attr_value, FunctionType
             ) and not attr_value.__name__.startswith("_"):
                 attrs[attr_name] = Tracker(validate_arguments(attr_value))
-        attrs["__init__"] = Tracker(validate_arguments(attrs["__init__"]))
+        if "__init__" in attrs:
+            attrs["__init__"] = Tracker(validate_arguments(attrs["__init__"]))
         tmp = super().__new__(mcs, name, bases, attrs)
         return tmp
