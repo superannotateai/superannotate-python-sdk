@@ -56,9 +56,9 @@ class BaseProjectAdminTest(TestCase):
 
     def setUp(self) -> None:
         #: The team owner, who sets the projects up and cleans them up.
-        self.owner = env.build_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
+        self.owner = env.build_client(env.var(env.OWNER_PERSONAL_TOKEN_ENV))
         #: The client under test: a contributor's key, made project admin below.
-        self.project_admin = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
+        self.project_admin = env.build_client(env.var(env.SA_CONTRIBUTOR_TOKEN_ENV))
         #: The user that key acts as - the one the owner promotes.
         self.project_admin_email = self.project_admin.controller.current_user.email
 
@@ -321,10 +321,10 @@ class TestProjectAdminUserScoring(TestCase):
 
     def setUp(self, *args, **kwargs) -> None:
         # setup user scores for test
-        self.owner = env.build_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
+        self.owner = env.build_client(env.var(env.OWNER_PERSONAL_TOKEN_ENV))
         self.tearDown()
         #: The client under test: a contributor's key, made project admin below.
-        self.project_admin = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
+        self.project_admin = env.build_client(env.var(env.SA_CONTRIBUTOR_TOKEN_ENV))
         self.project_admin_email = self.project_admin.controller.current_user.email
         self._project = self.owner.create_project(
             self.PROJECT_NAME,

@@ -25,7 +25,7 @@ class TestOrganizationToken(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.token = env.token(env.SA_ORGANIZATION_TOKEN_ENV)
+        cls.token = env.var(env.SA_ORGANIZATION_TOKEN_ENV)
         cls.team_id = int(os.environ[env.SA_ORGANIZATION_TEAM_ID_ENV])
 
     def test_team_id_as_an_argument(self):
@@ -54,7 +54,7 @@ class TestPersonalToken(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.token = env.token(env.OWNER_PERSONAL_TOKEN_ENV)
+        cls.token = env.var(env.OWNER_PERSONAL_TOKEN_ENV)
         cls.client = env.build_client(cls.token)
 
     def test_acts_as_a_user_of_its_own_team(self):

@@ -13,6 +13,7 @@ import pytest
 from src.superannotate import AppException
 from src.superannotate import SAClient
 from src.superannotate.lib.core.entities.context import TokenScope
+from superannotate import SAAuthError
 from tests import env
 
 
@@ -20,7 +21,7 @@ from tests import env
 class TestOrgClient(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.org_client = env.build_org_client(env.token(env.SA_ORGANIZATION_TOKEN_ENV))
+        cls.org_client = env.build_org_client(env.var(env.SA_ORGANIZATION_TOKEN_ENV))
         cls.team_id = int(os.environ[env.SA_ORGANIZATION_TEAM_ID_ENV])
 
     def test_authenticates_with_no_team(self):
@@ -67,9 +68,23 @@ class TestOrgClient(TestCase):
             self.org_client.get_team_client(1)
 
 
+@env.requires_env_vars(env.SA_ORGANIZATION_TOKEN_ENV)
+def test_sa_client_via_org_token():
+    with pytest.raises(
+        SAAuthError,
+        match='Team context not provided. An Organization API key requires a "team_id".',
+    ):
+        sa = SAClient(
+            config={
+                "SA_TOKEN": env.var(env.SA_ORGANIZATION_TOKEN_ENV),
+                "SA_URL": env.var(env.SA_URL),
+            }
+        )
+
+
 @env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV)
 def test_a_team_bound_token_is_rejected():
     # SAORGClient takes only an organization key: a key bound to one team - personal
     # here, but a team key or a le  File "/Users/vaghinak.basentsyan/env/superannotate-python-sdk3-14/lib/python3.14/site-packages/pydantic/_internal/_validate_call.py", line 137, in __call__gacy token the same way - cannot act for the org.
     with pytest.raises(AppException, match=r"Invalid credentials provided\."):
-        env.build_org_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
+        env.build_org_client(env.var(env.OWNER_PERSONAL_TOKEN_ENV))

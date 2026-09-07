@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import lib.core as constants
 import requests
 from lib.core import INVALID_CREDENTIALS_ERROR
+from lib.core import INVALID_TEAM_CONTEXT
 from lib.core import INVALID_TEAM_ID_ERROR
 from lib.core.entities.base import is_legacy_token
 from lib.core.entities.context import API_KEY_AUTH_TYPE
@@ -85,7 +86,7 @@ def _team_for_scope(scope: TokenScope, requested_team_id, scope_team_id) -> int:
     if not scope.carries_team:
         # An organization key has no team of its own, so the caller has to name one.
         if requested_team_id is None:
-            raise SAAuthError(INVALID_CREDENTIALS_ERROR)
+            raise SAAuthError(INVALID_TEAM_CONTEXT)
         return requested_team_id
     # The team_id check keeps a malformed response from resolving to no team at all.
     if scope_team_id is None:

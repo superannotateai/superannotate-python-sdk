@@ -250,7 +250,7 @@ class MissingEnvVarsTestCase(TestCase):
         self.env_path.write_text(f"{env.SA_CONTRIBUTOR_TOKEN_ENV}={TOKEN}\n")
 
         assert env.missing_env_vars(env.SA_CONTRIBUTOR_TOKEN_ENV) == []
-        assert env.token(env.SA_CONTRIBUTOR_TOKEN_ENV) == TOKEN
+        assert env.var(env.SA_CONTRIBUTOR_TOKEN_ENV) == TOKEN
         # ... and reading it did not put it in the environment.
         assert env.SA_CONTRIBUTOR_TOKEN_ENV not in os.environ
 

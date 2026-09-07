@@ -33,6 +33,9 @@ DEFAULT_LOGGING_LEVEL = "INFO"
 INVALID_TOKEN_ERROR = "Invalid token."
 INVALID_TEAM_ID_ERROR = "Invalid team id provided."
 INVALID_CREDENTIALS_ERROR = "Invalid credentials provided."
+INVALID_TEAM_CONTEXT = (
+    'Team context not provided. An Organization API key requires a "team_id".'
+)
 CREDENTIALS_NOT_FOUND_ERROR = (
     "Credentials not found: SA_TOKEN environment variable is not set and "
     f"config file '{CONFIG_INI_DISPLAY_PATH}' was not found."

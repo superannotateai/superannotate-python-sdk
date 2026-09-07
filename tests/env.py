@@ -28,7 +28,7 @@ kind, declared under its own variable, and is skipped while that variable is uns
     class TestSomething(TestCase):
         @classmethod
         def setUpClass(cls):
-            cls.client = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
+            cls.client = env.build_client(env.var(env.SA_CONTRIBUTOR_TOKEN_ENV))
 """
 
 import configparser
@@ -50,6 +50,7 @@ SA_CONTRIBUTOR_TOKEN_ENV = "SA_CONTRIBUTOR_TOKEN"
 #: A key for SAORGClient's own tests, independent of SA_TOKEN's scope, plus a team it
 #: can reach.
 SA_ORGANIZATION_TOKEN_ENV = "SA_ORGANIZATION_TOKEN"
+SA_URL = "SA_URL"
 SA_ORGANIZATION_TEAM_ID_ENV = "SA_ORGANIZATION_TEAM_ID"
 
 
@@ -197,7 +198,7 @@ def build_org_client(token: str):
         return SAORGClient(config_path=config_path)
 
 
-def token(name: str) -> str:
+def var(name: str) -> str:
     """A token the ``.env`` provides under ``name`` (one of the ``*_TOKEN_ENV``)."""
     value = os.environ.get(name) or dotenv_values().get(name)
     if not value:
