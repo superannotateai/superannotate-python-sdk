@@ -27,7 +27,6 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import TokenContext
-from lib.core.entities import TokenScope
 from lib.core.entities import UserEntity
 from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities import WMProjectUserEntity
@@ -1753,11 +1752,7 @@ class TeamController(BaseController):
         self._reporter = None
         # An API key already resolved its team, so the team data itself is fetched only
         # once something needs it (the organization id, and telemetry's team name).
-        self._team = (
-            self.get_team().data
-            if self._token_context.scope is TokenScope.LEGACY
-            else None
-        )
+        self._team = self.get_team().data
         self.annotation_classes = AnnotationClassManager(self.service_provider)
         self.projects = ProjectManager(self.service_provider, team=lambda: self.team)
         self.work_management = WorkManagementManager(self.service_provider)

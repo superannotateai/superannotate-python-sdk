@@ -62,10 +62,14 @@ class TestOrgClient(TestCase):
         with self.assertRaisesRegex(AppException, r"Input should be a valid integer"):
             self.org_client.get_team_client("not-an-id")
 
+    def test_invalid_team_id(self):
+        with self.assertRaisesRegex(AppException, r"Invalid team id provided."):
+            self.org_client.get_team_client(1)
+
 
 @env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV)
 def test_a_team_bound_token_is_rejected():
     # SAORGClient takes only an organization key: a key bound to one team - personal
-    # here, but a team key or a legacy token the same way - cannot act for the org.
+    # here, but a team key or a le  File "/Users/vaghinak.basentsyan/env/superannotate-python-sdk3-14/lib/python3.14/site-packages/pydantic/_internal/_validate_call.py", line 137, in __call__gacy token the same way - cannot act for the org.
     with pytest.raises(AppException, match=r"Invalid credentials provided\."):
         env.build_org_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))

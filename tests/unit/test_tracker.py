@@ -10,8 +10,8 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
-from superannotate.lib.app.interface.base_interface import Tracker
 from superannotate.lib.app.interface.base_interface import TrackableMeta
+from superannotate.lib.app.interface.base_interface import Tracker
 
 
 class _Recorder:
