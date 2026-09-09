@@ -712,15 +712,19 @@ class UploadImageToProject(BaseUseCase):
         self._s3_repo = s3_repo
         self._service_provider = service_provider
         if annotation_status_value is None:
-            workflow = self._service_provider.work_management.get_workflow(
-                self._project.workflow_id
-            )
-            if workflow.is_system():
-                annotation_status_value = (
-                    self._service_provider.get_annotation_status_value(
-                        self._project, "NotStarted"
-                    )
+            try:
+                workflow = self._service_provider.work_management.get_workflow(
+                    self._project.workflow_id
                 )
+                if workflow.is_system():
+                    annotation_status_value = (
+                        self._service_provider.get_annotation_status_value(
+                            self._project, "NotStarted"
+                        )
+                    )
+            except AppException as e:
+                if e.message != "Forbidden":
+                    raise e
         self._annotation_status_value = annotation_status_value
         self._auth_data = None
 

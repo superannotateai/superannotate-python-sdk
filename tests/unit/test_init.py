@@ -302,20 +302,48 @@ class ApiKeyInitTestCase(TestCase):
             assert service.client.team_id == 6085
             assert service.client.auth_type == "api_key"
 
-    def test_organization_api_key_rejected(self, post, get_team):
+    def test_organization_api_key_without_team_id_rejected(self, post, get_team):
+        # An organization key carries no team, so it cannot resolve one on its own.
         post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
         with self.assertRaisesRegex(
-            AppException, r"does not accept an Organization API key"
+            AppException, r'Organization API key requires a "team_id"'
         ):
             SAClient(token=self._token)
+
+    def test_organization_api_key_with_team_id(self, post, get_team):
+        # The team is not part of the key, so the caller names the team to operate in.
+        post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
+        sa = SAClient(token=self._token, team_id=6085)
+
+        assert sa.controller.team_id == 6085
+        context = sa.controller.token_context
+        assert context.scope_type == "organization"
+        assert context.is_organization_key
+        assert not context.is_team_key
+        assert not context.is_personal_key
+        # A team-less key has no user behind it either, so it falls back to its creator.
+        assert sa.controller.current_user.email == "vaghinak@superannotate.com"
+
+        client = sa.controller.service_provider.client
+        assert client.team_id == 6085
+        assert client.auth_type == "api_key"
+
+    def test_team_id_matching_the_token_accepted(self, post, get_team):
+        post.return_value = _mock_response(TEAM_TOKEN_RESPONSE)
+        sa = SAClient(token=self._token, team_id=6085)
+        assert sa.controller.team_id == 6085
+
+    def test_team_id_mismatching_the_token_rejected(self, post, get_team):
+        # A team key names its own team; a conflicting team_id is a caller mistake.
+        post.return_value = _mock_response(TEAM_TOKEN_RESPONSE)
+        with self.assertRaisesRegex(AppException, r"does not match the team"):
+            SAClient(token=self._token, team_id=42)
 
     def test_unknown_scope_type_rejected(self, post, get_team):
         response = deepcopy(TEAM_TOKEN_RESPONSE)
         response["token"]["scope_type"] = "something-new"
         post.return_value = _mock_response(response)
-        with self.assertRaisesRegex(
-            AppException, r"does not accept an Organization API key"
-        ):
+        with self.assertRaisesRegex(AppException, r"Unable to resolve the team"):
             SAClient(token=self._token)
 
     def test_team_scope_without_team_id_rejected(self, post, get_team):
@@ -323,15 +351,82 @@ class ApiKeyInitTestCase(TestCase):
         response = deepcopy(TEAM_TOKEN_RESPONSE)
         response["token"]["scope"] = {}
         post.return_value = _mock_response(response)
-        with self.assertRaisesRegex(
-            AppException, r"does not accept an Organization API key"
-        ):
+        with self.assertRaisesRegex(AppException, r"Unable to resolve the team"):
             SAClient(token=self._token)
 
     def test_authentication_failure(self, post, get_team):
         post.return_value = _mock_response({}, ok=False, status_code=401)
         with self.assertRaisesRegex(AppException, r"Unable to authenticate"):
             SAClient(token=self._token)
+
+
+@patch("lib.infrastructure.controller.Controller.get_team")
+@patch("lib.infrastructure.services.auth.requests.post")
+class TeamIdFromConfigTestCase(TestCase):
+    """The team an organization key operates in may come from any config source."""
+
+    _token = "sa_SOZVLlnbheUITTGb_PXlk2ON5QtqNPWY9bHZJctzlx4EPTkImzncQgRmybgh"
+
+    def setUp(self):
+        self._config_dir = tempfile.TemporaryDirectory()
+        config_dir = self._config_dir.name
+        self._ini_path = f"{config_dir}/config.ini"
+        self._json_path = f"{config_dir}/config.json"
+        patches = (
+            patch("lib.core.CONFIG_INI_FILE_LOCATION", self._ini_path),
+            patch("lib.core.CONFIG_JSON_FILE_LOCATION", self._json_path),
+        )
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        self.addCleanup(self._config_dir.cleanup)
+
+    def _write_ini(self, **values):
+        config_parser = ConfigParser()
+        config_parser.optionxform = str
+        config_parser["DEFAULT"] = {k: str(v) for k, v in values.items()}
+        with open(self._ini_path, "w") as config_ini:
+            config_parser.write(config_ini)
+
+    def test_team_id_from_config_ini(self, post, get_team):
+        post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
+        self._write_ini(SA_TOKEN=self._token, SA_TEAM_ID=6085)
+        # Both the default location and an explicit path read the same file.
+        for kwargs in ({}, {"config_path": self._ini_path}):
+            sa = SAClient(**kwargs)
+            assert sa.controller._config.TEAM_ID == 6085
+            assert sa.controller.team_id == 6085
+
+    def test_team_id_from_config_ini_by_field_name(self, post, get_team):
+        # The ini keys are read as-is, so the internal field name works as well.
+        post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
+        self._write_ini(SA_TOKEN=self._token, TEAM_ID=6085)
+        assert SAClient().controller.team_id == 6085
+
+    def test_org_token_in_config_ini_without_team_id_rejected(self, post, get_team):
+        post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
+        self._write_ini(SA_TOKEN=self._token)
+        with self.assertRaisesRegex(
+            AppException, r'Organization API key requires a "team_id"'
+        ):
+            SAClient()
+
+    def test_team_id_from_config_json(self, post, get_team):
+        post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
+        with open(self._json_path, "w") as config_json:
+            json.dump({"token": self._token, "team_id": 6085}, config_json)
+        for kwargs in ({}, {"config_path": self._json_path}):
+            assert SAClient(**kwargs).controller.team_id == 6085
+
+    def test_team_id_from_env(self, post, get_team):
+        post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
+        with patch.dict(os.environ, {"SA_TOKEN": self._token, "SA_TEAM_ID": "6085"}):
+            assert SAClient().controller.team_id == 6085
+
+    def test_explicit_team_id_overrides_config_ini(self, post, get_team):
+        post.return_value = _mock_response(ORGANIZATION_TOKEN_RESPONSE)
+        self._write_ini(SA_TOKEN=self._token, SA_TEAM_ID=6085)
+        assert SAClient(team_id=1).controller.team_id == 1
 
 
 class LegacyTokenTestCase(TestCase):

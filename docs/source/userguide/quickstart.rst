@@ -38,8 +38,9 @@ on the team setup page, for more details please visit our documentation at https
 
 - **Team API key** — scoped to one team. Works with ``SAClient``.
 - **Personal (team-user) API key** — scoped to one team, tied to your user. Works with ``SAClient``.
-- **Organization API key** — not scoped to a team. Not supported by the SDK;
-  ``SAClient`` will reject it.
+- **Organization API key** — not scoped to a team, so the team to operate in has to be
+  given along with it: ``SAClient(token="<API key>", team_id=<team id>)``, or
+  ``SA_TEAM_ID`` in the environment or the config file.
 
 
 SAClient can be used with or without arguments
@@ -76,6 +77,13 @@ ______________________________________________
 
    sa_client = SAClient(token="<API key>")
 
+An Organization API key carries no team, so it is passed together with the team to
+operate in:
+
+.. code-block:: python
+
+   sa_client = SAClient(token="<Organization API key>", team_id=<team id>)
+
 
 *Method 2:* Create a custom config file:
 
@@ -93,6 +101,8 @@ Custom config.ini example:
 
     [DEFAULT]
     SA_TOKEN = <API key>
+    ; Only an Organization API key needs it; other keys carry their own team.
+    SA_TEAM_ID = <team id>
     LOGGING_LEVEL = INFO
     LOGGING_PATH = /Users/username/data/superannotate_logs
 

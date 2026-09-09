@@ -320,7 +320,9 @@ class WorkManagementManager(BaseManager):
         scored_user: str,
         provided_score_names: list[str] | None = None,
     ):
-        score_fields_res = self.service_provider.work_management.list_scores()
+        score_fields_res = self.service_provider.work_management.list_project_scores(
+            project_id=project.id
+        )
 
         # validate provided score names
         all_score_names = [s.name for s in score_fields_res.data]
@@ -1678,11 +1680,7 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._reporter = None
 
-        self._token_context = resolve_token_context(
-            api_url=config.API_URL,
-            token=config.API_TOKEN,
-            verify_ssl=config.VERIFY_SSL,
-        )
+        self._token_context = resolve_token_context(config=config)
         self._team_id = self._token_context.team_id
 
         http_client = HttpClient(

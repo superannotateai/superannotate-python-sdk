@@ -28,7 +28,12 @@ class BaseInterfaceFacade:
     REGISTRY = []
 
     @validate_arguments
-    def __init__(self, token: TokenStr | None = None, config_path: str | None = None):
+    def __init__(
+        self,
+        token: TokenStr | None = None,
+        config_path: str | None = None,
+        team_id: int | None = None,
+    ):
         try:
             if token:
                 config = ConfigEntity(SA_TOKEN=token)
@@ -65,6 +70,9 @@ class BaseInterfaceFacade:
             raise AppException(wrap_error(e))
         if not config:
             raise AppException("Credentials not provided.")
+        # An explicit team_id wins over whatever the config source provided.
+        if team_id is not None:
+            config.TEAM_ID = team_id
         setup_logging(config.LOGGING_LEVEL, config.LOGGING_PATH)
         self.controller = Controller(config)
         BaseInterfaceFacade.REGISTRY.append(self)
@@ -80,6 +88,9 @@ class BaseInterfaceFacade:
             raise AppException("Invalid token.")
         host = json_data.get("main_endpoint")
         verify_ssl = json_data.get("ssl_verify")
+        team_id = json_data.get("team_id")
+        if team_id is not None:
+            config.TEAM_ID = int(team_id)
         if host:
             config.API_URL = host
         if verify_ssl:

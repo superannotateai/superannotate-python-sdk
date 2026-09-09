@@ -703,7 +703,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
                 status_changed = self._service_provider.items.set_statuses(
                     project=self._project,
                     folder=self._folder,
-                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203,
+                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                     annotation_status=self._annotation_status_code,
                 )
                 if not status_changed.ok:
@@ -772,7 +772,7 @@ class SetApprovalStatues(BaseReportableUseCase):
                 response = self._service_provider.items.set_approval_statuses(
                     project=self._project,
                     folder=self._folder,
-                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203,
+                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                     approval_status=self._approval_status_code,
                 )
                 if not response.ok:
@@ -826,10 +826,13 @@ class DeleteItemsUseCase(BaseUseCase):
                 item_ids = [item.id for item in items]
 
             for i in range(0, len(item_ids), self.CHUNK_SIZE):
-                self._service_provider.items.delete_multiple(
+                response = self._service_provider.items.delete_multiple(
                     project=self._project,
                     item_ids=item_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
+                if not response.ok:
+                    self._response.errors = response.error
+                    return self._response
             logger.info(
                 f"Items deleted in project {self._project.name}{'/' + self._folder.name if not self._folder.is_root else ''}"
             )
@@ -864,7 +867,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
     def __filter_duplicates(
         self,
     ):
-        def uniqueQ(item, seen):
+        def _unique(item, seen):
             result = True
             if "id" in item:
                 if item["id"] in seen:
@@ -880,13 +883,13 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             return result
 
         seen = set()
-        uniques = [x for x in self.items if uniqueQ(x, seen)]
+        uniques = [x for x in self.items if _unique(x, seen)]
         return uniques
 
     def __filter_invalid_items(
         self,
     ):
-        def validQ(item):
+        def _valid(item):
             if "id" in item:
                 return True
             if "name" in item and "path" in item:
@@ -894,7 +897,7 @@ class AddItemsToSubsetUseCase(BaseUseCase):
             self.results["skipped"].append(item)
             return False
 
-        filtered_items = [x for x in self.items if validQ(x)]
+        filtered_items = [x for x in self.items if _valid(x)]
 
         return filtered_items
 
