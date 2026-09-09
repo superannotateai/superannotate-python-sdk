@@ -1,12 +1,10 @@
 import copy
 import platform
 import tempfile
-import threading
 from configparser import ConfigParser
 from unittest import TestCase
 from unittest.mock import patch
 
-import pytest
 from src.superannotate import __version__
 from src.superannotate import AppException
 from src.superannotate import SAClient
@@ -20,13 +18,12 @@ class TestMixpanel(TestCase):
         "SDK": True,
         "Team": sa.get_team_metadata()["name"],
         "User Email": sa.controller.current_user.email,
-        "Auth Type": sa.controller.token_context.auth_type_label,
+        "Auth Type": sa.controller.token_context.scope.label,
         "Version": __version__,
         "Success": True,
         "Python version": platform.python_version(),
         "Python interpreter type": platform.python_implementation(),
         "Class": "SAClient",
-        "Auth Failure": None,
     }
     PROJECT_NAME = "TEST_MIX"
     PROJECT_DESCRIPTION = "Desc"
@@ -63,9 +60,16 @@ class TestMixpanel(TestCase):
         SAClient()
         result = list(track_method.call_args)[0]
         payload = self.default_payload
-        # team_id is part of the SAClient signature, so it is tracked like every
-        # other argument (None unless the token needs an explicit team).
-        payload.update({"sa_token": "False", "config_path": "False", "team_id": None})
+        # Every argument of the signature is tracked: team_id and config are None
+        # unless the caller gives them, and a token is reduced to whether it was given.
+        payload.update(
+            {
+                "sa_token": "False",
+                "config_path": "False",
+                "team_id": None,
+                "config": None,
+            }
+        )
         assert result[1] == "__init__"
         assert payload == result[2]
 
@@ -73,6 +77,8 @@ class TestMixpanel(TestCase):
     @patch("lib.core.usecases.GetTeamUseCase")
     @patch("lib.infrastructure.serviceprovider.ServiceProvider.get_user")
     def test_init_via_token(self, get_user, get_team_use_case, track_method):
+        get_team_use_case().execute().data.name = "Mocked Team"
+        get_user().data.email = "mocked@example.com"
         SAClient(token="test=3232")
         result = list(track_method.call_args)[0]
         payload = self.default_payload
@@ -81,10 +87,11 @@ class TestMixpanel(TestCase):
                 "sa_token": "True",
                 "config_path": "False",
                 "team_id": None,
+                "config": None,
                 # A legacy "<name>=<team_id>" token, whatever the ambient one is.
                 "Auth Type": "SDK Token",
-                "Team": get_team_use_case().execute().data.name,
-                "User Email": get_user().data.email,
+                "Team": "Mocked Team",
+                "User Email": "mocked@example.com",
             }
         )
         assert result[1] == "__init__"
@@ -94,6 +101,8 @@ class TestMixpanel(TestCase):
     @patch("lib.core.usecases.GetTeamUseCase")
     @patch("lib.infrastructure.serviceprovider.ServiceProvider.get_user")
     def test_init_via_config_file(self, get_user, get_team_use_case, track_method):
+        get_team_use_case().execute().data.name = "Mocked Team"
+        get_user().data.email = "mocked@example.com"
         with tempfile.TemporaryDirectory() as config_dir:
             config_ini_path = f"{config_dir}/config.ini"
             with patch("lib.core.CONFIG_INI_FILE_LOCATION", config_ini_path):
@@ -110,9 +119,10 @@ class TestMixpanel(TestCase):
                         "sa_token": "False",
                         "config_path": "True",
                         "team_id": None,
+                        "config": None,
                         "Auth Type": "SDK Token",
-                        "Team": get_team_use_case().execute().data.name,
-                        "User Email": get_user().data.email,
+                        "Team": "Mocked Team",
+                        "User Email": "mocked@example.com",
                     }
                 )
                 assert result[1] == "__init__"
@@ -163,39 +173,9 @@ class TestMixpanel(TestCase):
         result = list(track_method.call_args)[0]
         payload = self.default_payload
         payload["Success"] = False
+        # Only a failed __init__ carries a reason; this one just marks the failure.
+        payload["Failure Reason"] = None
         payload.update(kwargs)
         payload["settings"] = list(kwargs["settings"].keys())
         assert result[1] == "create_project"
         assert payload == result[2]
-
-    @pytest.mark.skip("Need to adjust")
-    @patch("lib.app.interface.base_interface.Tracker._track")
-    def test_create_project_multi_thread(self, track_method):
-        project_1 = self.PROJECT_NAME + "_1"
-        project_2 = self.PROJECT_NAME + "_2"
-        try:
-            kwargs_1 = {
-                "project_name": project_1,
-                "project_description": self.PROJECT_DESCRIPTION,
-                "project_type": self.PROJECT_TYPE,
-            }
-            kwargs_2 = {
-                "project_name": project_2,
-                "project_description": self.PROJECT_DESCRIPTION,
-                "project_type": self.PROJECT_TYPE,
-            }
-            thread_1 = threading.Thread(target=sa.create_project, kwargs=kwargs_1)
-            thread_2 = threading.Thread(target=sa.create_project, kwargs=kwargs_2)
-            thread_1.start()
-            thread_2.start()
-            thread_1.join()
-            thread_2.join()
-            r1, r2 = track_method.call_args_list
-            r1_pr_name = r1[0][2].pop("project_name")
-            r2_pr_name = r2[0][2].pop("project_name")
-            assert r1_pr_name == project_1
-            assert r2_pr_name == project_2
-            assert r1[0][2] == r2[0][2]
-        finally:
-            self._safe_delete_project(project_1)
-            self._safe_delete_project(project_2)

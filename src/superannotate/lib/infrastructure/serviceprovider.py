@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import datetime
 
 import lib.core as constants
@@ -17,6 +16,7 @@ from lib.infrastructure.services.annotation import AnnotationService
 from lib.infrastructure.services.annotation_class import AnnotationClassService
 from lib.infrastructure.services.explore import ExploreService
 from lib.infrastructure.services.folder import FolderService
+from lib.infrastructure.services.http_client import encode_entity_context
 from lib.infrastructure.services.http_client import HttpClient
 from lib.infrastructure.services.integration import IntegrationService
 from lib.infrastructure.services.item import ItemService
@@ -57,21 +57,19 @@ class ServiceProvider(BaseServiceProvider):
         self.integrations = IntegrationService(client)
         self.explore = ExploreService(client)
         self.telemetry_scoring = TelemetryScoringService(client)
+        # The sibling services talk to their own hosts on the same session as the
+        # main client, so they share its context rather than re-deriving one.
         self.work_management = WorkManagementService(
             HttpClient(
                 api_url=self._get_work_management_url(client),
-                token=client.token,
-                team_id=client.team_id,
-                auth_type=client.auth_type,
+                context=client.context,
                 verify_ssl=client.verify_ssl,
             )
         )
         self.item_service = SeparateItemService(
             HttpClient(
                 api_url=self._get_item_service_url(client),
-                token=client.token,
-                team_id=client.team_id,
-                auth_type=client.auth_type,
+                context=client.context,
                 verify_ssl=client.verify_ssl,
             )
         )
@@ -377,9 +375,9 @@ class ServiceProvider(BaseServiceProvider):
             url=self.URL_CREATE_WORKFLOW,
             method="post",
             headers={
-                "x-sa-entity-context": base64.b64encode(
-                    f'{{"team_id":{self.client.team_id},"organization_id":"{org_id}"}}'.encode()
-                ).decode()
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id, organization_id=org_id
+                )
             },
             data=data,
         )

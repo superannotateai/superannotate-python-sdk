@@ -4,8 +4,8 @@ from typing import Annotated
 from typing import Literal
 
 from lib.core import BACKEND_URL
+from lib.core import INVALID_TOKEN_ERROR
 from lib.core import LOG_FILE_LOCATION
-from lib.core.auth_errors import INVALID_TOKEN_ERROR
 from pydantic import AfterValidator
 from pydantic import BaseModel
 from pydantic import ConfigDict

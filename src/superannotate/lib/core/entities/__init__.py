@@ -2,6 +2,8 @@ from lib.core.entities.base import BaseItemEntity
 from lib.core.entities.base import ConfigEntity
 from lib.core.entities.base import SubSetEntity
 from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.context import TokenContext
+from lib.core.entities.context import TokenScope
 from lib.core.entities.folder import FolderEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import CategoryEntity
@@ -31,6 +33,8 @@ from lib.core.entities.work_managament import WMProjectUserEntity
 __all__ = [
     # base
     "ConfigEntity",
+    "TokenContext",
+    "TokenScope",
     "SettingEntity",
     "SubSetEntity",
     "CustomFieldEntity",
@@ -50,7 +54,6 @@ __all__ = [
     "WorkflowEntity",
     "CategoryEntity",
     "WMProjectUserEntity",
-    "ConfigEntity",
     "StepEntity",
     "FolderEntity",
     "S3FileEntity",
