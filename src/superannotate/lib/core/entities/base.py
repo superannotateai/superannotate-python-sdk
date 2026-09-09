@@ -4,6 +4,7 @@ from typing import Annotated
 from typing import Literal
 
 from lib.core import BACKEND_URL
+from lib.core import INVALID_TOKEN_ERROR
 from lib.core import LOG_FILE_LOCATION
 from pydantic import AfterValidator
 from pydantic import BaseModel
@@ -119,7 +120,7 @@ def is_legacy_token(value: str) -> bool:
 def _validate_token(value: str) -> str:
     """Validate token format."""
     if not is_legacy_token(value) and not API_KEY_PATTERN.match(value):
-        raise ValueError("Invalid token.")
+        raise ValueError(INVALID_TOKEN_ERROR)
     return value
 
 

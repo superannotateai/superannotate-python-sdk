@@ -28,6 +28,7 @@ from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from pydantic import ValidationError
+from superannotate import SAAuthError
 
 logger = logging.getLogger("sa")
 
@@ -780,9 +781,31 @@ class GetTeamUseCase(BaseUseCase):
         try:
             response = self._service_provider.get_team(self._team_id)
             if not response.ok:
+                if response.status_code == 403:
+                    raise SAAuthError(constants.INVALID_TEAM_ID_ERROR)
                 raise AppException(response.error)
             self._response.data = response.data
+        except SAAuthError:
+            raise
         except Exception as e:
+            raise AppException(
+                "Unable to retrieve team data. Please verify your credentials."
+            ) from None
+        return self._response
+
+
+class ListTeamsUseCase(BaseUseCase):
+    def __init__(self, service_provider: BaseServiceProvider):
+        super().__init__()
+        self._service_provider = service_provider
+
+    def execute(self):
+        try:
+            response = self._service_provider.list_teams()
+            if not response.ok:
+                raise AppException(response.error)
+            self._response.data = response.data
+        except Exception:
             raise AppException(
                 "Unable to retrieve team data. Please verify your credentials."
             ) from None

@@ -11,6 +11,7 @@ from typing import Literal
 from lib.core import entities
 from lib.core.conditions import Condition
 from lib.core.entities import CategoryEntity
+from lib.core.entities import TokenContext
 from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.enums import CustomFieldEntityEnum
@@ -22,6 +23,7 @@ from lib.core.service_types import FolderResponse
 from lib.core.service_types import IntegrationListResponse
 from lib.core.service_types import ListCategoryResponse
 from lib.core.service_types import ListProjectCategoryResponse
+from lib.core.service_types import OrgTeamsResponse
 from lib.core.service_types import ProjectListResponse
 from lib.core.service_types import ProjectResponse
 from lib.core.service_types import ServiceResponse
@@ -43,20 +45,14 @@ from lib.core.types import AttachmentMeta
 
 
 class BaseClient(ABC):
-    DEFAULT_AUTH_TYPE = "sdk"
-
-    def __init__(
-        self,
-        api_url: str,
-        token: str,
-        team_id: int,
-        auth_type: str = DEFAULT_AUTH_TYPE,
-    ):
-        self.team_id = team_id
-
+    def __init__(self, api_url: str, context: TokenContext):
         self._api_url = api_url
-        self._token = token
-        self._auth_type = auth_type
+        self._context = context
+
+    @property
+    def context(self) -> TokenContext:
+        """The session the client speaks for: its token, team and acting user."""
+        return self._context
 
     @property
     def api_url(self):
@@ -64,15 +60,27 @@ class BaseClient(ABC):
 
     @property
     def token(self):
-        return self._token
+        return self._context.token
 
     @property
     def auth_type(self):
-        return self._auth_type
+        return self._context.auth_type
+
+    @property
+    def team_id(self) -> int | None:
+        """The team requests are scoped to; None for a team-less organization client."""
+        return self._context.team_id
 
     @property
     @abstractmethod
-    def default_headers(self):
+    def default_headers(self) -> dict:
+        """Headers sent with every request."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def default_query_params(self) -> dict:
+        """Query params sent with every request."""
         raise NotImplementedError
 
     @abstractmethod
@@ -853,6 +861,10 @@ class BaseServiceProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def get_team(self, team_id: int) -> TeamResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_teams(self) -> OrgTeamsResponse:
         raise NotImplementedError
 
     @abstractmethod
