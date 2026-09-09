@@ -18,6 +18,7 @@ from typing import Literal
 
 import aiohttp
 import requests
+from lib.core.entities import TokenContext
 from lib.core.exceptions import AppException
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Limit
@@ -42,16 +43,23 @@ class PydanticEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+def encode_entity_context(**context) -> str:
+    """Build the ``x-sa-entity-context`` header value: base64-encoded JSON.
+
+    The backend reads the entity a request applies to (team, project, organization)
+    from this header rather than from the path.
+    """
+    return base64.b64encode(json.dumps(context).encode("utf-8")).decode("utf-8")
+
+
 class HttpClient(BaseClient):
     def __init__(
         self,
         api_url: str,
-        token: str,
-        team_id: int,
-        auth_type: str = BaseClient.DEFAULT_AUTH_TYPE,
+        context: TokenContext,
         verify_ssl: bool = True,
     ):
-        super().__init__(api_url, token, team_id, auth_type)
+        super().__init__(api_url, context)
         self._verify_ssl = verify_ssl
         self._version = os.environ.get("sa_version")
         self._env = os.environ.get("SA_ENV")
@@ -78,22 +86,28 @@ class HttpClient(BaseClient):
         )
 
     @property
-    def default_headers(self):
-        return {
-            "Authorization": self._token,
-            "authtype": self._auth_type,
+    def default_headers(self) -> dict:
+        headers = {
+            "Authorization": self.token,
+            "authtype": self.auth_type,
             "Content-Type": "application/json",
-            "x-sa-entity-context": base64.b64encode(
-                json.dumps(
-                    {
-                        "team_id": self.team_id,
-                    }
-                ).encode("utf-8")
-            ).decode("utf-8"),
             "User-Agent": f"Python-SDK-Version: {self._version}; Python: {platform.python_version()};"
-            f"OS: {platform.system()}; Team: {self.team_id}"
+            f"OS: {platform.system()}"
+            f"{f'; Team: {self.team_id}' if self.team_id is not None else ''}"
             f"{'; Env: ' + self._env if self._env else ''}",
         }
+        # A team-less, organization-scoped client (SAORGClient) has nothing to scope the
+        # request to, so the header is left out rather than sent as null.
+        if self.team_id is not None:
+            headers["x-sa-entity-context"] = encode_entity_context(team_id=self.team_id)
+        return headers
+
+    @property
+    def default_query_params(self) -> dict:
+        """Query params every request carries; empty for a team-less client."""
+        if self.team_id is None:
+            return {}
+        return {"team_id": self.team_id}
 
     @property
     def safe_api(self):
@@ -152,7 +166,7 @@ class HttpClient(BaseClient):
         dispatcher: str = None,
     ) -> ServiceResponse:
         _url = self._get_url(url)
-        kwargs = {"params": {"team_id": self.team_id}}
+        kwargs = {"params": dict(self.default_query_params)}
         if data:
             kwargs["data"] = json.dumps(data, cls=PydanticEncoder)
         if params:

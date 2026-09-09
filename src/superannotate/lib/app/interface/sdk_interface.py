@@ -32,7 +32,8 @@ from pydantic import ValidationError
 from pydantic import TypeAdapter
 
 import lib.core as constants
-from lib.infrastructure.controller import Controller
+from lib.infrastructure.controller import OrgController
+from lib.infrastructure.controller import TeamController
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
 from lib.app.helpers import wrap_error as wrap_validation_errors
@@ -67,6 +68,8 @@ from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import ProjectType
 from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
+from lib.core.exceptions import SAAuthError
+from lib.core import INVALID_TEAM_ID_ERROR
 from lib.core.types import PriorityScoreEntity
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
@@ -141,7 +144,7 @@ class ItemContext:
 
     def __init__(
         self,
-        controller: Controller,
+        controller: TeamController,
         project: ProjectEntity,
         folder: FolderEntity,
         item: BaseItemEntity,
@@ -306,15 +309,36 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         match the team the key grants access to.
     :type team_id: int
 
+    :param config: configuration applied on creation, instead of or on top of a config
+        file. Keys are a config file's keys - ``SA_TOKEN``, ``SA_URL``, ``SA_TEAM_ID``,
+        ``VERIFY_SSL``, ``LOGGING_LEVEL``, ``LOGGING_PATH``, ``ANNOTATION_CHUNK_SIZE``,
+        ``ITEM_CHUNK_SIZE``, ``MAX_THREAD_COUNT``, ``MAX_COROUTINE_COUNT`` - and an
+        unrecognised one is an error rather than silently ignored. Explicit ``token``
+        and ``team_id`` arguments win over the same keys here.
+    :type config: dict
+
+    Request Example:
+    ::
+
+        sa = SAClient(config={"SA_TOKEN": "<API key>", "SA_URL": "<host>"})
     """
+
+    CONTROLLER_CLASS = TeamController
 
     def __init__(
         self,
         token: str | None = None,
         config_path: str | None = None,
         team_id: int | None = None,
+        *,
+        config: dict | None = None,
     ):
-        super().__init__(token, config_path, team_id=team_id)
+        super().__init__(token, config_path, team_id=team_id, config=config)
+
+    @property
+    def team_id(self) -> int:
+        """The team this client operates in."""
+        return self.controller.team_id
 
     def get_project_by_id(self, project_id: int):
         """Returns the project metadata
@@ -6144,4 +6168,79 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 )
         logger.info(
             f"Successfully removed {success} users(s) out of the {len(users)} provided from the project {project.name}."
+        )
+
+
+class SAORGClient(BaseInterfaceFacade, metaclass=TrackableMeta):
+    """Create SAORGClient instance to authorize SDK in an organization scope.
+    In case of no argument has been provided, SA_TOKEN environmental variable
+    will be checked or $HOME/.superannotate/config.ini will be used.
+
+    Requires an Organization API key.
+
+    :param token: Organization API key
+    :type token: str
+
+    :param config_path: path to config file
+    :type config_path: str
+
+    :param config: configuration applied on creation, instead of or on top of a config
+        file. Keys are a config file's keys - ``SA_TOKEN``, ``SA_URL``, ``SA_TEAM_ID``,
+        ``VERIFY_SSL``, ``LOGGING_LEVEL``, ``LOGGING_PATH``, ``ANNOTATION_CHUNK_SIZE``,
+        ``ITEM_CHUNK_SIZE``, ``MAX_THREAD_COUNT``, ``MAX_COROUTINE_COUNT`` - and an
+        unrecognised one is an error rather than silently ignored. Explicit ``token``
+        and ``team_id`` arguments win over the same keys here.
+    :type config: dict
+    """
+
+    CONTROLLER_CLASS = OrgController
+
+    def __init__(
+        self,
+        token: str | None = None,
+        config_path: str | None = None,
+        *,
+        config: dict | None = None,
+    ):
+        super().__init__(token, config_path, config=config)
+
+    def get_team_client(self, team_id: int) -> SAClient:
+        """Returns a normal SAClient backed by the organization token, with team context returned.
+
+        :param team_id: ID of the team to operate in.
+        :type team_id: int
+
+        :return: a team-scoped client exposing the full team-level SDK surface. The
+            team is fixed at construction; team_id is available as a read-only
+            property.
+        :rtype: SAClient
+
+        Request Example:
+        ::
+
+            team_client = org_client.get_team_client(team_id=12345)
+            team_client.list_projects(name__contains="My Project")
+        """
+        # The whole configuration this client was built with, re-pointed at one team.
+        # Passing the token alone would rebuild the config from defaults and lose
+        # API_URL with it, which means silently moving to production.
+        try:
+            return SAClient(config={**self.controller.config, "SA_TEAM_ID": team_id})
+        except SAAuthError:
+            raise AppException(INVALID_TEAM_ID_ERROR)
+
+    def list_teams(self) -> list[dict]:
+        """Returns the teams in the given organization. Must use Organization API Key for this function.
+
+        :return: the organization's teams; an empty list if it has none.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            org_client.list_teams()
+        """
+        response = self.controller.list_teams()
+        return BaseSerializer.serialize_iterable(
+            response.data or [], by_alias=True, exclude_unset=True
         )

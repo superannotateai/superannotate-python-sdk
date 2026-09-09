@@ -11,6 +11,8 @@ from tests.integration.work_management.data_set import SCORE_TEMPLATES
 
 sa = SAClient()
 
+print(sa.controller.token_context.token)
+
 
 class TestUserScoring(TestCase):
     """

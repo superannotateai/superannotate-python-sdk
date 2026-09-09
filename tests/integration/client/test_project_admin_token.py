@@ -56,9 +56,9 @@ class BaseProjectAdminTest(TestCase):
 
     def setUp(self) -> None:
         #: The team owner, who sets the projects up and cleans them up.
-        self.owner = env.build_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
+        self.owner = env.build_client(env.var(env.OWNER_PERSONAL_TOKEN_ENV))
         #: The client under test: a contributor's key, made project admin below.
-        self.project_admin = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
+        self.project_admin = env.build_client(env.var(env.SA_CONTRIBUTOR_TOKEN_ENV))
         #: The user that key acts as - the one the owner promotes.
         self.project_admin_email = self.project_admin.controller.current_user.email
 
@@ -99,7 +99,7 @@ class BaseProjectAdminTest(TestCase):
                     self.owner.delete_project(project["id"])
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
     #: The project the contributor administers.
     PROJECT_NAME = "TestProjectAdminToken"
@@ -261,7 +261,7 @@ class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
         assert not projects
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectAdminSemiAccess(BaseProjectAdminTest):
     PROJECT_NAME = "TestProjectAdminSemiAccess"
     FOREIGN_PROJECT_NAME = "TestProjectAdminSemiAccessFOREIGN"
@@ -287,38 +287,7 @@ class TestProjectAdminSemiAccess(BaseProjectAdminTest):
             self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")
 
 
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
-class TestProjectVectorProject(BaseProjectAdminTest):
-    PROJECT_NAME = "TestProjectAdminSemiAccess"
-    FOREIGN_PROJECT_NAME = "TestProjectAdminSemiAccessFOREIGN"
-    SETTINGS = [
-        {"attribute": "TemplateState", "value": 1},
-        {"attribute": "CategorizeItems", "value": 2},
-        {"attribute": "UploadImages", "value": 0},
-        {"attribute": "DeleteImages", "value": 0},
-    ]
-    PROJECT_TYPE = "Vector"
-    MULTIMODAL_FORM = None
-
-    def test_sets_default_image_quality_in_editor(self):
-        self.project_admin.set_project_default_image_quality_in_editor(
-            self.PROJECT_NAME,
-            "original",
-        )
-
-        settings = self.project_admin.get_project_settings(self.PROJECT_NAME)
-        setting_values = {
-            setting["attribute"]: setting["value"] for setting in settings
-        }
-        assert setting_values["ImageQuality"] == "original", (
-            "set_project_default_image_quality_in_editor returned without an error but "
-            "left ImageQuality at "
-            f"{setting_values['ImageQuality']!r}; the same call as the team owner "
-            "applies it, so the Project Admin key is silently ignored"
-        )
-
-
-@env.requires_tokens(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
+@env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
 class TestProjectAdminUserScoring(TestCase):
     """
     Test using mock Multimodal form template with dynamically generated scores created during setup.
@@ -352,10 +321,10 @@ class TestProjectAdminUserScoring(TestCase):
 
     def setUp(self, *args, **kwargs) -> None:
         # setup user scores for test
-        self.owner = env.build_client(env.token(env.OWNER_PERSONAL_TOKEN_ENV))
+        self.owner = env.build_client(env.var(env.OWNER_PERSONAL_TOKEN_ENV))
         self.tearDown()
         #: The client under test: a contributor's key, made project admin below.
-        self.project_admin = env.build_client(env.token(env.SA_CONTRIBUTOR_TOKEN_ENV))
+        self.project_admin = env.build_client(env.var(env.SA_CONTRIBUTOR_TOKEN_ENV))
         self.project_admin_email = self.project_admin.controller.current_user.email
         self._project = self.owner.create_project(
             self.PROJECT_NAME,

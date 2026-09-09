@@ -2,6 +2,8 @@ from lib.core.entities.base import BaseItemEntity
 from lib.core.entities.base import ConfigEntity
 from lib.core.entities.base import SubSetEntity
 from lib.core.entities.classes import AnnotationClassEntity
+from lib.core.entities.context import TokenContext
+from lib.core.entities.context import TokenScope
 from lib.core.entities.folder import FolderEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import CategoryEntity
@@ -16,6 +18,7 @@ from lib.core.entities.multimodal_form import FormModel
 from lib.core.entities.multimodal_form import generate_classes_from_form
 from lib.core.entities.project import AttachmentEntity
 from lib.core.entities.project import CustomFieldEntity
+from lib.core.entities.project import OrgTeamEntity
 from lib.core.entities.project import ProjectEntity
 from lib.core.entities.project import SettingEntity
 from lib.core.entities.project import StepEntity
@@ -30,6 +33,8 @@ from lib.core.entities.work_managament import WMProjectUserEntity
 __all__ = [
     # base
     "ConfigEntity",
+    "TokenContext",
+    "TokenScope",
     "SettingEntity",
     "SubSetEntity",
     "CustomFieldEntity",
@@ -49,12 +54,12 @@ __all__ = [
     "WorkflowEntity",
     "CategoryEntity",
     "WMProjectUserEntity",
-    "ConfigEntity",
     "StepEntity",
     "FolderEntity",
     "S3FileEntity",
     "AnnotationClassEntity",
     "TeamEntity",
+    "OrgTeamEntity",
     "UserEntity",
     "IntegrationEntity",
     "PROJECT_ITEM_ENTITY_MAP",
