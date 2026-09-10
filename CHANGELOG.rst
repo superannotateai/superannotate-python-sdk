@@ -6,6 +6,23 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.6.1 - Sep 13, 2026
+____________________
+
+
+**Added**
+
+    - ``SAORGClient`` New client for using an Organization API Key to perform organization-level operations across teams.
+
+    - ``SAORGClient.list_teams()`` Returns the teams in an organization.
+
+    - ``SAORGClient.get_team_client(team_id)`` Returns a SAClient instance for the specified team.
+
+### Updated
+
+    - ``SAClient()`` Added support for authentication with Organization API Keys by providing a `team_id`.
+
+
 4.6.0 - Aug 16, 2026
 ____________________
 
