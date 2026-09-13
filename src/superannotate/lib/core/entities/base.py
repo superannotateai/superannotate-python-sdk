@@ -4,6 +4,7 @@ from typing import Annotated
 from typing import Literal
 
 from lib.core import BACKEND_URL
+from lib.core import INVALID_TOKEN_ERROR
 from lib.core import LOG_FILE_LOCATION
 from pydantic import AfterValidator
 from pydantic import BaseModel
@@ -119,7 +120,7 @@ def is_legacy_token(value: str) -> bool:
 def _validate_token(value: str) -> str:
     """Validate token format."""
     if not is_legacy_token(value) and not API_KEY_PATTERN.match(value):
-        raise ValueError("Invalid token.")
+        raise ValueError(INVALID_TOKEN_ERROR)
     return value
 
 
@@ -128,9 +129,12 @@ TokenStr = Annotated[str, AfterValidator(_validate_token)]
 
 
 class ConfigEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     API_TOKEN: TokenStr = Field(alias="SA_TOKEN")
+    #: The team to operate in. Only an organization API key needs it — its scope carries
+    #: no team; every other token resolves its own team.
+    TEAM_ID: int | None = Field(alias="SA_TEAM_ID", default=None)
     API_URL: str = Field(alias="SA_URL", default=BACKEND_URL)
     LOGGING_LEVEL: Literal[
         "NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"

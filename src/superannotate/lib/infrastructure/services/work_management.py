@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-import json
 from typing import Literal
 
 from lib.core.entities import CategoryEntity
@@ -30,6 +28,7 @@ from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
 from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
+from lib.infrastructure.services.http_client import encode_entity_context
 
 
 def prepare_validation_error(func):
@@ -69,6 +68,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_CREATE_CATEGORIES = "categories/bulk"
     URL_CUSTOM_FIELD_TEMPLATES = "customfieldtemplates"
     URL_SCORES = "scores"
+    URL_PROJECT_SCORES = "scores/getProjectScores"
     URL_DELETE_SCORE = "scores/{score_id}"
     URL_CUSTOM_FIELD_TEMPLATE_DELETE = "customfieldtemplates/{template_id}"
     URL_SET_CUSTOM_ENTITIES = "customentities/{pk}"
@@ -82,11 +82,6 @@ class WorkManagementService(BaseWorkManagementService):
     URL_PERMISSION_GROUPS = "permissiongroups"
     URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
 
-    @staticmethod
-    def _generate_context(**kwargs):
-        encoded_context = base64.b64encode(json.dumps(kwargs).encode("utf-8"))
-        return encoded_context.decode("utf-8")
-
     def list_folders(self, project_id: int, query: Query) -> ServiceResponse:
         result = self.client.jsx_paginate(
             self.URL_LIST_FOLDERS,
@@ -94,7 +89,7 @@ class WorkManagementService(BaseWorkManagementService):
             item_type=FolderEntity,
             method="post",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, project_id=project_id
                 ),
             },
@@ -109,7 +104,7 @@ class WorkManagementService(BaseWorkManagementService):
             item_type=entity,
             query_params={"project_id": project_id},
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -126,7 +121,7 @@ class WorkManagementService(BaseWorkManagementService):
             params={"project_id": project_id},
             data={"bulk": [{"name": i} for i in categories]},
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, project_id=project_id
                 ),
             },
@@ -144,7 +139,7 @@ class WorkManagementService(BaseWorkManagementService):
             method="delete",
             url=f"{self.URL_CREATE_CATEGORIES}?{query.build_query()}",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, project_id=project_id
                 ),
             },
@@ -167,7 +162,7 @@ class WorkManagementService(BaseWorkManagementService):
             f"{self.URL_LIST}?{query.build_query()}",
             item_type=WorkflowEntity,
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -179,7 +174,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_LIST_STATUSES.format(workflow_id=workflow_id),
             method="get",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, project_id=project_id
                 )
             },
@@ -193,7 +188,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_LIST_ROLES.format(workflow_id=workflow_id),
             method="get",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, project_id=project_id
                 )
             },
@@ -207,7 +202,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_CREATE_ROLE,
             method="post",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, organization_id=org_id
                 )
             },
@@ -219,7 +214,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_CREATE_STATUS,
             method="post",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, organization_id=org_id
                 )
             },
@@ -238,7 +233,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_CUSTOM_FIELD_TEMPLATES,
             method="get",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, **context
                 ),
             },
@@ -254,7 +249,7 @@ class WorkManagementService(BaseWorkManagementService):
             method="post",
             data=data,
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -269,7 +264,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_SET_CUSTOM_ENTITIES.format(pk=project_id),
             method="get",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, project_id=project_id
                 ),
             },
@@ -290,7 +285,7 @@ class WorkManagementService(BaseWorkManagementService):
                 "parentEntity": "Team",
             },
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -307,7 +302,7 @@ class WorkManagementService(BaseWorkManagementService):
             method="post",
             body_query=body_query,
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -332,10 +327,10 @@ class WorkManagementService(BaseWorkManagementService):
                 url = self.URL_SEARCH_PROJECT_USERS
         if project_id is None:
             user_entity = WMUserEntity
-            entity_context = self._generate_context(team_id=self.client.team_id)
+            entity_context = encode_entity_context(team_id=self.client.team_id)
         else:
             user_entity = WMProjectUserEntity
-            entity_context = self._generate_context(
+            entity_context = encode_entity_context(
                 team_id=self.client.team_id,
                 project_id=project_id,
             )
@@ -382,7 +377,7 @@ class WorkManagementService(BaseWorkManagementService):
                 "access": access if access is not None else {},
             },
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, **entity_context
                 ),
             },
@@ -405,7 +400,7 @@ class WorkManagementService(BaseWorkManagementService):
                 "parentEntity": parent_entity.value,
             },
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, **entity_context
                 ),
             },
@@ -426,7 +421,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_SET_CUSTOM_ENTITIES.format(pk=entity_id),
             method="patch",
             headers={
-                "x-sa-entity-context": self._generate_context(**context),
+                "x-sa-entity-context": encode_entity_context(**context),
             },
             data={"customField": {"custom_field_values": {template_id: data}}},
             params={
@@ -448,7 +443,7 @@ class WorkManagementService(BaseWorkManagementService):
             method="post",
             data=body,
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -458,11 +453,23 @@ class WorkManagementService(BaseWorkManagementService):
         return self.client.paginate(
             url=self.URL_SCORES,
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
             item_type=WMScoreEntity,
+        )
+
+    def list_project_scores(self, project_id: int) -> WMScoreListResponse:
+        return self.client.paginate(
+            url=self.URL_PROJECT_SCORES,
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id, project_id=project_id
+                ),
+            },
+            item_type=WMScoreEntity,
+            method="post",
         )
 
     def create_score(
@@ -482,7 +489,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_SCORES,
             method="post",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=int(self.client.team_id)
                 ),
             },
@@ -494,7 +501,7 @@ class WorkManagementService(BaseWorkManagementService):
             url=self.URL_DELETE_SCORE.format(score_id=score_id),
             method="delete",
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -533,7 +540,7 @@ class WorkManagementService(BaseWorkManagementService):
                     "body": {"categories": [{"id": i} for i in category_ids]},
                 },
                 headers={
-                    "x-sa-entity-context": self._generate_context(
+                    "x-sa-entity-context": encode_entity_context(
                         team_id=self.client.team_id, project_id=project_id
                     ),
                 },
@@ -547,7 +554,7 @@ class WorkManagementService(BaseWorkManagementService):
         return self.client.paginate(
             url=self.URL_PERMISSION_GROUPS,
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
@@ -587,7 +594,7 @@ class WorkManagementService(BaseWorkManagementService):
                     },
                 },
                 headers={
-                    "x-sa-entity-context": self._generate_context(
+                    "x-sa-entity-context": encode_entity_context(
                         team_id=self.client.team_id, project_id=project_id
                     ),
                 },
@@ -619,7 +626,7 @@ class WorkManagementService(BaseWorkManagementService):
                 "body": {"userPermissions": [{"id": i} for i in permission_ids]},
             },
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id,
                 ),
             },
@@ -647,7 +654,7 @@ class WorkManagementService(BaseWorkManagementService):
                 exclude_unset=True, by_alias=True, mode="json", exclude_none=True
             ),
             headers={
-                "x-sa-entity-context": self._generate_context(
+                "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, project_id=project_id
                 ),
             },

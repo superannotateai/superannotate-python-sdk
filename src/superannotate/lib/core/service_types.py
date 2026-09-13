@@ -162,6 +162,10 @@ class TeamResponse(ServiceResponse):
     res_data: entities.TeamEntity = None
 
 
+class OrgTeamsResponse(ServiceResponse):
+    res_data: list[entities.OrgTeamEntity] = None
+
+
 class UserResponse(ServiceResponse):
     res_data: entities.UserEntity = None
 

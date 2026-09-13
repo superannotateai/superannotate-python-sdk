@@ -115,7 +115,7 @@ class ProjectEntity(TimedBaseModel):
 
 
 class UserEntity(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")
 
     id: str | None = None
     first_name: str | None = None
@@ -138,6 +138,19 @@ class TeamEntity(BaseModel):
     creator_id: str | None = None
     owner_id: str | None = None
     scores: list[str] | None = None
+
+
+class OrgTeamEntity(BaseModel):
+    """A team as returned by SAORGClient.list_teams() - only what that endpoint sends."""
+
+    model_config = ConfigDict(extra="ignore", coerce_numbers_to_str=True)
+
+    id: int | None = None
+    name: str | None = None
+    description: str | None = None
+    creator_id: str | None = None
+    owner_id: str | None = None
+    owner_type: str | None = None
 
 
 class CustomFieldEntity(BaseModel):

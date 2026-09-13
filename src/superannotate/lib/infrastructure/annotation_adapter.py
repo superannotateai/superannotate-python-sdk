@@ -9,7 +9,7 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.utils import run_async
 from lib.core.utils import set_last_action
-from lib.infrastructure.controller import Controller
+from lib.infrastructure.controller import TeamController
 
 
 class BaseMultimodalAnnotationAdapter(ABC):
@@ -18,7 +18,7 @@ class BaseMultimodalAnnotationAdapter(ABC):
         project: ProjectEntity,
         folder: FolderEntity,
         item: BaseItemEntity,
-        controller: Controller,
+        controller: TeamController,
         annotation: dict = None,
     ):
         self._project = project
@@ -93,7 +93,7 @@ class MultimodalSmallAnnotationAdapter(BaseMultimodalAnnotationAdapter):
         project: ProjectEntity,
         folder: FolderEntity,
         item: BaseItemEntity,
-        controller: Controller,
+        controller: TeamController,
         overwrite: bool = True,
         annotation: dict = None,
     ):
