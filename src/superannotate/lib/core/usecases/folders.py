@@ -11,6 +11,7 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.serviceproviders import BaseServiceProvider
 from lib.core.usecases.base import BaseUseCase
+from lib.infrastructure.utils import assert_folder_in_project
 
 logger = logging.getLogger("sa")
 
@@ -107,9 +108,11 @@ class GetFolderUseCase(BaseUseCase):
 
     def execute(self):
         try:
-            self._response.data = self._service_provider.folders.get_by_name(
+            folder = self._service_provider.folders.get_by_name(
                 self._project, self._folder_name
             ).data
+            assert_folder_in_project(folder, self._project)
+            self._response.data = folder
         except AppException as e:
             self._response.errors = e
         return self._response

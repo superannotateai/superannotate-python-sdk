@@ -6,6 +6,26 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.6.2 - Sep 14, 2026
+____________________
+
+
+**Fixed**
+
+    - Requests no longer inherit the project and folder scope of the call before them. A
+      per-request ``x-sa-entity-context`` header was written onto the shared HTTP session
+      and never removed, so a later call that set none of its own was silently scoped to
+      the previous call's project - which could upload annotations into another project's
+      folder.
+
+    - Threads no longer share an HTTP session. Sessions were cached against
+      ``threading.get_ident()``, which is recycled as soon as a thread exits, so unrelated
+      threads were handed each other's session, headers and connection pool.
+
+    - Resolving a folder now fails loudly if the backend returns one belonging to a
+      different project, instead of accepting it and writing to it.
+
+
 4.6.1 - Sep 13, 2026
 ____________________
 

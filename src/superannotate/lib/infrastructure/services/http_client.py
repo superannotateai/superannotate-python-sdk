@@ -12,7 +12,6 @@ import time
 import urllib.parse
 from contextlib import contextmanager
 from enum import Enum
-from functools import lru_cache
 from typing import Any
 from typing import Literal
 
@@ -63,15 +62,13 @@ class HttpClient(BaseClient):
         self._verify_ssl = verify_ssl
         self._version = os.environ.get("sa_version")
         self._env = os.environ.get("SA_ENV")
+        self._local = threading.local()
 
     @property
     def verify_ssl(self):
         return self._verify_ssl
 
-    @lru_cache(maxsize=32)
-    def _get_session(self, thread_id, ttl=None):  # noqa
-        del ttl
-        del thread_id
+    def _build_session(self) -> requests.Session:
         retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[502, 503, 504])
 
         session = requests.Session()
@@ -80,10 +77,20 @@ class HttpClient(BaseClient):
         session.headers.update(self.default_headers)
         return session
 
-    def get_session(self):
-        return self._get_session(
-            thread_id=threading.get_ident(), ttl=round(time.time() / 360)
-        )
+    def get_session(self) -> requests.Session:
+        """The calling thread's own session.
+
+        requests.Session is not thread-safe - headers, cookies and the connection pool
+        are shared mutable state - so a thread gets one of its own rather than a shared
+        one. Held in a threading.local rather than a cache keyed on get_ident(): idents
+        are recycled the moment a thread dies, and run_async() starts and joins a thread
+        for every async operation, so an ident-keyed cache hands a dead thread's session
+        to an unrelated live one.
+        """
+        session = getattr(self._local, "session", None)
+        if session is None:
+            session = self._local.session = self._build_session()
+        return session
 
     @property
     def default_headers(self) -> dict:
@@ -172,12 +179,24 @@ class HttpClient(BaseClient):
         if params:
             kwargs["params"].update(params)
         session = self.get_session()
-        if files and session.headers.get("Content-Type"):
-            del session.headers["Content-Type"]
-        session.headers.update(headers if headers else {})
-        response = self._request(_url, method, session=session, retried=0, **kwargs)
+        # Per-request headers ride on the request, never on the session. A header
+        # written to session.headers outlives the call that needed it, and the one that
+        # matters here is x-sa-entity-context - the team, project and folder a request
+        # applies to. Left behind, it silently rescopes every later call on this session
+        # that sets none of its own. prepare_request() merges these over the session's.
+        request_headers = dict(headers) if headers else {}
         if files:
-            session.headers.update(self.default_headers)
+            # requests generates the multipart Content-Type, boundary and all; None
+            # suppresses the session's application/json rather than overriding it.
+            request_headers["Content-Type"] = None
+        response = self._request(
+            _url,
+            method,
+            session=session,
+            retried=0,
+            headers=request_headers,
+            **kwargs,
+        )
         return self.serialize_response(response, content_type, dispatcher)
 
     def paginate(

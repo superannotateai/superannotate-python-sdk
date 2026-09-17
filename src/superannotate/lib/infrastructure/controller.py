@@ -66,6 +66,7 @@ from lib.infrastructure.serviceprovider import ServiceProvider
 from lib.infrastructure.services.auth import resolve_organization_context
 from lib.infrastructure.services.auth import resolve_team_context
 from lib.infrastructure.services.http_client import HttpClient
+from lib.infrastructure.utils import assert_folder_in_project
 from lib.infrastructure.utils import divide_to_chunks
 from lib.infrastructure.utils import extract_project_folder
 from typing_extensions import Unpack
@@ -1854,6 +1855,7 @@ class TeamController(BaseController):
             folder = self.folders.get_by_name(project, name).data
         if not folder:
             raise AppException("Folder not found.")
+        assert_folder_in_project(folder, project)
         return folder
 
     @staticmethod

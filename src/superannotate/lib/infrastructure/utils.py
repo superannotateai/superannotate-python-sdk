@@ -45,6 +45,25 @@ def split_project_path(project_path: str) -> tuple[str, str | None]:
     return project_name, folder_name
 
 
+def assert_folder_in_project(folder, project: ProjectEntity) -> None:
+    """Fail loudly if a resolved folder does not belong to the project it was asked for.
+
+    Folder lookups are scoped by the backend, not by the SDK, so a mis-scoped request
+    returns a foreign folder rather than an error. Everything downstream then addresses
+    that folder by id - items get attached to it, annotations get written into it - so an
+    unchecked mismatch is a silent cross-project write. Checked here rather than at each
+    call site: every path to a folder entity goes through a lookup.
+    """
+    if folder is None or folder.project_id is None or project.id is None:
+        return
+    if folder.project_id != project.id:
+        raise AppException(
+            f"Resolved folder does not belong to the requested project: folder "
+            f"{folder.name!r} (id {folder.id}) belongs to project {folder.project_id}, "
+            f"but project {project.name!r} (id {project.id}) was requested."
+        )
+
+
 def extract_project_folder(user_input: str | dict) -> tuple[str, str | None]:
     if isinstance(user_input, str):
         return split_project_path(user_input)

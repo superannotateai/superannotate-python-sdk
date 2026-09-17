@@ -1,7 +1,11 @@
 import os
 import platform
+import threading
 from unittest import TestCase
 from unittest.mock import patch
+
+from requests import Response
+from requests import Session
 
 from src.superannotate.lib.core.entities.context import TokenContext
 from src.superannotate.lib.core.entities.context import TokenScope
@@ -115,3 +119,121 @@ class TestTeamScoping(TestCase):
         params["project_id"] = 7
 
         assert client.default_query_params == {"team_id": 123}
+
+
+class TestRequestHeaderIsolation(TestCase):
+    """A header a single request needs must not outlive that request.
+
+    x-sa-entity-context names the team, project and folder a request applies to. Written
+    onto the shared session it silently rescopes every later call that sets none of its
+    own - which is how annotations were uploaded into another project's folder
+    (CUST-1182).
+    """
+
+    API_URL = "https://api.example.com"
+
+    def setUp(self):
+        self.client = HttpClient(
+            self.API_URL,
+            TokenContext(token="t", team_id=123, scope=TokenScope.LEGACY),
+        )
+        self.sent = []
+
+        def fake_send(session, request=None, **kwargs):
+            self.sent.append(dict(request.headers))
+            response = Response()
+            response.status_code = 200
+            response._content = b"{}"
+            return response
+
+        patcher = patch.object(Session, "send", fake_send)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_a_per_request_header_is_not_left_on_the_session(self):
+        self.client.request(
+            "items/search", "post", headers={"x-sa-entity-context": "A"}
+        )
+        self.client.request("folder/getFolderByName", "get", params={"project_id": 9})
+
+        assert self.sent[0]["x-sa-entity-context"] == "A"
+        # The second call set none of its own, so it must carry the team-only default.
+        assert self.sent[1]["x-sa-entity-context"] == (
+            self.client.default_headers["x-sa-entity-context"]
+        )
+        assert self.client.get_session().headers["x-sa-entity-context"] == (
+            self.client.default_headers["x-sa-entity-context"]
+        )
+
+    def test_a_per_request_header_does_not_leak_between_projects(self):
+        self.client.request(
+            "items/search", "post", headers={"x-sa-entity-context": "P1"}
+        )
+        self.client.request(
+            "items/search", "post", headers={"x-sa-entity-context": "P2"}
+        )
+        self.client.request("folder/getFolderByName", "get")
+
+        assert [h["x-sa-entity-context"] for h in self.sent[:2]] == ["P1", "P2"]
+        assert self.sent[2]["x-sa-entity-context"] not in ("P1", "P2")
+
+    def test_a_file_upload_suppresses_the_json_content_type_for_that_call_only(self):
+        self.client.request("items/upload", "post", files={"f": b"x"})
+        self.client.request("items/search", "post")
+
+        assert "Content-Type" not in self.sent[0]
+        assert self.sent[1]["Content-Type"] == "application/json"
+
+
+class TestSessionIsolation(TestCase):
+    """requests.Session is not thread-safe, so no two threads may share one.
+
+    Sessions used to be cached against threading.get_ident(), which CPython recycles as
+    soon as a thread exits - and run_async() starts and joins a thread per async
+    operation, so unrelated threads were handed each other's session.
+    """
+
+    API_URL = "https://api.example.com"
+
+    def setUp(self):
+        self.client = HttpClient(
+            self.API_URL,
+            TokenContext(token="t", team_id=123, scope=TokenScope.LEGACY),
+        )
+
+    def test_one_thread_reuses_its_own_session(self):
+        assert self.client.get_session() is self.client.get_session()
+
+    def test_no_session_is_shared_between_threads(self):
+        # References are held so a dead thread's session cannot be freed and a new one
+        # allocated at the same address, which would make identity comparison lie.
+        sessions, idents = [], []
+
+        def work():
+            idents.append(threading.get_ident())
+            sessions.append(self.client.get_session())
+
+        for _ in range(25):
+            thread = threading.Thread(target=work)
+            thread.start()
+            thread.join()
+
+        assert len(set(map(id, sessions))) == len(sessions)
+        # The point of the test: the idents these threads ran under were reused.
+        assert len(set(idents)) < len(idents)
+
+    def test_concurrent_threads_get_distinct_sessions(self):
+        sessions = []
+        barrier = threading.Barrier(4)
+
+        def work():
+            barrier.wait()
+            sessions.append(self.client.get_session())
+
+        threads = [threading.Thread(target=work) for _ in range(4)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        assert len(set(map(id, sessions))) == 4

@@ -321,6 +321,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     ::
 
         sa = SAClient(config={"SA_TOKEN": "<API key>", "SA_URL": "<host>"})
+
+    **Threads.** Give each thread its own client. A client holds an HTTP session per
+    thread, so sharing one instance is safe, but a client is cheapest to reuse and a
+    thread that builds its own keeps its scope to itself. Build it once per thread
+    rather than once per task - creating a client authenticates and fetches the team.
+    ::
+
+        import threading
+
+        _local = threading.local()
+
+        def get_client():
+            if not hasattr(_local, "sa"):
+                _local.sa = SAClient(token="<API key>")
+            return _local.sa
     """
 
     CONTROLLER_CLASS = TeamController

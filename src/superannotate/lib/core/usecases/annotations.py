@@ -58,7 +58,7 @@ logger = logging.getLogger("sa")
 if platform.system().lower() == "windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-BIG_FILE_THRESHOLD = 15 * 1024 * 1024
+
 ANNOTATION_CHUNK_SIZE_MB = 10 * 1024 * 1024
 URI_THRESHOLD = 4 * 1024 - 120
 
