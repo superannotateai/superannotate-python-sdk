@@ -88,7 +88,7 @@ class Explore(BaseNamespace, metaclass=TrackableMeta):
                     "name": "TEST_00001",
                     "folder_id": 867191,
                     "comments": [],
-                    "annotation_status": 2,
+                    "annotation_status": "InProgress",
                     "path": "custom_llm",
                     "approval_status": 0,
                     "createdAt": "2026-08-04T03:50:53.000Z",

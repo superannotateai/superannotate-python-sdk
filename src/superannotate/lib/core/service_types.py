@@ -276,8 +276,9 @@ class ExploreLastAction(BaseModel):
 class ExploreItem(BaseModel):
     """An item as returned by the Explore query language (v3 items/search).
 
-    Values are kept as the backend sends them (e.g. annotation_status and is_pinned
-    are ints); keys not listed here are dropped.
+    Values are kept as the backend sends them (e.g. is_pinned is an int), except
+    annotation_status, which ExploreQueryUseCase maps from its id to its name. Keys not
+    listed here are dropped.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -286,7 +287,7 @@ class ExploreItem(BaseModel):
     name: str
     folder_id: int | None = None
     comments: list = Field(default_factory=list)
-    annotation_status: int | None = None
+    annotation_status: int | str | None = None
     path: str | None = None
     approval_status: int | None = None
     createdAt: str | None = None

@@ -1,3 +1,4 @@
+import time
 from unittest import TestCase
 
 from src.superannotate import AppException
@@ -88,6 +89,29 @@ class TestExploreMM(TestCase):
         assert {i["name"] for i in items} == {f"a_{i:05d}" for i in range(1, 61)}
         assert all(set(i) == ITEM_KEYS for i in items)
         assert all(i["is_root_folder"] for i in items)
+
+    def test_annotation_status_is_a_name(self):
+        sa.generate_items(self.PROJECT_NAME, 3, name="a")
+        sa.set_annotation_statuses(self.PROJECT_NAME, "InProgress", ["a_00001"])
+
+        # the explore index picks up a status change asynchronously
+        for _ in range(15):
+            in_progress = sa.explore.query(self.PROJECT_NAME, '_status = "InProgress"')
+            if len(in_progress):
+                break
+            time.sleep(2)
+        not_started = sa.explore.query(self.PROJECT_NAME, self.QUERY)
+
+        assert [i["annotation_status"] for i in in_progress] == ["InProgress"]
+        assert {i["annotation_status"] for i in not_started} == {"NotStarted"}
+        # same representation as list_items
+        listed = {
+            i["name"]: i["annotation_status"] for i in sa.list_items(self.PROJECT_NAME)
+        }
+        queried = {
+            i["name"]: i["annotation_status"] for i in [*in_progress, *not_started]
+        }
+        assert queried == listed
 
     def test_query_count(self):
         sa.generate_items(self.PROJECT_NAME, 30, name="a")

@@ -303,7 +303,15 @@ class ExploreQueryUseCase(BaseExploreQueryUseCase):
                 self._project, **query_kwargs
             )
             if service_response.ok:
-                self._response.data = service_response.data
+                items = service_response.data
+                # the backend sends the status id - report its name, as list_items does
+                for item in items:
+                    item.annotation_status = (
+                        self._service_provider.get_annotation_status_name(
+                            self._project, item.annotation_status
+                        )
+                    )
+                self._response.data = items
             else:
                 self._response.errors = service_response.error
         return self._response

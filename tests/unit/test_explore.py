@@ -200,6 +200,15 @@ class ExploreQueryUseCaseTestCase(TestCase):
             PROJECT, query=None, folder=FOLDER, subset_id=7
         )
 
+    def test_annotation_status_is_reported_by_name(self):
+        self.explore.explore_query.return_value = _page(2)
+        self.service_provider.get_annotation_status_name.return_value = "InProgress"
+
+        response = self._use_case(query="x").execute()
+
+        assert [i.annotation_status for i in response.data] == ["InProgress"] * 2
+        self.service_provider.get_annotation_status_name.assert_called_with(PROJECT, 2)
+
     def test_unknown_subset(self):
         self.explore.list_subsets.return_value = ServiceResponse(
             status=200, res_data=[SubSetEntity(id=7, name="other")]
