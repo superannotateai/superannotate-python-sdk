@@ -6,6 +6,9 @@ import logging
 from abc import ABCMeta
 from abc import abstractmethod
 from collections.abc import Callable
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 from pathlib import Path
 from typing import Any
 from typing import Literal
@@ -34,11 +37,15 @@ from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
 from lib.core.entities.filters import ProjectFilters
 from lib.core.entities.filters import ProjectUserFilters
+from lib.core.entities.filters import TeamAPIKeyFilters
 from lib.core.entities.filters import TeamUserFilters
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import ProjectCategoryEntity
 from lib.core.entities.work_managament import ScoreEntity
 from lib.core.entities.work_managament import ScorePayloadEntity
+from lib.core.entities.work_managament import TEAM_API_KEY_LIVE_STATUSES
+from lib.core.entities.work_managament import TeamAPIKeyEntity
+from lib.core.entities.work_managament import TeamAPIKeyStatus
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectType
@@ -60,6 +67,7 @@ from lib.infrastructure.query_builder import ItemFilterHandler
 from lib.infrastructure.query_builder import ProjectFilterHandler
 from lib.infrastructure.query_builder import ProjectUserRoleFilterHandler
 from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.query_builder import TeamAPIKeyFilterHandler
 from lib.infrastructure.query_builder import TeamUserFilterHandler
 from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.serviceprovider import ServiceProvider
@@ -637,6 +645,130 @@ class WorkManagementManager(BaseManager):
         if isinstance(user, int):
             return self.list_users(id__in=[user])
         return self.list_users(email__in=[user])
+
+    def generate_team_api_key(
+        self, name: str, expires_in: int | timedelta | datetime
+    ) -> TeamAPIKeyEntity:
+        return self.service_provider.work_management.create_team_api_key(
+            name=self._validate_key_name(name),
+            expires_at=self._resolve_expiration(expires_in),
+        )
+
+    def rotate_team_api_key(
+        self,
+        name: str,
+        overlap: int | str,
+        expires_in: int | timedelta | datetime,
+    ) -> TeamAPIKeyEntity:
+        key = self._find_rotatable_key(name, self.list_team_api_keys())
+        expires_at = self._resolve_expiration(expires_in)
+        return self.service_provider.work_management.rotate_team_api_key(
+            key_id=key.id,
+            overlap_days=self._resolve_overlap(overlap, expires_at),
+            expires_at=expires_at,
+        )
+
+    def list_team_api_keys(self, **filters) -> list[TeamAPIKeyEntity]:
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(TeamAPIKeyFilters.__annotations__.keys()),
+                TeamAPIKeyFilterHandler(),
+            ]
+        )
+        response = self.service_provider.work_management.list_team_api_keys(
+            chain.handle(filters, EmptyQuery())
+        )
+        response.raise_for_status()
+        # Newest first. Key ids grow with every key, so they order the keys by age
+        # without relying on the order the backend happens to answer in.
+        return sorted(response.data, key=lambda key: key.id or 0, reverse=True)
+
+    def revoke_team_api_key(self, public_id: str) -> TeamAPIKeyEntity:
+        key = self._find_key(public_id, self.list_team_api_keys())
+        if key is None:
+            raise AppException(constants.API_KEY_NOT_FOUND_ERROR)
+        if key.status not in TEAM_API_KEY_LIVE_STATUSES:
+            raise AppException(constants.API_KEY_ALREADY_REVOKED_ERROR)
+        return self.service_provider.work_management.revoke_team_api_key(key_id=key.id)
+
+    @staticmethod
+    def _validate_key_name(name: str) -> str:
+        """The backend accepts a blank name, so it is rejected here."""
+        if not name or not name.strip():
+            raise AppException("Name cannot be empty")
+        return name
+
+    @staticmethod
+    def _resolve_expiration(expires_in: int | timedelta | datetime) -> str:
+        """``expires_in`` as the instant the backend takes in ``expiresAt``.
+
+        A number of days or a duration is counted from now; a datetime is the expiry
+        itself, read in the local timezone when it carries none - that is the clock the
+        caller wrote it against. Whether the instant that produces is an acceptable
+        expiry - too far out, or already past - is the backend's to answer, so it is
+        sent as it is.
+        """
+        now = datetime.now(timezone.utc)
+        if isinstance(expires_in, datetime):
+            expires_at = expires_in.astimezone(timezone.utc)
+        elif isinstance(expires_in, timedelta):
+            expires_at = now + expires_in
+        elif isinstance(expires_in, int) and not isinstance(expires_in, bool):
+            expires_at = now + timedelta(days=expires_in)
+        else:
+            # Not a rule but a conversion: there is no ``expiresAt`` to send for
+            # anything that is neither a number of days, a duration, nor a date.
+            raise AppException("Expiration date is invalid")
+        return expires_at.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+    @staticmethod
+    def _resolve_overlap(overlap: int | str, expires_at: str) -> int:
+        """``overlap`` as the number of days the rotated key stays valid for.
+
+        "expire_immediately" is no window at all. A window cannot outlast the new key,
+        which the backend does not check either - though only an expiry still ahead is
+        worth measuring against, an expiry already past being the backend's to refuse.
+        """
+        days = (
+            0 if overlap == constants.TEAM_API_KEY_EXPIRE_IMMEDIATELY else int(overlap)
+        )
+        now = datetime.now(timezone.utc)
+        expiry = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        if expiry > now and now + timedelta(days=days) > expiry:
+            raise AppException(
+                "The overlap period cannot be longer than the new key expiration period."
+            )
+        return days
+
+    @staticmethod
+    def _find_key(
+        public_id: str, keys: list[TeamAPIKeyEntity]
+    ) -> TeamAPIKeyEntity | None:
+        return next((key for key in keys if key.public_id == public_id), None)
+
+    @classmethod
+    def _find_rotatable_key(
+        cls, name: str, keys: list[TeamAPIKeyEntity]
+    ) -> TeamAPIKeyEntity:
+        """The key ``name`` names, by public id or by name.
+
+        A name is not unique - a rotation leaves the old key behind under the same
+        name - so of several the Active one is rotated, that being the one still handed
+        out.
+        """
+        key = cls._find_key(name, keys)
+        if key is None:
+            named = [k for k in keys if k.name == name]
+            live = [k for k in named if k.status in TEAM_API_KEY_LIVE_STATUSES]
+            key = next(
+                (k for k in live if k.status == TeamAPIKeyStatus.ACTIVE),
+                next(iter(live), next(iter(named), None)),
+            )
+        if key is None:
+            raise AppException(constants.API_KEY_NOT_FOUND_ERROR)
+        if key.status not in TEAM_API_KEY_LIVE_STATUSES:
+            raise AppException(constants.API_KEY_ALREADY_REVOKED_ERROR)
+        return key
 
 
 class ProjectManager(BaseManager):

@@ -6,6 +6,21 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.6.2 - Sep 17, 2026
+____________________
+
+
+**Added**
+
+    - ``SAClient.generate_team_api_key()`` Generates a new team API key bound to the given team, active immediately. Requires an Organization API Key and a team ID.
+
+    - ``SAClient.rotate_team_api_key()`` Generates a new active key and keeps the old one valid for a defined overlap window, supporting the two-valid-key model with no downtime. Requires an Organization API Key and a team ID.
+
+    - ``SAClient.list_team_api_keys()`` Returns the team API keys in the given team, newest first, with filtering by ``id``, ``name`` and ``status``.
+
+    - ``SAClient.revoke_team_api_key()`` Revokes a team API key that is in the Active or Rotating state.
+
+
 4.6.1 - Sep 13, 2026
 ____________________
 

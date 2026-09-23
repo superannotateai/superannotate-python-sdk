@@ -41,6 +41,7 @@ from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
 
 from lib.app.interface.types import EmailStr
+from lib.app.interface.types import ExpiresIn
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import FolderSerializer
 from lib.app.serializers import ProjectSerializer
@@ -1407,6 +1408,271 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             permissions=permissions,
             operation="revoke",
         )
+
+    def generate_team_api_key(
+        self,
+        name: str,
+        expires_in: ExpiresIn = 365,
+    ) -> dict:
+        """
+        Generates a new team API key bound to the given team; the key is active
+        immediately. Must use Organization API Key and team ID for this function.
+
+        :param name: Key name.
+        :type name: str
+
+        :param expires_in: When the key expires:
+
+            - **int**: number of days from now (e.g., 30, 90, 365).
+            - **timedelta**: duration from now (e.g., timedelta(days=90)).
+            - **datetime**: absolute expiry date (e.g., datetime(2027, 1, 1)).
+
+            Cannot exceed 365 days from the creation date. Defaults to 365 days.
+        :type expires_in: Union[int, timedelta, datetime], optional
+
+        :return: The generated key, including the ``api_key`` value itself. The value
+            is returned only here and cannot be retrieved later.
+        :rtype: dict
+
+        :raises AppException: If the name is empty, or if ``expires_in`` is neither a
+            number of days, a duration, nor a date. Everything else the backend
+            decides - a duplicate name, an expiry it will not accept, or a key not
+            allowed to create keys - is reported with the backend's own message.
+
+        Request Example:
+        ::
+
+            # To create a 30-day key:
+
+            sa_client.generate_team_api_key(
+                name="CI pipeline key",
+                expires_in=datetime.now() + timedelta(days=30)
+            )
+
+            # To create a key with the default 365-day expiration:
+
+            sa_client.generate_team_api_key(name="Local dev key")
+
+            # To create a key with custom expiration:
+
+            sa_client.generate_team_api_key(name="API key", expires_in=timedelta(days=365))
+
+        Response Example:
+        ::
+
+            {
+                "id": 9010,
+                "public_id": "XBb9i1glPi8SCaHW",
+                "name": "new_api_key",
+                "scope": {
+                    "team_id": 85922
+                },
+                "created_by": "test@superannotate.com",
+                "status": "ACTIVE",
+                "expiresAt": "2027-08-13T05:22:31.421Z",
+                "createdAt": "2026-08-13T05:22:32.044Z",
+                "updatedAt": "2026-08-13T05:22:32.044Z",
+                "api_key": "<api_key>"
+            }
+        """
+        key = self.controller.work_management.generate_team_api_key(
+            name=name, expires_in=expires_in
+        )
+        return BaseSerializer(key).serialize(by_alias=True, exclude_unset=True)
+
+    def rotate_team_api_key(
+        self,
+        name: str,
+        overlap: Literal["expire_immediately", 1, 7, 14, 30] = 7,
+        expires_in: ExpiresIn = 365,
+    ) -> dict:
+        """
+        Generates a new active key and keeps the old one valid for a defined overlap
+        window, supporting the two-valid-key model with no downtime. Must use
+        Organization API Key and team ID for this function.
+
+        :param name: Name or public id of the key to rotate. A name is not unique -
+            a rotation leaves the old key behind under the same name - so of several
+            the Active one is rotated.
+        :type name: str
+
+        :param overlap: How long the rotated key stays valid: "expire_immediately",
+            or 1, 7, 14, 30 days. Defaults to 7.
+        :type overlap: Union[int, str], optional
+
+        :param expires_in: When the new key expires:
+
+            - **int**: number of days from now (e.g., 30, 90, 365).
+            - **timedelta**: duration from now (e.g., timedelta(days=90)).
+            - **datetime**: absolute expiry date (e.g., datetime(2027, 1, 1)).
+
+            Cannot exceed 365 days from the creation date. Defaults to 365 days.
+        :type expires_in: Union[int, timedelta, datetime], optional
+
+        :return: The new key, including the ``api_key`` value itself. The value is
+            returned only here and cannot be retrieved later.
+        :rtype: dict
+
+        :raises AppException: If the key does not exist, is already revoked or
+            expired, if the overlap outlasts the new key's expiration, or if
+            ``expires_in`` is neither a number of days, a duration, nor a date.
+
+        Request Example:
+        ::
+
+            # To rotate with a 24-hour overlap and a new 90-day expiration:
+
+            sa_client.rotate_team_api_key(name="api_key_to_rotate", overlap=1, expires_in=90)
+
+            # To rotate immediately with no overlap:
+
+            sa_client.rotate_team_api_key(name="api_key_to_rotate", overlap="expire_immediately")
+
+        Response Example:
+        ::
+
+            {
+                "id": 9010,
+                "public_id": "XBb9i1glPi8SCaHW",
+                "name": "api_key_to_rotate",
+                "scope": {
+                    "team_id": 85922
+                },
+                "created_by": "test@superannotate.com",
+                "status": "ACTIVE",
+                "expiresAt": "2027-08-13T05:22:31.421Z",
+                "createdAt": "2026-08-13T05:22:32.044Z",
+                "updatedAt": "2026-08-13T05:22:32.044Z",
+                "api_key": "<api_key>"
+            }
+        """
+        key = self.controller.work_management.rotate_team_api_key(
+            name=name, overlap=overlap, expires_in=expires_in
+        )
+        return BaseSerializer(key).serialize(by_alias=True, exclude_unset=True)
+
+    def list_team_api_keys(self, **filters) -> list[dict]:
+        """
+        Returns the team API keys in the given team, newest first. Can use
+        Organization API Key and team ID, Team API Key or Personal API Key for this
+        function.
+
+        :param filters: Specifies filtering criteria, with all conditions combined
+            using logical AND.
+
+            - Only team api keys matching all filter conditions are returned.
+
+            - If no filter operation is provided, an exact match is applied.
+
+            Supported operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - name: str
+            - name__in: list[str]
+            - name__contains: str
+            - name__starts: str
+            - name__ends: str
+            - status: Literal["Active", "Rotating", "Expired", "Revoked"]
+            - status__ne: Literal["Active", "Rotating", "Expired", "Revoked"]
+            - status__in: List[Literal["Active", "Rotating", "Expired", "Revoked"]]
+            - status__notin: List[Literal["Active", "Rotating", "Expired", "Revoked"]]
+
+        :type filters: TeamAPIKeyFilters, optional
+
+        :return: The team's API keys that match the filtering criteria; an empty list
+            if the team has no keys or none of them match.
+        :rtype: list of dicts
+
+        :raises AppException: If a filter param is not supported, or if ``status``
+            contains a value outside the four accepted statuses.
+
+        Request Example:
+        ::
+
+            sa_client.list_team_api_keys(status__in=["Active", "Rotating"])
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "id": 9010,
+                    "public_id": "XBb9i1glPi8SCaHW",
+                    "name": "active_api_key",
+                    "scope": {
+                        "team_id": 85922
+                    },
+                    "created_by": "test@superannotate.com",
+                    "revoked_by": None,
+                    "rotation_parent_id": None,
+                    "status": "ACTIVE",
+                    "deletedAt": None,
+                    "expiresAt": "2027-08-13T05:22:31.421Z",
+                    "revokedAt": None,
+                    "overlapEndAt": None,
+                    "createdAt": "2026-08-13T05:22:32.044Z",
+                    "updatedAt": "2026-08-13T05:22:32.044Z",
+                    "lastUsedAt": None
+                },
+                {
+                    "id": 8880,
+                    "public_id": "otwr84WkHXh64Wms",
+                    "name": "rotating_api_key",
+                    "scope": {
+                        "team_id": 85922
+                    },
+                    "created_by": "test@superannotate.com",
+                    "revoked_by": None,
+                    "rotation_parent_id": None,
+                    "status": "ROTATING",
+                    "deletedAt": None,
+                    "expiresAt": "2026-08-14T05:22:31.421Z",
+                    "revokedAt": None,
+                    "overlapEndAt": "2026-08-14T05:22:31.421Z",
+                    "createdAt": "2026-08-12T11:09:42.103Z",
+                    "updatedAt": "2026-08-13T05:22:32.027Z",
+                    "lastUsedAt": None
+                }
+            ]
+        """
+        return BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_team_api_keys(**filters),
+            by_alias=True,
+            exclude_unset=True,
+        )
+
+    def revoke_team_api_key(self, public_id: str) -> None:
+        """
+        Revokes the team API key. Team API key should be in Active or Rotating state.
+        Can use Organization API Key and team ID, Team API Key or Personal API Key for
+        this function.
+
+        :param public_id: The public id of the key to revoke.
+        :type public_id: str
+
+        :rtype: None
+
+        :raises AppException: If the key does not exist or does not belong to the
+            caller, or if it is already revoked or expired.
+
+        Request Example:
+        ::
+
+            # Revoke team API key
+            sa_client.revoke_team_api_key(public_id="UwBK9syTtXUGROrA")
+        """
+        key = self.controller.work_management.revoke_team_api_key(public_id=public_id)
+        logger.info(f"Successfully revoked API key: {key.name}.")
 
     def get_component_config(self, project: NotEmptyStr | int, component_id: str):
         """

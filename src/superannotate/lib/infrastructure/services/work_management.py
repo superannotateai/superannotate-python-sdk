@@ -4,9 +4,11 @@ from typing import Literal
 
 from lib.core.entities import CategoryEntity
 from lib.core.entities import FolderEntity
+from lib.core.entities import TokenScope
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.work_managament import PermissionGroupEntity
+from lib.core.entities.work_managament import TeamAPIKeyEntity
 from lib.core.entities.work_managament import WMAnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
@@ -26,6 +28,7 @@ from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMPermissionGroupListResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
+from lib.core.service_types import WMTeamAPIKeyListResponse
 from lib.core.service_types import WMUserListResponse
 from lib.core.serviceproviders import BaseWorkManagementService
 from lib.infrastructure.services.http_client import encode_entity_context
@@ -81,6 +84,10 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SET_TEAM_USER_PERMISSIONS = "teamusers/setpermissions"
     URL_PERMISSION_GROUPS = "permissiongroups"
     URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
+    URL_CREATE_TEAM_API_KEY = "teamkeys"
+    URL_SEARCH_API_KEYS = "teamkeys/search"
+    URL_ROTATE_API_KEY = "teamkeys/{key_id}"
+    URL_REVOKE_API_KEY = "teamkeys/{key_id}"
 
     def list_folders(self, project_id: int, query: Query) -> ServiceResponse:
         result = self.client.jsx_paginate(
@@ -661,3 +668,58 @@ class WorkManagementService(BaseWorkManagementService):
             content_type=WMClassesResponse,
             dispatcher="data",
         )
+
+    def create_team_api_key(self, name: str, expires_at: str) -> TeamAPIKeyEntity:
+        response = self.client.request(
+            url=self.URL_CREATE_TEAM_API_KEY,
+            method="post",
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            data={"name": name, "expiresAt": expires_at},
+        )
+        response.raise_for_status()
+        return TeamAPIKeyEntity(**response.res_data["data"])
+
+    def rotate_team_api_key(
+        self, key_id: int, overlap_days: int, expires_at: str
+    ) -> TeamAPIKeyEntity:
+        return self.client.request(
+            url=self.URL_ROTATE_API_KEY.format(key_id=key_id),
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+        )
+
+    def list_team_api_keys(
+        self, body_query: Query, chunk_size=100
+    ) -> WMTeamAPIKeyListResponse:
+        return self.client.jsx_paginate(
+            url=self.URL_SEARCH_API_KEYS,
+            method="get",
+            body_query=body_query
+            & Filter("scope_type", TokenScope.TEAM.value, OperatorEnum.EQ),
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            chunk_size=chunk_size,
+            item_type=TeamAPIKeyEntity,
+        )
+
+    def revoke_team_api_key(self, key_id: int):
+        response = self.client.request(
+            url=self.URL_REVOKE_API_KEY.format(key_id=key_id),
+            method="delete",
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+        )
+        response.raise_for_status()

@@ -4,6 +4,7 @@ from typing import Any
 
 from lib.core import entities
 from lib.core.entities.work_managament import PermissionGroupEntity
+from lib.core.entities.work_managament import TeamAPIKeyEntity
 from lib.core.entities.work_managament import TelemetryScoreEntity
 from lib.core.entities.work_managament import WMProjectEntity
 from lib.core.entities.work_managament import WMScoreEntity
@@ -264,3 +265,7 @@ class TelemetryScoreListResponse(ServiceResponse):
 
 class WMPermissionGroupListResponse(ServiceResponse):
     res_data: list[PermissionGroupEntity] = None
+
+
+class WMTeamAPIKeyListResponse(ServiceResponse):
+    res_data: list[TeamAPIKeyEntity] = None
