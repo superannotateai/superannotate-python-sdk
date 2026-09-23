@@ -6,6 +6,29 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.6.2 - Unreleased
+__________________
+
+
+**Added**
+
+    - ``SAClient.explore`` New namespace for querying and curating project data with the Explore query language (https://doc.superannotate.com/docs/queries-beta).
+
+    - ``SAClient.explore.query()`` Returns items that satisfy an Explore query. ``.count()`` returns the number of matching items without fetching them.
+
+    - ``SAClient.explore.get_subsets()`` Returns the subsets of a project.
+
+    - ``SAClient.explore.add_items_to_subset()`` Associates items with a subset, creating the subset if it does not exist.
+
+**Deprecated**
+
+    - ``SAClient.query()`` and ``SAClient.query().count()`` Use ``SAClient.explore.query()``. Will be removed in 4.7.0.
+
+    - ``SAClient.get_subsets()`` Use ``SAClient.explore.get_subsets()``. Will be removed in 4.7.0.
+
+    - ``SAClient.add_items_to_subset()`` Use ``SAClient.explore.add_items_to_subset()``. Will be removed in 4.7.0.
+
+
 4.6.1 - Sep 13, 2026
 ____________________
 

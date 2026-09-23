@@ -246,6 +246,87 @@ class QueryEntitiesCountUseCase(BaseReportableUseCase):
         return self._response
 
 
+class BaseExploreQueryUseCase(BaseReportableUseCase):
+    """Shared by the Explore query language use cases (SAClient.explore.query).
+
+    The query string is passed to the backend as is - it is not parsed or validated
+    here, the backend's error is reported instead.
+    """
+
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        service_provider: BaseServiceProvider,
+        query: str | None,
+        subset: str | None = None,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._service_provider = service_provider
+        self._query = query
+        self._subset = subset
+
+    def validate_query_or_subset(self):
+        if not any([self._query, self._subset]):
+            raise AppValidationException("Provide 'query' or 'subset'")
+
+    def _query_kwargs(self) -> dict:
+        query_kwargs = {
+            "query": self._query,
+            "folder": None if self._folder.is_root else self._folder,
+        }
+        if self._subset:
+            response = self._service_provider.explore.list_subsets(self._project)
+            if not response.ok:
+                raise AppException(response.error)
+            subset = next(
+                (_sub for _sub in response.data if _sub.name == self._subset), None
+            )
+            if not subset:
+                raise AppException("Subset not found")
+            query_kwargs["subset_id"] = subset.id
+        return query_kwargs
+
+
+class ExploreQueryUseCase(BaseExploreQueryUseCase):
+    def execute(self) -> Response:
+        if self.is_valid():
+            try:
+                query_kwargs = self._query_kwargs()
+            except AppException as e:
+                self._response.errors = e
+                return self._response
+            service_response = self._service_provider.explore.explore_query(
+                self._project, **query_kwargs
+            )
+            if service_response.ok:
+                self._response.data = service_response.data
+            else:
+                self._response.errors = service_response.error
+        return self._response
+
+
+class ExploreQueryCountUseCase(BaseExploreQueryUseCase):
+    def execute(self) -> Response:
+        if self.is_valid():
+            try:
+                query_kwargs = self._query_kwargs()
+            except AppException as e:
+                self._response.errors = e
+                return self._response
+            service_response = self._service_provider.explore.explore_query_count(
+                self._project, **query_kwargs
+            )
+            if service_response.ok:
+                self._response.data = service_response.data["count"]
+            else:
+                self._response.errors = service_response.error
+        return self._response
+
+
 class AssignItemsUseCase(BaseUseCase):
     CHUNK_SIZE = 500
 

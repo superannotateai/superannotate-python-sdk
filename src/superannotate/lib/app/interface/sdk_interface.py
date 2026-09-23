@@ -11,6 +11,7 @@ import typing
 import warnings
 from collections.abc import Callable
 from collections.abc import Iterable
+from functools import cached_property
 from functools import partial
 from pathlib import Path
 from typing import Annotated
@@ -35,6 +36,7 @@ import lib.core as constants
 from lib.infrastructure.controller import OrgController
 from lib.infrastructure.controller import TeamController
 from lib.app.helpers import get_annotation_paths
+from lib.app.helpers import warn_deprecated
 from lib.app.helpers import get_name_url_duplicated_from_csv
 from lib.app.helpers import wrap_error as wrap_validation_errors
 from lib.app.interface.base_interface import BaseInterfaceFacade
@@ -88,6 +90,7 @@ from lib.infrastructure.query_builder import QueryBuilderChain
 from lib.infrastructure.query_builder import FieldValidationHandler
 
 from lib.app.interface.responses import QueryResult
+from lib.app.interface.sdk.explore import Explore
 
 logger = logging.getLogger("sa")
 
@@ -339,6 +342,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def team_id(self) -> int:
         """The team this client operates in."""
         return self.controller.team_id
+
+    @cached_property
+    def explore(self) -> Explore:
+        """Namespace for querying and curating project data with the Explore query language.
+        See :class:`Explore`.
+        """
+        return Explore(self.controller)
 
     def get_project_by_id(self, project_id: int):
         """Returns the project metadata
@@ -4689,21 +4699,36 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 ).count()
                 print(f"Total matching items: {total}")
         """
+        warn_deprecated(
+            "This function query() will be deprecated and removed in version 4.7.0\n"
+            "Recommended replacement: SAClient.explore.query()\n"
+            "Note: explore.query() uses a different query language. Existing queries "
+            "must be rewritten."
+        )
         project, folder = self.controller.get_project_folder(project)
         fetch_entities = partial(
             self.controller.query_entities, project, folder, query, subset
         )
+        fetch_count = partial(
+            self.controller.query_items_count,
+            project=project,
+            folder=folder,
+            query=query,
+            subset=subset,
+        )
+
+        def count_fetcher() -> int:
+            warn_deprecated(
+                "This function query().count() will be deprecated and removed in version 4.7.0\n"
+                "Recommended replacement: SAClient.explore.query().count()"
+            )
+            return fetch_count()
+
         return QueryResult(
             data_fetcher=lambda: BaseSerializer.serialize_iterable(
                 fetch_entities(), exclude={"meta"}
             ),
-            count_fetcher=partial(
-                self.controller.query_items_count,
-                project=project,
-                folder=folder,
-                query=query,
-                subset=subset,
-            ),
+            count_fetcher=count_fetcher,
         )
 
     def get_item_metadata(
@@ -5541,6 +5566,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: subsets’ metadata
         :rtype: list of dicts
         """
+        warn_deprecated(
+            "This function get_subsets() will be deprecated and removed in version 4.7.0\n"
+            "Recommended replacement: SAClient.explore.get_subsets()"
+        )
         project = self.controller.get_project(project)
         response = self.controller.subsets.list(project)
         if response.errors:
@@ -5916,7 +5945,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "skipped": []
             }
         """
-
+        warn_deprecated(
+            "This function add_items_to_subset() will be deprecated and removed in version 4.7.0\n"
+            "Recommended replacement: SAClient.explore.add_items_to_subset()"
+        )
         project = self.controller.get_project(project)
         response = self.controller.subsets.add_items(project, subset, items)
         if response.errors:

@@ -264,3 +264,46 @@ class TelemetryScoreListResponse(ServiceResponse):
 
 class WMPermissionGroupListResponse(ServiceResponse):
     res_data: list[PermissionGroupEntity] = None
+
+
+class ExploreLastAction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    date: str | None = None
+    email: str | None = None
+
+
+class ExploreItem(BaseModel):
+    """An item as returned by the Explore query language (v3 items/search).
+
+    Values are kept as the backend sends them (e.g. annotation_status and is_pinned
+    are ints); keys not listed here are dropped.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    name: str
+    folder_id: int | None = None
+    comments: list = Field(default_factory=list)
+    annotation_status: int | None = None
+    path: str | None = None
+    approval_status: int | None = None
+    createdAt: str | None = None
+    updatedAt: str | None = None
+    meta: dict | None = None
+    instances: list = Field(default_factory=list)
+    custom_metadata: dict = Field(default_factory=dict)
+    subset_ids: list[int] = Field(default_factory=list)
+    category_id: list = Field(default_factory=list)
+    category_name: str | None = None
+    assignment: list = Field(default_factory=list)
+    last_action: ExploreLastAction | None = None
+    score: list = Field(default_factory=list)
+    is_pinned: int | None = None
+    folder_name: str | None = None
+    is_root_folder: int | None = None
+
+
+class ExploreQueryResponse(ServiceResponse):
+    res_data: list[ExploreItem] = None
