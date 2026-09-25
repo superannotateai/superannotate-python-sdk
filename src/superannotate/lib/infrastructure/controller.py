@@ -2207,6 +2207,44 @@ class TeamController(BaseController):
             raise AppException(response.errors)
         return response.data["count"]
 
+    def explore_query(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        query: str | None = None,
+        subset: str | None = None,
+    ) -> list:
+        response = usecases.ExploreQueryUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            folder=folder,
+            query=query,
+            subset=subset,
+            service_provider=self.service_provider,
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def explore_query_count(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        query: str | None = None,
+        subset: str | None = None,
+    ) -> int:
+        response = usecases.ExploreQueryCountUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            folder=folder,
+            query=query,
+            subset=subset,
+            service_provider=self.service_provider,
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
     def get_project_folder(
         self, path: str | int | tuple[int, int] | tuple[str, str]
     ) -> tuple[ProjectEntity, FolderEntity | None]:

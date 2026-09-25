@@ -807,6 +807,26 @@ class BaseExploreService(SuperannotateServiceProvider):
     ) -> ServiceResponse:
         raise NotImplementedError
 
+    @abstractmethod
+    def explore_query(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity | None = None,
+        query: str | None = None,
+        subset_id: int | None = None,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def explore_query_count(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity | None = None,
+        query: str | None = None,
+        subset_id: int | None = None,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
 
 class BaseTelemetryScoringService(SuperannotateServiceProvider):
     @abstractmethod

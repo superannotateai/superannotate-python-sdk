@@ -1,15 +1,54 @@
 from __future__ import annotations
 
 import os
+import re
+import sys
 import uuid
+import warnings
 from pathlib import Path
 
 import boto3
 import numpy as np
 import pandas as pd
+import pydantic
 from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
 from lib.core.exceptions import AppException
+
+# Frames in these directories are the SDK's own wrappers (Tracker, argument
+# validation) - a deprecation warning is attributed to the first frame outside them.
+_WRAPPER_DIRS = (
+    str(Path(__file__).resolve().parents[2]),  # the superannotate package
+    str(Path(pydantic.__file__).resolve().parent),
+)
+
+
+# Python shows a DeprecationWarning by default only when it is attributed to
+# __main__, so a deprecated SDK method called from any other module (a package, a
+# notebook helper, a test) would be silent. Show the SDK's own deprecations wherever
+# they are called from. Skipped when the user configured warnings themselves (-W or
+# PYTHONWARNINGS); filters they add in code later still take precedence.
+DEPRECATION_MESSAGE_PATTERN = r"This function .+ will be deprecated"
+if not sys.warnoptions:
+    warnings.filterwarnings(
+        "default", message=DEPRECATION_MESSAGE_PATTERN, category=DeprecationWarning
+    )
+
+
+def warn_deprecated(message: str):
+    """Emit a DeprecationWarning attributed to the user's call.
+
+    The message must match DEPRECATION_MESSAGE_PATTERN to be shown by default. The
+    stacklevel is computed rather than fixed: a fixed one would land inside the
+    wrappers every public method goes through (Tracker, argument validation).
+    """
+    assert re.match(DEPRECATION_MESSAGE_PATTERN, message), message
+    stacklevel = 1
+    frame = sys._getframe(0)
+    while frame is not None and frame.f_code.co_filename.startswith(_WRAPPER_DIRS):
+        frame = frame.f_back
+        stacklevel += 1
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
 
 def get_annotation_paths(folder_path, s3_bucket=None, recursive=False):
