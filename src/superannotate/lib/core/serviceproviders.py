@@ -311,7 +311,7 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def rotate_team_api_key(
-        self, key_id: int, overlap_days: int, expires_at: str
+        self, key_id: int, overlap_end_at: str, expires_at: str
     ) -> TeamAPIKeyEntity:
         raise NotImplementedError
 

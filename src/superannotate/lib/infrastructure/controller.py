@@ -660,11 +660,11 @@ class WorkManagementManager(BaseManager):
         overlap: int | str,
         expires_in: int | timedelta | datetime,
     ) -> TeamAPIKeyEntity:
-        key = self._find_rotatable_key(name, self.list_team_api_keys())
+        key = self._find_rotatable_key(name)
         expires_at = self._resolve_expiration(expires_in)
         return self.service_provider.work_management.rotate_team_api_key(
             key_id=key.id,
-            overlap_days=self._resolve_overlap(overlap, expires_at),
+            overlap_end_at=self._resolve_overlap_end(overlap, expires_at),
             expires_at=expires_at,
         )
 
@@ -684,7 +684,7 @@ class WorkManagementManager(BaseManager):
         return sorted(response.data, key=lambda key: key.id or 0, reverse=True)
 
     def revoke_team_api_key(self, public_id: str) -> TeamAPIKeyEntity:
-        key = self._find_key(public_id, self.list_team_api_keys())
+        key = self._find_key(public_id, self._keys_where("public_id", public_id))
         if key is None:
             raise AppException(constants.API_KEY_NOT_FOUND_ERROR)
         if key.status not in TEAM_API_KEY_LIVE_STATUSES:
@@ -698,8 +698,8 @@ class WorkManagementManager(BaseManager):
             raise AppException("Name cannot be empty")
         return name
 
-    @staticmethod
-    def _resolve_expiration(expires_in: int | timedelta | datetime) -> str:
+    @classmethod
+    def _resolve_expiration(cls, expires_in: int | timedelta | datetime) -> str:
         """``expires_in`` as the instant the backend takes in ``expiresAt``.
 
         A number of days or a duration is counted from now; a datetime is the expiry
@@ -719,46 +719,73 @@ class WorkManagementManager(BaseManager):
             # Not a rule but a conversion: there is no ``expiresAt`` to send for
             # anything that is neither a number of days, a duration, nor a date.
             raise AppException("Expiration date is invalid")
-        return expires_at.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        return cls._as_wire_date(expires_at)
 
-    @staticmethod
-    def _resolve_overlap(overlap: int | str, expires_at: str) -> int:
-        """``overlap`` as the number of days the rotated key stays valid for.
+    @classmethod
+    def _resolve_overlap_end(cls, overlap: int | str, expires_at: str) -> str:
+        """``overlap`` as the instant the rotated key stops being valid.
 
-        "expire_immediately" is no window at all. A window cannot outlast the new key,
-        which the backend does not check either - though only an expiry still ahead is
-        worth measuring against, an expiry already past being the backend's to refuse.
+        The backend takes the end of the window rather than its length, and
+        "expire_immediately" is no window at all: the rotated key stops the moment the
+        new one starts. A window cannot outlast the new key, which the backend does
+        not check either - though only an expiry still ahead is worth measuring
+        against, an expiry already past being the backend's to refuse.
         """
         days = (
             0 if overlap == constants.TEAM_API_KEY_EXPIRE_IMMEDIATELY else int(overlap)
         )
         now = datetime.now(timezone.utc)
+        overlap_end = now + timedelta(days=days)
         expiry = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-        if expiry > now and now + timedelta(days=days) > expiry:
+        if expiry > now and overlap_end > expiry:
             raise AppException(
                 "The overlap period cannot be longer than the new key expiration period."
             )
-        return days
+        return cls._as_wire_date(overlap_end)
+
+    @staticmethod
+    def _as_wire_date(value: datetime) -> str:
+        """A date the way the key endpoints send and take one: UTC, to the ms."""
+        return value.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+    def _keys_where(self, field: str, value: str) -> list[TeamAPIKeyEntity]:
+        """The team's keys whose ``field`` is exactly ``value``, newest first.
+
+        Resolving a key the caller named is a question about one key, so it is asked
+        of the backend rather than by listing the team's keys and searching them
+        here: a team that has been rotating keys for a while has hundreds, and they
+        would be paged through in full for every rotate and revoke.
+        """
+        query = EmptyQuery() & Filter(field, value, OperatorEnum.EQ)
+        response = self.service_provider.work_management.list_team_api_keys(query)
+        response.raise_for_status()
+        return sorted(response.data, key=lambda key: key.id or 0, reverse=True)
 
     @staticmethod
     def _find_key(
         public_id: str, keys: list[TeamAPIKeyEntity]
     ) -> TeamAPIKeyEntity | None:
-        return next((key for key in keys if key.public_id == public_id), None)
+        """The key a public id names - the live one, when a rotation left two.
 
-    @classmethod
-    def _find_rotatable_key(
-        cls, name: str, keys: list[TeamAPIKeyEntity]
-    ) -> TeamAPIKeyEntity:
+        A rotation hands the new key the public id of the one it replaced, so a public
+        id can name both a Rotating key and the Active key that took over from it.
+        The keys arrive newest first, so the newest live one is the key still being
+        handed out; once that is revoked the same public id names the other.
+        """
+        matching = [key for key in keys if key.public_id == public_id]
+        live = [k for k in matching if k.status in TEAM_API_KEY_LIVE_STATUSES]
+        return next(iter(live), next(iter(matching), None))
+
+    def _find_rotatable_key(self, name: str) -> TeamAPIKeyEntity:
         """The key ``name`` names, by public id or by name.
 
         A name is not unique - a rotation leaves the old key behind under the same
         name - so of several the Active one is rotated, that being the one still handed
         out.
         """
-        key = cls._find_key(name, keys)
+        key = self._find_key(name, self._keys_where("public_id", name))
         if key is None:
-            named = [k for k in keys if k.name == name]
+            named = self._keys_where("name", name)
             live = [k for k in named if k.status in TEAM_API_KEY_LIVE_STATUSES]
             key = next(
                 (k for k in live if k.status == TeamAPIKeyStatus.ACTIVE),

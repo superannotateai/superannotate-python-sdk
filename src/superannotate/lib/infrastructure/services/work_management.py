@@ -86,7 +86,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_UPDATE_ANNOTATION_CLASS = "classes/{class_id}"
     URL_CREATE_TEAM_API_KEY = "teamkeys"
     URL_SEARCH_API_KEYS = "teamkeys/search"
-    URL_ROTATE_API_KEY = "teamkeys/{key_id}"
+    URL_ROTATE_API_KEY = "teamkeys/{key_id}/rotate"
     URL_REVOKE_API_KEY = "teamkeys/{key_id}"
 
     def list_folders(self, project_id: int, query: Query) -> ServiceResponse:
@@ -684,23 +684,29 @@ class WorkManagementService(BaseWorkManagementService):
         return TeamAPIKeyEntity(**response.res_data["data"])
 
     def rotate_team_api_key(
-        self, key_id: int, overlap_days: int, expires_at: str
+        self, key_id: int, overlap_end_at: str, expires_at: str
     ) -> TeamAPIKeyEntity:
-        return self.client.request(
+        response = self.client.request(
             url=self.URL_ROTATE_API_KEY.format(key_id=key_id),
+            method="post",
             headers={
                 "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id
                 ),
             },
+            # The rotation terms go under "body", and the overlap is the instant the
+            # rotated key stops rather than how long it lasts.
+            data={"body": {"overlapEndAt": overlap_end_at, "expiresAt": expires_at}},
         )
+        response.raise_for_status()
+        return TeamAPIKeyEntity(**response.res_data["data"])
 
     def list_team_api_keys(
         self, body_query: Query, chunk_size=100
     ) -> WMTeamAPIKeyListResponse:
         return self.client.jsx_paginate(
             url=self.URL_SEARCH_API_KEYS,
-            method="get",
+            method="post",
             body_query=body_query
             & Filter("scope_type", TokenScope.TEAM.value, OperatorEnum.EQ),
             headers={
@@ -712,7 +718,7 @@ class WorkManagementService(BaseWorkManagementService):
             item_type=TeamAPIKeyEntity,
         )
 
-    def revoke_team_api_key(self, key_id: int):
+    def revoke_team_api_key(self, key_id: int) -> TeamAPIKeyEntity:
         response = self.client.request(
             url=self.URL_REVOKE_API_KEY.format(key_id=key_id),
             method="delete",
@@ -723,3 +729,4 @@ class WorkManagementService(BaseWorkManagementService):
             },
         )
         response.raise_for_status()
+        return TeamAPIKeyEntity(**response.res_data["data"])

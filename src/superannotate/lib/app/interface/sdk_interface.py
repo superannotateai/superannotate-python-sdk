@@ -2196,6 +2196,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         try:
             project = self.controller.get_project(project)
         except AppException as e:
+            logger.info("Project not found.")
             if str(e) == "Project not found.":
                 return
             raise

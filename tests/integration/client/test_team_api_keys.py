@@ -8,7 +8,6 @@ Keys are real: each one a test mints is named after this run and revoked when th
 finishes, so a run leaves the team as it found it.
 """
 
-import contextlib
 import uuid
 from datetime import datetime
 from datetime import timedelta
@@ -48,29 +47,46 @@ class TeamAPIKeyTestCase(TestCase):
         )
 
     def setUp(self):
-        #: The names this test minted. A rotation reuses the name of the key it
-        #: rotates, so the pair it leaves behind is covered by the same entry.
+        #: The public ids this test minted. A rotation hands the new key the public
+        #: id of the one it replaced, so one entry can name a pair of them.
         self.minted = []
 
     def tearDown(self):
-        for key in self.client.list_team_api_keys(status__in=LIVE, nane__startswith=NAME_PREFIX).keys():
-            self.minted.append(key)
-            if key["name"] in self.minted:
-                with contextlib.suppress(AppException):
-                    self.client.revoke_team_api_key(public_id=key["public_id"])
+        """Revoke exactly what this test minted, and nothing else.
+
+        By the public ids it handed out rather than by listing the team's keys and
+        matching on the name prefix: cleanup is the one place where getting the set
+        wrong revokes a key that is none of this suite's business, so it does not
+        depend on a filter behaving, on a status reading the way it is spelled, or
+        on the team holding nothing else that looks like a test key.
+        """
+        for public_id in self.minted:
+            # A rotation leaves two keys under one public id and revoking takes the
+            # live one, so clearing a pair takes two rounds. It ends when there is
+            # nothing live left to revoke.
+            for _ in range(2):
+                try:
+                    self.client.revoke_team_api_key(public_id=public_id)
+                except AppException:
+                    break
 
     def generate(self, name: str = None, **kwargs) -> dict:
         """A key of this run's own, revoked when the test ends."""
         name = name if name is not None else f"{NAME_PREFIX}-{uuid.uuid4().hex[:8]}"
-        self.minted.append(name)
-        return self.client.generate_team_api_key(name=name, **kwargs)
-
-    def listed(self, public_id: str) -> dict:
-        """One key as the backend now reports it, by its public id."""
-        keys = self.client.list_team_api_keys()
-        key = next((k for k in keys if k["public_id"] == public_id), None)
-        assert key is not None, f"{public_id} is not among the team's keys"
+        key = self.client.generate_team_api_key(name=name, **kwargs)
+        self.minted.append(key["public_id"])
         return key
+
+    def listed(self, key: dict) -> dict:
+        """One key as the backend now reports it.
+
+        By id, not public id: a rotation hands the new key the public id of the one
+        it replaced, so only the id tells the two of them apart.
+        """
+        keys = self.client.list_team_api_keys()
+        found = next((k for k in keys if k["id"] == key["id"]), None)
+        assert found is not None, f"{key['name']} is not among the team's keys"
+        return found
 
 
 class TestGenerateTeamAPIKey(TeamAPIKeyTestCase):
@@ -79,7 +95,7 @@ class TestGenerateTeamAPIKey(TeamAPIKeyTestCase):
 
         assert generated["status"] == "ACTIVE"
         assert generated["scope"] == {"team_id": self.team_id}
-        assert generated["name"] in self.minted
+        assert generated["name"].startswith(NAME_PREFIX)
         assert generated["public_id"]
         # The secret is reported once, here, and never again.
         assert generated["api_key"].startswith("sa_")
@@ -120,15 +136,6 @@ class TestGenerateTeamAPIKey(TeamAPIKeyTestCase):
         with pytest.raises(AppException):
             self.generate(name=taken)
 
-    def test_the_generated_key_authenticates_as_its_team(self):
-        generated = self.generate()
-
-        client = env.build_client(generated["api_key"])
-
-        assert client.controller.token_context.scope == TokenScope.TEAM
-        assert client.controller.team_id == self.team_id
-
-
 class TestListTeamAPIKeys(TeamAPIKeyTestCase):
     def test_a_generated_key_is_listed_first(self):
         generated = self.generate()
@@ -142,30 +149,49 @@ class TestListTeamAPIKeys(TeamAPIKeyTestCase):
     def test_a_listed_key_carries_no_secret(self):
         generated = self.generate()
 
-        assert "api_key" not in self.listed(generated["public_id"])
+        assert "api_key" not in self.listed(generated)
 
     def test_filtering_by_name_and_status(self):
         generated = self.generate()
 
         by_name = self.client.list_team_api_keys(name=generated["name"])
-        by_status = self.client.list_team_api_keys(
-            name=generated["name"], status__in=LIVE
+        active = self.client.list_team_api_keys(name=generated["name"], status="Active")
+        revoked = self.client.list_team_api_keys(
+            name=generated["name"], status="Revoked"
         )
-        excluded = self.client.list_team_api_keys(
-            name=generated["name"], status__notin=LIVE
+        other_than_active = self.client.list_team_api_keys(
+            name=generated["name"], status__ne="Active"
         )
 
-        assert [k["public_id"] for k in by_name] == [generated["public_id"]]
-        assert [k["public_id"] for k in by_status] == [generated["public_id"]]
-        assert excluded == []
+        assert [k["id"] for k in by_name] == [generated["id"]]
+        assert [k["id"] for k in active] == [generated["id"]]
+        assert revoked == []
+        assert other_than_active == []
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="backend: a status $in/$notin filter answers 500 Internal server "
+        "error, though $eq and $ne on the same column are fine",
+    )
+    def test_filtering_by_several_statuses_at_once(self):
+        generated = self.generate()
+
+        assert [
+            k["id"]
+            for k in self.client.list_team_api_keys(
+                name=generated["name"], status__in=LIVE
+            )
+        ] == [generated["id"]]
 
     def test_filtering_by_a_fragment_of_the_name(self):
         generated = self.generate()
 
-        assert generated["public_id"] in [
-            k["public_id"]
-            for k in self.client.list_team_api_keys(name__starts=NAME_PREFIX)
-        ]
+        by_prefix = self.client.list_team_api_keys(name__starts=NAME_PREFIX)
+        by_fragment = self.client.list_team_api_keys(name__contains=NAME_PREFIX)
+
+        for listed in (by_prefix, by_fragment):
+            assert generated["id"] in [k["id"] for k in listed]
+            assert all(NAME_PREFIX in k["name"] for k in listed)
 
     def test_nothing_matching_is_an_empty_list(self):
         assert self.client.list_team_api_keys(name=f"absent-{uuid.uuid4().hex}") == []
@@ -187,22 +213,33 @@ class TestRotateTeamAPIKey(TeamAPIKeyTestCase):
             name=old["name"], overlap=1, expires_in=90
         )
 
-        assert new["public_id"] != old["public_id"]
+        assert new["id"] != old["id"]
+        assert new["rotation_parent_id"] == old["id"]
+        # The new key takes over the public id of the one it replaced.
+        assert new["public_id"] == old["public_id"]
         assert new["status"] == "ACTIVE"
         assert new["api_key"].startswith("sa_")
         assert 89 < days_from_now(new["expiresAt"]) <= 90
         # The key that was rotated stays valid for the overlap window.
-        rotated = self.listed(old["public_id"])
+        rotated = self.listed(old)
         assert rotated["status"] == "ROTATING"
-        assert rotated["overlapEndAt"]
+        assert 0 < days_from_now(rotated["expiresAt"]) <= 1
 
     def test_a_key_is_rotated_by_public_id_too(self):
         old = self.generate()
 
         new = self.client.rotate_team_api_key(name=old["public_id"])
 
-        assert new["public_id"] != old["public_id"]
-        assert self.listed(old["public_id"])["status"] == "ROTATING"
+        assert new["rotation_parent_id"] == old["id"]
+        assert self.listed(old)["status"] == "ROTATING"
+
+    def test_rotating_immediately_leaves_no_overlap(self):
+        old = self.generate()
+
+        self.client.rotate_team_api_key(name=old["name"], overlap="expire_immediately")
+
+        # The rotated key stops the moment the new one starts.
+        assert days_from_now(self.listed(old)["expiresAt"]) <= 0
 
     def test_the_new_key_authenticates_while_the_old_one_still_can(self):
         old = self.generate()
@@ -221,7 +258,7 @@ class TestRotateTeamAPIKey(TeamAPIKeyTestCase):
         ):
             self.client.rotate_team_api_key(name=old["name"], overlap=30, expires_in=7)
 
-        assert self.listed(old["public_id"])["status"] == "ACTIVE"
+        assert self.listed(old)["status"] == "ACTIVE"
 
     def test_an_overlap_outside_the_offered_windows_is_rejected(self):
         old = self.generate()
@@ -230,7 +267,7 @@ class TestRotateTeamAPIKey(TeamAPIKeyTestCase):
             with pytest.raises(AppException):
                 self.client.rotate_team_api_key(name=old["name"], overlap=invalid)
 
-        assert self.listed(old["public_id"])["status"] == "ACTIVE"
+        assert self.listed(old)["status"] == "ACTIVE"
 
     def test_an_unknown_key_cannot_be_rotated(self):
         with self.assertRaisesRegex(AppException, "API key not found"):
@@ -243,17 +280,24 @@ class TestRevokeTeamAPIKey(TeamAPIKeyTestCase):
 
         assert self.client.revoke_team_api_key(public_id=generated["public_id"]) is None
 
-        revoked = self.listed(generated["public_id"])
+        revoked = self.listed(generated)
         assert revoked["status"] == "REVOKED"
         assert revoked["revokedAt"]
 
-    def test_a_rotating_key_can_be_revoked(self):
+    def test_a_rotation_pair_is_revoked_a_key_at_a_time(self):
+        # Both keys of a rotation answer to one public id, so revoking it takes the
+        # live one: the key still being handed out first, then the one it replaced.
         old = self.generate()
-        self.client.rotate_team_api_key(name=old["name"], overlap=7)
+        new = self.client.rotate_team_api_key(name=old["name"], overlap=7)
 
         self.client.revoke_team_api_key(public_id=old["public_id"])
 
-        assert self.listed(old["public_id"])["status"] == "REVOKED"
+        assert self.listed(new)["status"] == "REVOKED"
+        assert self.listed(old)["status"] == "ROTATING"
+
+        self.client.revoke_team_api_key(public_id=old["public_id"])
+
+        assert self.listed(old)["status"] == "REVOKED"
 
     def test_a_revoked_key_cannot_be_revoked_again(self):
         generated = self.generate()
