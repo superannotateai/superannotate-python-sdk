@@ -6,11 +6,19 @@ History
 
 All release highlights of this project will be documented in this file.
 
-4.6.2 - Unreleased
-__________________
+4.6.2 - Sep _, 2026
+____________________
 
 
 **Added**
+
+    - ``SAClient.generate_team_api_key()`` Generates a new team API key bound to the given team, active immediately. Requires an Organization API Key and a team ID.
+
+    - ``SAClient.rotate_team_api_key()`` Generates a new active key and keeps the old one valid for a defined overlap window, supporting the two-valid-key model with no downtime. Requires an Organization API Key and a team ID.
+
+    - ``SAClient.list_team_api_keys()`` Returns the team API keys in the given team, newest first, with filtering by ``id``, ``name`` and ``status``.
+
+    - ``SAClient.revoke_team_api_key()`` Revokes a team API key that is in the Active or Rotating state.
 
     - ``SAClient.explore`` New namespace for querying and curating project data with the Explore query language (https://doc.superannotate.com/docs/queries-beta).
 
@@ -27,6 +35,7 @@ __________________
     - ``SAClient.get_subsets()`` Use ``SAClient.explore.get_subsets()``. Will be removed in 4.7.0.
 
     - ``SAClient.add_items_to_subset()`` Use ``SAClient.explore.add_items_to_subset()``. Will be removed in 4.7.0.
+
 
 
 4.6.1 - Sep 13, 2026

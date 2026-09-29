@@ -7,6 +7,7 @@ from typing import Any
 
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities.work_managament import TeamAPIKeyStatus
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
@@ -333,6 +334,38 @@ class FolderFilterHandler(AbstractQueryHandler):
                 if isinstance(val, (list, tuple, set))
                 else FolderStatus(val).value
             )
+        return val
+
+    def handle(self, filters: dict[str, Any], query: Query = None) -> Query:
+        if query is None:
+            query = EmptyQuery()
+        for key, val in filters.items():
+            _keys = key.split("__")
+            val = self._handle_special_fields(_keys, val)
+            condition, _key = determine_condition_and_key(_keys)
+            query &= Filter(_key, val, condition)
+        return super().handle(filters, query)
+
+
+class TeamAPIKeyFilterHandler(AbstractQueryHandler):
+    """Filters over a team's API keys.
+
+    ``status`` is given the way the SDK reports a key ("Active") and sent in the
+    backend's own upper case ("ACTIVE").
+    """
+
+    @staticmethod
+    def _status(value) -> str:
+        try:
+            return TeamAPIKeyStatus(str(value).upper()).value
+        except ValueError:
+            raise AppException(f"Invalid status filter: {value}")
+
+    def _handle_special_fields(self, keys: list[str], val):
+        if keys[0] == "status":
+            if isinstance(val, (list, tuple, set)):
+                return [self._status(i) for i in val]
+            return self._status(val)
         return val
 
     def handle(self, filters: dict[str, Any], query: Query = None) -> Query:

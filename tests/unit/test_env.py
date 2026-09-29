@@ -162,7 +162,22 @@ class _BuilderFixture(TestCase):
 
 
 class BuildClientTestCase(_BuilderFixture):
-    """env.build_client sets every variable the SDK reads, inheriting none."""
+    """env.build_client goes through a config file, not the environment.
+
+    Given ``config_path`` the SDK reads the file and consults the environment for
+    nothing, so there is nothing for the ambient environment to perturb and nothing
+    to put back afterwards - the same way ``build_org_client`` works.
+    """
+
+    def setUp(self):
+        super().setUp()
+        # A team-scoped client fetches its team and its user while it is built.
+        # Neither is what these tests are about, and the .env names a backend that
+        # does not resolve.
+        for call in ("get_team", "get_current_user"):
+            patcher = patch(f"lib.infrastructure.controller.TeamController.{call}")
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def test_the_backend_comes_from_the_dotenv_even_when_the_environment_is_scrubbed(
         self,
@@ -188,6 +203,17 @@ class BuildClientTestCase(_BuilderFixture):
 
         assert client.controller.team_id == 6085
 
+    def test_a_team_id_can_be_written_into_the_config_instead_of_passed(self):
+        # The other path a caller has: an organization key carries no team, so the
+        # one to act in is named by the configuration the client is built from.
+        with self._respond_with(self.ORG_TOKEN):
+            client = env.build_client(
+                self.API_KEY, team_id=6085, team_id_via_config=True
+            )
+
+        assert client.controller.config["SA_TEAM_ID"] == 6085
+        assert client.controller.team_id == 6085
+
     def test_nothing_is_left_behind_in_the_environment(self):
         # It used to call load_dotenv, which writes to os.environ for good.
         with self._respond_with(self.TEAM_TOKEN):
@@ -195,6 +221,29 @@ class BuildClientTestCase(_BuilderFixture):
 
         assert "SA_TOKEN" not in os.environ
         assert "SA_URL" not in os.environ
+
+    def test_the_environment_is_untouched_while_it_is_built(self):
+        # The point of the config file: nothing is written to the environment, not
+        # even for the duration of the call. Observed from inside the auth request,
+        # which happens mid-construction - checking afterwards proves nothing,
+        # because setting and restoring also leaves the environment as it was.
+        seen = {}
+
+        def record(*args, **kwargs):
+            seen["SA_TOKEN"] = os.environ.get("SA_TOKEN")
+            seen["SA_TEAM_ID"] = os.environ.get("SA_TEAM_ID")
+            return self._response(self.TEAM_TOKEN)
+
+        with patch.dict(os.environ, {"SA_TEAM_ID": "42"}), patch(
+            "lib.infrastructure.services.auth.requests.post", side_effect=record
+        ):
+            client = env.build_client(self.API_KEY)
+
+        assert client.controller.token_context.token == self.API_KEY
+        # The token never entered the environment, and the ambient team id was left
+        # exactly as it was rather than being cleared and put back.
+        assert seen["SA_TOKEN"] is None
+        assert seen["SA_TEAM_ID"] == "42"
 
 
 class BuildOrgClientTestCase(_BuilderFixture):

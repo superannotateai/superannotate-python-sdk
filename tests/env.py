@@ -124,54 +124,23 @@ def environ(**values):
                 os.environ[key] = value
 
 
-def _sdk_environ(token: str, team_id: int | None = None) -> dict:
-    """The whole environment a client is built in: every variable the SDK reads.
-
-    Every one is set here rather than inherited, so building a client does not depend
-    on what the ambient environment happens to hold. Two ways that used to bite:
-    a suite that scrubs the environment (``tests/unit/conftest.py``) would silently get
-    a client pointed at production, and a stray ``SA_TEAM_ID`` would attach itself to a
-    token that never asked for one. The backend comes from the environment first, then
-    the ``.env`` file, so an exported override still wins.
-    """
-    from_file = dotenv_values()
-    values = {
-        "SA_TOKEN": token,
-        "SA_TEAM_ID": str(team_id) if team_id is not None else None,
-    }
-    # SA_URL only: the SDK reads SA_SSL but can never act on it, since
-    # _retrieve_configs_from_env assigns VERIFY_SSL only when it is already True.
-    values["SA_URL"] = os.environ.get("SA_URL") or from_file.get("SA_URL")
-    return values
-
-
-def build_client(token: str, team_id: int | None = None, team_id_via_env: bool = False):
-    """An ``SAClient`` for an ad-hoc token, on the backend the ``.env`` names.
-
-    The token reaches the SDK the way the suite's own credentials do - through the
-    environment - so ``SA_URL`` still applies. Passing it as ``SAClient(token=...)``
-    would not: only the no-argument path reads ``SA_URL``.
-
-    The team is passed as the ``team_id`` argument, or as ``SA_TEAM_ID`` when
-    ``team_id_via_env`` is set; both are paths a caller has. It is never inherited from
-    the ``.env``, so a client can be built with no team at all.
-    """
-    from src.superannotate import SAClient
-
-    with environ(**_sdk_environ(token, team_id if team_id_via_env else None)):
-        return SAClient(team_id=None if team_id_via_env else team_id)
-
-
 @contextlib.contextmanager
-def _config_file(token: str):
-    """A throwaway ini config naming the credentials and the backend.
+def _config_file(token: str, team_id: int | None = None):
+    """A throwaway ini config naming the credentials, the team and the backend.
 
     Given ``config_path``, the SDK reads the file and consults the environment for
     nothing, so a client built from one can neither be perturbed by the ambient
-    environment nor leak into it. The backend still comes from the environment first
-    and the ``.env`` file second, so an exported override wins as it always did.
+    environment nor leak into it - not even for the duration of the call. The backend
+    still comes from the environment first and the ``.env`` file second, so an exported
+    override wins as it always did.
+
+    Only ``SA_URL`` is carried over: the SDK reads ``SA_SSL`` but can never act on it,
+    since ``_retrieve_configs_from_env`` assigns ``VERIFY_SSL`` only when it is already
+    True.
     """
     settings = {"SA_TOKEN": token}
+    if team_id is not None:
+        settings["SA_TEAM_ID"] = str(team_id)
     url = os.environ.get("SA_URL") or dotenv_values().get("SA_URL")
     if url:
         settings["SA_URL"] = url
@@ -183,6 +152,29 @@ def _config_file(token: str):
         with path.open("w") as handle:
             parser.write(handle)
         yield str(path)
+
+
+def build_client(
+    token: str, team_id: int | None = None, team_id_via_config: bool = False
+):
+    """An ``SAClient`` for an ad-hoc token, on the backend the ``.env`` names.
+
+    Built from a throwaway config file, the way ``build_org_client`` is: nothing about
+    the client is inherited from the ambient environment, and nothing it needs is
+    written there. That matters twice over - a suite that scrubs the environment
+    (``tests/unit/conftest.py``) would otherwise get a client pointed at production,
+    and a stray ``SA_TEAM_ID`` would attach itself to a token that never asked for one.
+
+    The team is passed as the ``team_id`` argument, or written into the config as
+    ``SA_TEAM_ID`` when ``team_id_via_config`` is set; both are paths a caller has. It
+    is never taken from the ``.env``, so a client can be built with no team at all.
+    """
+    from src.superannotate import SAClient
+
+    with _config_file(token, team_id if team_id_via_config else None) as config_path:
+        return SAClient(
+            config_path=config_path, team_id=None if team_id_via_config else team_id
+        )
 
 
 def build_org_client(token: str):

@@ -10,6 +10,7 @@ from lib.core.enums import WMClassTypeEnum
 from lib.core.enums import WMGroupTypeEnum
 from lib.core.enums import WMUserStateEnum
 from lib.core.exceptions import AppException
+from pydantic import AliasChoices
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
@@ -294,3 +295,53 @@ class WMAnnotationClassEntity(TimedBaseModel):
             except KeyError:
                 pass
         raise ValueError(f"Invalid type: {v}")
+
+
+class TeamAPIKeyStatus(str, Enum):
+    """The states a team API key moves through, named as the backend reports them."""
+
+    ACTIVE = "ACTIVE"
+    ROTATING = "ROTATING"
+    EXPIRED = "EXPIRED"
+    REVOKED = "REVOKED"
+
+
+#: A key in one of these states is still usable, so it is the only kind that can be
+#: rotated or revoked; anything else is already spent.
+TEAM_API_KEY_LIVE_STATUSES = frozenset(
+    {TeamAPIKeyStatus.ACTIVE, TeamAPIKeyStatus.ROTATING}
+)
+
+
+class TeamAPIKeyEntity(BaseModel):
+    """A team-scoped API key.
+
+    Its timestamps are kept exactly as the backend sends them. A key's dates carry
+    milliseconds, which is the precision the two keys of a rotation are told apart by,
+    and ``StringDate`` would re-format them (``.421Z`` into ``.421000.000Z``).
+
+    ``api_key`` is the secret itself. The backend sends it (as ``token``) only in the
+    response that creates or rotates a key and never again, so it stays unset on a
+    listed key rather than being reported as None.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: StrictInt | None = None
+    public_id: StrictStr | None = None
+    name: StrictStr | None = None
+    scope: dict | None = None
+    created_by: StrictStr | None = None
+    revoked_by: StrictStr | None = None
+    rotation_parent_id: StrictInt | None = None
+    status: TeamAPIKeyStatus | None = None
+    deletedAt: StrictStr | None = None
+    expiresAt: StrictStr | None = None
+    revokedAt: StrictStr | None = None
+    overlapEndAt: StrictStr | None = None
+    createdAt: StrictStr | None = None
+    updatedAt: StrictStr | None = None
+    lastUsedAt: StrictStr | None = None
+    api_key: StrictStr | None = Field(
+        default=None, validation_alias=AliasChoices("api_key", "token")
+    )

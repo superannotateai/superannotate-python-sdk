@@ -19,3 +19,7 @@ Team
 .. automethod:: superannotate.SAClient.remove_contributors_categories
 .. automethod:: superannotate.SAClient.grant_team_user_permissions
 .. automethod:: superannotate.SAClient.revoke_team_user_permissions
+.. automethod:: superannotate.SAClient.generate_team_api_key
+.. automethod:: superannotate.SAClient.rotate_team_api_key
+.. automethod:: superannotate.SAClient.list_team_api_keys
+.. automethod:: superannotate.SAClient.revoke_team_api_key
