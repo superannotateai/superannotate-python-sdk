@@ -230,8 +230,11 @@ class Tracker:
             "Env": os.environ.get("SA_ENV", "N/A"),
         }
 
-    def __init__(self, function):
+    def __init__(self, function, event_name: str | None = None):
         self.function = function
+        # Reported instead of the function's own name, e.g. for a helper that stands
+        # in for a method the user calls on a returned object (QueryResult.count).
+        self.event_name = event_name
         functools.update_wrapper(self, function)
 
     @staticmethod
@@ -253,7 +256,7 @@ class Tracker:
     def default_parser(function_name: str, kwargs: dict) -> tuple:
         properties = {}
         for key, value in kwargs.items():
-            if key == "self":
+            if key == "self" or key.startswith("_"):
                 continue
             if key == "token":
                 properties["sa_token"] = str(bool(value))
@@ -318,7 +321,14 @@ class Tracker:
         try:
             function_name = self.function.__name__ if self.function else ""
             arguments = self.extract_arguments(self.function, *args, **kwargs)
-            event_name, properties = self.default_parser(function_name, arguments)
+            event_name, properties = self.default_parser(
+                self.event_name or function_name, arguments
+            )
+            # A namespace (e.g. SAClient.explore) reports its methods as
+            # "<namespace>.<method>", so they don't collide with SAClient's own.
+            tracking_prefix = getattr(instance, "TRACKING_PREFIX", None)
+            if tracking_prefix:
+                event_name = f"{tracking_prefix}.{event_name}"
 
             # instance is args[0] - the actual object the call was made on, captured
             # locally per call (see __call__), not shared/mutable state. It has no

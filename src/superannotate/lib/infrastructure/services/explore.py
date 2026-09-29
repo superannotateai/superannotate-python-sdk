@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 import lib.core as constants
 from lib.core import entities
 from lib.core.conditions import Condition
+from lib.core.service_types import ExploreQueryResponse
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import SubsetListResponse
 from lib.core.service_types import UploadCustomFieldValuesResponse
@@ -28,13 +29,20 @@ class ExploreService(BaseExploreService):
     URL_VALIDATE_SAQUL_QUERY = "items/parse/query"
     URL_QUERY_COUNT = "items/count"
 
+    # Explore query language (SAClient.explore.query)
+    EXPLORE_API_VERSION = "v3"
+    EXPLORE_QUERY_CHUNK_SIZE = 25
+    URL_EXPLORE_QUERY = "items/search"
+    URL_EXPLORE_QUERY_COUNT = "items/count"
+
+    def _explore_service_url(self, api_version: str) -> str:
+        if self.client.api_url != constants.BACKEND_URL:
+            return f"https://explore-service.devsuperannotate.com/api/{api_version}/"
+        return f"https://explore-service.superannotate.com/api/{api_version}/"
+
     @property
     def explore_service_url(self):
-        if self.client.api_url != constants.BACKEND_URL:
-            return (
-                f"https://explore-service.devsuperannotate.com/api/{self.API_VERSION}/"
-            )
-        return f"https://explore-service.superannotate.com/api/{self.API_VERSION}/"
+        return self._explore_service_url(self.API_VERSION)
 
     def create_schema(self, project: entities.ProjectEntity, schema: dict):
         return self.client.request(
@@ -219,3 +227,70 @@ class ExploreService(BaseExploreService):
         if not response.ok:
             raise AppException(response.error)
         return response
+
+    @staticmethod
+    def _explore_query_params(
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity = None,
+        subset_id: int = None,
+    ) -> dict:
+        # without includeFolderNames folder_name and is_root_folder come back empty
+        params = {"project_id": project.id, "includeFolderNames": True}
+        if folder:
+            params["folder_id"] = folder.id
+        if subset_id:
+            params["subset_id"] = subset_id
+        return params
+
+    def explore_query(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity = None,
+        query: str = None,
+        subset_id: int = None,
+    ) -> ServiceResponse:
+        params = self._explore_query_params(project, folder, subset_id)
+        data = {"image_index": 0, "limit": self.EXPLORE_QUERY_CHUNK_SIZE}
+        if query:
+            data["query"] = query
+        url = urljoin(
+            self._explore_service_url(self.EXPLORE_API_VERSION),
+            self.URL_EXPLORE_QUERY,
+        )
+        items = []
+        while True:
+            response = self.client.request(
+                url,
+                "post",
+                params=params,
+                data=data,
+                content_type=ExploreQueryResponse,
+            )
+            if not response.ok:
+                return ExploreQueryResponse(
+                    status=response.status_code,
+                    res_data=items,
+                    res_error=response.error,
+                )
+            items.extend(response.data)
+            if len(response.data) < self.EXPLORE_QUERY_CHUNK_SIZE:
+                break
+            data["image_index"] += self.EXPLORE_QUERY_CHUNK_SIZE
+        return ExploreQueryResponse(status=200, res_data=items)
+
+    def explore_query_count(
+        self,
+        project: entities.ProjectEntity,
+        folder: entities.FolderEntity = None,
+        query: str = None,
+        subset_id: int = None,
+    ) -> ServiceResponse:
+        return self.client.request(
+            urljoin(
+                self._explore_service_url(self.EXPLORE_API_VERSION),
+                self.URL_EXPLORE_QUERY_COUNT,
+            ),
+            "post",
+            params=self._explore_query_params(project, folder, subset_id),
+            data={"query": query} if query else None,
+        )
