@@ -16,7 +16,6 @@ from unittest import TestCase
 
 import pytest
 from src.superannotate import AppException
-from src.superannotate.lib.core.entities.context import TokenScope
 from tests import env
 
 #: Every key a run mints carries this prefix, so one left behind by a run that died
@@ -135,6 +134,7 @@ class TestGenerateTeamAPIKey(TeamAPIKeyTestCase):
         # The SDK does not check this one: the backend owns the rule, and says so.
         with pytest.raises(AppException):
             self.generate(name=taken)
+
 
 class TestListTeamAPIKeys(TeamAPIKeyTestCase):
     def test_a_generated_key_is_listed_first(self):

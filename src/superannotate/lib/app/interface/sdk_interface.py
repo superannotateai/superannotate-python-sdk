@@ -1415,8 +1415,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         expires_in: ExpiresIn = 365,
     ) -> dict:
         """
-        Generates a new team API key bound to the given team; the key is active
-        immediately. Must use Organization API Key and team ID for this function.
+        Generates a new team API key bound to the given team. Must use Organization API Key for this function.
 
         :param name: Key name.
         :type name: str
@@ -1433,11 +1432,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: The generated key, including the ``api_key`` value itself. The value
             is returned only here and cannot be retrieved later.
         :rtype: dict
-
-        :raises AppException: If the name is empty, or if ``expires_in`` is neither a
-            number of days, a duration, nor a date. Everything else the backend
-            decides - a duplicate name, an expiry it will not accept, or a key not
-            allowed to create keys - is reported with the backend's own message.
 
         Request Example:
         ::
@@ -1487,9 +1481,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         expires_in: ExpiresIn = 365,
     ) -> dict:
         """
-        Generates a new active key and keeps the old one valid for a defined overlap
-        window, supporting the two-valid-key model with no downtime. Must use
-        Organization API Key and team ID for this function.
+        Generates a new active key and keeps the old one valid for a defined overlap window,
+        supporting the two-valid-key model with no downtime. Must use Organization API Key for this function.
+
 
         :param name: Name or public id of the key to rotate. A name is not unique -
             a rotation leaves the old key behind under the same name - so of several
@@ -1512,10 +1506,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: The new key, including the ``api_key`` value itself. The value is
             returned only here and cannot be retrieved later.
         :rtype: dict
-
-        :raises AppException: If the key does not exist, is already revoked or
-            expired, if the overlap outlasts the new key's expiration, or if
-            ``expires_in`` is neither a number of days, a duration, nor a date.
 
         Request Example:
         ::
@@ -1553,9 +1543,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def list_team_api_keys(self, **filters) -> list[dict]:
         """
-        Returns the team API keys in the given team, newest first. Can use
-        Organization API Key and team ID, Team API Key or Personal API Key for this
-        function.
+        Returns the team API keys in the given team, newest first. Can use Organization API Key,
+        Team API Key or Personal API Key for this function.
+
 
         :param filters: Specifies filtering criteria, with all conditions combined
             using logical AND.
@@ -1592,9 +1582,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :return: The team's API keys that match the filtering criteria; an empty list
             if the team has no keys or none of them match.
         :rtype: list of dicts
-
-        :raises AppException: If a filter param is not supported, or if ``status``
-            contains a value outside the four accepted statuses.
 
         Request Example:
         ::
@@ -1654,16 +1641,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def revoke_team_api_key(self, public_id: str) -> None:
         """
         Revokes the team API key. Team API key should be in Active or Rotating state.
-        Can use Organization API Key and team ID, Team API Key or Personal API Key for
-        this function.
+        Can use Organization API Key, Team API Key or Personal API Key for this function.
 
         :param public_id: The public id of the key to revoke.
         :type public_id: str
 
         :rtype: None
-
-        :raises AppException: If the key does not exist or does not belong to the
-            caller, or if it is already revoked or expired.
 
         Request Example:
         ::
