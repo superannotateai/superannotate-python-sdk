@@ -168,11 +168,6 @@ class TestListTeamAPIKeys(TeamAPIKeyTestCase):
         assert revoked == []
         assert other_than_active == []
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="backend: a status $in/$notin filter answers 500 Internal server "
-        "error, though $eq and $ne on the same column are fine",
-    )
     def test_filtering_by_several_statuses_at_once(self):
         generated = self.generate()
 

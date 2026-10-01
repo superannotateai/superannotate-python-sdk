@@ -149,7 +149,6 @@ class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
         }
 
     def test_add_remove_a_contributor_to_its_project(self):
-        # TODO should raise error on ProjectAdmin deletion
         scapegoat = self._team_contributor()
 
         self.project_admin.add_contributors_to_project(
@@ -161,14 +160,19 @@ class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
             for user in self.project_admin.list_users(project=self.PROJECT_NAME)
         }
         assert project_roles.get(scapegoat["email"]) == "ProjectAdmin"
-        self.project_admin.remove_users_from_project(
-            self.PROJECT_NAME, [scapegoat["email"]]
-        )
+        with self.assertLogs("sa", level="INFO") as cm:
+            self.project_admin.remove_users_from_project(
+                self.PROJECT_NAME, [scapegoat["email"]]
+            )
+            assert (
+                cm.output[0]
+                == f"INFO:sa:Successfully removed 0 users(s) out of the 1 provided from the project {self.PROJECT_NAME}."
+            )
         project_roles = {
             user["email"]: user["role"]
             for user in self.project_admin.list_users(project=self.PROJECT_NAME)
         }
-        assert scapegoat["email"] not in project_roles
+        assert scapegoat["email"] in project_roles
 
     def test_lists_team_users(self):
         team_users = self.project_admin.list_users()
@@ -255,10 +259,13 @@ class TestProjectAdminTokenFullAccess(BaseProjectAdminTest):
         )
 
     def test_delete_project(self):
-        # TODO fix project admin should not be able to delete project
-        self.project_admin.delete_project(self.PROJECT_NAME)
-        projects = self.project_admin.list_projects(name=self.PROJECT_NAME)
-        assert not projects
+        with self.assertRaisesRegex(AppException, "Couldn't delete project"):
+            self.project_admin.delete_project(self.PROJECT_NAME)
+        self.owner.add_contributors_to_project(
+            self.FOREIGN_PROJECT_NAME, [self.project_admin_email], "Annotator"
+        )
+        with self.assertRaisesRegex(AppException, "Couldn't delete project"):
+            self.project_admin.delete_project(self.FOREIGN_PROJECT_NAME)
 
 
 @env.requires_env_vars(env.OWNER_PERSONAL_TOKEN_ENV, env.SA_CONTRIBUTOR_TOKEN_ENV)
@@ -282,7 +289,7 @@ class TestProjectAdminSemiAccess(BaseProjectAdminTest):
     def test_create_items(self):
         # todo update error message
         with self.assertRaisesRegex(
-            AppException, "You do not have sufficient access export."
+            AppException, "You do not have sufficient access to create item."
         ):
             self.project_admin.generate_items(self.PROJECT_NAME, count=5, name="test")
 
