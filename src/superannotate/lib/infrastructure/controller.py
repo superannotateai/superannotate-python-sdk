@@ -657,7 +657,7 @@ class WorkManagementManager(BaseManager):
     def rotate_team_api_key(
         self,
         name: str,
-        overlap: int | str,
+        overlap: int,
         expires_in: int | timedelta | datetime,
     ) -> TeamAPIKeyEntity:
         key = self._find_rotatable_key(name)
@@ -722,20 +722,17 @@ class WorkManagementManager(BaseManager):
         return cls._as_wire_date(expires_at)
 
     @classmethod
-    def _resolve_overlap_end(cls, overlap: int | str, expires_at: str) -> str:
+    def _resolve_overlap_end(cls, overlap: int, expires_at: str) -> str:
         """``overlap`` as the instant the rotated key stops being valid.
 
-        The backend takes the end of the window rather than its length, and
-        "expire_immediately" is no window at all: the rotated key stops the moment the
-        new one starts. A window cannot outlast the new key, which the backend does
-        not check either - though only an expiry still ahead is worth measuring
-        against, an expiry already past being the backend's to refuse.
+        The backend takes the end of the window rather than its length, and an overlap
+        of 0 is no window at all: the rotated key stops the moment the new one starts.
+        A window cannot outlast the new key, which the backend does not check either -
+        though only an expiry still ahead is worth measuring against, an expiry already
+        past being the backend's to refuse.
         """
-        days = (
-            0 if overlap == constants.TEAM_API_KEY_EXPIRE_IMMEDIATELY else int(overlap)
-        )
         now = datetime.now(timezone.utc)
-        overlap_end = now + timedelta(days=days)
+        overlap_end = now + timedelta(days=int(overlap))
         expiry = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
         if expiry > now and overlap_end > expiry:
             raise AppException(

@@ -1487,7 +1487,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def rotate_team_api_key(
         self,
         name: str,
-        overlap: Literal["expire_immediately", 1, 7, 14, 30] = 7,
+        overlap: Literal[0, 1, 7, 14, 30] = 7,
         expires_in: ExpiresIn = 365,
     ) -> dict:
         """
@@ -1500,9 +1500,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             the Active one is rotated.
         :type name: str
 
-        :param overlap: How long the rotated key stays valid: "expire_immediately",
-            or 1, 7, 14, 30 days. Defaults to 7.
-        :type overlap: Union[int, str], optional
+        :param overlap: How long the rotated key stays valid: 0 to expire it
+            immediately, or 1, 7, 14, 30 days. Defaults to 7 days.
+        :type overlap: int, optional
 
         :param expires_in: When the new key expires:
 
@@ -1526,7 +1526,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             # To rotate immediately with no overlap:
 
-            sa_client.rotate_team_api_key(name="api_key_to_rotate", overlap="expire_immediately")
+            sa_client.rotate_team_api_key(name="api_key_to_rotate", overlap=0)
 
         Response Example:
         ::

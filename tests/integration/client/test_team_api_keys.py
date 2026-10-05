@@ -231,7 +231,7 @@ class TestRotateTeamAPIKey(TeamAPIKeyTestCase):
     def test_rotating_immediately_leaves_no_overlap(self):
         old = self.generate()
 
-        self.client.rotate_team_api_key(name=old["name"], overlap="expire_immediately")
+        self.client.rotate_team_api_key(name=old["name"], overlap=0)
 
         # The rotated key stops the moment the new one starts.
         assert days_from_now(self.listed(old)["expiresAt"]) <= 0
@@ -258,7 +258,7 @@ class TestRotateTeamAPIKey(TeamAPIKeyTestCase):
     def test_an_overlap_outside_the_offered_windows_is_rejected(self):
         old = self.generate()
 
-        for invalid in (3, 0, "immediately"):
+        for invalid in (2, 3, 60, "immediately"):
             with pytest.raises(AppException):
                 self.client.rotate_team_api_key(name=old["name"], overlap=invalid)
 

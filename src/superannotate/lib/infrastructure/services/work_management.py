@@ -16,6 +16,7 @@ from lib.core.entities.work_managament import WMScoreEntity
 from lib.core.entities.work_managament import WMUserEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.exceptions import AppException
+from lib.core.exceptions import SAAuthError
 from lib.core.jsx_conditions import EmptyQuery
 from lib.core.jsx_conditions import Filter
 from lib.core.jsx_conditions import OperatorEnum
@@ -680,6 +681,8 @@ class WorkManagementService(BaseWorkManagementService):
             },
             data={"name": name, "expiresAt": expires_at},
         )
+        if response.status_code == 403:
+            raise SAAuthError("Unauthorized")
         response.raise_for_status()
         return TeamAPIKeyEntity(**response.res_data["data"])
 
