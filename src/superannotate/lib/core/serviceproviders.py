@@ -325,6 +325,18 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
     def revoke_team_api_key(self, key_id: int):
         raise NotImplementedError
 
+    def create_custom_role(self, org_id: str, data: dict):
+        raise NotImplementedError
+
+    def list_roles(self, org_id: str):
+        raise NotImplementedError
+
+    def create_custom_status(self, org_id: str, data: dict):
+        raise NotImplementedError
+
+    def list_statuses(self, org_id: str):
+        raise NotImplementedError
+
 
 class BaseProjectService(SuperannotateServiceProvider):
     @abstractmethod

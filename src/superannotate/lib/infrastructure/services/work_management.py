@@ -217,6 +217,17 @@ class WorkManagementService(BaseWorkManagementService):
             data=data,
         )
 
+    def list_roles(self, org_id: str):
+        return self.client.request(
+            url=self.URL_CREATE_ROLE,
+            method="get",
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id, organization_id=org_id
+                )
+            },
+        )
+
     def create_custom_status(self, org_id: str, data: dict):
         return self.client.request(
             url=self.URL_CREATE_STATUS,
@@ -227,6 +238,17 @@ class WorkManagementService(BaseWorkManagementService):
                 )
             },
             data=data,
+        )
+
+    def list_statuses(self, org_id: str):
+        return self.client.request(
+            url=self.URL_CREATE_STATUS,
+            method="get",
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id, organization_id=org_id
+                )
+            }
         )
 
     def list_custom_field_templates(
@@ -701,6 +723,8 @@ class WorkManagementService(BaseWorkManagementService):
             # rotated key stops rather than how long it lasts.
             data={"body": {"overlapEndAt": overlap_end_at, "expiresAt": expires_at}},
         )
+        if response.status_code == 403:
+            raise SAAuthError("Unauthorized")
         response.raise_for_status()
         return TeamAPIKeyEntity(**response.res_data["data"])
 
@@ -731,5 +755,7 @@ class WorkManagementService(BaseWorkManagementService):
                 ),
             },
         )
+        if response.status_code == 403:
+            raise SAAuthError("Unauthorized")
         response.raise_for_status()
         return TeamAPIKeyEntity(**response.res_data["data"])

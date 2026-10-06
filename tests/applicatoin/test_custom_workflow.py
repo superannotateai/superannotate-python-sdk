@@ -38,7 +38,6 @@ class TestWorkflow(TestCase):
                 "rolePermissions": [{"permission_id": 11}, {"permission_id": 12}],
             },
         )
-
         # setup custom status
         sa.controller.service_provider.work_management.create_custom_status(
             org_id=sa.controller.org_id,
