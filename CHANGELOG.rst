@@ -6,27 +6,29 @@ History
 
 All release highlights of this project will be documented in this file.
 
-4.6.2 - Sep _, 2026
+4.6.2 - Oct 12, 2026
 ____________________
 
 
 **Added**
 
-    - ``SAClient.generate_team_api_key()`` Generates a new team API key bound to the given team, active immediately. Requires an Organization API Key and a team ID.
+    - ``SAClient.generate_team_api_key()`` Generates a new API key for the specified team.
 
-    - ``SAClient.rotate_team_api_key()`` Generates a new active key and keeps the old one valid for a defined overlap window, supporting the two-valid-key model with no downtime. Requires an Organization API Key and a team ID.
+    - ``SAClient.rotate_team_api_key()`` Generates a new active Team API Key while keeping the previous key valid for a configurable overlap period, enabling key rotation without downtime.
 
-    - ``SAClient.list_team_api_keys()`` Returns the team API keys in the given team, newest first, with filtering by ``id``, ``name`` and ``status``.
+    - ``SAClient.list_team_api_keys()`` Returns Team API Keys for the specified team.
 
-    - ``SAClient.revoke_team_api_key()`` Revokes a team API key that is in the Active or Rotating state.
+    - ``SAClient.revoke_team_api_key()`` Revokes a Team API Key that is in the Active or Rotating state.
 
-    - ``SAClient.explore`` New namespace for querying and curating project data with the Explore query language (https://doc.superannotate.com/docs/queries-beta).
+    - ``SAClient.explore`` Added a new namespace for working with Explore-related SDK functions.
 
-    - ``SAClient.explore.query()`` Returns items that satisfy an Explore query. ``.count()`` returns the number of matching items without fetching them.
+    - ``SAClient.explore.query()`` Returns items that satisfy a query string as a `QueryResult`, which behaves like a list of dictionaries and provides a `count()` method.
 
-    - ``SAClient.explore.get_subsets()`` Returns the subsets of a project.
+    - ``SAClient.explore.query().count()`` Returns the subsets available in a project.
 
-    - ``SAClient.explore.add_items_to_subset()`` Associates items with a subset, creating the subset if it does not exist.
+    - ``SAClient.explore.get_subsets()`` Returns the subsets available in a project.
+
+    - ``SAClient.explore.add_items_to_subset()`` Associates items with a subset and creates the subset if it does not already exist.
 
 **Deprecated**
 

@@ -66,5 +66,8 @@ class TestPersonalToken(TestCase):
 
     def test_rejects_a_conflicting_team_id(self):
         # The key names its own team, so a team_id that disagrees is a caller mistake.
-        with self.assertRaisesRegex(AppException, r"Invalid team id provided\."):
+        with self.assertRaisesRegex(
+                AppException,
+                r'Team context not provided. An Organization API key requires a "team_id"\.'
+        ):
             env.build_client(self.token, team_id=self.client.team_id + 1)
