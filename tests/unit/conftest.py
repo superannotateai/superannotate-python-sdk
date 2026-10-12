@@ -7,6 +7,7 @@ neither through the environment nor through a ``load_dotenv()`` of the code unde
 """
 
 import pytest
+import superannotate  # noqa: F401 - puts lib/ on sys.path, for tests importing lib.*
 from tests import env
 
 CREDENTIAL_VARS = (

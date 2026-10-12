@@ -1,10 +1,14 @@
 import re
+from datetime import datetime
+from datetime import timedelta
 from functools import wraps
 from typing import Annotated
 
 from lib.core.exceptions import AppException
 from lib.infrastructure.validators import wrap_error
 from pydantic import AfterValidator
+from pydantic import Strict
+from pydantic import StrictInt
 from pydantic import validate_call as pydantic_validate_arguments
 from pydantic import ValidationError
 
@@ -24,6 +28,12 @@ def _validate_email(value: str) -> str:
 
 
 EmailStr = Annotated[str, AfterValidator(_validate_email)]
+
+#: When something expires: a number of days from now, a duration, or the date itself.
+#: Every member is strict on purpose - left lax, ``30.5`` is no valid number of days,
+#: so it would be read as 30.5 *seconds* through timedelta and silently expire in half
+#: a minute.
+ExpiresIn = StrictInt | Annotated[timedelta, Strict()] | Annotated[datetime, Strict()]
 
 
 def validate_arguments(func):

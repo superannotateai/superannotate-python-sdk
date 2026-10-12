@@ -45,6 +45,18 @@ class FolderFilters(ProjectFilters):
     pass
 
 
+#: The statuses a team API key can be filtered by, spelled as the SDK reports them
+#: rather than in the backend's own upper case.
+TEAM_API_KEY_STATUS = Literal["Active", "Rotating", "Expired", "Revoked"]
+
+
+class TeamAPIKeyFilters(BaseFilters, total=False):
+    status: TEAM_API_KEY_STATUS
+    status__ne: TEAM_API_KEY_STATUS
+    status__in: list[TEAM_API_KEY_STATUS]
+    status__notin: list[TEAM_API_KEY_STATUS]
+
+
 class BaseUserFilters(TypedDict, total=False):
     id: int | None
     id__in: list[int] | None

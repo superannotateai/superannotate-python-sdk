@@ -15,6 +15,7 @@ Contents
     api_annotation_class
     api_export
     api_custom_metadata
+    api_explore
     api_subset
     api_image
     api_team

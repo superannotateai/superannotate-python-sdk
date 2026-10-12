@@ -34,9 +34,9 @@ class TestOrganizationToken(TestCase):
         assert client.controller.token_context.scope == TokenScope.ORGANIZATION
         assert client.controller.team_id == self.team_id
 
-    def test_team_id_from_the_environment(self):
+    def test_team_id_from_the_configuration(self):
         client = env.build_client(
-            self.token, team_id=self.team_id, team_id_via_env=True
+            self.token, team_id=self.team_id, team_id_via_config=True
         )
 
         assert client.controller.config["SA_TEAM_ID"] == self.team_id
@@ -66,5 +66,8 @@ class TestPersonalToken(TestCase):
 
     def test_rejects_a_conflicting_team_id(self):
         # The key names its own team, so a team_id that disagrees is a caller mistake.
-        with self.assertRaisesRegex(AppException, r"Invalid team id provided\."):
+        with self.assertRaisesRegex(
+                AppException,
+                r'Team context not provided. An Organization API key requires a "team_id"\.'
+        ):
             env.build_client(self.token, team_id=self.client.team_id + 1)

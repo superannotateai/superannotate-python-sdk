@@ -6,6 +6,40 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.6.2 - Oct 12, 2026
+____________________
+
+
+**Added**
+
+    - ``SAClient.generate_team_api_key()`` Generates a new API key for the specified team.
+
+    - ``SAClient.rotate_team_api_key()`` Generates a new active Team API Key while keeping the previous key valid for a configurable overlap period, enabling key rotation without downtime.
+
+    - ``SAClient.list_team_api_keys()`` Returns Team API Keys for the specified team.
+
+    - ``SAClient.revoke_team_api_key()`` Revokes a Team API Key that is in the Active or Rotating state.
+
+    - ``SAClient.explore`` Added a new namespace for working with Explore-related SDK functions.
+
+    - ``SAClient.explore.query()`` Returns items that satisfy a query string as a `QueryResult`, which behaves like a list of dictionaries and provides a `count()` method.
+
+    - ``SAClient.explore.query().count()`` Returns the subsets available in a project.
+
+    - ``SAClient.explore.get_subsets()`` Returns the subsets available in a project.
+
+    - ``SAClient.explore.add_items_to_subset()`` Associates items with a subset and creates the subset if it does not already exist.
+
+**Deprecated**
+
+    - ``SAClient.query()`` and ``SAClient.query().count()`` Use ``SAClient.explore.query()``. Will be removed in 4.7.0.
+
+    - ``SAClient.get_subsets()`` Use ``SAClient.explore.get_subsets()``. Will be removed in 4.7.0.
+
+    - ``SAClient.add_items_to_subset()`` Use ``SAClient.explore.add_items_to_subset()``. Will be removed in 4.7.0.
+
+
+
 4.6.1 - Sep 13, 2026
 ____________________
 

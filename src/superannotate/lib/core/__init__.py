@@ -200,6 +200,10 @@ TEAM_USER_PERMISSION_REVOKE_CASCADE = {
 }
 
 
+API_KEY_NOT_FOUND_ERROR = "API key not found"
+API_KEY_ALREADY_REVOKED_ERROR = "This key is already revoked or expired"
+
+
 PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "Brightness",
     "Fill",
