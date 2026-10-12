@@ -40,7 +40,12 @@ def sa_vector_to_coco_object_detection(
             points["y2"] - points["y1"],
         )
         polygons = bbox
-        area = int((points["x2"] - points["x1"]) * points["y2"] - points["y1"])
+        # COCO bbox area is width * height. `bbox` is already
+        # (x, y, width, height), so reuse it — the previous expression
+        # `(x2 - x1) * y2 - y1` was mis-parenthesized (operator precedence made
+        # it `((x2 - x1) * y2) - y1`), producing a wrong area for every box not
+        # touching the top edge. Mirrors the keypoint path's `bbox[2] * bbox[3]`.
+        area = int(bbox[2] * bbox[3])
 
         annotation = make_annotation(
             category_id, image_info["id"], bbox, polygons, area, anno_id
