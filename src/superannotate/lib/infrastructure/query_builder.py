@@ -5,6 +5,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Any
 
+from lib.core import INVALID_PROJECT_PRIORITY_ERROR
 from lib.core.entities import BaseItemEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities.work_managament import TeamAPIKeyStatus
@@ -12,6 +13,7 @@ from lib.core.enums import ApprovalStatus
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.enums import FolderStatus
+from lib.core.enums import ProjectPriority
 from lib.core.enums import ProjectStatus
 from lib.core.enums import UserRole
 from lib.core.enums import WMUserStateEnum
@@ -22,6 +24,17 @@ from lib.core.jsx_conditions import Join
 from lib.core.jsx_conditions import OperatorEnum
 from lib.core.jsx_conditions import Query
 from lib.core.serviceproviders import BaseServiceProvider
+
+
+def get_project_priority(value: str | None) -> ProjectPriority | None:
+    """Map a priority title ("Highest") to its enum, None stays None."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        for priority in ProjectPriority:
+            if priority.name == value:
+                return priority
+    raise AppException(INVALID_PROJECT_PRIORITY_ERROR)
 
 
 def determine_condition_and_key(keys: list[str]) -> tuple[OperatorEnum, str]:
@@ -322,7 +335,18 @@ class ProjectFilterHandler(BaseCustomFieldHandler):
                 if isinstance(val, (list, tuple, set))
                 else ProjectStatus(val).value
             )
+        elif keys[0] == "priority":
+            val = (
+                [self._priority_value(i) for i in val]
+                if isinstance(val, (list, tuple, set))
+                else self._priority_value(val)
+            )
         return super()._handle_special_fields(keys, val)
+
+    @staticmethod
+    def _priority_value(value) -> int | None:
+        priority = get_project_priority(value)
+        return priority.value if priority is not None else None
 
 
 class FolderFilterHandler(AbstractQueryHandler):

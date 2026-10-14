@@ -119,8 +119,26 @@ class Filter(Query):
 
     def body_build(self) -> tuple[str, list[dict]]:
         filter_value: list[dict] = []
+        # the backend can't compare with null, None is matched via $isnull/$notnull
+        has_none = isinstance(self._value, (list, set, tuple)) and None in self._value
         if self._value is None and self._operator == OperatorEnum.EQ:
             filter_value.append({self._key: {"$isnull": True}})
+        elif self._value is None and self._operator == OperatorEnum.NE:
+            filter_value.append({self._key: {"$notnull": True}})
+        elif has_none and self._operator == OperatorEnum.IN:
+            values = [i for i in self._value if i is not None]
+            is_null = {self._key: {"$isnull": True}}
+            if values:
+                filter_value.append(
+                    {"$or": [{self._key: {self._operator.value: values}}, is_null]}
+                )
+            else:
+                filter_value.append(is_null)
+        elif has_none and self._operator == OperatorEnum.NOTIN:
+            values = [i for i in self._value if i is not None]
+            filter_value.append({self._key: {"$notnull": True}})
+            if values:
+                filter_value.append({self._key: {self._operator.value: values}})
         elif self._operator == OperatorEnum.NOTIN or (
             self._operator == OperatorEnum.NE and self._value is not None
         ):

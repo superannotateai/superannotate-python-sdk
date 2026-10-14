@@ -1148,6 +1148,59 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             operation="remove",
         )
 
+    def set_project_user_role(
+        self, project: NotEmptyStr | int, user: NotEmptyStr, role: NotEmptyStr
+    ) -> None:
+        """Sets the project-level role of a user who is already shared on the given
+        project. The user is switched to the given role.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param user: Email of user whose project role is being changed.
+         The user must already be shared on the project.
+        :type user: str
+
+        :param role: The project role to switch the user to. Case-sensitive.
+
+            Possible values are
+
+            - "ProjectAdmin": Full access to the project, including settings,
+              sharing, and workload.
+            - Any other role defined in the project: Pass the role's name exactly
+              as it appears in the project.
+        :type role: str
+
+        :rtype: None
+
+        :raises AppException: If the role does not exist in the project, or the
+         project or user is not found.
+
+        Request Example:
+        ::
+
+            # To make a user a Project Admin on the project:
+            sa_client.set_project_user_role(
+                project="Image Project",
+                user="test@superannotate.com",
+                role="ProjectAdmin"
+            )
+
+            # To assign a user a custom role on the project:
+            sa_client.set_project_user_role(
+                project="Image Project",
+                user="test@superannotate.com",
+                role="My Custom Role"
+            )
+        """
+        project = self.controller.get_project(project)
+        self.controller.work_management.set_project_user_role(
+            project=project, user=user, role=role
+        )
+        logger.info(
+            f"Successfully set role {role} for user: {user} in project {project.name}."
+        )
+
     def grant_project_user_permissions(
         self,
         project: NotEmptyStr | int,
@@ -1263,6 +1316,41 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             permissions=permissions,
             operation="revoke",
         )
+
+    def set_team_user_role(self, user: NotEmptyStr, role: str) -> None:
+        """Sets the team-level role of a team user. The user is switched to the given
+        role, and role-specific permissions are reset to the defaults for that role.
+
+        :param user: Team user email of user whose role is being changed.
+        :type user: str
+
+        :param role: The role to switch the user to. Case-sensitive.
+
+            Possible values are
+
+            - "Contributor": Contributor permissions can be granted afterwards with
+              :func:`grant_team_user_permissions`.
+            - "TeamAdmin": Team Admin permissions can be granted afterwards with
+              :func:`grant_team_user_permissions`.
+        :type role: str
+
+        :rtype: None
+
+        :raises AppException: If the role is not one of the supported values or the
+         user is not found.
+
+        Request Example:
+        ::
+
+            # To promote a Contributor to Team Admin:
+            sa_client.set_team_user_role(
+                user="test@superannotate.com",
+                role="TeamAdmin"
+            )
+        """
+        self.controller.work_management.set_team_user_role(user=user, role=role)
+        role_name = "Team Admin" if role == "TeamAdmin" else role
+        logger.info(f"Successfully set role: {role_name}, for user: {user}.")
 
     def grant_team_user_permissions(
         self,
@@ -2550,6 +2638,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "entropy_status": 1,
                 "sharing_status": None,
                 "status": "NotStarted",
+                "priority": "High",
                 "folder_id": 1191383,
                 "workflow_id": 1,
                 "workflow": {
@@ -2973,6 +3062,39 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(f"Failed to change {project.name} status.")
         logger.info(f"Successfully updated {project.name} status to {status}")
+
+    def set_project_priority(self, project: NotEmptyStr | int, priority: str | None):
+        """Sets the priority of a project. Pass None as priority to clear it.
+
+        :param project: The name or ID of the project.
+        :type project: str or int
+
+        :param priority: One of Highest, High, Medium, Low, Lowest, or None to clear the priority.
+
+            Available priorities are::
+
+                 * Highest
+                 * High
+                 * Medium
+                 * Low
+                 * Lowest
+
+        :type priority: str or None
+
+        Request Example:
+        ::
+
+            # Set the priority of a single project
+            sa_client.set_project_priority(
+                project="Medical Imaging QA",
+                priority="Highest"
+            )
+        """
+        project = self.controller.get_project(project)
+        self.controller.projects.set_priority(project, priority)
+        logger.info(
+            f"Successfully changed the priority of project {project.name} to {priority}."
+        )
 
     def set_project_custom_field(
         self, project: NotEmptyStr | int, custom_field_name: str, value: Any
@@ -5283,6 +5405,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - status__ne: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
             - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
             - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+            - priority: Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]
+            - priority__ne: Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]
+            - priority__in: List[Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]]
+            - priority__notin: List[Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]]
 
             Custom Fields Filtering:
 
@@ -5319,6 +5445,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 custom_field__Tag__in=["Tag1", "Tag3"]
             )
 
+            # Projects that are High or Highest priority
+            sa_client.list_projects(
+                priority__in=["Highest", "High"],
+                name__contains="Medical",
+            )
+
         Response Example:
         ::
 
@@ -5347,6 +5479,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "settings": [],
                     "sharing_status": None,
                     "status": "InProgress",
+                    "priority": "High",
                     "team_id": 233435,
                     "type": "Vector",
                     "updatedAt": "2024-02-04T12:04:01.000Z",

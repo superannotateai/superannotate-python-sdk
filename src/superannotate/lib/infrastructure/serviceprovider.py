@@ -40,6 +40,7 @@ class ServiceProvider(BaseServiceProvider):
     URL_GET_EXPORT = "export/{}"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_INVITE_CONTRIBUTORS = "api/v1/team/{}/inviteUsers"
+    URL_TEAM_MEMBER = "api/v1/team/{}/member"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
     URL_CREATE_WORKFLOW = "api/v1/workflows/submit"
     URL_REMOVE_USERS_FROM_TEAM = "team/{team_id}/members/bulk"
@@ -141,6 +142,9 @@ class ServiceProvider(BaseServiceProvider):
 
     def get_role_id(self, project: entities.ProjectEntity, role_name: str) -> int:
         return self._cached_work_management_repository.get_role_id(project, role_name)
+
+    def get_role_name_id_map(self, project: entities.ProjectEntity) -> dict[str, int]:
+        return self._cached_work_management_repository.get_role_name_id_map(project)
 
     def get_role_name(self, project: entities.ProjectEntity, role_id: int) -> str:
         return self._cached_work_management_repository.get_role_name(project, role_id)
@@ -368,6 +372,19 @@ class ServiceProvider(BaseServiceProvider):
             self.URL_INVITE_CONTRIBUTORS.format(team_id),
             "post",
             data={"emails": emails, "team_role": team_role},
+        )
+
+    def set_team_user_role(self, team_id: int, user_id: str, role: int):
+        # the role-specific permissions are reset to the role defaults
+        return self.client.request(
+            self.URL_TEAM_MEMBER.format(team_id),
+            "put",
+            data={
+                "user_id": user_id,
+                "user_role": role,
+                "allow_run_explore": 0,
+                "allow_orchestrate": 0,
+            },
         )
 
     def create_custom_workflow(self, org_id: str, data: dict):

@@ -12,6 +12,7 @@ Projects
 .. _ref_get_project_metadata:
 .. automethod:: superannotate.SAClient.get_project_by_id
 .. automethod:: superannotate.SAClient.set_project_status
+.. automethod:: superannotate.SAClient.set_project_priority
 .. automethod:: superannotate.SAClient.get_project_metadata
 .. automethod:: superannotate.SAClient.upload_images_to_project
 .. automethod:: superannotate.SAClient.attach_items_from_integrated_storage
@@ -31,5 +32,6 @@ Projects
 .. automethod:: superannotate.SAClient.list_categories
 .. automethod:: superannotate.SAClient.remove_categories
 .. automethod:: superannotate.SAClient.remove_users_from_project
+.. automethod:: superannotate.SAClient.set_project_user_role
 .. automethod:: superannotate.SAClient.grant_project_user_permissions
 .. automethod:: superannotate.SAClient.revoke_project_user_permissions

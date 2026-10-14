@@ -193,6 +193,14 @@ class ProjectStatus(BaseTitledEnum):
     OnHold = "OnHold", 4
 
 
+class ProjectPriority(BaseTitledEnum):
+    Lowest = "Lowest", 1
+    Low = "Low", 2
+    Medium = "Medium", 3
+    High = "High", 4
+    Highest = "Highest", 5
+
+
 class FolderStatus(BaseTitledEnum):
     Undefined = "Undefined", -1
     NotStarted = "NotStarted", 1

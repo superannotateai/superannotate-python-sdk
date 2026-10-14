@@ -248,7 +248,7 @@ class WorkManagementService(BaseWorkManagementService):
                 "x-sa-entity-context": encode_entity_context(
                     team_id=self.client.team_id, organization_id=org_id
                 )
-            }
+            },
         )
 
     def list_custom_field_templates(

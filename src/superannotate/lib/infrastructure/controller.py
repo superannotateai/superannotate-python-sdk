@@ -46,6 +46,7 @@ from lib.core.entities.work_managament import ScorePayloadEntity
 from lib.core.entities.work_managament import TEAM_API_KEY_LIVE_STATUSES
 from lib.core.entities.work_managament import TeamAPIKeyEntity
 from lib.core.entities.work_managament import TeamAPIKeyStatus
+from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.enums import CustomFieldType
 from lib.core.enums import ProjectType
@@ -62,6 +63,7 @@ from lib.core.response import Response
 from lib.infrastructure.custom_entities import generate_schema
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.query_builder import FieldValidationHandler
+from lib.infrastructure.query_builder import get_project_priority
 from lib.infrastructure.query_builder import IncludeHandler
 from lib.infrastructure.query_builder import ItemFilterHandler
 from lib.infrastructure.query_builder import ProjectFilterHandler
@@ -641,6 +643,38 @@ class WorkManagementManager(BaseManager):
         if response.errors:
             raise AppException(response.errors)
 
+    def set_team_user_role(self, user: str, role: str):
+        roles = {
+            "Contributor": WMUserTypeEnum.Contributor,
+            "TeamAdmin": WMUserTypeEnum.TeamAdmin,
+        }
+        if role not in roles:
+            raise AppException(constants.INVALID_TEAM_USER_ROLE_ERROR)
+        users = self._resolve_team_user(user)
+        if not users:
+            raise AppException(constants.USER_NOT_FOUND_ERROR)
+        response = self.service_provider.set_team_user_role(
+            team_id=self.service_provider.client.team_id,
+            user_id=users[0].email,
+            role=roles[role].value,
+        )
+        response.raise_for_status()
+        # the backend answers 200 with {"success": false} when nothing was changed
+        if isinstance(response.data, dict) and response.data.get("success") is False:
+            raise AppException(f"Failed to set role: {role}, for user: {user}.")
+
+    def set_project_user_role(self, project: ProjectEntity, user: str, role: str):
+        role_id = self.service_provider.get_role_name_id_map(project).get(role)
+        if role_id is None:
+            raise AppException(constants.INVALID_PROJECT_USER_ROLE_ERROR)
+        users = self.list_users(project=project, email=user)
+        if not users:
+            raise AppException(constants.USER_NOT_FOUND_ERROR)
+        response = self.service_provider.projects.set_user_role(
+            project_id=project.id, user_id=users[0].email, role=role_id
+        )
+        response.raise_for_status()
+
     def _resolve_team_user(self, user: int | str):
         if isinstance(user, int):
             return self.list_users(id__in=[user])
@@ -877,6 +911,14 @@ class ProjectManager(BaseManager):
             entity, service_provider=self.service_provider
         )
         return use_case.execute()
+
+    def set_priority(self, project: ProjectEntity, priority: str | None):
+        project_priority = get_project_priority(priority)
+        response = self.service_provider.projects.set_priority(
+            project_id=project.id,
+            priority=project_priority.value if project_priority is not None else None,
+        )
+        response.raise_for_status()
 
     def set_settings(self, project: ProjectEntity, settings: list[SettingEntity]):
         use_case = usecases.UpdateSettingsUseCase(

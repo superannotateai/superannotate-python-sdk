@@ -6,6 +6,7 @@ Projects,create_project,No,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,delete_project,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_project_by_id,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,set_project_status,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
+,set_project_priority,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,get_project_metadata,Yes,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,upload_images_to_project,Not Relevant,Not Relevant,Not Relevant,Not Relevant,Not Relevant
 ,attach_items_from_integrated_storage,Yes,Not Relevant,Not Relevant,Not Relevant,"AWS, GCP, Azure, Databricks"

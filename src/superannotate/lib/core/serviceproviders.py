@@ -368,6 +368,16 @@ class BaseProjectService(SuperannotateServiceProvider):
         raise NotImplementedError
 
     @abstractmethod
+    def set_priority(self, project_id: int, priority: int | None) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_user_role(
+        self, project_id: int, user_id: str, role: int
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
     def delete(self, entity: entities.ProjectEntity) -> ServiceResponse:
         raise NotImplementedError
 
@@ -892,6 +902,10 @@ class BaseServiceProvider(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def get_role_name_id_map(self, project: entities.ProjectEntity) -> dict[str, int]:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_category_id(
         self, project: entities.ProjectEntity, category_name: str
     ) -> int:
@@ -1021,6 +1035,12 @@ class BaseServiceProvider(metaclass=ABCMeta):
     @abstractmethod
     def invite_contributors(
         self, team_id: int, team_role: int, emails: list[str]
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_team_user_role(
+        self, team_id: int, user_id: str, role: int
     ) -> ServiceResponse:
         raise NotImplementedError
 

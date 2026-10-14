@@ -6,6 +6,7 @@ from typing import Any
 
 from lib.core.entities.base import HexColor
 from lib.core.entities.base import TimedBaseModel
+from lib.core.enums import ProjectPriority
 from lib.core.enums import WMClassTypeEnum
 from lib.core.enums import WMGroupTypeEnum
 from lib.core.enums import WMUserStateEnum
@@ -61,6 +62,8 @@ class WMProjectEntity(TimedBaseModel):
     description: str | None = None
     creator_id: str | None = None
     status: ProjectStatus | None = None
+    # the backend sends the priority in lower case ("highest")
+    priority: ProjectPriority | None = None
     workflow_id: int | None = None
     sync_status: int | None = None
     upload_state: str | None = None
