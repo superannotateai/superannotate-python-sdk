@@ -6,6 +6,7 @@ from typing import Any
 from lib.core.entities.base import TimedBaseModel
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
+from lib.core.enums import ProjectPriority
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
 from pydantic import BaseModel
@@ -80,6 +81,7 @@ class ProjectEntity(TimedBaseModel):
     entropy_status: int | None = None
     sharing_status: int | None = None
     status: ProjectStatus | None = None
+    priority: ProjectPriority | None = None
     folder_id: int | None = None
     workflow_id: int | None = None
     workflow: WorkflowEntity | None = None
