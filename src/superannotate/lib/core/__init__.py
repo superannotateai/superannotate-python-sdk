@@ -33,7 +33,7 @@ DEFAULT_LOGGING_LEVEL = "INFO"
 
 INVALID_TOKEN_ERROR = "Invalid token."
 INVALID_TEAM_ID_ERROR = "Invalid team id provided."
-INVALID_TEAM_USER_ROLE_ERROR = "Invalid role. Valid roles are: Contributor, Team Admin"
+INVALID_TEAM_USER_ROLE_ERROR = "Invalid role. Valid roles are: Contributor, TeamAdmin"
 INVALID_PROJECT_USER_ROLE_ERROR = "Invalid role."
 USER_NOT_FOUND_ERROR = "User not found."
 INVALID_PROJECT_PRIORITY_ERROR = (
