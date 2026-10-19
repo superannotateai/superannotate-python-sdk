@@ -445,13 +445,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_team_metadata(self, include: list[Literal["scores"]] | None = None):
         """
-        Returns team metadata, including optionally, scores.
+        Returns team metadata, including optionally, scores metadata.
 
         :param include: Specifies additional fields to include in the response.
 
             Possible values are
 
-            - "scores": If provided, the response will include score names associated with the team user.
+            - "scores": : If provided, the response will include the metadata of each score associated with the team.
 
         :type include: list of str, optional
 
@@ -461,10 +461,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.get_team()
         team = response.data
         if include and "scores" in include:
-            team.scores = [
-                i.name
-                for i in self.controller.work_management.list_score_templates().data
-            ]
+            team.scores = BaseSerializer.serialize_iterable(
+                self.controller.work_management.list_score_templates().data
+            )
         return TeamSerializer(team).serialize(exclude_unset=True)
 
     def get_user_metadata(
