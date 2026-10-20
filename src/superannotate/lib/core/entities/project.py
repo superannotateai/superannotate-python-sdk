@@ -139,7 +139,7 @@ class TeamEntity(BaseModel):
     pending_invitations: list[Any] | None = None
     creator_id: str | None = None
     owner_id: str | None = None
-    scores: list[str] | None = None
+    scores: list[dict[str, Any]] | None = None
 
 
 class OrgTeamEntity(BaseModel):
