@@ -6,7 +6,6 @@ import io
 import json
 import logging
 import os
-import sys
 import typing
 import warnings
 from collections.abc import Callable
@@ -17,31 +16,20 @@ from pathlib import Path
 from typing import Annotated
 from typing import Any
 from typing import Literal
-
-from pydantic import Field
-from pydantic import StringConstraints
-
-if sys.version_info < (3, 11):
-    from typing_extensions import TypedDict, NotRequired, Required  # noqa
-else:
-    from typing import TypedDict, NotRequired, Required  # noqa
+from typing import NotRequired
+from typing import Required
+from typing import TypedDict
 
 import boto3
-
-from tqdm import tqdm
-from pydantic import ValidationError
-from pydantic import TypeAdapter
-
 import lib.core as constants
-from lib.infrastructure.controller import OrgController
-from lib.infrastructure.controller import TeamController
 from lib.app.helpers import get_annotation_paths
-from lib.app.helpers import warn_deprecated
 from lib.app.helpers import get_name_url_duplicated_from_csv
+from lib.app.helpers import warn_deprecated
 from lib.app.helpers import wrap_error as wrap_validation_errors
 from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
-
+from lib.app.interface.responses import QueryResult
+from lib.app.interface.sdk.explore import Explore
 from lib.app.interface.types import EmailStr
 from lib.app.interface.types import ExpiresIn
 from lib.app.serializers import BaseSerializer
@@ -49,49 +37,52 @@ from lib.app.serializers import FolderSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
-from lib.core import LIMITED_FUNCTIONS
+from lib.app.serializers import WMProjectSerializer
 from lib.core import entities
-from lib.core.conditions import CONDITION_EQ as EQ
+from lib.core import INVALID_TEAM_ID_ERROR
+from lib.core import LIMITED_FUNCTIONS
 from lib.core.conditions import Condition
-from lib.core.jsx_conditions import Filter, OperatorEnum
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import EmptyCondition
-from lib.core.entities import (
-    AttachmentEntity,
-    FolderEntity,
-    BaseItemEntity,
-    ProjectEntity,
-)
+from lib.core.entities import AttachmentEntity
+from lib.core.entities import BaseItemEntity
+from lib.core.entities import FolderEntity
+from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
+from lib.core.entities.filters import FolderFilters
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
-from lib.core.enums import ImageQuality
-from lib.core.enums import CustomFieldEntityEnum
-from lib.core.enums import ProjectType
+from lib.core.entities.items import ProjectCategoryEntity
+from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.enums import ClassTypeEnum
+from lib.core.enums import CustomFieldEntityEnum
+from lib.core.enums import ImageQuality
+from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import SAAuthError
-from lib.core import INVALID_TEAM_ID_ERROR
+from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Fields
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import Join
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.types import PriorityScoreEntity
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
-from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
-from lib.infrastructure.validators import wrap_error
-from lib.app.serializers import WMProjectSerializer
-from lib.core.entities.work_managament import WMUserTypeEnum
-from lib.core.jsx_conditions import EmptyQuery
-from lib.core.jsx_conditions import Join
-from lib.core.jsx_conditions import Fields
-from lib.core.entities.items import ProjectCategoryEntity
-from lib.core.entities import WMAnnotationClassEntity
-from lib.infrastructure.query_builder import FolderFilterHandler
-from lib.core.entities.filters import FolderFilters
-from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
+from lib.infrastructure.controller import OrgController
+from lib.infrastructure.controller import TeamController
 from lib.infrastructure.query_builder import FieldValidationHandler
-
-from lib.app.interface.responses import QueryResult
-from lib.app.interface.sdk.explore import Explore
+from lib.infrastructure.query_builder import FolderFilterHandler
+from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.validators import wrap_error
+from pydantic import Field
+from pydantic import StringConstraints
+from pydantic import TypeAdapter
+from pydantic import ValidationError
+from tqdm import tqdm
 
 logger = logging.getLogger("sa")
 
