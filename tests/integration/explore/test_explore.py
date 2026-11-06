@@ -281,9 +281,13 @@ class TestExploreVector(BaseTestCase):
         self._attach_items(count=1)
         result = sa.explore.query(self.PROJECT_NAME, '_status = "NotStarted"')
 
-        with self.assertRaisesRegex(AppException, r"^Unsupported project type\.$"):
+        expected = (
+            r"^This function supports Multimodal projects only\. "
+            r"To query a non-multimodal project, use SAClient\.query\(\) instead\.$"
+        )
+        with self.assertRaisesRegex(AppException, expected):
             result.data()
-        with self.assertRaisesRegex(AppException, r"^Unsupported project type\.$"):
+        with self.assertRaisesRegex(AppException, expected):
             result.count()
 
 

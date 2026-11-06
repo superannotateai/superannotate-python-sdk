@@ -6,6 +6,16 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.6.3 - Nov 05, 2026
+____________________
+
+**Updated**
+
+    - Pillow requirement updated to ``pillow~=13.0`` to pick up security fixes (including Critical and High severity vulnerabilities fixed in Pillow 13.0.0).
+
+    - SDK now supports Python versions 3.11, 3.12, 3.13 and 3.14. Python 3.10 is no longer supported.
+
+
 4.6.2 - Oct 12, 2026
 ____________________
 
