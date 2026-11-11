@@ -236,7 +236,7 @@ class ItemContext:
         Request Example:
         ::
 
-            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 0) as context:
                 metadata = context.get_metadata()
                 print(metadata)
         """
@@ -499,10 +499,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "due_date": 1738671238.7,
                 },
                 "email": "example@email.com",
-                "id": 124341,
+                "id": 0,
                 "role": "Contributor",
                 "state": "Confirmed",
-                "team_id": 23245,
+                "team_id": 0,
             }
         """
         user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
@@ -657,10 +657,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "Tag": ["Tag1", "Tag2", "Tag3"],
                     },
                     "email": "example@superannotate.com",
-                    "id": 30328,
+                    "id": 0,
                     "role": "TeamOwner",
                     "state": "Confirmed",
-                    "team_id": 44311,
+                    "team_id": 0,
                     "user_permissions": [],
                 }
             ]
@@ -689,7 +689,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "updatedAt": "2025-03-07T13:19:59.000Z",
                     "custom_fields": {"speed": 92, "weight": 0.8},
                     "email": "example@superannotate.com",
-                    "id": 715121,
+                    "id": 0,
                     'permissions': {
                         'allow_orchestrate': 0,
                         'allow_run_explore': 0,
@@ -698,7 +698,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     },
                     "role": "Annotator",
                     "state": "Confirmed",
-                    "team_id": 1234,
+                    "team_id": 0,
                     "categories": None,
                     "user_permissions": [],
                 }
@@ -741,10 +741,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "speed score 7D": 11,
                     },
                     "email": "example@superannotate.com",
-                    "id": 715121,
+                    "id": 0,
                     "role": "Contributor",
                     "state": "Confirmed",
-                    "team_id": 1234,
+                    "team_id": 0,
                     "user_permissions": [],
                 }
             ]
@@ -779,7 +779,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   'createdAt': '2026-05-19T08:28:55.000Z',
                   'custom_fields': {},
                   'email': 'test@superannotate.com',
-                  'id': 1622408,
+                  'id': 0,
                   'permissions': {
                     'allow_orchestrate': 0,
                     'allow_run_explore': 0,
@@ -788,7 +788,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   },
                   'role': 'ProjectAdmin',
                   'state': 'Confirmed',
-                  'team_id': 32022,
+                  'team_id': 0,
                   'updatedAt': '2026-05-19T08:28:55.000Z',
                   'categories': None,
                   'user_permissions': [
@@ -818,10 +818,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   'createdAt': '2026-05-19T08:28:55.000Z',
                   'custom_fields': {},
                   'email': 'test@superannotate.com',
-                  'id': 1622408,
+                  'id': 0,
                   'role': 'Contributor',
                   'state': 'Confirmed',
-                  'team_id': 32022,
+                  'team_id': 0,
                   'updatedAt': '2026-05-19T08:28:55.000Z',
                   'user_permissions': [
                     {
@@ -943,7 +943,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2024-06-01T13:00:00",
                     "updatedAt": "2024-06-01T13:00:00",
-                    "id": 3217575,
+                    "id": 0,
                     "name": "Accuracy Score",
                     "value": 98,
                     "weight": 4,
@@ -951,7 +951,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2024-06-01T13:00:00",
                     "updatedAt": "2024-06-01T13:00:00",
-                    "id": 5657575,
+                    "id": 0,
                     "name": "Speed",
                     "value": 9,
                     "weight": 0.4,
@@ -1016,7 +1016,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             sa_client.set_user_scores(
                 project=("my_multimodal", "folder1"),
-                item_=12345,
+                item_=0,
                 scored_user="example@superannotate.com",
                 scores=[
                     {"component_id": "r_kfrp3n", "value": 90},
@@ -1230,7 +1230,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             # To grant all permissions by project user ID:
             sa_client.grant_project_user_permissions(
-                project=12345,
+                project=0,
                 permissions="*",
                 user=101
             )
@@ -1288,7 +1288,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             # To revoke all permissions by project user ID:
             sa_client.revoke_project_user_permissions(
-                project=12345,
+                project=0,
                 permissions="*",
                 user=101
             )
@@ -1403,7 +1403,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             # To grant all permissions by team user ID:
             sa_client.grant_team_user_permissions(
                 permissions="*",
-                user=124341
+                user=0
             )
 
             # Example when granting "Edit Contributors' custom field values" permission
@@ -1474,7 +1474,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             # To revoke all permissions by team user ID:
             sa_client.revoke_team_user_permissions(
                 permissions="*",
-                user=124341
+                user=0
             )
 
             # Example when revoking "View Contributors' custom field values" permission
@@ -1543,11 +1543,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             {
-                "id": 9010,
+                "id": 0,
                 "public_id": "XBb9i1glPi8SCaHW",
                 "name": "new_api_key",
                 "scope": {
-                    "team_id": 85922
+                    "team_id": 0
                 },
                 "created_by": "test@superannotate.com",
                 "status": "ACTIVE",
@@ -1610,11 +1610,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             {
-                "id": 9010,
+                "id": 0,
                 "public_id": "XBb9i1glPi8SCaHW",
                 "name": "api_key_to_rotate",
                 "scope": {
-                    "team_id": 85922
+                    "team_id": 0
                 },
                 "created_by": "test@superannotate.com",
                 "status": "ACTIVE",
@@ -1681,11 +1681,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             [
                 {
-                    "id": 9010,
+                    "id": 0,
                     "public_id": "XBb9i1glPi8SCaHW",
                     "name": "active_api_key",
                     "scope": {
-                        "team_id": 85922
+                        "team_id": 0
                     },
                     "created_by": "test@superannotate.com",
                     "revoked_by": None,
@@ -1700,11 +1700,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "lastUsedAt": None
                 },
                 {
-                    "id": 8880,
+                    "id": 0,
                     "public_id": "otwr84WkHXh64Wms",
                     "name": "rotating_api_key",
                     "scope": {
-                        "team_id": 85922
+                        "team_id": 0
                     },
                     "created_by": "test@superannotate.com",
                     "revoked_by": None,
@@ -2146,16 +2146,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2025-01-29T13:51:39.000Z",
                     "updatedAt": "2025-01-29T13:51:39.000Z",
-                    "id": 328577,
+                    "id": 0,
                     "name": "category1",
-                    "project_id": 1234
+                    "project_id": 0
                 },
                 {
                     "createdAt": "2025-01-29T13:51:39.000Z",
                     "updatedAt": "2025-01-29T13:51:39.000Z",
-                    "id": 328577,
+                    "id": 0,
                     "name": "category2",
-                    "project_id": 1234
+                    "project_id": 0
                 },
             ]
 
@@ -2334,15 +2334,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             {
                 "createdAt": "2025-10-27T06:54:09.000Z",
                 "updatedAt": "2025-10-27T06:54:09.000Z",
-                "id": 1487195,
+                "id": 0,
                 "name": "test_folder",
                 "status": "NotStarted",
-                "project_id": 1203397,
-                "team_id": 85922,
+                "project_id": 0,
+                "team_id": 0,
                 "contributors": [
                     {
                         "email": "test@superannotate.com",
-                        "id": 1314658,
+                        "id": 0,
                         "role": "Annotator",
                         "state": "Confirmed"
                     }
@@ -2522,21 +2522,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2025-10-27T06:54:09.000Z",
                     "updatedAt": "2025-10-27T06:54:09.000Z",
-                    "id": 1487195,
+                    "id": 0,
                     "name": "test_folder",
                     "status": "NotStarted",
-                    "project_id": 1203397,
-                    "team_id": 85922,
+                    "project_id": 0,
+                    "team_id": 0,
                     "is_root": False
                 },
                 {
                     "createdAt": "2025-10-27T06:54:09.000Z",
                     "updatedAt": "2025-10-27T06:54:09.000Z",
-                    "id": 1379813,
+                    "id": 0,
                     "name": "root",
                     "status": None,
-                    "project_id": 1203397,
-                    "team_id": 85922,
+                    "project_id": 0,
+                    "team_id": 0,
                     "is_root": True
                 }
             ]
@@ -2618,8 +2618,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             {
                 "createdAt": "2025-02-04T12:04:01.000Z",
                 "updatedAt": "2024-02-04T12:04:01.000Z",
-                "id": 902174,
-                "team_id": 233435,
+                "id": 0,
+                "team_id": 0,
                 "name": "Medical Annotations",
                 "type": "Vector",
                 "description": "DESCRIPTION",
@@ -2629,7 +2629,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "sharing_status": None,
                 "status": "NotStarted",
                 "priority": "High",
-                "folder_id": 1191383,
+                "folder_id": 0,
                 "workflow_id": 1,
                 "workflow": {
                     "createdAt": "2024-09-03T12:48:09.000Z",
@@ -2736,7 +2736,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   "attribute": [
                     {
                             "attribute": {
-                                "id": 123,
+                                "id": 0,
                                 "group_id": 12
                             }
                         }
@@ -2815,21 +2815,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
              {
                 "createdAt": "2026-01-19T10:18:33.000Z",
                 "updatedAt": "2026-01-21T10:53:13.000Z",
-                "id": 5780791,
-                "project_id": 1296086,
+                "id": 0,
+                "project_id": 0,
                 "type": "object",
                 "name": "Example Class",
                 "color": "#F9E0FA",
                 "attribute_groups": [
                     {
-                        "id": 5623209,
+                        "id": 0,
                         "group_type": "radio",
                         "name": "Vehicle",
                         "isRequired": False,
                         "default_value": "Car",
                         "attributes": [
-                            {"id": 11393039, "name": "Car", "default": 1},
-                            {"id": 11393040, "name": "Truck", "default": 0}
+                            {"id": 0, "name": "Car", "default": 1},
+                            {"id": 0, "name": "Truck", "default": 0}
                         ]
                     }
                 ]
@@ -4138,7 +4138,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "attribute": [
                             {
                                 "attribute": {
-                                    "id": 123,
+                                    "id": 0,
                                     "group_id": 12
                                 }
                             }
@@ -4909,7 +4909,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             [
                 {
                     "createdAt": "2023-11-27T11:16:02.000Z",
-                    "id": 5072,
+                    "id": 0,
                     "name": "My S3 Bucket",
                     "root": "test-openseadragon-1212",
                     "type": "aws",
@@ -5272,7 +5272,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             [
                 {
-                    "id": 48909383,
+                    "id": 0,
                     "name": "scan_123.jpeg",
                     "path": "Medical Annotations/folder1",
                     "url": "https://sa-public-files.s3.../scan_123.jpeg",
@@ -5285,7 +5285,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         {
                             "createdAt": "2025-01-29T13:51:39.000Z",
                             "updatedAt": "2025-01-29T13:51:39.000Z",
-                            "id": 328577,
+                            "id": 0,
                             "name": "my_category",
                         },
                     ],
@@ -5460,8 +5460,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     },
                     "description": "DESCRIPTION",
                     "entropy_status": 1,
-                    "folder_id": 1191383,
-                    "id": 902174,
+                    "folder_id": 0,
+                    "id": 0,
                     "instructions_link": None,
                     "item_count": None,
                     "name": "Medical Annotations",
@@ -5470,7 +5470,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "sharing_status": None,
                     "status": "InProgress",
                     "priority": "High",
-                    "team_id": 233435,
+                    "team_id": 0,
                     "type": "Vector",
                     "updatedAt": "2024-02-04T12:04:01.000Z",
                     "upload_state": "INITIAL",
@@ -6411,7 +6411,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 0) as context:
                 metadata = context.get_metadata()
                 print(metadata)
 
@@ -6496,7 +6496,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2025-01-03T12:48:09.000Z",
                     "updatedAt": "2025-01-05T12:48:09.000Z",
-                    "id": 58758,
+                    "id": 0,
                     "name": "Custom workflow",
                     "type": "user",
                     "description": "This workflow custom build."
@@ -6623,7 +6623,7 @@ class SAORGClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            team_client = org_client.get_team_client(team_id=12345)
+            team_client = org_client.get_team_client(team_id=0)
             team_client.list_projects(name__contains="My Project")
         """
         # The whole configuration this client was built with, re-pointed at one team.

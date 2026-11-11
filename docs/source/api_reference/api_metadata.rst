@@ -123,7 +123,7 @@ Item metadata example:
   {
    "createdAt": "2022-09-14T07:06:53.000Z",
    "updatedAt": "2022-09-30T13:14:26.000Z",
-   "id": 33027004,
+   "id": 0,
    "name": "5199856037_03d1929b7b_o.jpg",
    "path": "New Classes",
    "url": "None",
@@ -190,7 +190,7 @@ Annotation class metadata example:
 .. code-block:: python
 
   {
-    "id": 4444,
+    "id": 0,
     "name": "Human",
     "color": "#e4542b",
     "attribute_groups": [
