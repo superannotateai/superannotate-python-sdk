@@ -8,6 +8,7 @@ from lib.core.entities import TokenScope
 from lib.core.entities import WorkflowEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.work_managament import PermissionGroupEntity
+from lib.core.entities.work_managament import PersonalAPIKeyEntity
 from lib.core.entities.work_managament import TeamAPIKeyEntity
 from lib.core.entities.work_managament import WMAnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectEntity
@@ -27,6 +28,7 @@ from lib.core.service_types import ServiceResponse
 from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMPermissionGroupListResponse
+from lib.core.service_types import WMPersonalAPIKeyListResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
 from lib.core.service_types import WMTeamAPIKeyListResponse
@@ -89,6 +91,8 @@ class WorkManagementService(BaseWorkManagementService):
     URL_SEARCH_API_KEYS = "teamkeys/search"
     URL_ROTATE_API_KEY = "teamkeys/{key_id}/rotate"
     URL_REVOKE_API_KEY = "teamkeys/{key_id}"
+    URL_PERSONAL_API_KEYS = "teamuserkeys"
+    URL_REVOKE_PERSONAL_API_KEY = "teamuserkeys/{key_id}"
 
     def list_folders(self, project_id: int, query: Query) -> ServiceResponse:
         result = self.client.jsx_paginate(
@@ -759,3 +763,56 @@ class WorkManagementService(BaseWorkManagementService):
             raise SAAuthError("Unauthorized")
         response.raise_for_status()
         return TeamAPIKeyEntity(**response.res_data["data"])
+
+    def list_personal_api_keys(
+        self, query: Query, chunk_size=100
+    ) -> WMPersonalAPIKeyListResponse:
+        return self.client.paginate(
+            url=self.URL_PERSONAL_API_KEYS,
+            item_type=PersonalAPIKeyEntity,
+            chunk_size=chunk_size,
+            query_params={**query.build_search_params(), "limit": chunk_size},
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+        )
+
+    def revoke_personal_api_key(self, key_id: int) -> PersonalAPIKeyEntity:
+        response = self.client.request(
+            url=self.URL_REVOKE_PERSONAL_API_KEY.format(key_id=key_id),
+            method="delete",
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+        )
+        if response.status_code == 403:
+            raise SAAuthError("Unauthorized")
+        response.raise_for_status()
+        return PersonalAPIKeyEntity(**response.res_data["data"])
+
+    def create_personal_api_key(
+        self, name: str, expires_at: str
+    ) -> PersonalAPIKeyEntity:
+        """Mints a personal API key for the caller.
+
+        Test setup only: the SDK does not offer minting a personal key, so this is
+        deliberately not exposed on the controller or ``SAClient``.
+        """
+        response = self.client.request(
+            url=self.URL_PERSONAL_API_KEYS,
+            method="post",
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            data={"name": name, "expiresAt": expires_at},
+        )
+        if response.status_code == 403:
+            raise SAAuthError("Unauthorized")
+        response.raise_for_status()
+        return PersonalAPIKeyEntity(**response.res_data["data"])

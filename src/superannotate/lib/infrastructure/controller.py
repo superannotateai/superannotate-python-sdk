@@ -35,12 +35,14 @@ from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities import WMProjectUserEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.filters import ItemFilters
+from lib.core.entities.filters import PersonalAPIKeyFilters
 from lib.core.entities.filters import ProjectFilters
 from lib.core.entities.filters import ProjectUserFilters
 from lib.core.entities.filters import TeamAPIKeyFilters
 from lib.core.entities.filters import TeamUserFilters
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import ProjectCategoryEntity
+from lib.core.entities.work_managament import PersonalAPIKeyEntity
 from lib.core.entities.work_managament import ScoreEntity
 from lib.core.entities.work_managament import ScorePayloadEntity
 from lib.core.entities.work_managament import TEAM_API_KEY_LIVE_STATUSES
@@ -66,6 +68,7 @@ from lib.infrastructure.query_builder import FieldValidationHandler
 from lib.infrastructure.query_builder import get_project_priority
 from lib.infrastructure.query_builder import IncludeHandler
 from lib.infrastructure.query_builder import ItemFilterHandler
+from lib.infrastructure.query_builder import PersonalAPIKeyFilterHandler
 from lib.infrastructure.query_builder import ProjectFilterHandler
 from lib.infrastructure.query_builder import ProjectUserRoleFilterHandler
 from lib.infrastructure.query_builder import QueryBuilderChain
@@ -724,6 +727,35 @@ class WorkManagementManager(BaseManager):
         if key.status not in TEAM_API_KEY_LIVE_STATUSES:
             raise AppException(constants.API_KEY_ALREADY_REVOKED_ERROR)
         return self.service_provider.work_management.revoke_team_api_key(key_id=key.id)
+
+    def list_personal_api_keys(self, **filters) -> list[PersonalAPIKeyEntity]:
+        chain = QueryBuilderChain(
+            [
+                FieldValidationHandler(PersonalAPIKeyFilters.__annotations__.keys()),
+                PersonalAPIKeyFilterHandler(),
+            ]
+        )
+        response = self.service_provider.work_management.list_personal_api_keys(
+            chain.handle(filters, EmptyQuery())
+        )
+        response.raise_for_status()
+        return sorted(response.data, key=lambda key: key.id or 0, reverse=True)
+
+    def revoke_personal_api_key(self, public_id: str) -> PersonalAPIKeyEntity:
+        response = self.service_provider.work_management.list_personal_api_keys(
+            EmptyQuery() & Filter("public_id", public_id, OperatorEnum.EQ)
+        )
+        response.raise_for_status()
+        key = self._find_key(
+            public_id, sorted(response.data, key=lambda k: k.id or 0, reverse=True)
+        )
+        if key is None:
+            raise AppException(constants.API_KEY_NOT_FOUND_ERROR)
+        if key.status not in TEAM_API_KEY_LIVE_STATUSES:
+            raise AppException(constants.API_KEY_ALREADY_REVOKED_ERROR)
+        return self.service_provider.work_management.revoke_personal_api_key(
+            key_id=key.id
+        )
 
     @staticmethod
     def _validate_key_name(name: str) -> str:

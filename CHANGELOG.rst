@@ -6,6 +6,16 @@ History
 
 All release highlights of this project will be documented in this file.
 
+Unreleased
+__________
+
+**Added**
+
+    - ``SAClient.list_personal_api_keys()`` Returns personal API keys in the team, with optional filters.
+
+    - ``SAClient.revoke_personal_api_key()`` Revokes a personal API key.
+
+
 4.6.3 - Nov 05, 2026
 ____________________
 

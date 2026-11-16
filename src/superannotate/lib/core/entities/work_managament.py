@@ -348,3 +348,10 @@ class TeamAPIKeyEntity(BaseModel):
     api_key: StrictStr | None = Field(
         default=None, validation_alias=AliasChoices("api_key", "token")
     )
+
+
+class PersonalAPIKeyEntity(TeamAPIKeyEntity):
+    """A personal API key: a team API key that acts as one specific user.
+
+    Its ``scope`` also carries that user's ``user_id``.
+    """
