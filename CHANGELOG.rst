@@ -11,6 +11,8 @@ ____________________
 
 **Updated**
 
+    - ``SAClient.get_project_metadata`` with ``include_workflow=True`` now also returns the workflow's ``statuses`` (``id``, ``value``, ``name``) and ``roles`` (``id``, ``name``).
+
     - Pillow requirement updated to ``pillow~=13.0`` to pick up security fixes (including Critical and High severity vulnerabilities fixed in Pillow 13.0.0).
 
     - SDK now supports Python versions 3.11, 3.12, 3.13 and 3.14. Python 3.10 is no longer supported.

@@ -169,6 +169,33 @@ class GetProjectMetaDataUseCase(BaseUseCase):
             )
             if not project_workflow:
                 raise AppException("Workflow not fund.")
+            statuses_response = (
+                self._service_provider.work_management.list_workflow_statuses(
+                    project.id, project.workflow_id
+                )
+            )
+            if not statuses_response.ok:
+                raise AppException(statuses_response.error)
+            project_workflow.statuses = sorted(
+                (
+                    {
+                        "id": i.get("status_id", i["status"].get("id")),
+                        "value": i["value"],
+                        "name": i["status"]["name"],
+                    }
+                    for i in statuses_response.data["data"]
+                ),
+                key=lambda i: i["value"],
+            )
+            roles_response = self._service_provider.work_management.list_workflow_roles(
+                project.id, project.workflow_id
+            )
+            if not roles_response.ok:
+                raise AppException(roles_response.error)
+            project_workflow.roles = [
+                {"id": i["role_id"], "name": i["role"]["name"]}
+                for i in roles_response.data["data"]
+            ]
             project.workflow = project_workflow
         if self._include_contributors:
             project.contributors = self._service_provider.work_management.list_users(
