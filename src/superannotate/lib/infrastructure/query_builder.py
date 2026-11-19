@@ -403,6 +403,10 @@ class TeamAPIKeyFilterHandler(AbstractQueryHandler):
         return super().handle(filters, query)
 
 
+class PersonalAPIKeyFilterHandler(TeamAPIKeyFilterHandler):
+    """Filters over personal API keys; they take the same fields as a team's."""
+
+
 class QueryBuilderChain:
     def __init__(self, handlers: list[QueryHandler]):
         if not handlers:

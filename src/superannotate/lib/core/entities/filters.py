@@ -63,6 +63,10 @@ class TeamAPIKeyFilters(BaseFilters, total=False):
     status__notin: list[TEAM_API_KEY_STATUS]
 
 
+class PersonalAPIKeyFilters(TeamAPIKeyFilters, total=False):
+    """Personal API keys are filtered by the same fields as team API keys."""
+
+
 class BaseUserFilters(TypedDict, total=False):
     id: int | None
     id__in: list[int] | None

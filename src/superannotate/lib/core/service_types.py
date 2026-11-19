@@ -4,6 +4,7 @@ from typing import Any
 
 from lib.core import entities
 from lib.core.entities.work_managament import PermissionGroupEntity
+from lib.core.entities.work_managament import PersonalAPIKeyEntity
 from lib.core.entities.work_managament import TeamAPIKeyEntity
 from lib.core.entities.work_managament import TelemetryScoreEntity
 from lib.core.entities.work_managament import WMProjectEntity
@@ -269,6 +270,10 @@ class WMPermissionGroupListResponse(ServiceResponse):
 
 class WMTeamAPIKeyListResponse(ServiceResponse):
     res_data: list[TeamAPIKeyEntity] = None
+
+
+class WMPersonalAPIKeyListResponse(ServiceResponse):
+    res_data: list[PersonalAPIKeyEntity] = None
 
 
 class ExploreLastAction(BaseModel):

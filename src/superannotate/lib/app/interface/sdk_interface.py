@@ -1544,7 +1544,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             {
                 "id": 9010,
-                "public_id": "XBb9i1glPi8SCaHW",
+                "public_id": "public_id",
                 "name": "new_api_key",
                 "scope": {
                     "team_id": 85922
@@ -1611,7 +1611,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             {
                 "id": 9010,
-                "public_id": "XBb9i1glPi8SCaHW",
+                "public_id": "public_id",
                 "name": "api_key_to_rotate",
                 "scope": {
                     "team_id": 85922
@@ -1682,7 +1682,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             [
                 {
                     "id": 9010,
-                    "public_id": "XBb9i1glPi8SCaHW",
+                    "public_id": "public_id",
                     "name": "active_api_key",
                     "scope": {
                         "team_id": 85922
@@ -1701,7 +1701,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 },
                 {
                     "id": 8880,
-                    "public_id": "otwr84WkHXh64Wms",
+                    "public_id": "public_id",
                     "name": "rotating_api_key",
                     "scope": {
                         "team_id": 85922
@@ -1726,24 +1726,170 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             exclude_unset=True,
         )
 
-    def revoke_team_api_key(self, public_id: str) -> None:
+    def revoke_team_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> None:
         """
-        Revokes the team API key. Team API key should be in Active or Rotating state.
+        Revokes team API keys. Only keys in the Active or Rotating state can be revoked.
         Can use Organization API Key, Team API Key or Personal API Key for this function.
 
-        :param public_id: The public id of the key to revoke.
-        :type public_id: str
+        Pass either public_id or api_key_id:
+
+        - public_id revokes all Active and Rotating keys that share this public id.
+        - api_key_id revokes only that one key.
+
+        :param public_id: The public id of the keys to revoke.
+        :type public_id: str, optional
+
+        :param api_key_id: The id of the key to revoke, as returned in the id field by list_team_api_keys().
+        :type api_key_id: int, optional
 
         :rtype: None
 
         Request Example:
         ::
 
-            # Revoke team API key
-            sa_client.revoke_team_api_key(public_id="UwBK9syTtXUGROrA")
+            # Revoke all Active and Rotating keys with this public id
+            sa_client.revoke_team_api_key(public_id="public_id")
+
+            # Revoke one specific key
+            sa_client.revoke_team_api_key(api_key_id=0)
         """
-        key = self.controller.work_management.revoke_team_api_key(public_id=public_id)
-        logger.info(f"Successfully revoked API key: {key.name}.")
+        keys = self.controller.work_management.revoke_team_api_key(
+            public_id=public_id, api_key_id=api_key_id
+        )
+        logger.info(f"Successfully revoked API key: {keys[0].public_id}.")
+
+    def list_personal_api_keys(self, **filters) -> list[dict]:
+        """
+        Returns personal API keys in the team, newest first.
+
+        - Returns all personal API keys in the team, from every member, including the caller's own:
+
+          - Team Owners using a Personal API Key.
+          - Team Admins with the "Revoke members' personal API keys" permission using a Personal API Key.
+          - Any caller using a Team API Key or Organization API Key.
+
+        - Returns only the caller's own personal API keys:
+
+          - Team Admins without the "Revoke members' personal API keys" permission using a Personal API Key.
+          - Contributors using a Personal API Key.
+
+        :param filters: Specifies filtering criteria, with all conditions combined
+            using logical AND.
+
+            - Only personal API keys matching all filter conditions are returned.
+
+            - If no filter operation is provided, an exact match is applied.
+
+            Supported operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - name: str
+            - name__in: list[str]
+            - name__contains: str
+            - name__starts: str
+            - name__ends: str
+            - status: Literal["Active", "Rotating", "Expired", "Revoked"]
+            - status__ne: Literal["Active", "Rotating", "Expired", "Revoked"]
+            - status__in: List[Literal["Active", "Rotating", "Expired", "Revoked"]]
+            - status__notin: List[Literal["Active", "Rotating", "Expired", "Revoked"]]
+
+        :type filters: PersonalAPIKeyFilters, optional
+
+        :return: The personal API keys that match the filtering criteria; an empty list
+            if there are none or none of them match.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            sa_client.list_personal_api_keys(status__in=["Active", "Rotating"])
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "id": 1,
+                    "public_id": "public_id",
+                    "name": "active_personal_key",
+                    "scope": {
+                        "team_id": 0,
+                        "user_id": "test@superannotate.com"
+                    },
+                    "created_by": "test@superannotate.com",
+                    "revoked_by": None,
+                    "status": "ACTIVE",
+                    "deletedAt": None,
+                    "expiresAt": "2027-08-13T05:22:31.421Z",
+                    "revokedAt": None,
+                    "overlapEndAt": None,
+                    "createdAt": "2026-08-13T05:22:32.044Z",
+                    "updatedAt": "2026-08-13T05:22:32.044Z",
+                    "lastUsedAt": None
+                }
+            ]
+        """
+        return BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_personal_api_keys(**filters),
+            by_alias=True,
+            exclude_unset=True,
+        )
+
+    def revoke_personal_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> None:
+        """
+        Revokes personal API keys. The key must be in the Active or Rotating state.
+
+        - Can revoke any personal API key in the team, including those of Team Owners, Team Admins and Contributors:
+
+          - Team Owners with a Personal API Key.
+          - Team Admins with the "Revoke members' personal API keys" permission.
+          - Any caller using a Team API Key or Organization API Key.
+
+        - Can revoke only the caller's own personal API keys:
+
+          - Team Admins without the "Revoke members' personal API keys" permission using a Personal API Key.
+          - Contributors using a Personal API Key.
+
+        Pass either public_id or api_key_id:
+
+        - public_id revokes all Active and Rotating keys that share this public id.
+        - api_key_id revokes only that one key.
+
+        :param public_id: The public id of the keys to revoke.
+        :type public_id: str, optional
+
+        :param api_key_id: The id of the key to revoke, as returned in the id field by list_personal_api_keys().
+        :type api_key_id: int, optional
+
+        :rtype: None
+
+        Request Example:
+        ::
+
+            # Revoke all Active and Rotating keys with this public id
+            sa_client.revoke_personal_api_key(public_id="public_id")
+
+            # Revoke one specific key
+            sa_client.revoke_personal_api_key(api_key_id=0)
+        """
+        keys = self.controller.work_management.revoke_personal_api_key(
+            public_id=public_id, api_key_id=api_key_id
+        )
+        logger.info(f"Successfully revoked API key: {keys[0].public_id}.")
 
     def get_component_config(self, project: NotEmptyStr | int, component_id: str):
         """

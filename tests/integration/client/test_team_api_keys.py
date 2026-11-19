@@ -60,14 +60,12 @@ class TeamAPIKeyTestCase(TestCase):
         on the team holding nothing else that looks like a test key.
         """
         for public_id in self.minted:
-            # A rotation leaves two keys under one public id and revoking takes the
-            # live one, so clearing a pair takes two rounds. It ends when there is
-            # nothing live left to revoke.
-            for _ in range(2):
-                try:
-                    self.client.revoke_team_api_key(public_id=public_id)
-                except AppException:
-                    break
+            try:
+                # One call clears a whole rotation: it revokes every live key that
+                # shares the public id.
+                self.client.revoke_team_api_key(public_id=public_id)
+            except AppException:
+                pass  # the test already revoked it
 
     def generate(self, name: str = None, **kwargs) -> dict:
         """A key of this run's own, revoked when the test ends."""
@@ -279,20 +277,41 @@ class TestRevokeTeamAPIKey(TeamAPIKeyTestCase):
         assert revoked["status"] == "REVOKED"
         assert revoked["revokedAt"]
 
-    def test_a_rotation_pair_is_revoked_a_key_at_a_time(self):
-        # Both keys of a rotation answer to one public id, so revoking it takes the
-        # live one: the key still being handed out first, then the one it replaced.
+    def test_a_public_id_revokes_every_key_of_a_rotation(self):
+        # Both keys of a rotation answer to one public id, and revoking it takes both.
         old = self.generate()
         new = self.client.rotate_team_api_key(name=old["name"], overlap=7)
 
         self.client.revoke_team_api_key(public_id=old["public_id"])
 
         assert self.listed(new)["status"] == "REVOKED"
-        assert self.listed(old)["status"] == "ROTATING"
+        assert self.listed(old)["status"] == "REVOKED"
 
-        self.client.revoke_team_api_key(public_id=old["public_id"])
+    def test_an_id_revokes_only_that_key(self):
+        old = self.generate()
+        new = self.client.rotate_team_api_key(name=old["name"], overlap=7)
+
+        self.client.revoke_team_api_key(api_key_id=old["id"])
 
         assert self.listed(old)["status"] == "REVOKED"
+        assert self.listed(new)["status"] == "ACTIVE"
+
+    def test_a_public_id_or_an_id_is_required_but_not_both(self):
+        generated = self.generate()
+
+        for kwargs in (
+            {},
+            {"public_id": generated["public_id"], "api_key_id": generated["id"]},
+        ):
+            with self.assertRaisesRegex(
+                AppException, "Must provide either public_id or api_key_id."
+            ):
+                self.client.revoke_team_api_key(**kwargs)
+        assert self.listed(generated)["status"] == "ACTIVE"
+
+    def test_an_unknown_id_cannot_be_revoked(self):
+        with self.assertRaisesRegex(AppException, "API key not found"):
+            self.client.revoke_team_api_key(api_key_id=2**31 - 1)
 
     def test_a_revoked_key_cannot_be_revoked_again(self):
         generated = self.generate()
