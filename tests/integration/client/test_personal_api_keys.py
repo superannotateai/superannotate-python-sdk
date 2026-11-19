@@ -7,14 +7,16 @@ How it works:
   - Listing and revoking use the key under test: a team key and an organization key.
     Both see and may revoke every personal key in the team.
 
-The tests are written once, in ``PersonalAPIKeyTests``. A class per key at the bottom only
-says which client to use. To cover another key, add one more class there.
+The tests are written once, in ``TestWithTeamKey``, so each one can be run on its own from
+the IDE. ``TestWithOrganizationKey`` repeats them all with another key by only saying which
+client to use. To cover one more key, subclass it the same way.
 """
 
 import uuid
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from unittest import SkipTest
 from unittest import TestCase
 
 from src.superannotate import AppException
@@ -33,15 +35,25 @@ def unknown_name() -> str:
     return f"unknown-{uuid.uuid4().hex}"
 
 
-@env.requires_env_vars(env.SA_PERSONAL_OWNER_TOKEN_ENV)
-class PersonalAPIKeyTests:
-    """Needs ``build_client()``: the client under test."""
+class TestWithTeamKey(TestCase):
+    """Lists and revokes with a team key. Subclasses change the key: see ``build_client``."""
+
+    #: The variables the key under test and the minting key need.
+    required_env = (env.SA_TOKEN_ENV, env.SA_PERSONAL_OWNER_TOKEN_ENV)
+
+    @classmethod
+    def build_client(cls):
+        """The client under test."""
+        return env.build_client(env.var(env.SA_TOKEN_ENV))
 
     # --- setup and cleanup ------------------------------------------------------
 
     @classmethod
     def setUpClass(cls):
         """Three keys shared by the tests: two active ones and one revoked."""
+        missing = env.missing_env_vars(*cls.required_env)
+        if missing:
+            raise SkipTest(f"needs {', '.join(missing)} in the .env (see tests/env.py)")
         cls.client = cls.build_client()
         cls.minting_client = env.build_client(env.var(env.SA_PERSONAL_OWNER_TOKEN_ENV))
         cls.prefix = f"{NAME_PREFIX}-{uuid.uuid4().hex[:8]}"
@@ -69,6 +81,21 @@ class PersonalAPIKeyTests:
             ),
         )
         return key
+
+    @classmethod
+    def rotate(cls, key):
+        """Rotates a key: the old one keeps its public id, the new one takes it too."""
+        work_management = cls.minting_client.controller.service_provider.work_management
+        now = datetime.now(timezone.utc)
+        return work_management.rotate_personal_api_key(
+            key_id=key.id,
+            overlap_end_at=cls.wire_date(now + timedelta(days=7)),
+            expires_at=cls.wire_date(now + timedelta(days=30)),
+        )
+
+    @staticmethod
+    def wire_date(value):
+        return value.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
     @classmethod
     def revoke_quietly(cls, public_id):
@@ -180,15 +207,58 @@ class PersonalAPIKeyTests:
         assert listed["status"] == "REVOKED"
         assert listed["revokedAt"]
 
-    def test_revoke_logs_the_key_name(self):
+    def test_revoke_logs_the_public_id(self):
         key = self.new_key()
 
         with self.assertLogs("sa", level="INFO") as logs:
             self.client.revoke_personal_api_key(public_id=key.public_id)
 
         assert any(
-            f"Successfully revoked API key: {key.name}." in line for line in logs.output
+            f"Successfully revoked API key: {key.public_id}." in line
+            for line in logs.output
         )
+
+    def test_revoke_by_id_marks_the_key_revoked(self):
+        key = self.new_key()
+
+        self.client.revoke_personal_api_key(api_key_id=key.id)
+
+        [listed] = self.client.list_personal_api_keys(id=key.id)
+        assert listed["status"] == "REVOKED"
+
+    def test_revoke_by_id_revokes_only_that_key(self):
+        old = self.new_key()
+        new = self.rotate(old)
+
+        self.client.revoke_personal_api_key(api_key_id=old.id)
+
+        [old_listed] = self.client.list_personal_api_keys(id=old.id)
+        [new_listed] = self.client.list_personal_api_keys(id=new.id)
+        assert old_listed["status"] == "REVOKED"
+        assert new_listed["status"] == "ACTIVE"
+
+    def test_revoke_by_public_id_revokes_the_active_key_and_its_rotations(self):
+        keys = [self.new_key()]
+        for _ in range(3):
+            keys.append(self.rotate(keys[-1]))
+
+        self.client.revoke_personal_api_key(public_id=keys[0].public_id)
+
+        key_ids = [key.id for key in keys]
+        listed = self.client.list_personal_api_keys(id__in=key_ids)
+        assert sorted(ids(listed)) == sorted(key_ids)
+        assert {key["status"] for key in listed} == {"REVOKED"}
+
+    def test_revoke_needs_a_public_id_or_an_id_but_not_both(self):
+        key = self.new_key()
+
+        for kwargs in ({}, {"public_id": key.public_id, "api_key_id": key.id}):
+            with self.assertRaisesRegex(
+                AppException, "Must provide either public_id or api_key_id."
+            ):
+                self.client.revoke_personal_api_key(**kwargs)
+        [listed] = self.client.list_personal_api_keys(id=key.id)
+        assert listed["status"] == "ACTIVE"
 
     def test_revoke_twice_fails(self):
         key = self.new_key()
@@ -204,20 +274,17 @@ class PersonalAPIKeyTests:
     def test_revoke_an_unknown_key_fails(self):
         with self.assertRaisesRegex(AppException, "API key not found"):
             self.client.revoke_personal_api_key(public_id=unknown_name())
+        with self.assertRaisesRegex(AppException, "API key not found"):
+            self.client.revoke_personal_api_key(api_key_id=2**31 - 1)
 
 
-# --- one class per key under test ---------------------------------------------------
+class TestWithOrganizationKey(TestWithTeamKey):
+    required_env = (
+        env.SA_ORGANIZATION_TOKEN_ENV,
+        env.SA_ORGANIZATION_TEAM_ID_ENV,
+        env.SA_PERSONAL_OWNER_TOKEN_ENV,
+    )
 
-
-@env.requires_env_vars(env.SA_TOKEN_ENV)
-class TestWithTeamKey(PersonalAPIKeyTests, TestCase):
-    @classmethod
-    def build_client(cls):
-        return env.build_client(env.var(env.SA_TOKEN_ENV))
-
-
-@env.requires_env_vars(env.SA_ORGANIZATION_TOKEN_ENV, env.SA_ORGANIZATION_TEAM_ID_ENV)
-class TestWithOrganizationKey(PersonalAPIKeyTests, TestCase):
     @classmethod
     def build_client(cls):
         return env.build_client(

@@ -93,6 +93,7 @@ class WorkManagementService(BaseWorkManagementService):
     URL_REVOKE_API_KEY = "teamkeys/{key_id}"
     URL_PERSONAL_API_KEYS = "teamuserkeys"
     URL_REVOKE_PERSONAL_API_KEY = "teamuserkeys/{key_id}"
+    URL_ROTATE_PERSONAL_API_KEY = "teamuserkeys/{key_id}/rotate"
 
     def list_folders(self, project_id: int, query: Query) -> ServiceResponse:
         result = self.client.jsx_paginate(
@@ -788,6 +789,30 @@ class WorkManagementService(BaseWorkManagementService):
                     team_id=self.client.team_id
                 ),
             },
+        )
+        if response.status_code == 403:
+            raise SAAuthError("Unauthorized")
+        response.raise_for_status()
+        return PersonalAPIKeyEntity(**response.res_data["data"])
+
+    def rotate_personal_api_key(
+        self, key_id: int, overlap_end_at: str, expires_at: str
+    ) -> PersonalAPIKeyEntity:
+        """Rotates a personal API key of the caller.
+
+        Test setup only, like ``create_personal_api_key``: it gives a public id two
+        keys to revoke, and is deliberately not exposed on the controller or
+        ``SAClient``.
+        """
+        response = self.client.request(
+            url=self.URL_ROTATE_PERSONAL_API_KEY.format(key_id=key_id),
+            method="post",
+            headers={
+                "x-sa-entity-context": encode_entity_context(
+                    team_id=self.client.team_id
+                ),
+            },
+            data={"body": {"overlapEndAt": overlap_end_at, "expiresAt": expires_at}},
         )
         if response.status_code == 403:
             raise SAAuthError("Unauthorized")

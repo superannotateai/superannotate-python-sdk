@@ -13,7 +13,11 @@ __________
 
     - ``SAClient.list_personal_api_keys()`` Returns personal API keys in the team, with optional filters.
 
-    - ``SAClient.revoke_personal_api_key()`` Revokes a personal API key.
+    - ``SAClient.revoke_personal_api_key()`` Revokes personal API keys, by ``public_id`` or ``api_key_id``.
+
+**Updated**
+
+    - ``SAClient.revoke_team_api_key()`` now takes ``public_id`` or ``api_key_id``. A ``public_id`` revokes every Active and Rotating key that shares it, an ``api_key_id`` revokes that one key. The success log names the public id.
 
 
 4.6.3 - Nov 05, 2026

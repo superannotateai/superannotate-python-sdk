@@ -1726,24 +1726,39 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             exclude_unset=True,
         )
 
-    def revoke_team_api_key(self, public_id: str) -> None:
+    def revoke_team_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> None:
         """
-        Revokes the team API key. Team API key should be in Active or Rotating state.
+        Revokes team API keys. Only keys in the Active or Rotating state can be revoked.
         Can use Organization API Key, Team API Key or Personal API Key for this function.
 
-        :param public_id: The public id of the key to revoke.
-        :type public_id: str
+        Pass either public_id or api_key_id:
+
+        - public_id revokes all Active and Rotating keys that share this public id.
+        - api_key_id revokes only that one key.
+
+        :param public_id: The public id of the keys to revoke.
+        :type public_id: str, optional
+
+        :param api_key_id: The id of the key to revoke, as returned in the id field by list_team_api_keys().
+        :type api_key_id: int, optional
 
         :rtype: None
 
         Request Example:
         ::
 
-            # Revoke team API key
+            # Revoke all Active and Rotating keys with this public id
             sa_client.revoke_team_api_key(public_id="public_id")
+
+            # Revoke one specific key
+            sa_client.revoke_team_api_key(api_key_id=0)
         """
-        key = self.controller.work_management.revoke_team_api_key(public_id=public_id)
-        logger.info(f"Successfully revoked API key: {key.name}.")
+        keys = self.controller.work_management.revoke_team_api_key(
+            public_id=public_id, api_key_id=api_key_id
+        )
+        logger.info(f"Successfully revoked API key: {keys[0].public_id}.")
 
     def list_personal_api_keys(self, **filters) -> list[dict]:
         """
@@ -1832,9 +1847,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             exclude_unset=True,
         )
 
-    def revoke_personal_api_key(self, public_id: str) -> None:
+    def revoke_personal_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> None:
         """
-        Revokes a personal API key. The key must be in the Active or Rotating state.
+        Revokes personal API keys. The key must be in the Active or Rotating state.
 
         - Can revoke any personal API key in the team, including those of Team Owners, Team Admins and Contributors:
 
@@ -1847,21 +1864,32 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
           - Team Admins without the "Revoke members' personal API keys" permission using a Personal API Key.
           - Contributors using a Personal API Key.
 
-        :param public_id: The public id of the key to revoke.
-        :type public_id: str
+        Pass either public_id or api_key_id:
+
+        - public_id revokes all Active and Rotating keys that share this public id.
+        - api_key_id revokes only that one key.
+
+        :param public_id: The public id of the keys to revoke.
+        :type public_id: str, optional
+
+        :param api_key_id: The id of the key to revoke, as returned in the id field by list_personal_api_keys().
+        :type api_key_id: int, optional
 
         :rtype: None
 
         Request Example:
         ::
 
-            # Revoke personal API key
+            # Revoke all Active and Rotating keys with this public id
             sa_client.revoke_personal_api_key(public_id="public_id")
+
+            # Revoke one specific key
+            sa_client.revoke_personal_api_key(api_key_id=0)
         """
-        key = self.controller.work_management.revoke_personal_api_key(
-            public_id=public_id
+        keys = self.controller.work_management.revoke_personal_api_key(
+            public_id=public_id, api_key_id=api_key_id
         )
-        logger.info(f"Successfully revoked API key: {key.name}.")
+        logger.info(f"Successfully revoked API key: {keys[0].public_id}.")
 
     def get_component_config(self, project: NotEmptyStr | int, component_id: str):
         """

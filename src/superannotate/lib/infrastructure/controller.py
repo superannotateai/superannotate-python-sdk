@@ -720,13 +720,16 @@ class WorkManagementManager(BaseManager):
         # without relying on the order the backend happens to answer in.
         return sorted(response.data, key=lambda key: key.id or 0, reverse=True)
 
-    def revoke_team_api_key(self, public_id: str) -> TeamAPIKeyEntity:
-        key = self._find_key(public_id, self._keys_where("public_id", public_id))
-        if key is None:
-            raise AppException(constants.API_KEY_NOT_FOUND_ERROR)
-        if key.status not in TEAM_API_KEY_LIVE_STATUSES:
-            raise AppException(constants.API_KEY_ALREADY_REVOKED_ERROR)
-        return self.service_provider.work_management.revoke_team_api_key(key_id=key.id)
+    def revoke_team_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> list[TeamAPIKeyEntity]:
+        work_management = self.service_provider.work_management
+        return self._revoke_keys(
+            work_management.list_team_api_keys,
+            work_management.revoke_team_api_key,
+            public_id,
+            api_key_id,
+        )
 
     def list_personal_api_keys(self, **filters) -> list[PersonalAPIKeyEntity]:
         chain = QueryBuilderChain(
@@ -741,21 +744,43 @@ class WorkManagementManager(BaseManager):
         response.raise_for_status()
         return sorted(response.data, key=lambda key: key.id or 0, reverse=True)
 
-    def revoke_personal_api_key(self, public_id: str) -> PersonalAPIKeyEntity:
-        response = self.service_provider.work_management.list_personal_api_keys(
-            EmptyQuery() & Filter("public_id", public_id, OperatorEnum.EQ)
+    def revoke_personal_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> list[PersonalAPIKeyEntity]:
+        work_management = self.service_provider.work_management
+        return self._revoke_keys(
+            work_management.list_personal_api_keys,
+            work_management.revoke_personal_api_key,
+            public_id,
+            api_key_id,
         )
+
+    @staticmethod
+    def _revoke_keys(
+        list_keys, revoke_key, public_id: str | None, api_key_id: int | None
+    ):
+        """Revokes the live keys that ``public_id`` or ``api_key_id`` names.
+
+        A public id can name several keys - a rotation hands the new key the public id
+        of the one it replaced, and a key can be rotated again and again - so it revokes
+        every Active and Rotating key that carries it. An id names exactly one.
+        """
+        if (public_id is None) == (api_key_id is None):
+            raise AppException("Must provide either public_id or api_key_id.")
+        field, value = (
+            ("public_id", public_id) if public_id is not None else ("id", api_key_id)
+        )
+        response = list_keys(EmptyQuery() & Filter(field, value, OperatorEnum.EQ))
         response.raise_for_status()
-        key = self._find_key(
-            public_id, sorted(response.data, key=lambda k: k.id or 0, reverse=True)
-        )
-        if key is None:
+        keys = [key for key in response.data if getattr(key, field) == value]
+        if not keys:
             raise AppException(constants.API_KEY_NOT_FOUND_ERROR)
-        if key.status not in TEAM_API_KEY_LIVE_STATUSES:
+        live = [key for key in keys if key.status in TEAM_API_KEY_LIVE_STATUSES]
+        if not live:
             raise AppException(constants.API_KEY_ALREADY_REVOKED_ERROR)
-        return self.service_provider.work_management.revoke_personal_api_key(
-            key_id=key.id
-        )
+        for key in live:
+            revoke_key(key_id=key.id)
+        return live
 
     @staticmethod
     def _validate_key_name(name: str) -> str:
