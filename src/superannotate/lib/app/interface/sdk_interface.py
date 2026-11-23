@@ -106,9 +106,6 @@ ANNOTATION_TYPE = Literal["bbox", "polygon", "point", "tag"]
 FOLDER_STATUS = Literal["NotStarted", "InProgress", "Completed", "OnHold"]
 
 
-_TEAM_GROUP_FIELDS = {"team_group_name"}
-
-
 class Setting(TypedDict):
     attribute: str
     value: str | float | int
@@ -476,8 +473,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Possible values are
 
             - "custom_fields": If provided, the response will include custom fields associated with the team user.
-            - "group": Includes the id and name of the group the user belongs to
-              (``team_group_id``, ``team_group_name``). Users who aren't in a group get None.
+            - "group": Includes the group metadata of the group each user belongs to. Users who aren't in a group get None.
 
         :type include: list of str, optional
 
@@ -498,8 +494,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             {
                 "createdAt": "2023-11-27T07:10:24.000Z",
                 "updatedAt": "2025-02-03T13:35:09.000Z",
-                "team_group_id": 0,
-                "team_group_name": "Vendor A",
+                "team_group_id": 412,
+                "group": {
+                    "createdAt": "2025-01-10T09:00:00.000Z",
+                    "updatedAt": "2025-01-10T09:00:00.000Z",
+                    "id": 412,
+                    "name": "Vendor A",
+                },
                 "custom_fields": {
                     "ann_quality_threshold": 80,
                     "tag": ["Tag1", "Tag2", "Tag3"],
@@ -515,7 +516,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
         return BaseSerializer(user).serialize(
             by_alias=False,
-            exclude=None if include and "group" in include else _TEAM_GROUP_FIELDS,
+            exclude=None if include and "group" in include else constants.TEAM_GROUP_FIELDS,
         )
 
     def set_user_custom_field(self, pk: int | str, custom_field_name: str, value: Any):
@@ -579,8 +580,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - "custom_fields": Includes custom fields and scores assigned to each user.
             - "categories": Includes a list of categories assigned to each project contributor.
               Note: 'project' parameter must be specified when including 'categories'.
-            - "group": Includes the id and name of the group each user belongs to
-              (``team_group_id``, ``team_group_name``). Users who aren't in a group get None.
+            - "group": Includes the group metadata of the group each user belongs to. Users who aren't in a group get None.
         :type include: list of str, optional
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
@@ -858,7 +858,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             self.controller.work_management.list_users(
                 project=project, include=include, **filters
             ),
-            exclude=None if include and "group" in include else _TEAM_GROUP_FIELDS,
+            exclude=None if include and "group" in include else constants.TEAM_GROUP_FIELDS,
         )
         if project:
             for user in response:

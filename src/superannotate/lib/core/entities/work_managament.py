@@ -85,21 +85,24 @@ class WMProjectEntity(TimedBaseModel):
         return super().model_dump_json(**kwargs)
 
 
+class TeamGroupEntity(TimedBaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int | None = None
+    name: str | None = None
+
+
 class TeamGroupMixin(BaseModel):
-    """Flattens the joined ``teamGroup`` relation into team_group_id/team_group_name."""
+    """``team_group_id`` is always present; ``group`` is filled only when teamGroup is joined."""
 
     team_group_id: int | None = None
-    team_group_name: str | None = None
+    group: TeamGroupEntity | None = Field(default=None, validation_alias="teamGroup")
 
-    @model_validator(mode="before")
-    @classmethod
-    def flatten_team_group(cls, data):
-        if isinstance(data, dict) and isinstance(data.get("teamGroup"), dict):
-            data = dict(data)
-            group = data.pop("teamGroup")
-            data.setdefault("team_group_id", group.get("id"))
-            data.setdefault("team_group_name", group.get("name"))
-        return data
+    @model_validator(mode="after")
+    def fill_team_group_id(self):
+        if self.team_group_id is None and self.group is not None:
+            self.team_group_id = self.group.id
+        return self
 
 
 class WMUserEntity(TeamGroupMixin, TimedBaseModel):
