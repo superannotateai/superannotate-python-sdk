@@ -85,7 +85,27 @@ class WMProjectEntity(TimedBaseModel):
         return super().model_dump_json(**kwargs)
 
 
-class WMUserEntity(TimedBaseModel):
+class TeamGroupEntity(TimedBaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int | None = None
+    name: str | None = None
+
+
+class TeamGroupMixin(BaseModel):
+    """``team_group_id`` is always present; ``group`` is filled only when teamGroup is joined."""
+
+    team_group_id: int | None = None
+    group: TeamGroupEntity | None = Field(default=None, validation_alias="teamGroup")
+
+    @model_validator(mode="after")
+    def fill_team_group_id(self):
+        if self.team_group_id is None and self.group is not None:
+            self.team_group_id = self.group.id
+        return self
+
+
+class WMUserEntity(TeamGroupMixin, TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: int | None = None
@@ -111,7 +131,7 @@ class WMUserEntity(TimedBaseModel):
         return super().model_dump_json(**kwargs)
 
 
-class WMProjectUserEntity(TimedBaseModel):
+class WMProjectUserEntity(TeamGroupMixin, TimedBaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: int | None = None

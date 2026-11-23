@@ -23,6 +23,12 @@ __________
 4.6.3 - Nov 05, 2026
 ____________________
 
+**Added**
+
+    - ``team_group_id`` field on users returned by ``SAClient.list_users()`` (team and project level) and ``SAClient.get_user_metadata()``; ``None`` when the user is not in a group.
+
+    - ``"group"`` option for the ``include`` parameter of ``SAClient.list_users()`` and ``SAClient.get_user_metadata()`` to return the nested ``group`` object (``id``, ``name``, ``createdAt``, ``updatedAt``) of the user's team group.
+
 **Updated**
 
     - ``SAClient.get_project_metadata`` with ``include_workflow=True`` now also returns the workflow's ``statuses`` (``id``, ``value``, ``name``) and ``roles`` (``id``, ``name``).

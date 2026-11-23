@@ -160,7 +160,9 @@ class WorkManagementManager(BaseManager):
         return self.service_provider.work_management.list_scores()
 
     def get_user_metadata(
-        self, pk: str | int, include: list[Literal["custom_fields"]] = None
+        self,
+        pk: str | int,
+        include: list[Literal["custom_fields", "group"]] = None,
     ):
         if isinstance(pk, int):
             filters = {"id": pk}
@@ -214,7 +216,7 @@ class WorkManagementManager(BaseManager):
 
     def list_users(
         self,
-        include: list[Literal["custom_fields", "categories"]] = None,
+        include: list[Literal["custom_fields", "categories", "group"]] = None,
         project=None,
         **filters,
     ):
@@ -264,6 +266,9 @@ class WorkManagementManager(BaseManager):
 
         if project and include and "categories" in include:
             query &= Join("categories")
+
+        if include and "group" in include:
+            query &= Join("teamGroup")
 
         if include and "custom_fields" in include:
             response = self.service_provider.work_management.list_users(
