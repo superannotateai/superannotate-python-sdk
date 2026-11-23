@@ -213,7 +213,7 @@ The SuperAnnotate format annotation JSONs have the general form:
         "instances":[
             {
                 "type":"bbox",
-                "classId":72274,
+                "classId":0,
                 "probability":100,
                 "points":{
                     "x1":437.16,
@@ -225,7 +225,7 @@ The SuperAnnotate format annotation JSONs have the general form:
             },
             {
                 "type":"polygon",
-                "classId":72274,
+                "classId":0,
                 "probability":100,
                 "points":[
                     281.98,

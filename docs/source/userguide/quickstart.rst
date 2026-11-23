@@ -213,7 +213,7 @@ SAORGClient: organization-scoped access
    org_client.list_teams()
 
    # Get a team-scoped client for one of them
-   sa_client = org_client.get_team_client(team_id=12345)
+   sa_client = org_client.get_team_client(team_id=0)
    sa_client.list_projects()
 
 ``get_team_client(team_id)`` returns a standard ``SAClient`` bound to that team. It supports the full team-level SDK surface, and no Team API key is created.
