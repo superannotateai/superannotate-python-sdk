@@ -14,6 +14,7 @@ from lib.core.entities import CategoryEntity
 from lib.core.entities import TokenContext
 from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
+from lib.core.entities.work_managament import PersonalAPIKeyEntity
 from lib.core.entities.work_managament import TeamAPIKeyEntity
 from lib.core.enums import CustomFieldEntityEnum
 from lib.core.jsx_conditions import Query
@@ -37,6 +38,7 @@ from lib.core.service_types import UserResponse
 from lib.core.service_types import WMClassesResponse
 from lib.core.service_types import WMCustomFieldResponse
 from lib.core.service_types import WMPermissionGroupListResponse
+from lib.core.service_types import WMPersonalAPIKeyListResponse
 from lib.core.service_types import WMProjectListResponse
 from lib.core.service_types import WMScoreListResponse
 from lib.core.service_types import WMTeamAPIKeyListResponse
@@ -323,6 +325,16 @@ class BaseWorkManagementService(SuperannotateServiceProvider):
 
     @abstractmethod
     def revoke_team_api_key(self, key_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_personal_api_keys(
+        self, query: Query, chunk_size: int = 100
+    ) -> WMPersonalAPIKeyListResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def revoke_personal_api_key(self, key_id: int) -> PersonalAPIKeyEntity:
         raise NotImplementedError
 
     def create_custom_role(self, org_id: str, data: dict):

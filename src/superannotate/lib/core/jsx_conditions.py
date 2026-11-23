@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import urllib.parse
 from abc import abstractmethod
 from collections import defaultdict
@@ -49,6 +50,30 @@ class Query:
             for condition in self.condition_set
             if not isinstance(condition, EmptyQuery)
         )
+
+    def build_search_params(self) -> dict[str, str]:
+        """Builds the query params of a GET search endpoint.
+
+        The filters travel as the JSON ``s`` param, in the same ``$and`` form a POST
+        search takes in its body: ``{"$and": [{"status": {"$in": ["ACTIVE"]}}]}``.
+        Without filters no ``s`` is sent.
+        """
+        search: list[dict] = []
+        for condition in self.condition_set:
+            if isinstance(condition, Filter) and not isinstance(condition, EmptyQuery):
+                _, c_value = condition.body_build()
+                search.extend(c_value)
+        if not search:
+            return {}
+        # Filter values may be any collection; JSON has only lists.
+        return {
+            "s": json.dumps(
+                {"$and": search},
+                default=lambda value: (
+                    list(value) if isinstance(value, set) else str(value)
+                ),
+            )
+        }
 
     def body_builder(self):
         search: dict[str, list] = defaultdict(list)

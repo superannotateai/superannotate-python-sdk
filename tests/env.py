@@ -50,6 +50,12 @@ SA_CONTRIBUTOR_TOKEN_ENV = "SA_CONTRIBUTOR_TOKEN"
 #: A key for SAORGClient's own tests, independent of SA_TOKEN's scope, plus a team it
 #: can reach.
 SA_ORGANIZATION_TOKEN_ENV = "SA_ORGANIZATION_TOKEN"
+#: The key the suite runs as; the personal key tests list and revoke with it when it is a
+#: team key.
+SA_TOKEN_ENV = "SA_TOKEN"
+#: A team owner's personal API key. It may mint a personal API key, which is how the
+#: personal key tests set themselves up; a team key may not.
+SA_PERSONAL_OWNER_TOKEN_ENV = "SA_PERSONAL_OWNER_TOKEN"
 SA_URL = "SA_URL"
 SA_ORGANIZATION_TEAM_ID_ENV = "SA_ORGANIZATION_TEAM_ID"
 
