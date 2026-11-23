@@ -63,6 +63,8 @@ class WorkflowEntity(TimedBaseModel):
     name: str | None = None
     type: str | None = None
     description: str | None = None
+    statuses: list[dict] | None = None
+    roles: list[dict] | None = None
 
     def is_system(self):
         return self.type == "system"
