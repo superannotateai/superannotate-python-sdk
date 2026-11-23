@@ -9,6 +9,12 @@ All release highlights of this project will be documented in this file.
 4.6.3 - Nov 05, 2026
 ____________________
 
+**Added**
+
+    - ``team_group_id`` field on users returned by ``SAClient.list_users()`` (team and project level) and ``SAClient.get_user_metadata()``; ``None`` when the user is not in a group. ``team_group_name`` is returned when ``include=["group"]`` is given.
+
+    - ``"group"`` option for the ``include`` parameter of ``SAClient.list_users()`` and ``SAClient.get_user_metadata()`` to fetch the user's group.
+
 **Updated**
 
     - Pillow requirement updated to ``pillow~=13.0`` to pick up security fixes (including Critical and High severity vulnerabilities fixed in Pillow 13.0.0).
