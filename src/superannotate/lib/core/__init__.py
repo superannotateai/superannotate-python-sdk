@@ -247,6 +247,7 @@ PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "MaxIdleDuration",
     "ItemAutoAssignOrder",
     "ImageAutoAssignByCategory",
+    "EditForm"
 ]
 
 __alL__ = (
