@@ -6,36 +6,34 @@ History
 
 All release highlights of this project will be documented in this file.
 
-Unreleased
+4.7.0 - Nov 24, 2026
 __________
 
 **Added**
 
-    - ``SAClient.list_personal_api_keys()`` Returns personal API keys in the team, with optional filters.
+    - ``SAClient.set_team_user_role()`` Sets a user’s team role and resets role-specific permissions to the defaults for the selected role.
 
-    - ``SAClient.revoke_personal_api_key()`` Revokes personal API keys, by ``public_id`` or ``api_key_id``.
+    - ``SAClient.set_project_user_role()`` Sets the project role of a user who already has access to the project, including custom roles.
 
-**Updated**
+    - ``SAClient.set_project_priority()`` Sets a project’s priority to Highest, High, Medium, Low, or Lowest. Pass ``None`` to clear the priority.
 
-    - ``SAClient.revoke_team_api_key()`` now takes ``public_id`` or ``api_key_id``. A ``public_id`` revokes every Active and Rotating key that shares it, an ``api_key_id`` revokes that one key. The success log names the public id.
+    - ``SAClient.list_personal_api_keys()`` Returns Personal API keys, newest first, with support for filtering by ID, name, and status. Visibility depends on the caller’s API key and permissions.
 
-
-4.6.3 - Nov 05, 2026
-____________________
-
-**Added**
-
-    - ``team_group_id`` field on users returned by ``SAClient.list_users()`` (team and project level) and ``SAClient.get_user_metadata()``; ``None`` when the user is not in a group.
-
-    - ``"group"`` option for the ``include`` parameter of ``SAClient.list_users()`` and ``SAClient.get_user_metadata()`` to return the nested ``group`` object (``id``, ``name``, ``createdAt``, ``updatedAt``) of the user's team group.
+    - ``SAClient.revoke_personal_api_key()`` Revokes Active or Rotating Personal API keys. Pass ``api_key_id`` to revoke one key, or ``public_id`` to revoke all Active and Rotating keys sharing that public ID.
 
 **Updated**
 
-    - ``SAClient.get_project_metadata`` with ``include_workflow=True`` now also returns the workflow's ``statuses`` (``id``, ``value``, ``name``) and ``roles`` (``id``, ``name``).
+    - ``SAClient.revoke_team_api_key()`` Revokes Active or Rotating Team API keys. Pass ``api_key_id`` to revoke one key, or ``public_id`` to revoke all Active and Rotating keys sharing that public ID.
 
-    - Pillow requirement updated to ``pillow~=13.0`` to pick up security fixes (including Critical and High severity vulnerabilities fixed in Pillow 13.0.0).
+    - ``SAClient.list_projects()`` Added support for filtering projects by priority using ``priority``, ``priority__ne``, ``priority__in``, and ``priority__notin``.
 
-    - SDK now supports Python versions 3.11, 3.12, 3.13 and 3.14. Python 3.10 is no longer supported.
+    - ``SAClient.get_project_metadata()`` Now includes the ``priority`` key in the returned metadata dictionary. When called with ``include_workflow=True``, the returned workflow also includes statuses with their IDs, values, and names, and roles with their IDs and names.
+
+    - ``SAClient.list_users()`` Added support for ``include=["group"]`` to retrieve team group metadata.
+    
+    - ``SAClient.get_user_metadata()`` Added support for ``include=["group"]`` to retrieve team group metadata.
+
+    - ``SAClient.get_team_metadata()`` When called with ``include=["scores"]``, now returns score metadata objects instead of score names in the ``scores`` list. Update code that expects a list of strings to read the relevant fields from each object.
 
 
 4.6.2 - Oct 12, 2026
