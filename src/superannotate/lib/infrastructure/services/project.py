@@ -18,6 +18,7 @@ class ProjectService(BaseProjectService):
     URL_SET_KEYPOINT_STEPS = "api/v1/project/{}/uploadSteps"
     URL_SHARE = "api/v1/project/{}/share/bulk"
     URL_SHARE_PROJECT = "project/{}/share"
+    URL_SHARE_PROJECT_V1 = "api/v1/project/{}/share"
     URL_STEP_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
@@ -68,11 +69,22 @@ class ProjectService(BaseProjectService):
         )
 
     def update(self, entity: entities.ProjectEntity):
+        # priority is only written by set_priority, a stale value must not be sent back
         return self.client.request(
             self.URL_GET.format(entity.id),
             "put",
-            data=entity,
+            data=entity.model_dump(
+                exclude={"priority"}, exclude_none=True, mode="json"
+            ),
             content_type=ProjectResponse,
+        )
+
+    def set_priority(self, project_id: int, priority: int | None) -> ServiceResponse:
+        # sent on its own: update() drops None fields, so it can't clear the priority
+        return self.client.request(
+            self.URL_GET.format(project_id),
+            "put",
+            data={"priority": priority},
         )
 
     def delete(self, entity: entities.ProjectEntity) -> ServiceResponse:
@@ -143,6 +155,13 @@ class ProjectService(BaseProjectService):
             self.URL_STEP_ATTRIBUTE.format(project.id),
             "post",
             data={"data": attributes},
+        )
+
+    def set_user_role(self, project_id: int, user_id: str, role: int):
+        return self.client.request(
+            self.URL_SHARE_PROJECT_V1.format(project_id),
+            "put",
+            data={"user_id": user_id, "new_user_role": role},
         )
 
     def un_share(self, project: entities.ProjectEntity, user_id: int):

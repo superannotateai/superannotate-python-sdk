@@ -9,6 +9,7 @@ from lib.core.config import Config
 from lib.core.enums import ApprovalStatus
 from lib.core.enums import FolderStatus
 from lib.core.enums import ImageQuality
+from lib.core.enums import ProjectPriority
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
 from lib.core.enums import StepsType
@@ -32,6 +33,12 @@ DEFAULT_LOGGING_LEVEL = "INFO"
 
 INVALID_TOKEN_ERROR = "Invalid token."
 INVALID_TEAM_ID_ERROR = "Invalid team id provided."
+INVALID_TEAM_USER_ROLE_ERROR = "Invalid role. Valid roles are: Contributor, TeamAdmin"
+INVALID_PROJECT_USER_ROLE_ERROR = "Invalid role."
+USER_NOT_FOUND_ERROR = "User not found."
+INVALID_PROJECT_PRIORITY_ERROR = (
+    "Invalid priority value. Available values: Highest, High, Medium, Low, Lowest."
+)
 INVALID_CREDENTIALS_ERROR = "Invalid credentials provided."
 INVALID_TEAM_CONTEXT = (
     'Team context not provided. An Organization API key requires a "team_id".'
@@ -200,6 +207,9 @@ TEAM_USER_PERMISSION_REVOKE_CASCADE = {
 }
 
 
+# user fields returned only when include=["group"] is requested
+TEAM_GROUP_FIELDS = {"group"}
+
 API_KEY_NOT_FOUND_ERROR = "API key not found"
 API_KEY_ALREADY_REVOKED_ERROR = "This key is already revoked or expired"
 
@@ -237,10 +247,12 @@ PROJECT_SETTINGS_VALID_ATTRIBUTES = [
     "MaxIdleDuration",
     "ItemAutoAssignOrder",
     "ImageAutoAssignByCategory",
+    "EditForm"
 ]
 
 __alL__ = (
     FolderStatus,
+    ProjectPriority,
     ProjectStatus,
     ProjectType,
     StepsType,

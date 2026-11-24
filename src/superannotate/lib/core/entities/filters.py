@@ -34,15 +34,21 @@ class ItemFilters(BaseFilters):
     categories__value__in: list[str] | None
 
 
-class ProjectFilters(BaseFilters):
+PROJECT_PRIORITY = Literal["Highest", "High", "Medium", "Low", "Lowest"]
+
+
+class FolderFilters(BaseFilters):
     status: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
     status__ne: Literal["NotStarted", "InProgress", "Completed", "OnHold"]
     status__in: list[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
     status__notin: list[Literal["NotStarted", "InProgress", "Completed", "OnHold"]]
 
 
-class FolderFilters(ProjectFilters):
-    pass
+class ProjectFilters(FolderFilters):
+    priority: PROJECT_PRIORITY | None
+    priority__ne: PROJECT_PRIORITY | None
+    priority__in: list[PROJECT_PRIORITY | None]
+    priority__notin: list[PROJECT_PRIORITY | None]
 
 
 #: The statuses a team API key can be filtered by, spelled as the SDK reports them
@@ -55,6 +61,10 @@ class TeamAPIKeyFilters(BaseFilters, total=False):
     status__ne: TEAM_API_KEY_STATUS
     status__in: list[TEAM_API_KEY_STATUS]
     status__notin: list[TEAM_API_KEY_STATUS]
+
+
+class PersonalAPIKeyFilters(TeamAPIKeyFilters, total=False):
+    """Personal API keys are filtered by the same fields as team API keys."""
 
 
 class BaseUserFilters(TypedDict, total=False):

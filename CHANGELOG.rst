@@ -6,6 +6,36 @@ History
 
 All release highlights of this project will be documented in this file.
 
+4.7.0 - Nov 24, 2026
+__________
+
+**Added**
+
+    - ``SAClient.set_team_user_role()`` Sets a user’s team role and resets role-specific permissions to the defaults for the selected role.
+
+    - ``SAClient.set_project_user_role()`` Sets the project role of a user who already has access to the project, including custom roles.
+
+    - ``SAClient.set_project_priority()`` Sets a project’s priority to Highest, High, Medium, Low, or Lowest. Pass ``None`` to clear the priority.
+
+    - ``SAClient.list_personal_api_keys()`` Returns Personal API keys, newest first, with support for filtering by ID, name, and status. Visibility depends on the caller’s API key and permissions.
+
+    - ``SAClient.revoke_personal_api_key()`` Revokes Active or Rotating Personal API keys. Pass ``api_key_id`` to revoke one key, or ``public_id`` to revoke all Active and Rotating keys sharing that public ID.
+
+**Updated**
+
+    - ``SAClient.revoke_team_api_key()`` Revokes Active or Rotating Team API keys. Pass ``api_key_id`` to revoke one key, or ``public_id`` to revoke all Active and Rotating keys sharing that public ID.
+
+    - ``SAClient.list_projects()`` Added support for filtering projects by priority using ``priority``, ``priority__ne``, ``priority__in``, and ``priority__notin``.
+
+    - ``SAClient.get_project_metadata()`` Now includes the ``priority`` key in the returned metadata dictionary. When called with ``include_workflow=True``, the returned workflow also includes statuses with their IDs, values, and names, and roles with their IDs and names.
+
+    - ``SAClient.list_users()`` Added support for ``include=["group"]`` to retrieve team group metadata.
+    
+    - ``SAClient.get_user_metadata()`` Added support for ``include=["group"]`` to retrieve team group metadata.
+
+    - ``SAClient.get_team_metadata()`` When called with ``include=["scores"]``, now returns score metadata objects instead of score names in the ``scores`` list. Update code that expects a list of strings to read the relevant fields from each object.
+
+
 4.6.2 - Oct 12, 2026
 ____________________
 

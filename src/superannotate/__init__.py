@@ -2,7 +2,8 @@ import logging
 import os
 import sys
 
-__version__ = "4.6.2"
+
+__version__ = "4.7.0"
 
 
 os.environ.update({"sa_version": __version__})

@@ -11,8 +11,6 @@ from tests.integration.work_management.data_set import SCORE_TEMPLATES
 
 sa = SAClient()
 
-print(sa.controller.token_context.token)
-
 
 class TestUserScoring(TestCase):
     """
@@ -110,6 +108,10 @@ class TestUserScoring(TestCase):
     @staticmethod
     def _attach_item(path, name):
         sa.attach_items(path, [{"name": name, "url": "url"}])
+
+    def test_team_scores(self):
+        data = sa.get_team_metadata(include=["scores"])
+        assert data
 
     def test_set_get_scores(self):
         scores_name_payload_map = {
@@ -364,3 +366,73 @@ class TestUserScoring(TestCase):
                     }
                 ],
             )
+
+
+class TestTeamScoring(TestCase):
+    """
+    Test using mock Multimodal form template with dynamically generated scores created during setup.
+    """
+
+    PROJECT_NAME = "TestTeamScoring"
+    PROJECT_TYPE = "Multimodal"
+    PROJECT_DESCRIPTION = "DESCRIPTION"
+    EDITOR_TEMPLATE_PATH = os.path.join(
+        DATA_SET_PATH / "editor_templates" / "form_with_scores.json"
+    )
+    CLASSES_TEMPLATE_PATH = os.path.join(
+        DATA_SET_PATH / "editor_templates" / "form1_classes.json"
+    )
+    MULTIMODAL_FORM = {
+        "components": [
+            {
+                "id": "r_qx07c6",
+                "type": "audio",
+                "permissions": [],
+                "hasTooltip": False,
+                "exclude": False,
+                "label": "",
+                "value": "",
+            }
+        ],
+        "readme": "",
+    }
+
+    @classmethod
+    def setUpClass(cls, *args, **kwargs) -> None:
+        # setup user scores for test
+        cls.tearDownClass()
+
+        cls._project = sa.create_project(
+            cls.PROJECT_NAME,
+            cls.PROJECT_DESCRIPTION,
+            cls.PROJECT_TYPE,
+            settings=[{"attribute": "TemplateState", "value": 1}],
+            form=cls.MULTIMODAL_FORM,
+        )
+
+        for data in SCORE_TEMPLATES:
+            req = sa.controller.service_provider.work_management.create_score(**data)
+            assert req.status_code == 201
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        # cleanup test scores and project
+        projects = sa.list_projects(name__in=[cls.PROJECT_NAME])
+        for project in projects:
+            try:
+                sa.delete_project(project=project["id"])
+            except Exception as _:
+                pass
+
+        score_templates_name_id_map = {
+            s.name: s.id
+            for s in sa.controller.service_provider.work_management.list_scores().data
+        }
+        for data in SCORE_TEMPLATES:
+            score_id = score_templates_name_id_map.get(data["name"])
+            if score_id:
+                sa.controller.service_provider.work_management.delete_score(score_id)
+
+    def test_team_scores(self):
+        data = sa.get_team_metadata(include=["scores"])
+        assert type(data["scores"][0]) is dict

@@ -6,6 +6,7 @@ from typing import Any
 from lib.core.entities.base import TimedBaseModel
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.work_managament import WMProjectUserEntity
+from lib.core.enums import ProjectPriority
 from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
 from pydantic import BaseModel
@@ -62,6 +63,8 @@ class WorkflowEntity(TimedBaseModel):
     name: str | None = None
     type: str | None = None
     description: str | None = None
+    statuses: list[dict] | None = None
+    roles: list[dict] | None = None
 
     def is_system(self):
         return self.type == "system"
@@ -80,6 +83,7 @@ class ProjectEntity(TimedBaseModel):
     entropy_status: int | None = None
     sharing_status: int | None = None
     status: ProjectStatus | None = None
+    priority: ProjectPriority | None = None
     folder_id: int | None = None
     workflow_id: int | None = None
     workflow: WorkflowEntity | None = None
@@ -137,7 +141,7 @@ class TeamEntity(BaseModel):
     pending_invitations: list[Any] | None = None
     creator_id: str | None = None
     owner_id: str | None = None
-    scores: list[str] | None = None
+    scores: list[dict[str, Any]] | None = None
 
 
 class OrgTeamEntity(BaseModel):

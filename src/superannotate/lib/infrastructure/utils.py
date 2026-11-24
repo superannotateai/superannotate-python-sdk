@@ -433,6 +433,10 @@ class CachedWorkManagementRepository:
             return role_data["role_name_id_map"][role_name]
         raise AppException("Invalid assignments role provided.")
 
+    def get_role_name_id_map(self, project) -> dict[str, int]:
+        role_data = self._role_cache.get(project.id, project=project)
+        return dict(role_data["role_name_id_map"])
+
     def get_role_name(self, project, role_id: int) -> str:
         role_data = self._role_cache.get(project.id, project=project)
         if role_id in role_data["role_id_name_map"]:

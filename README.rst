@@ -5,7 +5,7 @@ SuperAnnotate Python SDK
 
 Welcome to the SuperAnnotate Python Software Development Kit (SDK), which enables Python programmers to create software that incorporates services of the platform and effortlessly integrates SuperAnnotate into their AI process.
 
-.. |Python| image:: https://img.shields.io/static/v1?label=python&message=3.7/3.8/3.9/3.10/3.11&color=blue&style=flat-square
+.. |Python| image:: https://img.shields.io/static/v1?label=python&message=3.11/3.12/3.13/3.14&color=blue&style=flat-square
     :target: https://pypi.org/project/superannotate/
     :alt: Python Versions
 .. |License| image:: https://img.shields.io/static/v1?label=license&message=MIT&color=green&style=flat-square
@@ -106,7 +106,7 @@ SuperAnnotate python SDK is available on PyPI:
     pip install superannotate
 
 
-The package officially supports Python 3.10+ and was tested under Linux and
+The package officially supports Python 3.11+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`__
 ) platforms.
 

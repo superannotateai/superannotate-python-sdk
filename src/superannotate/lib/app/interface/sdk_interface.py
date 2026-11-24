@@ -6,7 +6,6 @@ import io
 import json
 import logging
 import os
-import sys
 import typing
 import warnings
 from collections.abc import Callable
@@ -17,31 +16,20 @@ from pathlib import Path
 from typing import Annotated
 from typing import Any
 from typing import Literal
-
-from pydantic import Field
-from pydantic import StringConstraints
-
-if sys.version_info < (3, 11):
-    from typing_extensions import TypedDict, NotRequired, Required  # noqa
-else:
-    from typing import TypedDict, NotRequired, Required  # noqa
+from typing import NotRequired
+from typing import Required
+from typing import TypedDict
 
 import boto3
-
-from tqdm import tqdm
-from pydantic import ValidationError
-from pydantic import TypeAdapter
-
 import lib.core as constants
-from lib.infrastructure.controller import OrgController
-from lib.infrastructure.controller import TeamController
 from lib.app.helpers import get_annotation_paths
-from lib.app.helpers import warn_deprecated
 from lib.app.helpers import get_name_url_duplicated_from_csv
+from lib.app.helpers import warn_deprecated
 from lib.app.helpers import wrap_error as wrap_validation_errors
 from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.base_interface import TrackableMeta
-
+from lib.app.interface.responses import QueryResult
+from lib.app.interface.sdk.explore import Explore
 from lib.app.interface.types import EmailStr
 from lib.app.interface.types import ExpiresIn
 from lib.app.serializers import BaseSerializer
@@ -49,49 +37,52 @@ from lib.app.serializers import FolderSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
-from lib.core import LIMITED_FUNCTIONS
+from lib.app.serializers import WMProjectSerializer
 from lib.core import entities
-from lib.core.conditions import CONDITION_EQ as EQ
+from lib.core import INVALID_TEAM_ID_ERROR
+from lib.core import LIMITED_FUNCTIONS
 from lib.core.conditions import Condition
-from lib.core.jsx_conditions import Filter, OperatorEnum
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import EmptyCondition
-from lib.core.entities import (
-    AttachmentEntity,
-    FolderEntity,
-    BaseItemEntity,
-    ProjectEntity,
-)
+from lib.core.entities import AttachmentEntity
+from lib.core.entities import BaseItemEntity
+from lib.core.entities import FolderEntity
+from lib.core.entities import ProjectEntity
 from lib.core.entities import SettingEntity
+from lib.core.entities import WMAnnotationClassEntity
 from lib.core.entities.classes import AnnotationClassEntity
 from lib.core.entities.classes import AttributeGroup
+from lib.core.entities.filters import FolderFilters
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.integrations import IntegrationTypeEnum
-from lib.core.enums import ImageQuality
-from lib.core.enums import CustomFieldEntityEnum
-from lib.core.enums import ProjectType
+from lib.core.entities.items import ProjectCategoryEntity
+from lib.core.entities.work_managament import WMUserTypeEnum
 from lib.core.enums import ClassTypeEnum
+from lib.core.enums import CustomFieldEntityEnum
+from lib.core.enums import ImageQuality
+from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import SAAuthError
-from lib.core import INVALID_TEAM_ID_ERROR
+from lib.core.jsx_conditions import EmptyQuery
+from lib.core.jsx_conditions import Fields
+from lib.core.jsx_conditions import Filter
+from lib.core.jsx_conditions import Join
+from lib.core.jsx_conditions import OperatorEnum
 from lib.core.types import PriorityScoreEntity
 from lib.infrastructure.annotation_adapter import BaseMultimodalAnnotationAdapter
-from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
 from lib.infrastructure.annotation_adapter import MultimodalLargeAnnotationAdapter
-from lib.infrastructure.validators import wrap_error
-from lib.app.serializers import WMProjectSerializer
-from lib.core.entities.work_managament import WMUserTypeEnum
-from lib.core.jsx_conditions import EmptyQuery
-from lib.core.jsx_conditions import Join
-from lib.core.jsx_conditions import Fields
-from lib.core.entities.items import ProjectCategoryEntity
-from lib.core.entities import WMAnnotationClassEntity
-from lib.infrastructure.query_builder import FolderFilterHandler
-from lib.core.entities.filters import FolderFilters
-from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.annotation_adapter import MultimodalSmallAnnotationAdapter
+from lib.infrastructure.controller import OrgController
+from lib.infrastructure.controller import TeamController
 from lib.infrastructure.query_builder import FieldValidationHandler
-
-from lib.app.interface.responses import QueryResult
-from lib.app.interface.sdk.explore import Explore
+from lib.infrastructure.query_builder import FolderFilterHandler
+from lib.infrastructure.query_builder import QueryBuilderChain
+from lib.infrastructure.validators import wrap_error
+from pydantic import Field
+from pydantic import StringConstraints
+from pydantic import TypeAdapter
+from pydantic import ValidationError
+from tqdm import tqdm
 
 logger = logging.getLogger("sa")
 
@@ -245,7 +236,7 @@ class ItemContext:
         Request Example:
         ::
 
-            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 0) as context:
                 metadata = context.get_metadata()
                 print(metadata)
         """
@@ -445,13 +436,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
     def get_team_metadata(self, include: list[Literal["scores"]] | None = None):
         """
-        Returns team metadata, including optionally, scores.
+        Returns team metadata, including optionally, scores metadata.
 
         :param include: Specifies additional fields to include in the response.
 
             Possible values are
 
-            - "scores": If provided, the response will include score names associated with the team user.
+            - "scores": : If provided, the response will include the metadata of each score associated with the team.
 
         :type include: list of str, optional
 
@@ -461,16 +452,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.get_team()
         team = response.data
         if include and "scores" in include:
-            team.scores = [
-                i.name
-                for i in self.controller.work_management.list_score_templates().data
-            ]
+            team.scores = BaseSerializer.serialize_iterable(
+                self.controller.work_management.list_score_templates().data
+            )
         return TeamSerializer(team).serialize(exclude_unset=True)
 
     def get_user_metadata(
         self,
         pk: int | str,
-        include: list[Literal["custom_fields"]] | None = None,
+        include: list[Literal["custom_fields", "group"]] | None = None,
     ):
         """
         Returns user metadata including optionally, custom fields
@@ -483,6 +473,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             Possible values are
 
             - "custom_fields": If provided, the response will include custom fields associated with the team user.
+            - "group": Includes the group metadata of the group each user belongs to. Users who aren't in a group get None.
 
         :type include: list of str, optional
 
@@ -494,7 +485,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             sa_client.get_user_metadata(
                 "example@email.com",
-                include=["custom_fields"]
+                include=["custom_fields", "group"]
             )
 
         Response Example:
@@ -503,20 +494,30 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             {
                 "createdAt": "2023-11-27T07:10:24.000Z",
                 "updatedAt": "2025-02-03T13:35:09.000Z",
+                "team_group_id": 412,
+                "group": {
+                    "createdAt": "2025-01-10T09:00:00.000Z",
+                    "updatedAt": "2025-01-10T09:00:00.000Z",
+                    "id": 412,
+                    "name": "Vendor A",
+                },
                 "custom_fields": {
                     "ann_quality_threshold": 80,
                     "tag": ["Tag1", "Tag2", "Tag3"],
                     "due_date": 1738671238.7,
                 },
                 "email": "example@email.com",
-                "id": 124341,
+                "id": 0,
                 "role": "Contributor",
                 "state": "Confirmed",
-                "team_id": 23245,
+                "team_id": 0,
             }
         """
         user = self.controller.work_management.get_user_metadata(pk=pk, include=include)
-        return BaseSerializer(user).serialize(by_alias=False)
+        return BaseSerializer(user).serialize(
+            by_alias=False,
+            exclude=None if include and "group" in include else constants.TEAM_GROUP_FIELDS,
+        )
 
     def set_user_custom_field(self, pk: int | str, custom_field_name: str, value: Any):
         """
@@ -562,7 +563,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         *,
         project: NotEmptyStr | int | None = None,
-        include: list[Literal["custom_fields", "categories"]] | None = None,
+        include: list[Literal["custom_fields", "categories", "group"]] | None = None,
         **filters,
     ):
         """
@@ -579,6 +580,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - "custom_fields": Includes custom fields and scores assigned to each user.
             - "categories": Includes a list of categories assigned to each project contributor.
               Note: 'project' parameter must be specified when including 'categories'.
+            - "group": Includes the group metadata of the group each user belongs to. Users who aren't in a group get None.
         :type include: list of str, optional
 
         :param filters: Specifies filtering criteria, with all conditions combined using logical AND.
@@ -667,10 +669,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "Tag": ["Tag1", "Tag2", "Tag3"],
                     },
                     "email": "example@superannotate.com",
-                    "id": 30328,
+                    "id": 0,
                     "role": "TeamOwner",
                     "state": "Confirmed",
-                    "team_id": 44311,
+                    "team_id": 0,
                     "user_permissions": [],
                 }
             ]
@@ -699,7 +701,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "updatedAt": "2025-03-07T13:19:59.000Z",
                     "custom_fields": {"speed": 92, "weight": 0.8},
                     "email": "example@superannotate.com",
-                    "id": 715121,
+                    "id": 0,
                     'permissions': {
                         'allow_orchestrate': 0,
                         'allow_run_explore': 0,
@@ -708,7 +710,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     },
                     "role": "Annotator",
                     "state": "Confirmed",
-                    "team_id": 1234,
+                    "team_id": 0,
                     "categories": None,
                     "user_permissions": [],
                 }
@@ -751,10 +753,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "speed score 7D": 11,
                     },
                     "email": "example@superannotate.com",
-                    "id": 715121,
+                    "id": 0,
                     "role": "Contributor",
                     "state": "Confirmed",
-                    "team_id": 1234,
+                    "team_id": 0,
                     "user_permissions": [],
                 }
             ]
@@ -789,7 +791,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   'createdAt': '2026-05-19T08:28:55.000Z',
                   'custom_fields': {},
                   'email': 'test@superannotate.com',
-                  'id': 1622408,
+                  'id': 0,
                   'permissions': {
                     'allow_orchestrate': 0,
                     'allow_run_explore': 0,
@@ -798,7 +800,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   },
                   'role': 'ProjectAdmin',
                   'state': 'Confirmed',
-                  'team_id': 32022,
+                  'team_id': 0,
                   'updatedAt': '2026-05-19T08:28:55.000Z',
                   'categories': None,
                   'user_permissions': [
@@ -828,10 +830,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   'createdAt': '2026-05-19T08:28:55.000Z',
                   'custom_fields': {},
                   'email': 'test@superannotate.com',
-                  'id': 1622408,
+                  'id': 0,
                   'role': 'Contributor',
                   'state': 'Confirmed',
-                  'team_id': 32022,
+                  'team_id': 0,
                   'updatedAt': '2026-05-19T08:28:55.000Z',
                   'user_permissions': [
                     {
@@ -855,7 +857,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = BaseSerializer.serialize_iterable(
             self.controller.work_management.list_users(
                 project=project, include=include, **filters
-            )
+            ),
+            exclude=None if include and "group" in include else constants.TEAM_GROUP_FIELDS,
         )
         if project:
             for user in response:
@@ -953,7 +956,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2024-06-01T13:00:00",
                     "updatedAt": "2024-06-01T13:00:00",
-                    "id": 3217575,
+                    "id": 0,
                     "name": "Accuracy Score",
                     "value": 98,
                     "weight": 4,
@@ -961,7 +964,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2024-06-01T13:00:00",
                     "updatedAt": "2024-06-01T13:00:00",
-                    "id": 5657575,
+                    "id": 0,
                     "name": "Speed",
                     "value": 9,
                     "weight": 0.4,
@@ -1026,7 +1029,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             sa_client.set_user_scores(
                 project=("my_multimodal", "folder1"),
-                item_=12345,
+                item_=0,
                 scored_user="example@superannotate.com",
                 scores=[
                     {"component_id": "r_kfrp3n", "value": 90},
@@ -1148,6 +1151,59 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             operation="remove",
         )
 
+    def set_project_user_role(
+        self, project: NotEmptyStr | int, user: NotEmptyStr, role: NotEmptyStr
+    ) -> None:
+        """Sets the project-level role of a user who is already shared on the given
+        project. The user is switched to the given role.
+
+        :param project: The name or ID of the project.
+        :type project: Union[NotEmptyStr, int]
+
+        :param user: Email of user whose project role is being changed.
+         The user must already be shared on the project.
+        :type user: str
+
+        :param role: The project role to switch the user to. Case-sensitive.
+
+            Possible values are
+
+            - "ProjectAdmin": Full access to the project, including settings,
+              sharing, and workload.
+            - Any other role defined in the project: Pass the role's name exactly
+              as it appears in the project.
+        :type role: str
+
+        :rtype: None
+
+        :raises AppException: If the role does not exist in the project, or the
+         project or user is not found.
+
+        Request Example:
+        ::
+
+            # To make a user a Project Admin on the project:
+            sa_client.set_project_user_role(
+                project="Image Project",
+                user="test@superannotate.com",
+                role="ProjectAdmin"
+            )
+
+            # To assign a user a custom role on the project:
+            sa_client.set_project_user_role(
+                project="Image Project",
+                user="test@superannotate.com",
+                role="My Custom Role"
+            )
+        """
+        project = self.controller.get_project(project)
+        self.controller.work_management.set_project_user_role(
+            project=project, user=user, role=role
+        )
+        logger.info(
+            f"Successfully set role {role} for user: {user} in project {project.name}."
+        )
+
     def grant_project_user_permissions(
         self,
         project: NotEmptyStr | int,
@@ -1187,7 +1243,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             # To grant all permissions by project user ID:
             sa_client.grant_project_user_permissions(
-                project=12345,
+                project=0,
                 permissions="*",
                 user=101
             )
@@ -1245,7 +1301,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             # To revoke all permissions by project user ID:
             sa_client.revoke_project_user_permissions(
-                project=12345,
+                project=0,
                 permissions="*",
                 user=101
             )
@@ -1263,6 +1319,41 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             permissions=permissions,
             operation="revoke",
         )
+
+    def set_team_user_role(self, user: NotEmptyStr, role: str) -> None:
+        """Sets the team-level role of a team user. The user is switched to the given
+        role, and role-specific permissions are reset to the defaults for that role.
+
+        :param user: Team user email of user whose role is being changed.
+        :type user: str
+
+        :param role: The role to switch the user to. Case-sensitive.
+
+            Possible values are
+
+            - "Contributor": Contributor permissions can be granted afterwards with
+              :func:`grant_team_user_permissions`.
+            - "TeamAdmin": Team Admin permissions can be granted afterwards with
+              :func:`grant_team_user_permissions`.
+        :type role: str
+
+        :rtype: None
+
+        :raises AppException: If the role is not one of the supported values or the
+         user is not found.
+
+        Request Example:
+        ::
+
+            # To promote a Contributor to Team Admin:
+            sa_client.set_team_user_role(
+                user="test@superannotate.com",
+                role="TeamAdmin"
+            )
+        """
+        self.controller.work_management.set_team_user_role(user=user, role=role)
+        role_name = "Team Admin" if role == "TeamAdmin" else role
+        logger.info(f"Successfully set role: {role_name}, for user: {user}.")
 
     def grant_team_user_permissions(
         self,
@@ -1325,7 +1416,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             # To grant all permissions by team user ID:
             sa_client.grant_team_user_permissions(
                 permissions="*",
-                user=124341
+                user=0
             )
 
             # Example when granting "Edit Contributors' custom field values" permission
@@ -1396,7 +1487,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             # To revoke all permissions by team user ID:
             sa_client.revoke_team_user_permissions(
                 permissions="*",
-                user=124341
+                user=0
             )
 
             # Example when revoking "View Contributors' custom field values" permission
@@ -1463,13 +1554,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
-
             {
-                "id": 9010,
-                "public_id": "XBb9i1glPi8SCaHW",
+                "id": 0,
+                "public_id": "public_id",
                 "name": "new_api_key",
                 "scope": {
-                    "team_id": 85922
+                    "team_id": 0
                 },
                 "created_by": "test@superannotate.com",
                 "status": "ACTIVE",
@@ -1532,11 +1622,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ::
 
             {
-                "id": 9010,
-                "public_id": "XBb9i1glPi8SCaHW",
+                "id": 0,
+                "public_id": "public_id",
                 "name": "api_key_to_rotate",
                 "scope": {
-                    "team_id": 85922
+                    "team_id": 0
                 },
                 "created_by": "test@superannotate.com",
                 "status": "ACTIVE",
@@ -1603,11 +1693,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             [
                 {
-                    "id": 9010,
-                    "public_id": "XBb9i1glPi8SCaHW",
+                    "id": 0,
+                    "public_id": "public_id",
                     "name": "active_api_key",
                     "scope": {
-                        "team_id": 85922
+                        "team_id": 0
                     },
                     "created_by": "test@superannotate.com",
                     "revoked_by": None,
@@ -1622,11 +1712,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "lastUsedAt": None
                 },
                 {
-                    "id": 8880,
-                    "public_id": "otwr84WkHXh64Wms",
+                    "id": 0,
+                    "public_id": "public_id",
                     "name": "rotating_api_key",
                     "scope": {
-                        "team_id": 85922
+                        "team_id": 0
                     },
                     "created_by": "test@superannotate.com",
                     "revoked_by": None,
@@ -1648,24 +1738,170 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             exclude_unset=True,
         )
 
-    def revoke_team_api_key(self, public_id: str) -> None:
+    def revoke_team_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> None:
         """
-        Revokes the team API key. Team API key should be in Active or Rotating state.
+        Revokes team API keys. Only keys in the Active or Rotating state can be revoked.
         Can use Organization API Key, Team API Key or Personal API Key for this function.
 
-        :param public_id: The public id of the key to revoke.
-        :type public_id: str
+        Pass either public_id or api_key_id:
+
+        - public_id revokes all Active and Rotating keys that share this public id.
+        - api_key_id revokes only that one key.
+
+        :param public_id: The public id of the keys to revoke.
+        :type public_id: str, optional
+
+        :param api_key_id: The id of the key to revoke, as returned in the id field by list_team_api_keys().
+        :type api_key_id: int, optional
 
         :rtype: None
 
         Request Example:
         ::
 
-            # Revoke team API key
-            sa_client.revoke_team_api_key(public_id="UwBK9syTtXUGROrA")
+            # Revoke all Active and Rotating keys with this public id
+            sa_client.revoke_team_api_key(public_id="public_id")
+
+            # Revoke one specific key
+            sa_client.revoke_team_api_key(api_key_id=0)
         """
-        key = self.controller.work_management.revoke_team_api_key(public_id=public_id)
-        logger.info(f"Successfully revoked API key: {key.name}.")
+        keys = self.controller.work_management.revoke_team_api_key(
+            public_id=public_id, api_key_id=api_key_id
+        )
+        logger.info(f"Successfully revoked API key: {keys[0].public_id}.")
+
+    def list_personal_api_keys(self, **filters) -> list[dict]:
+        """
+        Returns personal API keys in the team, newest first.
+
+        - Returns all personal API keys in the team, from every member, including the caller's own:
+
+          - Team Owners using a Personal API Key.
+          - Team Admins with the "Revoke members' personal API keys" permission using a Personal API Key.
+          - Any caller using a Team API Key or Organization API Key.
+
+        - Returns only the caller's own personal API keys:
+
+          - Team Admins without the "Revoke members' personal API keys" permission using a Personal API Key.
+          - Contributors using a Personal API Key.
+
+        :param filters: Specifies filtering criteria, with all conditions combined
+            using logical AND.
+
+            - Only personal API keys matching all filter conditions are returned.
+
+            - If no filter operation is provided, an exact match is applied.
+
+            Supported operations:
+
+            - __in: Value is in the provided list.
+            - __notin: Value is not in the provided list.
+            - __ne: Value is not equal to the given value.
+            - __contains: Value contains the specified substring.
+            - __starts: Value starts with the given prefix.
+            - __ends: Value ends with the given suffix.
+
+            Filter params::
+
+            - id: int
+            - id__in: list[int]
+            - name: str
+            - name__in: list[str]
+            - name__contains: str
+            - name__starts: str
+            - name__ends: str
+            - status: Literal["Active", "Rotating", "Expired", "Revoked"]
+            - status__ne: Literal["Active", "Rotating", "Expired", "Revoked"]
+            - status__in: List[Literal["Active", "Rotating", "Expired", "Revoked"]]
+            - status__notin: List[Literal["Active", "Rotating", "Expired", "Revoked"]]
+
+        :type filters: PersonalAPIKeyFilters, optional
+
+        :return: The personal API keys that match the filtering criteria; an empty list
+            if there are none or none of them match.
+        :rtype: list of dicts
+
+        Request Example:
+        ::
+
+            sa_client.list_personal_api_keys(status__in=["Active", "Rotating"])
+
+        Response Example:
+        ::
+
+            [
+                {
+                    "id": 1,
+                    "public_id": "public_id",
+                    "name": "active_personal_key",
+                    "scope": {
+                        "team_id": 0,
+                        "user_id": "test@superannotate.com"
+                    },
+                    "created_by": "test@superannotate.com",
+                    "revoked_by": None,
+                    "status": "ACTIVE",
+                    "deletedAt": None,
+                    "expiresAt": "2027-08-13T05:22:31.421Z",
+                    "revokedAt": None,
+                    "overlapEndAt": None,
+                    "createdAt": "2026-08-13T05:22:32.044Z",
+                    "updatedAt": "2026-08-13T05:22:32.044Z",
+                    "lastUsedAt": None
+                }
+            ]
+        """
+        return BaseSerializer.serialize_iterable(
+            self.controller.work_management.list_personal_api_keys(**filters),
+            by_alias=True,
+            exclude_unset=True,
+        )
+
+    def revoke_personal_api_key(
+        self, public_id: str | None = None, api_key_id: int | None = None
+    ) -> None:
+        """
+        Revokes personal API keys. The key must be in the Active or Rotating state.
+
+        - Can revoke any personal API key in the team, including those of Team Owners, Team Admins and Contributors:
+
+          - Team Owners with a Personal API Key.
+          - Team Admins with the "Revoke members' personal API keys" permission.
+          - Any caller using a Team API Key or Organization API Key.
+
+        - Can revoke only the caller's own personal API keys:
+
+          - Team Admins without the "Revoke members' personal API keys" permission using a Personal API Key.
+          - Contributors using a Personal API Key.
+
+        Pass either public_id or api_key_id:
+
+        - public_id revokes all Active and Rotating keys that share this public id.
+        - api_key_id revokes only that one key.
+
+        :param public_id: The public id of the keys to revoke.
+        :type public_id: str, optional
+
+        :param api_key_id: The id of the key to revoke, as returned in the id field by list_personal_api_keys().
+        :type api_key_id: int, optional
+
+        :rtype: None
+
+        Request Example:
+        ::
+
+            # Revoke all Active and Rotating keys with this public id
+            sa_client.revoke_personal_api_key(public_id="public_id")
+
+            # Revoke one specific key
+            sa_client.revoke_personal_api_key(api_key_id=0)
+        """
+        keys = self.controller.work_management.revoke_personal_api_key(
+            public_id=public_id, api_key_id=api_key_id
+        )
+        logger.info(f"Successfully revoked API key: {keys[0].public_id}.")
 
     def get_component_config(self, project: NotEmptyStr | int, component_id: str):
         """
@@ -2068,16 +2304,16 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2025-01-29T13:51:39.000Z",
                     "updatedAt": "2025-01-29T13:51:39.000Z",
-                    "id": 328577,
+                    "id": 0,
                     "name": "category1",
-                    "project_id": 1234
+                    "project_id": 0
                 },
                 {
                     "createdAt": "2025-01-29T13:51:39.000Z",
                     "updatedAt": "2025-01-29T13:51:39.000Z",
-                    "id": 328577,
+                    "id": 0,
                     "name": "category2",
-                    "project_id": 1234
+                    "project_id": 0
                 },
             ]
 
@@ -2256,15 +2492,15 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             {
                 "createdAt": "2025-10-27T06:54:09.000Z",
                 "updatedAt": "2025-10-27T06:54:09.000Z",
-                "id": 1487195,
+                "id": 0,
                 "name": "test_folder",
                 "status": "NotStarted",
-                "project_id": 1203397,
-                "team_id": 85922,
+                "project_id": 0,
+                "team_id": 0,
                 "contributors": [
                     {
                         "email": "test@superannotate.com",
-                        "id": 1314658,
+                        "id": 0,
                         "role": "Annotator",
                         "state": "Confirmed"
                     }
@@ -2444,21 +2680,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2025-10-27T06:54:09.000Z",
                     "updatedAt": "2025-10-27T06:54:09.000Z",
-                    "id": 1487195,
+                    "id": 0,
                     "name": "test_folder",
                     "status": "NotStarted",
-                    "project_id": 1203397,
-                    "team_id": 85922,
+                    "project_id": 0,
+                    "team_id": 0,
                     "is_root": False
                 },
                 {
                     "createdAt": "2025-10-27T06:54:09.000Z",
                     "updatedAt": "2025-10-27T06:54:09.000Z",
-                    "id": 1379813,
+                    "id": 0,
                     "name": "root",
                     "status": None,
-                    "project_id": 1203397,
-                    "team_id": 85922,
+                    "project_id": 0,
+                    "team_id": 0,
                     "is_root": True
                 }
             ]
@@ -2506,7 +2742,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                  the key "settings"
         :type include_settings: bool
 
-        :param include_workflow: Returns workflow metadata
+        :param include_workflow: If True, the response includes the project's workflow under the key "workflow",
+                                 with its statuses and roles:
+
+                                 * **statuses**: the statuses in this workflow, ordered by value ascending. For each status:
+
+                                   * **id**: the status ID. It's the same across all workflows and projects in your team.
+                                   * **value**: the status number in this project. Items store it as ``annotation_status``.
+                                   * **name**: the status name.
+
+                                 * **roles**: the roles in this workflow, in workflow order. For each role:
+
+                                   * **id**: the role ID.
+                                   * **name**: the role name.
         :type include_workflow: bool
 
         :param include_contributors: enables project contributors output under
@@ -2540,8 +2788,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             {
                 "createdAt": "2025-02-04T12:04:01.000Z",
                 "updatedAt": "2024-02-04T12:04:01.000Z",
-                "id": 902174,
-                "team_id": 233435,
+                "id": 0,
+                "team_id": 0,
                 "name": "Medical Annotations",
                 "type": "Vector",
                 "description": "DESCRIPTION",
@@ -2550,7 +2798,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 "entropy_status": 1,
                 "sharing_status": None,
                 "status": "NotStarted",
-                "folder_id": 1191383,
+                "priority": "High",
+                "folder_id": 0,
                 "workflow_id": 1,
                 "workflow": {
                     "createdAt": "2024-09-03T12:48:09.000Z",
@@ -2558,7 +2807,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "id": 1,
                     "name": "System workflow",
                     "type": "system",
-                    "description": "This workflow is generated by the system, and prevents annotators from completing items."
+                    "description": "This workflow is generated by the system, and prevents annotators from completing items.",
+                    "statuses": [
+                        {"id": 1, "value": 1, "name": "NotStarted"},
+                        {"id": 2, "value": 2, "name": "InProgress"},
+                        {"id": 3, "value": 3, "name": "QualityCheck"},
+                        {"id": 6, "value": 4, "name": "Skipped"},
+                        {"id": 5, "value": 5, "name": "Completed"},
+                        {"id": 0, "value": 7, "name": "Custom Status"},
+                    ],
+                    "roles": [
+                        {"id": 1, "name": "Annotator"},
+                        {"id": 2, "name": "QA"},
+                        {"id": 0, "name": "Audit"}
+                    ],
                 },
                 "upload_state": "INITIAL",
                 "contributors": [],
@@ -2657,7 +2919,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                   "attribute": [
                     {
                             "attribute": {
-                                "id": 123,
+                                "id": 0,
                                 "group_id": 12
                             }
                         }
@@ -2736,21 +2998,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
              {
                 "createdAt": "2026-01-19T10:18:33.000Z",
                 "updatedAt": "2026-01-21T10:53:13.000Z",
-                "id": 5780791,
-                "project_id": 1296086,
+                "id": 0,
+                "project_id": 0,
                 "type": "object",
                 "name": "Example Class",
                 "color": "#F9E0FA",
                 "attribute_groups": [
                     {
-                        "id": 5623209,
+                        "id": 0,
                         "group_type": "radio",
                         "name": "Vehicle",
                         "isRequired": False,
                         "default_value": "Car",
                         "attributes": [
-                            {"id": 11393039, "name": "Car", "default": 1},
-                            {"id": 11393040, "name": "Truck", "default": 0}
+                            {"id": 0, "name": "Car", "default": 1},
+                            {"id": 0, "name": "Truck", "default": 0}
                         ]
                     }
                 ]
@@ -2973,6 +3235,39 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(f"Failed to change {project.name} status.")
         logger.info(f"Successfully updated {project.name} status to {status}")
+
+    def set_project_priority(self, project: NotEmptyStr | int, priority: str | None):
+        """Sets the priority of a project. Pass None as priority to clear it.
+
+        :param project: The name or ID of the project.
+        :type project: str or int
+
+        :param priority: One of Highest, High, Medium, Low, Lowest, or None to clear the priority.
+
+            Available priorities are::
+
+                 * Highest
+                 * High
+                 * Medium
+                 * Low
+                 * Lowest
+
+        :type priority: str or None
+
+        Request Example:
+        ::
+
+            # Set the priority of a single project
+            sa_client.set_project_priority(
+                project="Medical Imaging QA",
+                priority="Highest"
+            )
+        """
+        project = self.controller.get_project(project)
+        self.controller.projects.set_priority(project, priority)
+        logger.info(
+            f"Successfully changed the priority of project {project.name} to {priority}."
+        )
 
     def set_project_custom_field(
         self, project: NotEmptyStr | int, custom_field_name: str, value: Any
@@ -4026,7 +4321,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         "attribute": [
                             {
                                 "attribute": {
-                                    "id": 123,
+                                    "id": 0,
                                     "group_id": 12
                                 }
                             }
@@ -4797,7 +5092,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             [
                 {
                     "createdAt": "2023-11-27T11:16:02.000Z",
-                    "id": 5072,
+                    "id": 0,
                     "name": "My S3 Bucket",
                     "root": "test-openseadragon-1212",
                     "type": "aws",
@@ -5160,7 +5455,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
             [
                 {
-                    "id": 48909383,
+                    "id": 0,
                     "name": "scan_123.jpeg",
                     "path": "Medical Annotations/folder1",
                     "url": "https://sa-public-files.s3.../scan_123.jpeg",
@@ -5173,7 +5468,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                         {
                             "createdAt": "2025-01-29T13:51:39.000Z",
                             "updatedAt": "2025-01-29T13:51:39.000Z",
-                            "id": 328577,
+                            "id": 0,
                             "name": "my_category",
                         },
                     ],
@@ -5283,6 +5578,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             - status__ne: Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]
             - status__in: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
             - status__notin: List[Literal[“NotStarted”, “InProgress”, “Completed”, “OnHold”]]
+            - priority: Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]
+            - priority__ne: Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]
+            - priority__in: List[Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]]
+            - priority__notin: List[Literal[“Highest”, “High”, “Medium”, “Low”, “Lowest”, None]]
 
             Custom Fields Filtering:
 
@@ -5319,6 +5618,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 custom_field__Tag__in=["Tag1", "Tag3"]
             )
 
+            # Projects that are High or Highest priority
+            sa_client.list_projects(
+                priority__in=["Highest", "High"],
+                name__contains="Medical",
+            )
+
         Response Example:
         ::
 
@@ -5338,8 +5643,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     },
                     "description": "DESCRIPTION",
                     "entropy_status": 1,
-                    "folder_id": 1191383,
-                    "id": 902174,
+                    "folder_id": 0,
+                    "id": 0,
                     "instructions_link": None,
                     "item_count": None,
                     "name": "Medical Annotations",
@@ -5347,7 +5652,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                     "settings": [],
                     "sharing_status": None,
                     "status": "InProgress",
-                    "team_id": 233435,
+                    "priority": "High",
+                    "team_id": 0,
                     "type": "Vector",
                     "updatedAt": "2024-02-04T12:04:01.000Z",
                     "upload_state": "INITIAL",
@@ -6288,7 +6594,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         .. code-block:: python
 
-            with sa_client.item_context(("project_name", "folder_name"), 12345) as context:
+            with sa_client.item_context(("project_name", "folder_name"), 0) as context:
                 metadata = context.get_metadata()
                 print(metadata)
 
@@ -6373,7 +6679,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 {
                     "createdAt": "2025-01-03T12:48:09.000Z",
                     "updatedAt": "2025-01-05T12:48:09.000Z",
-                    "id": 58758,
+                    "id": 0,
                     "name": "Custom workflow",
                     "type": "user",
                     "description": "This workflow custom build."
@@ -6500,7 +6806,7 @@ class SAORGClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         Request Example:
         ::
 
-            team_client = org_client.get_team_client(team_id=12345)
+            team_client = org_client.get_team_client(team_id=0)
             team_client.list_projects(name__contains="My Project")
         """
         # The whole configuration this client was built with, re-pointed at one team.
